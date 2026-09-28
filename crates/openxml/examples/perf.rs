@@ -21,7 +21,7 @@ const PARAGRAPHS: usize = 100_000;
 const SLIDES: usize = 500;
 
 fn value(r: u32, c: u32) -> CellValue {
-    if c % 2 == 0 {
+    if c.is_multiple_of(2) {
         CellValue::Number(f64::from(r) * 10.0 + f64::from(c))
     } else {
         CellValue::Text(format!("item {}", r % 1000))
