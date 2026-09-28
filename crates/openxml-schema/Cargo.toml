@@ -1,0 +1,18 @@
+[package]
+name = "openxml-schema"
+description = "Strongly typed Office Open XML (ECMA-376) schema types, generated from the official XML Schemas"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+openxml-xml = { workspace = true }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+openxml-opc = { workspace = true }
+openxml-testkit = { workspace = true }

@@ -1,0 +1,16 @@
+[package]
+name = "openxml-testkit"
+description = "Test helpers shared by the openxml crates (schema validation, corpus walking)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+openxml-opc = { workspace = true }
+openxml-xml = { workspace = true }
+
+[lints]
+workspace = true

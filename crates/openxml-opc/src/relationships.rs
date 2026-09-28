@@ -59,7 +59,8 @@ impl Relationships {
         let mut rels = Relationships::new();
         for el in root.elements().filter(|e| e.name.is(Ns::PR, "Relationship")) {
             let (Some(id), Some(ty)) = (el.attr(Ns::NONE, "Id"), el.attr(Ns::NONE, "Type")) else {
-                return Err(Error::InvalidRelationship("missing Id or Type attribute".into()));
+                // Unusable entries are dropped, as Office applications do when repairing.
+                continue;
             };
             let target = el.attr(Ns::NONE, "Target").unwrap_or("");
             let target_mode = match el.attr(Ns::NONE, "TargetMode") {
@@ -247,13 +248,15 @@ mod tests {
     }
 
     #[test]
-    fn duplicate_ids_keep_first_and_missing_attributes_fail() {
+    fn duplicate_ids_keep_first_and_incomplete_entries_are_skipped() {
         let xml = r#"<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="a" Type="t1" Target="x"/><Relationship Id="a" Type="t2" Target="y"/></Relationships>"#;
         let rels = Relationships::parse(xml.as_bytes()).unwrap();
         assert_eq!(rels.len(), 1);
         assert_eq!(rels.get("a").unwrap().rel_type, "t1");
-        let bad = r#"<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Target="x"/></Relationships>"#;
-        assert!(Relationships::parse(bad.as_bytes()).is_err());
+        let bad = r#"<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Target="x"/><Relationship Id="b" Type="t" Target="y"/></Relationships>"#;
+        let rels = Relationships::parse(bad.as_bytes()).unwrap();
+        assert_eq!(rels.len(), 1);
+        assert_eq!(rels.get("b").unwrap().target, "y");
         assert!(Relationships::parse(b"<Types/>").is_err());
     }
 }

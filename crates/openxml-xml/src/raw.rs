@@ -258,14 +258,19 @@ impl RawElement {
 /// A raw element that appeared among the children of a typed element at a
 /// position the schema does not describe.
 ///
-/// `anchor` records where it was found: the element is written before the
-/// typed field with index `anchor` (or after all fields when `anchor` equals
-/// the number of fields). This keeps markup-compatibility wrappers such as
-/// `mc:AlternateContent` in their original position.
+/// The position is recorded relative to the typed fields: the element is
+/// written immediately before item `index` of field `anchor` (for fields
+/// holding a single value `index` is `0`, i.e. before the field). When
+/// `index` is at least the number of items of a repeated field, the element
+/// is written after that field's last item. `anchor` equal to the number of
+/// fields means "after all fields". This keeps markup-compatibility wrappers
+/// such as `mc:AlternateContent` in their original position.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ExtraChild {
-    /// Index of the field the element precedes.
+    /// Index of the field the element is attached to.
     pub anchor: u16,
+    /// Item index within a repeated field.
+    pub index: u32,
     /// The captured element.
     pub element: RawElement,
 }

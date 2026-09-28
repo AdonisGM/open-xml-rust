@@ -1,0 +1,18 @@
+[package]
+name = "openxml-codegen"
+description = "Generates the openxml-schema crate from the ECMA-376 XML Schemas"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+openxml-xml = { workspace = true }
+roxmltree = { workspace = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[lints]
+workspace = true

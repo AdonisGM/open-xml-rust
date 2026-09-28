@@ -3,6 +3,9 @@ resolver = "3"
 members = [
     "crates/openxml-xml",
     "crates/openxml-opc",
+    "crates/openxml-codegen",
+    "crates/openxml-schema",
+    "crates/openxml-testkit",
 ]
 
 [workspace.package]
@@ -15,6 +18,8 @@ repository = "https://github.com/open-xml-rust/open-xml-rust"
 [workspace.dependencies]
 openxml-xml = { path = "crates/openxml-xml" }
 openxml-opc = { path = "crates/openxml-opc" }
+openxml-schema = { path = "crates/openxml-schema" }
+openxml-testkit = { path = "crates/openxml-testkit" }
 quick-xml = "0.42"
 zip = { version = "8.6", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 roxmltree = "0.21"

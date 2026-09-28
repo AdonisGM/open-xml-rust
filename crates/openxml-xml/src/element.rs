@@ -201,7 +201,8 @@ pub mod rt {
         }
     }
 
-    /// Writes the extra children anchored before field `anchor`.
+    /// Writes all extra children attached to field `anchor` (used before a
+    /// single-valued field and after the last field).
     #[inline]
     pub fn write_extras(w: &mut XmlWriter, extras: &[ExtraChild], anchor: u16) {
         if extras.is_empty() {
@@ -212,10 +213,52 @@ pub mod rt {
         }
     }
 
-    /// Stores an unknown child element.
+    /// Writes the extra children placed before item `index` of repeated field `anchor`.
+    #[inline]
+    pub fn write_extras_at(w: &mut XmlWriter, extras: &[ExtraChild], anchor: u16, index: usize) {
+        if extras.is_empty() {
+            return;
+        }
+        for e in extras
+            .iter()
+            .filter(|e| e.anchor == anchor && e.index as usize == index)
+        {
+            e.element.write(w);
+        }
+    }
+
+    /// Writes the extra children placed after the last item (`len`) of repeated field `anchor`.
+    #[inline]
+    pub fn write_extras_after(w: &mut XmlWriter, extras: &[ExtraChild], anchor: u16, len: usize) {
+        if extras.is_empty() {
+            return;
+        }
+        for e in extras
+            .iter()
+            .filter(|e| e.anchor == anchor && e.index as usize >= len)
+        {
+            e.element.write(w);
+        }
+    }
+
+    /// Stores an unknown child element before field `anchor`.
     #[inline]
     pub fn push_extra(extras: &mut Vec<ExtraChild>, anchor: u16, element: RawElement) {
-        extras.push(ExtraChild { anchor, element });
+        extras.push(ExtraChild {
+            anchor,
+            index: 0,
+            element,
+        });
+    }
+
+    /// Stores an unknown child element before item `index` of repeated field `anchor`.
+    #[inline]
+    pub fn push_extra_at(extras: &mut Vec<ExtraChild>, anchor: u16, index: usize, element: RawElement) {
+        extras.push(ExtraChild {
+            anchor,
+            index: index as u32,
+            element,
+        });
     }
 }
 
@@ -296,6 +339,26 @@ mod tests {
         );
         let out = ITEM.to_xml(&item);
         assert_eq!(out, format!("{}{}", crate::XML_DECLARATION, xml));
+    }
+
+    #[test]
+    fn extras_interleave_with_repeated_items() {
+        let mut extras = Vec::new();
+        rt::push_extra_at(&mut extras, 0, 1, RawElement::new(Ns::NONE, "between"));
+        rt::push_extra_at(&mut extras, 0, 2, RawElement::new(Ns::NONE, "after"));
+        rt::push_extra(&mut extras, 1, RawElement::new(Ns::NONE, "end"));
+        let items = ["a", "b"];
+        let mut w = XmlWriter::new();
+        w.start(Ns::NONE, "r");
+        for (k, name) in items.iter().enumerate() {
+            rt::write_extras_at(&mut w, &extras, 0, k);
+            w.start(Ns::NONE, name);
+            w.end();
+        }
+        rt::write_extras_after(&mut w, &extras, 0, items.len());
+        rt::write_extras(&mut w, &extras, 1);
+        w.end();
+        assert_eq!(w.finish(), "<r><a/><between/><b/><after/><end/></r>");
     }
 
     #[test]

@@ -13,6 +13,7 @@
 
 #![warn(missing_docs)]
 
+pub mod compare;
 mod element;
 mod error;
 mod ns;
@@ -25,6 +26,6 @@ pub use element::{ElementDef, XmlRead, XmlWrite, read_document, rt};
 pub use error::{Error, Result};
 pub use ns::Ns;
 pub use raw::{ExtraChild, RawAttribute, RawElement, RawName, RawNode};
-pub use reader::{Attr, Event, MAX_DEPTH, StartTag, XmlReader, decode_xml_bytes};
+pub use reader::{Attr, Event, MAX_DEPTH, StartTag, XmlReader, decode_xml_bytes, root_name};
 pub use value::{Base64Binary, HexBinary, XmlList, XmlValue};
 pub use writer::{XML_DECLARATION, XmlWriter, escape_attr, escape_text};

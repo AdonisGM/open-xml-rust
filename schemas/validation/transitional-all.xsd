@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Driver schema that imports every ECMA-376 Transitional schema so that a
+     validator can check any part with a single schema. Used by the test suite
+     (xmllint). -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:openxml-rust:validation">
+  <xsd:import namespace="http://www.w3.org/XML/1998/namespace" schemaLocation="xml.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/drawingml/2006/chart" schemaLocation="../transitional/dml-chart.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/drawingml/2006/chartDrawing" schemaLocation="../transitional/dml-chartDrawing.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/drawingml/2006/diagram" schemaLocation="../transitional/dml-diagram.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/drawingml/2006/lockedCanvas" schemaLocation="../transitional/dml-lockedCanvas.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/drawingml/2006/main" schemaLocation="../transitional/dml-main.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/drawingml/2006/picture" schemaLocation="../transitional/dml-picture.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" schemaLocation="../transitional/dml-spreadsheetDrawing.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" schemaLocation="../transitional/dml-wordprocessingDrawing.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/presentationml/2006/main" schemaLocation="../transitional/pml.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/officeDocument/2006/characteristics" schemaLocation="../transitional/shared-additionalCharacteristics.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/officeDocument/2006/bibliography" schemaLocation="../transitional/shared-bibliography.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/officeDocument/2006/sharedTypes" schemaLocation="../transitional/shared-commonSimpleTypes.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/officeDocument/2006/customXml" schemaLocation="../transitional/shared-customXmlDataProperties.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/schemaLibrary/2006/main" schemaLocation="../transitional/shared-customXmlSchemaProperties.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" schemaLocation="../transitional/shared-documentPropertiesCustom.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" schemaLocation="../transitional/shared-documentPropertiesExtended.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes" schemaLocation="../transitional/shared-documentPropertiesVariantTypes.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/officeDocument/2006/math" schemaLocation="../transitional/shared-math.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/officeDocument/2006/relationships" schemaLocation="../transitional/shared-relationshipReference.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/spreadsheetml/2006/main" schemaLocation="../transitional/sml.xsd"/>
+  <xsd:import namespace="urn:schemas-microsoft-com:vml" schemaLocation="../transitional/vml-main.xsd"/>
+  <xsd:import namespace="urn:schemas-microsoft-com:office:office" schemaLocation="../transitional/vml-officeDrawing.xsd"/>
+  <xsd:import namespace="urn:schemas-microsoft-com:office:powerpoint" schemaLocation="../transitional/vml-presentationDrawing.xsd"/>
+  <xsd:import namespace="urn:schemas-microsoft-com:office:excel" schemaLocation="../transitional/vml-spreadsheetDrawing.xsd"/>
+  <xsd:import namespace="urn:schemas-microsoft-com:office:word" schemaLocation="../transitional/vml-wordprocessingDrawing.xsd"/>
+  <xsd:import namespace="http://schemas.openxmlformats.org/wordprocessingml/2006/main" schemaLocation="../transitional/wml.xsd"/>
+</xsd:schema>

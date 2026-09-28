@@ -54,6 +54,13 @@ pub fn decode_xml_bytes(bytes: &[u8]) -> Result<Cow<'_, str>> {
     }
 }
 
+/// Returns the namespace and local name of a document's root element.
+pub fn root_name(xml: &str) -> Result<(Ns, String)> {
+    let mut r = XmlReader::new(xml);
+    let root = r.root()?;
+    Ok((root.ns(), root.local().to_owned()))
+}
+
 /// An event returned by [`XmlReader::next_event`].
 #[derive(Debug)]
 pub enum Event<'i> {
@@ -684,6 +691,13 @@ mod tests {
         assert_eq!(decode_xml_bytes(&le_nobom).unwrap(), "<a/>");
         assert!(decode_xml_bytes(b"\xFF\xFE<").is_err());
         assert!(decode_xml_bytes(b"<a>\xC3</a>").is_err());
+    }
+
+    #[test]
+    fn root_name_of_document() {
+        let xml = format!(r#"<?xml version="1.0"?><!-- c --><w:document xmlns:w="{W}"/>"#);
+        assert_eq!(root_name(&xml).unwrap(), (Ns::W, "document".to_owned()));
+        assert!(root_name("").is_err());
     }
 
     #[test]
