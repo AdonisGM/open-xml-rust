@@ -91,3 +91,73 @@ fn every_generated_part_passes_the_rust_validator_and_round_trips() {
         }
     }
 }
+
+#[test]
+fn charts_in_all_three_formats() {
+    use openxml::Length;
+    use openxml::chart::{Chart, ChartKind, Series};
+    use openxml::xlsx::{Anchor, AnchorPoint, CellRef, EditAs};
+
+    let chart = Chart::new(ChartKind::Line)
+        .categories(["a", "b"])
+        .series(Series::new("s", [1.0, 2.0]));
+
+    let mut doc = Document::new();
+    doc.add_chart(&chart, Length::cm(10.0), Length::cm(6.0)).unwrap();
+    let doc_bytes = doc.to_bytes().unwrap();
+    assert!(validate_package(&Package::from_bytes(&doc_bytes).unwrap()).is_empty());
+    assert_eq!(
+        Document::from_bytes(&doc_bytes).unwrap().charts().unwrap().len(),
+        1
+    );
+
+    let mut deck = Presentation::new();
+    deck.add_slide(LayoutKind::Blank)
+        .unwrap()
+        .add_chart(
+            &chart,
+            Length::cm(1.0),
+            Length::cm(1.0),
+            Length::cm(10.0),
+            Length::cm(6.0),
+        )
+        .unwrap();
+    let deck_bytes = deck.to_bytes().unwrap();
+    assert!(validate_package(&Package::from_bytes(&deck_bytes).unwrap()).is_empty());
+    assert_eq!(
+        Presentation::from_bytes(&deck_bytes)
+            .unwrap()
+            .slide_charts(0)
+            .unwrap()
+            .len(),
+        1
+    );
+
+    let mut wb = Workbook::new();
+    {
+        let mut s = wb.worksheet_mut("Sheet1").unwrap();
+        s.set_value("A1", "k").unwrap();
+        s.set_value("B1", "v").unwrap();
+        s.set_value("A2", "a").unwrap();
+        s.set_value("B2", 1.0).unwrap();
+        let c = s.chart_from_range(ChartKind::Column, "A1:B2").unwrap();
+        let anchor = Anchor::TwoCell {
+            from: AnchorPoint::at(CellRef::parse("D2").unwrap()),
+            to: AnchorPoint::at(CellRef::parse("H10").unwrap()),
+            edit_as: EditAs::TwoCell,
+        };
+        s.add_chart(&c, &anchor).unwrap();
+    }
+    let wb_bytes = wb.to_bytes().unwrap();
+    assert!(validate_package(&Package::from_bytes(&wb_bytes).unwrap()).is_empty());
+    assert_eq!(
+        Workbook::from_bytes(&wb_bytes)
+            .unwrap()
+            .worksheet("Sheet1")
+            .unwrap()
+            .charts()
+            .unwrap()
+            .len(),
+        1
+    );
+}

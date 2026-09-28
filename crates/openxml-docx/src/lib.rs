@@ -19,6 +19,8 @@
 //! * objects: inline and floating pictures ([`PictureOptions`], [`Floating`]),
 //!   VML text boxes and shapes ([`ShapeOptions`]), watermarks, equations ([`Math`]),
 //!   content controls ([`ContentControl`]) and form check boxes;
+//! * charts: [`Document::add_chart`] and [`ParagraphMut::add_chart`] (inline or
+//!   floating) with an embedded workbook for "Edit Data";
 //! * layout: sections ([`SectionMut`]) with breaks, columns, page numbering,
 //!   page borders, line numbering and per-section headers and footers;
 //! * document: core, application and custom properties ([`PropertyValue`]),

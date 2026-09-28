@@ -11,7 +11,9 @@ Office Open XML (ECMA-376) for Rust, built from the specification up:
   is preserved in place;
 * **Open Packaging Conventions** (ZIP container, content types,
   relationships, core properties);
-* **document APIs** for Word (`.docx`), Excel (`.xlsx`) and PowerPoint (`.pptx`);
+* **document APIs** for Word (`.docx`), Excel (`.xlsx`) and PowerPoint (`.pptx`),
+  including pictures, charts, comments, footnotes, tracked changes, tables,
+  shapes, data validation, conditional formatting, animations and more;
 * a command-line tool to inspect, round-trip and validate packages.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the design.
@@ -24,7 +26,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the design.
 | `openxml-docx` | Word documents |
 | `openxml-xlsx` | Excel workbooks |
 | `openxml-pptx` | PowerPoint presentations |
-| `openxml-core` | Shared errors, typed part I/O, units, image detection |
+| `openxml-chart` | DrawingML charts shared by the three formats |
+| `openxml-core` | Shared errors, typed part I/O, units, image detection, document properties |
 | `openxml-schema` | Generated schema types (`wml`, `sml`, `pml`, `dml`, …) |
 | `openxml-codegen` | The generator (XSD → Rust) |
 | `openxml-opc` | Packaging (ECMA-376 Part 2) |
@@ -38,6 +41,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the design.
 use openxml::docx::{Document, ListKind};
 use openxml::xlsx::{CellStyle, Workbook};
 use openxml::pptx::{LayoutKind, Presentation};
+use openxml::chart::{Chart, ChartKind, Series};
+use openxml::Length;
 
 // Word
 let mut doc = Document::new();
@@ -61,6 +66,13 @@ let mut slide = deck.add_slide(LayoutKind::Title)?;
 slide.set_title("Project Aurora")?;
 deck.save("deck.pptx")?;
 
+// Charts (the same description works in all three formats)
+let chart = Chart::new(ChartKind::Column)
+    .title("Revenue")
+    .categories(["Q1", "Q2", "Q3"])
+    .series(Series::new("2024", [10.0, 12.5, 9.0]));
+doc.add_chart(&chart, Length::cm(15.0), Length::cm(8.0))?;
+
 // Reading
 let text = Document::open("report.docx")?.text();
 ```
@@ -76,6 +88,25 @@ cargo run -p openxml-docx --example create_report -- out/report.docx
 cargo run -p openxml-xlsx --example create_workbook -- out/report.xlsx
 cargo run -p openxml-pptx --example create_deck -- out/deck.pptx
 ```
+
+## Features
+
+| Area | Word | Excel | PowerPoint |
+|------|------|-------|------------|
+| Text & formatting | runs, paragraphs, styles, lists, tabs, borders | rich text, cell styles, number formats | runs, bullets, fonts, spacing |
+| Tables | styles, merges, nesting | tables, auto filter, sorting state | merges, borders, styles |
+| Pictures | inline and floating | anchored to cells | crop, effects, replace |
+| Charts | ✓ | ✓ (from ranges) | ✓ |
+| Shapes | VML text boxes, shapes, watermark | — | presets, freeforms, connectors, groups |
+| Comments | ✓ (replies, ranges) | notes | legacy comments |
+| Notes | footnotes, endnotes | — | speaker notes |
+| Review | tracked changes, protection | sheet/workbook protection | — |
+| Links | hyperlinks, bookmarks, fields, TOC | hyperlinks, defined names | hyperlinks, actions |
+| Layout | sections, columns, headers/footers | print setup, views, freeze panes | masters, layouts, themes |
+| Data | content controls, equations | validation, conditional formats, formulas | transitions, animations, media |
+| Properties | core, app, custom | core, app, custom | core, app, custom |
+
+Anything not listed is still reachable through the typed schema objects.
 
 ## Working with the schema types directly
 

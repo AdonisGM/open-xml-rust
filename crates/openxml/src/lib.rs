@@ -7,6 +7,7 @@
 //! | [`docx`] | `openxml-docx` | Word documents |
 //! | [`xlsx`] | `openxml-xlsx` | Excel workbooks |
 //! | [`pptx`] | `openxml-pptx` | PowerPoint presentations |
+//! | [`chart`] | `openxml-chart` | DrawingML charts shared by the three formats |
 //! | [`schema`] | `openxml-schema` | Every ECMA-376 schema type, generated from the official XSDs |
 //! | [`opc`] | `openxml-opc` | Open Packaging Conventions (ZIP, parts, relationships) |
 //! | [`xml`] | `openxml-xml` | Namespace-aware XML reader/writer and raw nodes |
@@ -51,6 +52,7 @@
 
 #![warn(missing_docs)]
 
+pub use openxml_chart as chart;
 pub use openxml_core as core;
 pub use openxml_docx as docx;
 pub use openxml_opc as opc;

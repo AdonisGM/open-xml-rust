@@ -22,6 +22,7 @@
 //! | Module | Feature |
 //! | --- | --- |
 //! | [`drawing`] | pictures (two-cell, one-cell, absolute anchors) and graphic frames |
+//! | `chart` | charts from cell ranges ([`WorksheetMut::add_chart`], [`Worksheet::chart_from_range`]) |
 //! | [`comments`] | cell notes with their VML shapes |
 //! | [`validation`] | data validation (lists, numbers, dates, text length, formulas) |
 //! | [`conditional`] | conditional formatting (rules, color scales, data bars, icon sets) |

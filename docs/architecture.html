@@ -300,7 +300,7 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--rule);
         <div class="fact" role="listitem"><b>3.262</b><span>giá trị enum, đủ 100%</span></div>
         <div class="fact" role="listitem"><b>545</b><span>file Office thật, 0 lỗi, 0 khác biệt</span></div>
         <div class="fact" role="listitem"><b>478/479</b><span>ví dụ XML trong PDF đặc tả round-trip đúng</span></div>
-        <div class="fact" role="listitem"><b>385</b><span>test tự động, tất cả đều qua</span></div>
+        <div class="fact" role="listitem"><b>700</b><span>test tự động, tất cả đều qua</span></div>
       </div>
     </header>
 
@@ -318,7 +318,7 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--rule);
             <tr><td>Nguồn schema máy đọc được lấy từ đâu?</td><td>XSD kèm theo đặc tả (bạn đặt vào <code>docs/</code>)</td><td>Bộ sinh code đọc XSD. PDF Part 1 chỉ chứa Strict, nên Part 4 (Transitional) và Part 2 (OPC) được tải bổ sung từ trang chính thức của Ecma.</td></tr>
             <tr><td>"Từ đầu" có gồm tự viết XML parser và ZIP không?</td><td>Được dùng crate nền phổ biến</td><td><code>quick-xml</code> và <code>zip</code> lo phần cú pháp và nén; toàn bộ tầng OOXML (namespace, OPC, schema, API) tự viết.</td></tr>
             <tr><td>API mức cao cho định dạng nào?</td><td>Docx, Xlsx, Pptx</td><td>Ba crate song song, cùng một khuôn thiết kế.</td></tr>
-            <tr><td>Có dùng git không?</td><td>Có, commit theo mốc</td><td>20 commit, mỗi mốc là một tầng đã test xong.</td></tr>
+            <tr><td>Có dùng git không?</td><td>Có, commit theo mốc</td><td>34 commit, mỗi mốc là một tầng hoặc một nhóm tính năng đã test xong.</td></tr>
           </tbody>
         </table>
       </div>
@@ -371,6 +371,13 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--rule);
             <div class="meta">commit 66123c8 · 4e3889a</div>
           </div>
         </li>
+        <li>
+          <div>
+            <h3>Hỗ trợ đầy đủ tính năng cho cả ba định dạng</h3>
+            <p>Đo hiệu năng rồi tối ưu bộ nhớ (box nút thô trong enum: docx 100k đoạn từ 304 MB xuống 146 MB). Tạo crate <code>openxml-chart</code> dùng chung cho cả ba định dạng và gom custom properties về <code>openxml-core</code>. Ba nhóm tính năng lớn (ảnh, comment, footnote, track changes, shape, chart, validation, conditional format, animation…) được xây song song trên ba worktree, merge lại rồi gắn chart vào cả ba API.</p>
+            <div class="meta">commit fd92e2b · 98aebde · ad59233 · bb26e98 · d38d964 · e411f14 · b9206e8</div>
+          </div>
+        </li>
       </ol>
     </section>
 
@@ -390,15 +397,16 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--rule);
           <div class="layer">
             <div class="tier">API tài liệu</div>
             <div class="boxes">
-              <div class="box word"><b>openxml-docx</b><span>Word: đoạn văn, run, bảng, ảnh, danh sách</span></div>
-              <div class="box excel"><b>openxml-xlsx</b><span>Excel: ô, công thức, style, ngày, stream</span></div>
-              <div class="box ppt"><b>openxml-pptx</b><span>PowerPoint: slide, layout, text box, bảng</span></div>
+              <div class="box word"><b>openxml-docx</b><span>Word: văn bản, bảng, ảnh, chart, comment, footnote, track changes, section</span></div>
+              <div class="box excel"><b>openxml-xlsx</b><span>Excel: ô, công thức, style, ảnh, chart, note, validation, table, stream</span></div>
+              <div class="box ppt"><b>openxml-pptx</b><span>PowerPoint: slide, shape, ảnh, bảng, chart, animation, media, theme</span></div>
             </div>
           </div>
           <div class="layer">
             <div class="tier">Dùng chung</div>
             <div class="boxes">
-              <div class="box"><b>openxml-core</b><span>Error, part có kiểu, Length (EMU/twip/pt), nhận diện ảnh</span></div>
+              <div class="box"><b>openxml-chart</b><span>Chart DrawingML dùng chung cho cả ba định dạng, kèm workbook nhúng</span></div>
+              <div class="box"><b>openxml-core</b><span>Error, part có kiểu, Length (EMU/twip/pt), nhận diện ảnh, thuộc tính tài liệu</span></div>
             </div>
           </div>
           <div class="layer">
@@ -630,36 +638,40 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--rule);
         <div class="api word">
           <h3>openxml-docx</h3>
           <ul>
-            <li>Đoạn văn, run (đậm, nghiêng, gạch chân, cỡ, màu, font, highlight)</li>
-            <li>Heading và style dựng sẵn, tự khớp với style có sẵn trong tài liệu</li>
-            <li>Danh sách bullet và đánh số</li>
-            <li>Bảng: style, độ rộng, merge, tô nền</li>
-            <li>Ảnh, hyperlink, header/footer, khổ giấy</li>
-            <li>Trích text, thay thế text</li>
+            <li>Văn bản: run, đoạn (viền, nền, tab, giãn dòng), style tự định nghĩa, danh sách tuỳ biến</li>
+            <li>Bảng: style, merge, bảng lồng, hàng tiêu đề</li>
+            <li>Ảnh inline và nổi, chart, text box và shape VML, watermark, phương trình</li>
+            <li>Comment (kèm trả lời), footnote, endnote, track changes (ghi, chấp nhận, từ chối)</li>
+            <li>Bookmark, field, mục lục, hyperlink, content control, checkbox</li>
+            <li>Section: cột, đánh số trang, viền trang, header/footer riêng từng section</li>
+            <li>Bảo vệ tài liệu, thuộc tính core/app/custom, trích và thay text</li>
           </ul>
-          <div class="count">65 test · 18 file POI byte-identical</div>
+          <div class="count">158 test · 18 file POI byte-identical</div>
         </div>
         <div class="api excel">
           <h3>openxml-xlsx</h3>
           <ul>
-            <li>Giá trị ô: chuỗi (shared strings), số, bool, lỗi, công thức có kết quả cache</li>
-            <li>Ngày ở cả hệ 1900 và 1904, kể cả ngày ảo 29/02/1900</li>
-            <li>Style với khử trùng lặp font, fill, border, number format</li>
-            <li>Merge, độ rộng cột, chiều cao hàng, freeze pane, named range</li>
+            <li>Giá trị ô, rich text, ngày ở hệ 1900 và 1904, công thức có kết quả cache và bộ tính nhỏ</li>
+            <li>Style khử trùng lặp, named style, merge, ẩn và gộp nhóm hàng/cột, freeze pane</li>
+            <li>Ảnh neo theo ô, chart lấy dữ liệu từ vùng ô, note (kèm shape VML)</li>
+            <li>Data validation, conditional formatting, table, auto filter, hyperlink</li>
+            <li>In ấn, bảo vệ sheet/workbook, sheet view</li>
+            <li>Chèn/xoá hàng và cột có cập nhật mọi tham chiếu</li>
             <li>Ghi và đọc theo từng hàng cho file lớn</li>
           </ul>
-          <div class="count">93 test · 317/317 workbook đọc được trong corpus</div>
+          <div class="count">194 test · 317/317 workbook đọc được trong corpus</div>
         </div>
         <div class="api ppt">
           <h3>openxml-pptx</h3>
           <ul>
-            <li>Template 16:9: slide master, 6 layout, theme Office</li>
-            <li>Thêm, xoá, di chuyển slide</li>
-            <li>Placeholder tiêu đề, phụ đề, nội dung nhiều cấp</li>
-            <li>Text box có định dạng, ảnh, bảng</li>
-            <li>Ghi chú người thuyết trình, màu nền, trích text</li>
+            <li>Template 16:9; thêm, xoá, di chuyển, nhân bản, nhập, ẩn slide</li>
+            <li>Shape preset và tự do, fill, viền, hiệu ứng, connector, nhóm</li>
+            <li>Text có bullet và định dạng, ảnh (cắt, hiệu ứng, thay), bảng</li>
+            <li>Chart, hyperlink và action, transition, animation, audio/video</li>
+            <li>Ghi chú, comment, section, theme, master và layout, footer</li>
+            <li>Thuộc tính core/app/custom, trích text</li>
           </ul>
-          <div class="count">58 test · 13 deck POI byte-identical</div>
+          <div class="count">153 test · 13 deck POI byte-identical</div>
         </div>
       </div>
     </section>
@@ -678,12 +690,12 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--rule);
             <tr><td>Xác thực XSD</td><td>xmllint (libxml2) với XSD ECMA</td><td class="num">Mọi part do API tạo ra đều hợp lệ</td><td><span class="status">Đạt</span></td></tr>
             <tr><td>Validator Rust</td><td>Sinh từ XSD</td><td class="num">708 part fixture; 6 báo cáo, đều là lỗi thật của file nguồn</td><td><span class="status">Đạt</span></td></tr>
             <tr><td>Độ bền</td><td>2.000 part và 300 package bị làm hỏng</td><td class="num">Chỉ trả lỗi, không panic</td><td><span class="status">Đạt</span></td></tr>
-            <tr><td>Trình đọc độc lập</td><td>textutil và Quick Look của macOS</td><td class="num">Đọc đủ text docx kể cả bullet; hiển thị đúng cả ba định dạng</td><td><span class="status">Đạt</span></td></tr>
+            <tr><td>Trình đọc độc lập</td><td>textutil và Quick Look của macOS</td><td class="num">Đọc đủ text docx kể cả bullet; hiển thị đúng cả ba định dạng, kể cả chart</td><td><span class="status">Đạt</span></td></tr>
             <tr><td>Code sinh ra</td><td>Chạy lại generator</td><td class="num">Khớp từng byte với code trong repo</td><td><span class="status">Đạt</span></td></tr>
           </tbody>
         </table>
       </div>
-      <p class="prose muted">Hiệu năng (release build, một luồng): đọc 65–95 MB/s, ghi 230–340 MB/s; một worksheet 1 triệu ô được đọc trong khoảng 0,5 giây. Toàn bộ kiểm tra chạy bằng <code>scripts/check.sh</code>: rustfmt, clippy với <code>-D warnings</code>, độ mới của code sinh ra và 385 test.</p>
+      <p class="prose muted">Hiệu năng (release build, một luồng): đọc 65–95 MB/s, ghi 230–340 MB/s; một worksheet 1 triệu ô được đọc trong khoảng 0,5 giây. Ở mức API: ghi 1 triệu ô xlsx mất 0,8 giây (0,5 giây và 104 MB khi ghi theo luồng). Toàn bộ kiểm tra chạy bằng <code>scripts/check.sh</code>: rustfmt, clippy với <code>-D warnings</code>, độ mới của code sinh ra và 700 test.</p>
     </section>
 
     <section id="gioi-han">
@@ -691,10 +703,11 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--rule);
       <h2>Những gì chưa có</h2>
       <ul class="plain">
         <li>Chưa mở thử bằng Microsoft Office thật vì máy không cài Office. Độ tương thích dựa trên XSD, trình đọc của macOS và việc làm theo quy ước của Office.</li>
-        <li>Phần mở rộng riêng của Microsoft (<code>w14</code>, <code>x14</code>, <code>p14</code>…) không thuộc ECMA-376 nên chưa có kiểu; chúng được giữ nguyên dạng thô.</li>
+        <li>Phần mở rộng riêng của Microsoft (<code>w14</code>, <code>x14</code>, <code>p14</code>…) không thuộc ECMA-376 nên chưa có kiểu; chúng được giữ nguyên dạng thô khi đọc rồi ghi, nhưng API không tạo ra chúng. Vì vậy comment trả lời trong Word là comment riêng neo cùng vùng (không phải luồng hội thoại), Excel dùng note kiểu cũ thay cho threaded comment, và PowerPoint dùng comment kiểu cũ.</li>
+        <li>Chart có 8 loại (cột, thanh, đường, vùng, tròn, vành khuyên, phân tán, radar); chưa có chart kết hợp, 3D, stock, bubble, surface. SmartArt chưa có API.</li>
+        <li>Bộ tính công thức của xlsx chỉ hỗ trợ một tập hàm nhỏ; phần còn lại để Excel tính khi mở.</li>
         <li>Validator chưa kiểm facet của simple type (pattern, giới hạn min/max, độ dài).</li>
         <li>Nội dung <code>xsd:all</code> (chỉ gặp ở <code>docProps/app.xml</code>) được ghi theo thứ tự schema thay vì thứ tự gốc; vẫn hợp lệ.</li>
-        <li>API mức cao chưa có: footnote, comment (docx); chart, ảnh, comment (xlsx); chart, animation (pptx). Nội dung loại này vẫn được giữ khi mở rồi lưu và sửa được qua kiểu gốc.</li>
         <li>Chữ ký số OPC (Part 2 §10) chưa được hiện thực.</li>
       </ul>
     </section>
@@ -708,13 +721,14 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--rule);
           <tbody>
             <tr><td><code>openxml-xml</code></td><td>Namespace, reader, writer, nút thô, so sánh, validator</td><td class="num">3.544</td></tr>
             <tr><td><code>openxml-opc</code></td><td>Package, part name, content types, relationships</td><td class="num">2.438</td></tr>
-            <tr><td><code>openxml-codegen</code></td><td>Bộ sinh code và các test độ phủ</td><td class="num">4.417</td></tr>
+            <tr><td><code>openxml-codegen</code></td><td>Bộ sinh code và các test độ phủ</td><td class="num">4.707</td></tr>
             <tr><td><code>openxml-schema</code></td><td>Kiểu sinh ra (214.468 dòng) cùng test corpus, ví dụ đặc tả, độ bền</td><td class="num">951</td></tr>
-            <tr><td><code>openxml-core</code></td><td>Lỗi, part có kiểu, đơn vị, ảnh</td><td class="num">887</td></tr>
-            <tr><td><code>openxml-docx</code></td><td>API Word</td><td class="num">5.641</td></tr>
-            <tr><td><code>openxml-xlsx</code></td><td>API Excel</td><td class="num">7.264</td></tr>
-            <tr><td><code>openxml-pptx</code></td><td>API PowerPoint</td><td class="num">5.306</td></tr>
-            <tr><td><code>openxml</code>, <code>openxml-cli</code>, <code>openxml-testkit</code></td><td>Tổng hợp, dòng lệnh, hỗ trợ test</td><td class="num">782</td></tr>
+            <tr><td><code>openxml-core</code></td><td>Lỗi, part có kiểu, đơn vị, ảnh, thuộc tính tài liệu</td><td class="num">1.337</td></tr>
+            <tr><td><code>openxml-chart</code></td><td>Chart DrawingML dùng chung</td><td class="num">2.024</td></tr>
+            <tr><td><code>openxml-docx</code></td><td>API Word</td><td class="num">17.747</td></tr>
+            <tr><td><code>openxml-xlsx</code></td><td>API Excel</td><td class="num">20.304</td></tr>
+            <tr><td><code>openxml-pptx</code></td><td>API PowerPoint</td><td class="num">17.684</td></tr>
+            <tr><td><code>openxml</code>, <code>openxml-cli</code>, <code>openxml-testkit</code></td><td>Tổng hợp, dòng lệnh, hỗ trợ test</td><td class="num">1.026</td></tr>
           </tbody>
         </table>
       </div>

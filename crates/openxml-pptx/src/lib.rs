@@ -29,8 +29,10 @@
 //! - **Presentation**: slide size presets, show settings, custom shows,
 //!   core, application and custom document properties.
 //!
-//! Charts are not generated; [`SlideMut::add_graphic_frame`] hosts any
-//! `a:graphicData` (see [`chart_graphic_data`]) so they can be added on top.
+//! - **Charts** ([`SlideMut::add_chart`]): column, bar, line, area, pie,
+//!   doughnut, scatter and radar charts built with [`Chart`], with an embedded
+//!   workbook for "Edit Data"; [`SlideMut::add_graphic_frame`] hosts any other
+//!   `a:graphicData`.
 //!
 //! ```
 //! use openxml_core::{FontSize, Length};

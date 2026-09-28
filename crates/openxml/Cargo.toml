@@ -8,6 +8,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+openxml-chart = { workspace = true }
 openxml-core = { workspace = true }
 openxml-docx = { workspace = true }
 openxml-opc = { workspace = true }

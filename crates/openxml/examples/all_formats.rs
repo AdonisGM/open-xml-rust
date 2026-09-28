@@ -5,10 +5,11 @@
 //! cargo run -p openxml --example all_formats -- out/
 //! ```
 
+use openxml::chart::{Chart, ChartKind, Series};
 use openxml::core::FontSize;
 use openxml::docx::{Document, ListKind};
 use openxml::pptx::{LayoutKind, Presentation};
-use openxml::xlsx::{CellStyle, Workbook};
+use openxml::xlsx::{Anchor, AnchorPoint, CellRef, CellStyle, EditAs, Workbook};
 use openxml::{Length, Result};
 
 const SALES: &[(&str, f64)] = &[
@@ -17,6 +18,13 @@ const SALES: &[(&str, f64)] = &[
     ("East", 98.5),
     ("West", 121.25),
 ];
+
+fn sales_chart(kind: ChartKind) -> Chart {
+    Chart::new(kind)
+        .title("Sales by region")
+        .categories(SALES.iter().map(|(r, _)| *r))
+        .series(Series::new("Q2", SALES.iter().map(|(_, v)| *v)))
+}
 
 fn main() -> Result<()> {
     let dir = std::path::PathBuf::from(std::env::args().nth(1).unwrap_or_else(|| ".".into()));
@@ -36,6 +44,7 @@ fn main() -> Result<()> {
         table.cell(i + 1, 0)?.set_text(region);
         table.cell(i + 1, 1)?.set_text(&value.to_string());
     }
+    doc.add_chart(&sales_chart(ChartKind::Column), Length::cm(15.0), Length::cm(8.0))?;
     doc.save(dir.join("sales.docx"))?;
 
     // Excel
@@ -55,7 +64,18 @@ fn main() -> Result<()> {
         let total = SALES.len() + 2;
         sheet.set_value(format!("A{total}").as_str(), "Total")?;
         sheet.set_formula(format!("B{total}").as_str(), &format!("SUM(B2:B{})", total - 1))?;
+        let chart = sheet
+            .chart_from_range(ChartKind::Pie, format!("A1:B{}", total - 1).as_str())?
+            .title("Sales");
+        let anchor = Anchor::TwoCell {
+            from: AnchorPoint::at(CellRef::parse("D2")?),
+            to: AnchorPoint::at(CellRef::parse("K18")?),
+            edit_as: EditAs::TwoCell,
+        };
+        sheet.add_chart(&chart, &anchor)?;
     }
+    // Store the formula result so that readers which do not calculate show it.
+    wb.calculate()?;
     wb.save(dir.join("sales.xlsx"))?;
 
     // PowerPoint
@@ -91,6 +111,17 @@ fn main() -> Result<()> {
                 "Generated with openxml",
             )
             .font_size(FontSize(14.0));
+    }
+    {
+        let mut slide = deck.add_slide(LayoutKind::TitleOnly)?;
+        slide.set_title("Chart")?;
+        slide.add_chart(
+            &sales_chart(ChartKind::Bar),
+            Length::cm(3.0),
+            Length::cm(4.0),
+            Length::cm(26.0),
+            Length::cm(13.0),
+        )?;
     }
     deck.save(dir.join("sales.pptx"))?;
 

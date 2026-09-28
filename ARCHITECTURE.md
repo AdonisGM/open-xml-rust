@@ -11,10 +11,12 @@ read and written back loses nothing.
                 ├──────────────────┬──────────────────┬────────────────┤
   document APIs │ openxml-docx     │ openxml-xlsx     │ openxml-pptx   │
                 ├──────────────────┴──────────────────┴────────────────┤
-  shared        │ openxml-core  (errors, typed part I/O, units, images)│
+  shared        │ openxml-chart (DrawingML charts for all three hosts) │
+                │ openxml-core  (errors, part I/O, units, images,      │
+                │                document properties)                  │
                 ├──────────────────────────────┬───────────────────────┤
   typed model   │ openxml-schema  ◀─generated─ │ openxml-codegen       │
-                │ (27 modules, ~190k lines)    │ (XSD → Rust)          │
+                │ (27 modules, ~215k lines)    │ (XSD → Rust)          │
                 ├──────────────────────────────┴───────────────────────┤
   packaging     │ openxml-opc   (ZIP, parts, content types, relationships)
                 ├──────────────────────────────────────────────────────┤
@@ -176,8 +178,21 @@ from *invalid* ones (whose raw form was preserved):
 `openxml-core` holds what the three document APIs share: the `Error` type,
 typed part I/O (`part::read_part`, `write_part`, `read_related`,
 `add_related_part`), `Length` (EMU, with twip/point/inch/cm conversions) and
-`FontSize`, and image detection (`sniff_image`: PNG, JPEG, GIF, BMP, TIFF,
-EMF, WMF — format, pixel size and resolution).
+`FontSize`, image detection (`sniff_image`: PNG, JPEG, GIF, BMP, TIFF,
+EMF, WMF — format, pixel size and resolution) and document properties
+(`properties::CustomProperties` for `docProps/custom.xml` with typed
+`PropertyValue`s, and the extended properties of `docProps/app.xml`).
+
+`openxml-chart` describes a chart independently of its host (`Chart`:
+kind, categories, series, colours, title, legend, axis titles, data labels,
+grouping, markers, number format) and turns it into the generated
+`c:chartSpace` type. `insert_chart` adds the chart part — and, for Word and
+PowerPoint, an embedded workbook that Office opens with "Edit Data" — and
+returns the relationship id; each API then wraps `graphic_data()` in its own
+frame (`w:drawing`, `xdr:graphicFrame`, `p:graphicFrame`). In Excel the
+series refer to cell ranges (`Worksheet::chart_from_range`) and the chart
+reads its data from the sheet. `read_chart` reads title, plots and series
+values back from any chart part, including charts written by Office.
 
 `openxml-docx`, `openxml-xlsx` and `openxml-pptx` follow the same design:
 
@@ -202,9 +217,15 @@ EMF, WMF — format, pixel size and resolution).
 
 | API | Highlights |
 |-----|------------|
-| docx | paragraphs, runs (bold/italic/underline/size/color/font/highlight/…), headings and built-in styles resolved against the document's own styles, bullet and numbered lists, tables (styles, widths, merges, shading), inline pictures, hyperlinks, headers/footers, page setup, text extraction and replacement |
-| xlsx | cell values (strings via the shared-string table, numbers, booleans, errors, dates in both date systems, formulas with cached results, shared-formula expansion), styles with deduplication, merges, column widths, row heights, frozen panes, defined names, streaming writer and row-by-row reader |
-| pptx | 16:9 template, add/remove/move slides, placeholders (title, subtitle, body levels), text boxes with formatting, pictures, tables, speaker notes, backgrounds, text extraction |
+| docx | paragraphs and runs with full character and paragraph formatting (borders, shading, tabs, spacing), custom styles, bullet/numbered/custom lists, tables (styles, merges, nesting, header rows), inline and floating pictures, charts, VML text boxes, shapes and watermarks, hyperlinks, bookmarks, fields and a table of contents, comments, footnotes and endnotes, tracked changes (write, accept, reject), equations (OMML), content controls and check boxes, sections (columns, page numbering, borders, line numbers, per-section headers/footers), protection, core/app/custom properties, text extraction and replacement |
+| xlsx | cell values (shared strings, numbers, booleans, errors, dates in both date systems, rich text), formulas with cached results and a small evaluator, styles with deduplication and named styles, merges, sizes, hidden/outlined rows and columns, frozen panes, defined names, pictures, charts from ranges, notes (with their VML shapes), data validation, conditional formatting, tables, auto filter, hyperlinks, page setup and print titles, sheet/workbook protection, sheet views, row/column insertion and deletion that updates references, custom properties, streaming writer and row-by-row reader |
+| pptx | 16:9 template, slide management (add, remove, move, duplicate, import, hide), placeholders, shapes (presets, freeforms, fills, outlines, effects, text frames), connectors, groups, text formatting and bullets, pictures (crop, effects, replace), tables (merges, borders, styles), charts, hyperlinks and actions, transitions, animations, audio/video, speaker notes, comments, sections, themes, masters and layouts, footers, show settings, custom shows, core/app/custom properties, text extraction |
+
+What is written is always valid against the ECMA-376 Transitional schemas.
+Where Office needs VML (Excel notes, Word text boxes and watermarks) the
+API writes the legacy VML that the standard defines; Microsoft extension
+namespaces (`w14`, `wps`, `x14`, `p14`) are never produced, but everything
+they carry is preserved when a file that contains them is edited.
 
 Files produced by the examples were cross-checked with independent
 readers available on macOS: `textutil` (Apple's DOCX importer) extracts the
