@@ -60,6 +60,29 @@ pub fn emit_crate(krate: &Crate) -> Vec<(String, String)> {
         pats.join(" | ")
     });
     root.push_str(")\n}\n");
+    root.push_str(
+        "\n/// Reads the first child element of `xml`'s root as the complex type `module::type_name`\n\
+         /// and serializes it again. Returns `None` for an unknown type. Used to test schema\n\
+         /// fragments (e.g. the examples of the specification) whose type is known.\n\
+         pub fn round_trip_fragment(module: &str, type_name: &str, xml: &str) -> Option<openxml_xml::Result<String>> {\n\
+         \x20   use openxml_xml::{XmlRead, XmlWrite};\n\
+         \x20   fn rt<T: XmlRead + XmlWrite>(xml: &str) -> openxml_xml::Result<String> {\n\
+         \x20       let mut r = openxml_xml::XmlReader::new(xml);\n\
+         \x20       r.root()?;\n\
+         \x20       let child = r.next_child()?.ok_or(openxml_xml::Error::NoRootElement)?;\n\
+         \x20       let value = T::read_xml(&mut r, &child)?;\n\
+         \x20       let mut w = openxml_xml::XmlWriter::new();\n\
+         \x20       value.write_xml(&mut w, child.ns(), child.local());\n\
+         \x20       Ok(w.finish())\n\
+         \x20   }\n\
+         \x20   Some(match (module, type_name) {\n",
+    );
+    for m in &krate.modules {
+        for c in &m.complex_types {
+            let _ = writeln!(root, "        ({:?}, {:?}) => rt::<{}::{}>(xml),", m.name, c.name, m.name, c.name);
+        }
+    }
+    root.push_str("        _ => return None,\n    })\n}\n");
     root.push_str("\n/// Every global element of the schemas as `(namespace, local name)`.\n");
     let _ = writeln!(root, "pub const GLOBAL_ELEMENTS: &[(openxml_xml::Ns, &str)] = &[");
     for m in &krate.modules {

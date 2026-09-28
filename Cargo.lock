@@ -139,6 +139,7 @@ dependencies = [
  "openxml-opc",
  "openxml-testkit",
  "openxml-xml",
+ "serde_json",
 ]
 
 [[package]]

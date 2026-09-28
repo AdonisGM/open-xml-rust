@@ -1,0 +1,3388 @@
+{
+ "source": "ECMA-376 Part 1, 5th edition (2016)",
+ "note": "Wrap each fragment in an element declaring `namespaces` (and the default namespace from `default_namespaces` for its `ns`).",
+ "namespaces": {
+  "w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
+  "x": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+  "p": "http://schemas.openxmlformats.org/presentationml/2006/main",
+  "a": "http://schemas.openxmlformats.org/drawingml/2006/main",
+  "pic": "http://schemas.openxmlformats.org/drawingml/2006/picture",
+  "c": "http://schemas.openxmlformats.org/drawingml/2006/chart",
+  "cdr": "http://schemas.openxmlformats.org/drawingml/2006/chartDrawing",
+  "dgm": "http://schemas.openxmlformats.org/drawingml/2006/diagram",
+  "lc": "http://schemas.openxmlformats.org/drawingml/2006/lockedCanvas",
+  "wp": "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing",
+  "xdr": "http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing",
+  "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+  "m": "http://schemas.openxmlformats.org/officeDocument/2006/math",
+  "s": "http://schemas.openxmlformats.org/officeDocument/2006/sharedTypes",
+  "vt": "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes",
+  "ds": "http://schemas.openxmlformats.org/officeDocument/2006/customXml",
+  "b": "http://schemas.openxmlformats.org/officeDocument/2006/bibliography",
+  "sl": "http://schemas.openxmlformats.org/schemaLibrary/2006/main",
+  "v": "urn:schemas-microsoft-com:vml",
+  "o": "urn:schemas-microsoft-com:office:office",
+  "mc": "http://schemas.openxmlformats.org/markup-compatibility/2006"
+ },
+ "default_namespaces": {
+  "x": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+  "ep": "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties",
+  "op": "http://schemas.openxmlformats.org/officeDocument/2006/custom-properties",
+  "ac": "http://schemas.openxmlformats.org/officeDocument/2006/characteristics"
+ },
+ "examples": [
+  {
+   "section": "17.2.1",
+   "ns": "w",
+   "element": "background",
+   "type": "CT_Background",
+   "xml": "<w:background  w:color=\"2C34FF\"/>"
+  },
+  {
+   "section": "17.2.1",
+   "ns": "w",
+   "element": "background",
+   "type": "CT_Background",
+   "xml": "<w:background w:themeColor=\"accent5\" />"
+  },
+  {
+   "section": "17.2.3",
+   "ns": "w",
+   "element": "document",
+   "type": "CT_Document",
+   "xml": "<w:document> <w:body> <w:p/> </w:body> </w:document>"
+  },
+  {
+   "section": "17.3.1.14",
+   "ns": "w",
+   "element": "keepLines",
+   "type": "CT_OnOff",
+   "xml": "<w:keepLines />"
+  },
+  {
+   "section": "17.3.1.24",
+   "ns": "w",
+   "element": "pBdr",
+   "type": "CT_PBdr",
+   "xml": "<w:pBdr> <w:top w:val=\"single\" w:sz=\"24\" w:space=\"1\" w:color=\"FF0000\" /> <w:left w:val=\"single\" w:sz=\"24\" w:space=\"4\" w:color=\"FF0000\" /> <w:bottom w:val=\"single\" w:sz=\"24\" w:space=\"1\" w:color=\"FF0000\" /> <w:right w:val=\"single\" w:sz=\"24\" w:space=\"4\" w:color=\"FF0000\" /> <w:between w:val=\"single\" w:sz=\"48\" w:space=\"1\" w:color=\"4D5D2C\" /> </w:pBdr>"
+  },
+  {
+   "section": "17.3.1.37",
+   "ns": "w",
+   "element": "tab",
+   "type": "CT_TabStop",
+   "xml": "<w:tab w:val=\"start\" w:pos=\"2160\" />"
+  },
+  {
+   "section": "17.3.1.37",
+   "ns": "w",
+   "element": "tab",
+   "type": "CT_TabStop",
+   "xml": "<w:tab w:val=\"start\" w:pos=\"2160\" />"
+  },
+  {
+   "section": "17.3.1.37",
+   "ns": "w",
+   "element": "tab",
+   "type": "CT_TabStop",
+   "xml": "<w:tab w:val=\"start\" w:pos=\"2160\" />"
+  },
+  {
+   "section": "17.3.3.1",
+   "ns": "w",
+   "element": "br",
+   "type": "CT_Br",
+   "xml": "<w:br w:type=\"textWrapping\" w:clear=\"all\" />"
+  },
+  {
+   "section": "17.3.3.1",
+   "ns": "w",
+   "element": "br",
+   "type": "CT_Br",
+   "xml": "<w:br w:type=\"column\"/>"
+  },
+  {
+   "section": "17.3.3.3",
+   "ns": "w",
+   "element": "control",
+   "type": "CT_Control",
+   "xml": "<w:control r:id=\"rId5\" w:name=\"CheckBox1\" w:shapeid=\"10\" />"
+  },
+  {
+   "section": "17.3.3.10",
+   "ns": "w",
+   "element": "hps",
+   "type": "CT_HpsMeasure",
+   "xml": "<w:hps w:val=\"27\"/>"
+  },
+  {
+   "section": "17.3.3.11",
+   "ns": "w",
+   "element": "hpsBaseText",
+   "type": "CT_HpsMeasure",
+   "xml": "<w:hpsBaseText w:val=\"60\"/>"
+  },
+  {
+   "section": "17.3.3.12",
+   "ns": "w",
+   "element": "hpsRaise",
+   "type": "CT_HpsMeasure",
+   "xml": "<w:hpsRaise w:val=\"20\"/>"
+  },
+  {
+   "section": "17.3.3.14",
+   "ns": "w",
+   "element": "lid",
+   "type": "CT_Lang",
+   "xml": "<w:lid w:val=\"ja-JP\"/>"
+  },
+  {
+   "section": "17.3.3.20",
+   "ns": "w",
+   "element": "objectEmbed",
+   "type": "CT_ObjectEmbed",
+   "xml": "<w:objectEmbed  drawAspect=\"content\"/>"
+  },
+  {
+   "section": "17.3.3.20",
+   "ns": "w",
+   "element": "objectEmbed",
+   "type": "CT_ObjectEmbed",
+   "xml": "<w:objectEmbed  fieldCodes=\"\\f 0\"/>"
+  },
+  {
+   "section": "17.3.3.20",
+   "ns": "w",
+   "element": "objectEmbed",
+   "type": "CT_ObjectEmbed",
+   "xml": "<w:objectEmbed  progId=\"AVIFile\"/>"
+  },
+  {
+   "section": "17.3.3.20",
+   "ns": "w",
+   "element": "objectEmbed",
+   "type": "CT_ObjectEmbed",
+   "xml": "<w:objectEmbed  shapeId=\"10\"/>"
+  },
+  {
+   "section": "17.3.3.21",
+   "ns": "w",
+   "element": "objectLink",
+   "type": "CT_ObjectLink",
+   "xml": "<w:objectLink  lockedField=\"true\"/>"
+  },
+  {
+   "section": "17.3.3.21",
+   "ns": "w",
+   "element": "objectLink",
+   "type": "CT_ObjectLink",
+   "xml": "<w:objectLink  updateMode=\"always\"/>"
+  },
+  {
+   "section": "17.3.3.23",
+   "ns": "w",
+   "element": "ptab",
+   "type": "CT_PTab",
+   "xml": "<w:ptab  w:alignment=\"center\" w:relativeTo=\"margin\" />"
+  },
+  {
+   "section": "17.3.3.23",
+   "ns": "w",
+   "element": "ptab",
+   "type": "CT_PTab",
+   "xml": "<w:ptab w:alignment=\"left\" w:relativeTo=\"margin\"  />"
+  },
+  {
+   "section": "17.3.3.23",
+   "ns": "w",
+   "element": "ptab",
+   "type": "CT_PTab",
+   "xml": "<w:ptab w:relativeTo=\"margin\"  />"
+  },
+  {
+   "section": "17.3.3.26",
+   "ns": "w",
+   "element": "rubyAlign",
+   "type": "CT_RubyAlign",
+   "xml": "<w:rubyAlign w:val=\"left\"/>"
+  },
+  {
+   "section": "17.3.3.26",
+   "ns": "w",
+   "element": "rubyAlign",
+   "type": "CT_RubyAlign",
+   "xml": "<w:rubyAlign w:val=\"left\"/>"
+  },
+  {
+   "section": "17.4.8",
+   "ns": "w",
+   "element": "cnfStyle",
+   "type": "CT_Cnf",
+   "xml": "<w:cnfStyle w:firstRow=\"true\" />"
+  },
+  {
+   "section": "17.4.19",
+   "ns": "w",
+   "element": "headers",
+   "type": "CT_Headers",
+   "xml": "<w:headers> <w:header w:val=\"HeaderA\" /> <w:header w:val=\"HeaderC\" /> </w:headers>"
+  },
+  {
+   "section": "17.4.37",
+   "ns": "w",
+   "element": "tbl",
+   "type": "CT_Tbl",
+   "xml": "<w:tbl> <w:tblPr> <w:tblW w:w=\"5000\" w:type=\"pct\"/> <w:tblBorders> <w:top w:val=\"single\" w:sz=\"4\" w:space=\"0\" w:color=\"auto\"/> <w:start w:val=\"single\" w:sz=\"4\" w:space=\"0\" w:color=\"auto\"/> <w:bottom w:val=\"single\" w:sz=\"4\" w:space=\"0\" w:color=\"auto\"/> <w:end w:val=\"single\" w:sz=\"4\" w:space=\"0\" w:color=\"auto\"/> </w:tblBorders> </w:tblPr> <w:tblGrid> <w:gridCol w:w=\"10296\"/> </w:tblGrid> <w:tr> <w:tc> <w:tcPr> <w:tcW w:w=\"0\" w:type=\"auto\"/> </w:tcPr> <w:p/> </w:tc> </w:tr> </w:tbl>"
+  },
+  {
+   "section": "17.4.47",
+   "ns": "w",
+   "element": "tblGrid",
+   "type": "CT_TblGridBase",
+   "xml": "<w:tblGrid> <w:gridCol w:w=\"2088\"/> <w:gridCol w:w=\"1104\"/> <w:gridCol w:w=\"3583\"/> <w:gridCol w:w=\"2801\"/> <w:tblGridChange w:id=\"1\"> <w:tblGrid> <w:gridCol w:w=\"2088\"/> <w:gridCol w:w=\"1104\"/> <w:gridCol w:w=\"3192\"/> <w:gridCol w:w=\"3192\"/> </w:tblGrid> </w:tblGridChange> </w:tblGrid>"
+  },
+  {
+   "section": "17.4.48",
+   "ns": "w",
+   "element": "tblGrid",
+   "type": "CT_TblGrid",
+   "xml": "<w:tblGrid> <w:gridCol w:w=\"2088\"/> <w:gridCol w:w=\"1104\"/> <w:gridCol w:w=\"3192\"/> <w:gridCol w:w=\"3192\"/> </w:tblGrid>"
+  },
+  {
+   "section": "17.4.56",
+   "ns": "w",
+   "element": "tblOverlap",
+   "type": "CT_TblOverlap",
+   "xml": "<w:tblOverlap w:val=\"never\" />"
+  },
+  {
+   "section": "17.4.65",
+   "ns": "w",
+   "element": "tc",
+   "type": "CT_Tc",
+   "xml": "<w:tc> <w:tcPr> <w:tcW w:w=\"0\" w:type=\"auto\"/> </w:tcPr> <w:p> <w:r> <w:t>Hello, world</w:t> </w:r> </w:p> </w:tc>"
+  },
+  {
+   "section": "17.4.78",
+   "ns": "w",
+   "element": "tr",
+   "type": "CT_Row",
+   "xml": "<w:tr> <w:tc> <w:tcPr> <w:tcW w:w=\"0\" w:type=\"auto\"/> </w:tcPr> <w:p> <w:r> <w:t>Hello, world</w:t> </w:r> </w:p> </w:tc> </w:tr>"
+  },
+  {
+   "section": "17.4.83",
+   "ns": "w",
+   "element": "vAlign",
+   "type": "CT_VerticalJc",
+   "xml": "<w:vAlign w:val=\"center\" />"
+  },
+  {
+   "section": "17.5.1.7",
+   "ns": "w",
+   "element": "customXmlPr",
+   "type": "CT_CustomXmlPr",
+   "xml": "<w:customXmlPr> <w:placeholder w:val=\"[Fill in your name]\"/> <w:attr w:name=\"status\" w:val=\"draft\"/> </w:customXmlPr>"
+  },
+  {
+   "section": "17.5.1.10",
+   "ns": "w",
+   "element": "smartTagPr",
+   "type": "CT_SmartTagPr",
+   "xml": "<w:smartTagPr> <w:attr w:name=\"date\" w:val=\"01/01/2006\"/> <w:attr w:name=\"status\" w:val=\"draft\"/> </w:smartTagPr>"
+  },
+  {
+   "section": "17.5.2.38",
+   "ns": "w",
+   "element": "sdtPr",
+   "type": "CT_SdtPr",
+   "xml": "<w:sdtPr> <w:alias w:val=\"Birthday\"/> <w:id w:val=\"8775518\"/> <w:date> <w:dateFormat w:val=\"M/d/yyyy\"/> <w:lid w:val=\"EN-US\"/> </w:date> </w:sdtPr>"
+  },
+  {
+   "section": "17.6.2",
+   "ns": "w",
+   "element": "bottom",
+   "type": "CT_BottomPageBorder",
+   "xml": "<w:bottom  w:color=\"auto\"/>"
+  },
+  {
+   "section": "17.6.2",
+   "ns": "w",
+   "element": "bottom",
+   "type": "CT_BottomPageBorder",
+   "xml": "<w:bottom w:frame=\"true\"  />"
+  },
+  {
+   "section": "17.6.2",
+   "ns": "w",
+   "element": "bottom",
+   "type": "CT_BottomPageBorder",
+   "xml": "<w:bottom w:val=\"custom\" r:id=\"rIdCustomBottomBorder\" />"
+  },
+  {
+   "section": "17.6.3",
+   "ns": "w",
+   "element": "col",
+   "type": "CT_Column",
+   "xml": "<w:col  w:space=\"1440\"/>"
+  },
+  {
+   "section": "17.6.3",
+   "ns": "w",
+   "element": "col",
+   "type": "CT_Column",
+   "xml": "<w:col  w:w=\"2880\"/>"
+  },
+  {
+   "section": "17.6.4",
+   "ns": "w",
+   "element": "cols",
+   "type": "CT_Columns",
+   "xml": "<w:cols w:equalWidth=\"0\"> <w:col w:w=\"2640\" w:space=\"720\"/> <w:col w:w=\"6000\"/> </w:cols>"
+  },
+  {
+   "section": "17.6.5",
+   "ns": "w",
+   "element": "docGrid",
+   "type": "CT_DocGrid",
+   "xml": "<w:docGrid w:charSpace=\"40960\" />"
+  },
+  {
+   "section": "17.6.5",
+   "ns": "w",
+   "element": "docGrid",
+   "type": "CT_DocGrid",
+   "xml": "<w:docGrid w:linePitch=\"684\" />"
+  },
+  {
+   "section": "17.6.8",
+   "ns": "w",
+   "element": "lnNumType",
+   "type": "CT_LineNumber",
+   "xml": "<w:lnNumType  w:countBy=\"5\"/>"
+  },
+  {
+   "section": "17.6.8",
+   "ns": "w",
+   "element": "lnNumType",
+   "type": "CT_LineNumber",
+   "xml": "<w:lnNumType  w:distance=\"720\"/>"
+  },
+  {
+   "section": "17.6.8",
+   "ns": "w",
+   "element": "lnNumType",
+   "type": "CT_LineNumber",
+   "xml": "<w:lnNumType w:start=\"3\" w:countBy=\"5\"/>"
+  },
+  {
+   "section": "17.6.9",
+   "ns": "w",
+   "element": "paperSrc",
+   "type": "CT_PaperSource",
+   "xml": "<w:paperSrc w:first=\"1\" w:other=\"1\" />"
+  },
+  {
+   "section": "17.6.9",
+   "ns": "w",
+   "element": "paperSrc",
+   "type": "CT_PaperSource",
+   "xml": "<w:paperSrc w:first=\"1\" w:other=\"1\" />"
+  },
+  {
+   "section": "17.6.9",
+   "ns": "w",
+   "element": "paperSrc",
+   "type": "CT_PaperSource",
+   "xml": "<w:paperSrc w:first=\"1\" w:other=\"1\" />"
+  },
+  {
+   "section": "17.6.10",
+   "ns": "w",
+   "element": "pgBorders",
+   "type": "CT_PageBorders",
+   "xml": "<w:pgBorders w:offsetFrom=\"page\"> <w:top w:val=\"dashed\" w:sz=\"4\" w:space=\"24\" w:color=\"auto\" /> <w:left w:val=\"dashed\" w:sz=\"4\" w:space=\"24\" w:color=\"auto\" /> <w:bottom w:val=\"dashed\" w:sz=\"4\" w:space=\"24\" w:color=\"auto\" /> <w:right w:val=\"dashed\" w:sz=\"4\" w:space=\"24\" w:color=\"auto\" /> </w:pgBorders>"
+  },
+  {
+   "section": "17.6.10",
+   "ns": "w",
+   "element": "pgBorders",
+   "type": "CT_PageBorders",
+   "xml": "<w:pgBorders w:offsetFrom=\"page\"> <w:top w:val=\"dashed\" w:space=\"24\" /> <w:left w:val=\"dashed\" w:space=\"24\" /> <w:bottom w:val=\"dashed\" w:space=\"24\"/> <w:right w:val=\"dashed\" w:space=\"24\"/> </w:pgBorders>"
+  },
+  {
+   "section": "17.6.10",
+   "ns": "w",
+   "element": "pgBorders",
+   "type": "CT_PageBorders",
+   "xml": "<w:pgBorders w:offsetFrom=\"text\"> <w:top w:val=\"dashed\" w:space=\"24\" /> <w:left w:val=\"dashed\" w:space=\"24\" /> <w:bottom w:val=\"dashed\" w:space=\"24\"/> <w:right w:val=\"dashed\" w:space=\"24\"/> </w:pgBorders>"
+  },
+  {
+   "section": "17.6.11",
+   "ns": "w",
+   "element": "pgMar",
+   "type": "CT_PageMar",
+   "xml": "<w:pgMar  w:footer=\"1440\"/>"
+  },
+  {
+   "section": "17.6.11",
+   "ns": "w",
+   "element": "pgMar",
+   "type": "CT_PageMar",
+   "xml": "<w:pgMar  w:gutter=\"720\"/>"
+  },
+  {
+   "section": "17.6.11",
+   "ns": "w",
+   "element": "pgMar",
+   "type": "CT_PageMar",
+   "xml": "<w:pgMar  w:header=\"2880\"/>"
+  },
+  {
+   "section": "17.6.11",
+   "ns": "w",
+   "element": "pgMar",
+   "type": "CT_PageMar",
+   "xml": "<w:pgMar  w:left=\"2880\"/>"
+  },
+  {
+   "section": "17.6.11",
+   "ns": "w",
+   "element": "pgMar",
+   "type": "CT_PageMar",
+   "xml": "<w:pgMar  w:right=\"1440\"/>"
+  },
+  {
+   "section": "17.6.11",
+   "ns": "w",
+   "element": "pgMar",
+   "type": "CT_PageMar",
+   "xml": "<w:pgMar  w:top=\"720\" w:header=\"1440\"/>"
+  },
+  {
+   "section": "17.6.12",
+   "ns": "w",
+   "element": "pgNumType",
+   "type": "CT_PageNumber",
+   "xml": "<w:pgNumType w:chapSep=\"colon\" w:chapStyle=\"1\" />"
+  },
+  {
+   "section": "17.6.12",
+   "ns": "w",
+   "element": "pgNumType",
+   "type": "CT_PageNumber",
+   "xml": "<w:pgNumType w:fmt=\"lowerLetter\"/>"
+  },
+  {
+   "section": "17.6.13",
+   "ns": "w",
+   "element": "pgSz",
+   "type": "CT_PageSz",
+   "xml": "<w:pgSz w:w=\"11907\" w:h=\"16839\" />"
+  },
+  {
+   "section": "17.6.13",
+   "ns": "w",
+   "element": "pgSz",
+   "type": "CT_PageSz",
+   "xml": "<w:pgSz w:w=\"12240\" w:h=\"15840\" w:code=\"240\" />"
+  },
+  {
+   "section": "17.6.13",
+   "ns": "w",
+   "element": "pgSz",
+   "type": "CT_PageSz",
+   "xml": "<w:pgSz w:w=\"15840\" w:h=\"12240\" />"
+  },
+  {
+   "section": "17.6.13",
+   "ns": "w",
+   "element": "pgSz",
+   "type": "CT_PageSz",
+   "xml": "<w:pgSz w:w=\"15840\" w:h=\"12240\" w:orient=\"landscape\" />"
+  },
+  {
+   "section": "17.6.13",
+   "ns": "w",
+   "element": "pgSz",
+   "type": "CT_PageSz",
+   "xml": "<w:pgSz w:w=\"15840\" w:h=\"12240\" />"
+  },
+  {
+   "section": "17.6.23",
+   "ns": "w",
+   "element": "vAlign",
+   "type": "CT_VerticalJc",
+   "xml": "<w:vAlign w:val=\"center\" />"
+  },
+  {
+   "section": "17.7.4.5",
+   "ns": "w",
+   "element": "latentStyles",
+   "type": "CT_LatentStyles",
+   "xml": "<w:latentStyles  w:defLockedState=\"true\"> <w:lsdException w:name=\"Heading 2\" w:locked=\"false\"/> </w:latentStyles>"
+  },
+  {
+   "section": "17.7.4.17",
+   "ns": "w",
+   "element": "style",
+   "type": "CT_Style",
+   "xml": "<w:style w:type=\"paragraph\" w:default=\"1\" w:styleId=\"MyStyle\" > <w:name w:val=\"My Paragraph Style\"/> <w:rPr> <w:b/> </w:rPr> </w:style>"
+  },
+  {
+   "section": "17.7.5.1",
+   "ns": "w",
+   "element": "docDefaults",
+   "type": "CT_DocDefaults",
+   "xml": "<w:docDefaults> <w:rPrDefault> <w:rPr> <w:b/> </w:rPr> </w:rPrDefault> <w:pPrDefault> <w:pPr> <w:jc w:val=\"center\"/> </w:pPr> </w:pPrDefault> </w:docDefaults>"
+  },
+  {
+   "section": "17.8.3.13",
+   "ns": "w",
+   "element": "panose1",
+   "type": "CT_Panose",
+   "xml": "<w:panose1 w:val=\"020F0603050405020304\" />"
+  },
+  {
+   "section": "17.9.1",
+   "ns": "w",
+   "element": "abstractNum",
+   "type": "CT_AbstractNum",
+   "xml": "<w:abstractNum w:abstractNumId=\"4\"> <w:nsid w:val=\"FFFFFF7F\" /> <w:multiLevelType w:val=\"singleLevel\" /> <w:lvl w:ilvl=\"0\"> <w:start w:val=\"1\" /> <w:lvlText w:val=\"%1.\" /> <w:lvlJc w:val=\"start\" /> <w:pPr> <w:tabs> <w:tab w:val=\"num\" w:pos=\"720\" /> </w:tabs> <w:ind w:start=\"720\" w:hanging=\"360\" /> </w:pPr> </w:lvl> </w:abstractNum>"
+  },
+  {
+   "section": "17.9.4",
+   "ns": "w",
+   "element": "isLgl",
+   "type": "CT_OnOff",
+   "xml": "<w:isLgl />"
+  },
+  {
+   "section": "17.9.11",
+   "ns": "w",
+   "element": "lvlText",
+   "type": "CT_LevelText",
+   "xml": "<w:lvlText w:val=\"StringA %2 StringB %1 StringC %3\"/>"
+  },
+  {
+   "section": "17.9.11",
+   "ns": "w",
+   "element": "lvlText",
+   "type": "CT_LevelText",
+   "xml": "<w:lvlText w:null=\"on\" />"
+  },
+  {
+   "section": "17.9.11",
+   "ns": "w",
+   "element": "lvlText",
+   "type": "CT_LevelText",
+   "xml": "<w:lvlText w:val=\"test\" />"
+  },
+  {
+   "section": "17.9.12",
+   "ns": "w",
+   "element": "multiLevelType",
+   "type": "CT_MultiLevelType",
+   "xml": "<w:multiLevelType w:val=\"singleLevel\" />"
+  },
+  {
+   "section": "17.9.12",
+   "ns": "w",
+   "element": "multiLevelType",
+   "type": "CT_MultiLevelType",
+   "xml": "<w:multiLevelType w:val=\"multilevel\" />"
+  },
+  {
+   "section": "17.9.15",
+   "ns": "w",
+   "element": "num",
+   "type": "CT_Num",
+   "xml": "<w:num w:numId=\"6\"> <w:abstractNumId w:val=\"4\" /> <w:lvlOverride w:ilvl=\"0\"> <w:lvl w:ilvl=\"0\"> <w:start w:val=\"4\" /> <w:lvlText w:val=\"%1)\" /> <w:lvlJc w:val=\"start\" /> <w:pPr> <w:ind w:start=\"360\" w:hanging=\"360\" /> </w:pPr> </w:lvl> </w:lvlOverride> </w:num>"
+  },
+  {
+   "section": "17.9.15",
+   "ns": "w",
+   "element": "num",
+   "type": "CT_Num",
+   "xml": "<w:num w:numId=\"5\"> <w:abstractNumId w:val=\"4\" /> </w:num>"
+  },
+  {
+   "section": "17.9.19",
+   "ns": "w",
+   "element": "numIdMacAtCleanup",
+   "type": "CT_DecimalNumber",
+   "xml": "<w:numIdMacAtCleanup w:val=\"25\"/>"
+  },
+  {
+   "section": "17.9.27",
+   "ns": "w",
+   "element": "styleLink",
+   "type": "CT_String",
+   "xml": "<w:styleLink w:val=\"ExampleNumberingStyle\" />"
+  },
+  {
+   "section": "17.9.28",
+   "ns": "w",
+   "element": "suff",
+   "type": "CT_LevelSuffix",
+   "xml": "<w:suff w:val=\"space\" />"
+  },
+  {
+   "section": "17.9.28",
+   "ns": "w",
+   "element": "suff",
+   "type": "CT_LevelSuffix",
+   "xml": "<w:suff w:val=\"tab\" />"
+  },
+  {
+   "section": "17.9.29",
+   "ns": "w",
+   "element": "tmpl",
+   "type": "CT_LongHexNumber",
+   "xml": "<w:tmpl w:val=\"CA48B6BA\" />"
+  },
+  {
+   "section": "17.10.1",
+   "ns": "w",
+   "element": "evenAndOddHeaders",
+   "type": "CT_OnOff",
+   "xml": "<w:evenAndOddHeaders />"
+  },
+  {
+   "section": "17.10.3",
+   "ns": "w",
+   "element": "ftr",
+   "type": "CT_HdrFtr",
+   "xml": "<w:ftr> <w:p> <w:r> <w:t>Footer</w:t> </w:r> </w:p> </w:ftr>"
+  },
+  {
+   "section": "17.10.3",
+   "ns": "w",
+   "element": "ftr",
+   "type": "CT_HdrFtr",
+   "xml": "<w:ftr> <w:p> <w:r> <w:t>First</w:t> </w:r> </w:p> </w:ftr>"
+  },
+  {
+   "section": "17.10.3",
+   "ns": "w",
+   "element": "ftr",
+   "type": "CT_HdrFtr",
+   "xml": "<w:ftr> <w:p> <w:r> <w:t>Even</w:t> </w:r> </w:p> </w:ftr>"
+  },
+  {
+   "section": "17.10.3",
+   "ns": "w",
+   "element": "ftr",
+   "type": "CT_HdrFtr",
+   "xml": "<w:ftr> <w:p> <w:r> <w:t>Odd</w:t> </w:r> </w:p> </w:ftr>"
+  },
+  {
+   "section": "17.10.4",
+   "ns": "w",
+   "element": "hdr",
+   "type": "CT_HdrFtr",
+   "xml": "<w:hdr> <w:p> <w:r> <w:t>Header</w:t> </w:r> </w:p> </w:hdr>"
+  },
+  {
+   "section": "17.10.4",
+   "ns": "w",
+   "element": "hdr",
+   "type": "CT_HdrFtr",
+   "xml": "<w:hdr> <w:p> <w:r> <w:t>First</w:t> </w:r> </w:p> </w:hdr>"
+  },
+  {
+   "section": "17.10.4",
+   "ns": "w",
+   "element": "hdr",
+   "type": "CT_HdrFtr",
+   "xml": "<w:hdr> <w:p> <w:r> <w:t>Even</w:t> </w:r> </w:p> </w:hdr>"
+  },
+  {
+   "section": "17.10.4",
+   "ns": "w",
+   "element": "hdr",
+   "type": "CT_HdrFtr",
+   "xml": "<w:hdr> <w:p> <w:r> <w:t>Odd</w:t> </w:r> </w:p> </w:hdr>"
+  },
+  {
+   "section": "17.10.6",
+   "ns": "w",
+   "element": "titlePg",
+   "type": "CT_OnOff",
+   "xml": "<w:titlePg />"
+  },
+  {
+   "section": "17.11.4",
+   "ns": "w",
+   "element": "endnotePr",
+   "type": "CT_EdnDocProps",
+   "xml": "<w:endnotePr> <w:pos w:val=\"sectEnd\"/> <w:numFmt w:val=\"lowerRoman\" /> </w:endnotePr>"
+  },
+  {
+   "section": "17.11.10",
+   "ns": "w",
+   "element": "footnote",
+   "type": "CT_FtnEdn",
+   "xml": "<w:footnote w:type=\"continuationSeparator\" w:id=\"1\"> <w:p> <w:r> <w:continuationSeparator /> </w:r> </w:p> </w:footnote>"
+  },
+  {
+   "section": "17.11.12",
+   "ns": "w",
+   "element": "footnotePr",
+   "type": "CT_FtnDocProps",
+   "xml": "<w:footnotePr> <w:pos w:val=\"beneathText\" /> </w:footnotePr>"
+  },
+  {
+   "section": "17.12.9",
+   "ns": "w",
+   "element": "gallery",
+   "type": "CT_DocPartGallery",
+   "xml": "<w:gallery w:val=\"custom1\" />"
+  },
+  {
+   "section": "17.12.11",
+   "ns": "w",
+   "element": "guid",
+   "type": "CT_Guid",
+   "xml": "<w:guid w:val=\"{00000000-5BD2-4BC8-9F70-7020E1357FB2}\" />"
+  },
+  {
+   "section": "17.12.13",
+   "ns": "w",
+   "element": "name",
+   "type": "CT_DocPartName",
+   "xml": "<w:name w:decorated=\"true\" w:val=\":-)\" />"
+  },
+  {
+   "section": "17.12.15",
+   "ns": "w",
+   "element": "type",
+   "type": "CT_DocPartType",
+   "xml": "<w:type w:val=\"bbPlcHdr\" />"
+  },
+  {
+   "section": "17.14.3",
+   "ns": "w",
+   "element": "addressFieldName",
+   "type": "CT_String",
+   "xml": "<w:addressFieldName w:val=\"Alternate Email Address\" />"
+  },
+  {
+   "section": "17.14.4",
+   "ns": "w",
+   "element": "checkErrors",
+   "type": "CT_DecimalNumber",
+   "xml": "<w:checkErrors w:val=\"3\" />"
+  },
+  {
+   "section": "17.14.5",
+   "ns": "w",
+   "element": "colDelim",
+   "type": "CT_DecimalNumber",
+   "xml": "<w:colDelim w:val=\"44\" />"
+  },
+  {
+   "section": "17.14.8",
+   "ns": "w",
+   "element": "connectString",
+   "type": "CT_String",
+   "xml": "<w:connectString w:val=\"Provider=Example;Password=Test;User ID=readonly;\" />"
+  },
+  {
+   "section": "17.14.9",
+   "ns": "w",
+   "element": "dataSource",
+   "type": "CT_Rel",
+   "xml": "<w:dataSource r:id=\"rId1\" />"
+  },
+  {
+   "section": "17.14.10",
+   "ns": "w",
+   "element": "dataType",
+   "type": "CT_MailMergeDataType",
+   "xml": "<w:dataType w:val=\"odbc\" />"
+  },
+  {
+   "section": "17.14.10",
+   "ns": "w",
+   "element": "dataType",
+   "type": "CT_MailMergeDataType",
+   "xml": "<w:dataType w:val=\"database\" />"
+  },
+  {
+   "section": "17.14.11",
+   "ns": "w",
+   "element": "destination",
+   "type": "CT_MailMergeDest",
+   "xml": "<w:destination w:val=\"email\" />"
+  },
+  {
+   "section": "17.14.14",
+   "ns": "w",
+   "element": "fHdr",
+   "type": "CT_OnOff",
+   "xml": "<w:fHdr w:val=\"on\" />"
+  },
+  {
+   "section": "17.14.16",
+   "ns": "w",
+   "element": "headerSource",
+   "type": "CT_Rel",
+   "xml": "<w:headerSource r:id=\"rId2\" />"
+  },
+  {
+   "section": "17.14.22",
+   "ns": "w",
+   "element": "mainDocumentType",
+   "type": "CT_MailMergeDocType",
+   "xml": "<w:mainDocumentType w:val=\"formLetters\" />"
+  },
+  {
+   "section": "17.14.26",
+   "ns": "w",
+   "element": "query",
+   "type": "CT_String",
+   "xml": "<w:query w:val=\"SELECT * FROM Documentation\" />"
+  },
+  {
+   "section": "17.14.30",
+   "ns": "w",
+   "element": "src",
+   "type": "CT_Rel",
+   "xml": "<w:src r:id=\"rId1\" />"
+  },
+  {
+   "section": "17.14.31",
+   "ns": "w",
+   "element": "table",
+   "type": "CT_String",
+   "xml": "<w:table w:val=\"Table One\" />"
+  },
+  {
+   "section": "17.14.32",
+   "ns": "w",
+   "element": "type",
+   "type": "CT_MailMergeSourceType",
+   "xml": "<w:type w:val=\"database\" />"
+  },
+  {
+   "section": "17.14.32",
+   "ns": "w",
+   "element": "type",
+   "type": "CT_MailMergeSourceType",
+   "xml": "<w:type w:val=\"text\" />"
+  },
+  {
+   "section": "17.14.33",
+   "ns": "w",
+   "element": "type",
+   "type": "CT_MailMergeOdsoFMDFieldType",
+   "xml": "<w:type w:val=\"null\" />"
+  },
+  {
+   "section": "17.14.34",
+   "ns": "w",
+   "element": "udl",
+   "type": "CT_String",
+   "xml": "<w:udl w:val=\"Provider=Example;Password=Test;User ID=readonly;\" />"
+  },
+  {
+   "section": "17.15.1.1",
+   "ns": "w",
+   "element": "activeWritingStyle",
+   "type": "CT_WritingStyle",
+   "xml": "<w:activeWritingStyle  w:appName=\"testApp\"/>"
+  },
+  {
+   "section": "17.15.1.1",
+   "ns": "w",
+   "element": "activeWritingStyle",
+   "type": "CT_WritingStyle",
+   "xml": "<w:activeWritingStyle  w:checkStyle=\"false\"/>"
+  },
+  {
+   "section": "17.15.1.1",
+   "ns": "w",
+   "element": "activeWritingStyle",
+   "type": "CT_WritingStyle",
+   "xml": "<w:activeWritingStyle  w:dllVersion=\"131078\" />"
+  },
+  {
+   "section": "17.15.1.1",
+   "ns": "w",
+   "element": "activeWritingStyle",
+   "type": "CT_WritingStyle",
+   "xml": "<w:activeWritingStyle w:lang=\"en-CA\" />"
+  },
+  {
+   "section": "17.15.1.1",
+   "ns": "w",
+   "element": "activeWritingStyle",
+   "type": "CT_WritingStyle",
+   "xml": "<w:activeWritingStyle  w:nlCheck=\"1\" />"
+  },
+  {
+   "section": "17.15.1.1",
+   "ns": "w",
+   "element": "activeWritingStyle",
+   "type": "CT_WritingStyle",
+   "xml": "<w:activeWritingStyle  w:vendorID=\"64\"/>"
+  },
+  {
+   "section": "17.15.1.2",
+   "ns": "w",
+   "element": "alignBordersAndEdges",
+   "type": "CT_OnOff",
+   "xml": "<w:alignBordersAndEdges w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.3",
+   "ns": "w",
+   "element": "alwaysMergeEmptyNamespace",
+   "type": "CT_OnOff",
+   "xml": "<w:alwaysMergeEmptyNamespace w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.4",
+   "ns": "w",
+   "element": "alwaysShowPlaceholderText",
+   "type": "CT_OnOff",
+   "xml": "<w:alwaysShowPlaceholderText w:val=\"true\" />"
+  },
+  {
+   "section": "17.15.1.6",
+   "ns": "w",
+   "element": "attachedTemplate",
+   "type": "CT_Rel",
+   "xml": "<w:attachedTemplate r:id=\"rId1\" />"
+  },
+  {
+   "section": "17.15.1.7",
+   "ns": "w",
+   "element": "autoCaption",
+   "type": "CT_AutoCaption",
+   "xml": "<w:autoCaption w:name=\"wfwTables\" w:caption=\"custom\" />"
+  },
+  {
+   "section": "17.15.1.10",
+   "ns": "w",
+   "element": "autoHyphenation",
+   "type": "CT_OnOff",
+   "xml": "<w:autoHyphenation w:val=\"true\" />"
+  },
+  {
+   "section": "17.15.1.14",
+   "ns": "w",
+   "element": "bordersDoNotSurroundFooter",
+   "type": "CT_OnOff",
+   "xml": "<w:bordersDoNotSurroundFooter w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.15",
+   "ns": "w",
+   "element": "bordersDoNotSurroundHeader",
+   "type": "CT_OnOff",
+   "xml": "<w:bordersDoNotSurroundHeader w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.17",
+   "ns": "w",
+   "element": "captions",
+   "type": "CT_Captions",
+   "xml": "<w:captions> <w:caption w:name=\"Table\" w:pos=\"below\" w:numFmt=\"decimal\" /> </w:captions>"
+  },
+  {
+   "section": "17.15.1.18",
+   "ns": "w",
+   "element": "characterSpacingControl",
+   "type": "CT_CharacterSpacing",
+   "xml": "<w:characterSpacingControl w:val=\"doNotCompress\" />"
+  },
+  {
+   "section": "17.15.1.18",
+   "ns": "w",
+   "element": "characterSpacingControl",
+   "type": "CT_CharacterSpacing",
+   "xml": "<w:characterSpacingControl w:val=\"compressPunctuation\"/>"
+  },
+  {
+   "section": "17.15.1.19",
+   "ns": "w",
+   "element": "clickAndTypeStyle",
+   "type": "CT_String",
+   "xml": "<w:clickAndTypeStyle w:val=\"BalloonText\" />"
+  },
+  {
+   "section": "17.15.1.20",
+   "ns": "w",
+   "element": "clrSchemeMapping",
+   "type": "CT_ColorSchemeMapping",
+   "xml": "<w:clrSchemeMapping w:bg1=\"light1\" />"
+  },
+  {
+   "section": "17.15.1.20",
+   "ns": "w",
+   "element": "clrSchemeMapping",
+   "type": "CT_ColorSchemeMapping",
+   "xml": "<w:clrSchemeMapping w:accent1=\"light1\" />"
+  },
+  {
+   "section": "17.15.1.20",
+   "ns": "w",
+   "element": "clrSchemeMapping",
+   "type": "CT_ColorSchemeMapping",
+   "xml": "<w:clrSchemeMapping w:accent2=\"hyperlink\" />"
+  },
+  {
+   "section": "17.15.1.20",
+   "ns": "w",
+   "element": "clrSchemeMapping",
+   "type": "CT_ColorSchemeMapping",
+   "xml": "<w:clrSchemeMapping w:accent3=\"dark1\" />"
+  },
+  {
+   "section": "17.15.1.20",
+   "ns": "w",
+   "element": "clrSchemeMapping",
+   "type": "CT_ColorSchemeMapping",
+   "xml": "<w:clrSchemeMapping w:accent4=\"dark2\" />"
+  },
+  {
+   "section": "17.15.1.20",
+   "ns": "w",
+   "element": "clrSchemeMapping",
+   "type": "CT_ColorSchemeMapping",
+   "xml": "<w:clrSchemeMapping w:accent5=\"accent1\" />"
+  },
+  {
+   "section": "17.15.1.20",
+   "ns": "w",
+   "element": "clrSchemeMapping",
+   "type": "CT_ColorSchemeMapping",
+   "xml": "<w:clrSchemeMapping w:accent6=\"accent1\" />"
+  },
+  {
+   "section": "17.15.1.20",
+   "ns": "w",
+   "element": "clrSchemeMapping",
+   "type": "CT_ColorSchemeMapping",
+   "xml": "<w:clrSchemeMapping w:bg1=\"light2\" />"
+  },
+  {
+   "section": "17.15.1.20",
+   "ns": "w",
+   "element": "clrSchemeMapping",
+   "type": "CT_ColorSchemeMapping",
+   "xml": "<w:clrSchemeMapping w:bg2=\"dark1\" />"
+  },
+  {
+   "section": "17.15.1.20",
+   "ns": "w",
+   "element": "clrSchemeMapping",
+   "type": "CT_ColorSchemeMapping",
+   "xml": "<w:clrSchemeMapping w:followedHyperlink=\"hyperlink\" />"
+  },
+  {
+   "section": "17.15.1.22",
+   "ns": "w",
+   "element": "consecutiveHyphenLimit",
+   "type": "CT_DecimalNumber",
+   "xml": "<w:consecutiveHyphenLimit w:val=\"2\" />"
+  },
+  {
+   "section": "17.15.1.23",
+   "ns": "w",
+   "element": "decimalSymbol",
+   "type": "CT_String",
+   "xml": "<w:decimalSymbol w:val=\",\" />"
+  },
+  {
+   "section": "17.15.1.24",
+   "ns": "w",
+   "element": "defaultTableStyle",
+   "type": "CT_String",
+   "xml": "<w:defaultTableStyle w:val=\"LightShading-Accent3\" />"
+  },
+  {
+   "section": "17.15.1.25",
+   "ns": "w",
+   "element": "defaultTabStop",
+   "type": "CT_TwipsMeasure",
+   "xml": "<w:defaultTabStop w:val=\"360\" />"
+  },
+  {
+   "section": "17.15.1.26",
+   "ns": "w",
+   "element": "displayBackgroundShape",
+   "type": "CT_OnOff",
+   "xml": "<w:displayBackgroundShape w:val=\"true\" />"
+  },
+  {
+   "section": "17.15.1.27",
+   "ns": "w",
+   "element": "displayHorizontalDrawingGridEvery",
+   "type": "CT_DecimalNumber",
+   "xml": "<w:displayHorizontalDrawingGridEvery w:val=\"4\" />"
+  },
+  {
+   "section": "17.15.1.28",
+   "ns": "w",
+   "element": "displayVerticalDrawingGridEvery",
+   "type": "CT_DecimalNumber",
+   "xml": "<w:displayVerticalDrawingGridEvery w:val=\"4\" />"
+  },
+  {
+   "section": "17.15.1.29",
+   "ns": "w",
+   "element": "documentProtection",
+   "type": "CT_DocProtect",
+   "xml": "<w:documentProtection w:edit=\"readOnly\" w:enforcement=\"1\" />"
+  },
+  {
+   "section": "17.15.1.29",
+   "ns": "w",
+   "element": "documentProtection",
+   "type": "CT_DocProtect",
+   "xml": "<w:documentProtection w:edit=\"readOnly\" w:enforcement=\"1\" />"
+  },
+  {
+   "section": "17.15.1.30",
+   "ns": "w",
+   "element": "documentType",
+   "type": "CT_DocType",
+   "xml": "<w:documentType w:val=\"letter\" />"
+  },
+  {
+   "section": "17.15.1.30",
+   "ns": "w",
+   "element": "documentType",
+   "type": "CT_DocType",
+   "xml": "<w:documentType w:val=\"eMail\" />"
+  },
+  {
+   "section": "17.15.1.32",
+   "ns": "w",
+   "element": "docVars",
+   "type": "CT_DocVars",
+   "xml": "<w:docVars> <w:docVar  /> <w:docVar  /> <w:docVar  /> </w:docVars>"
+  },
+  {
+   "section": "17.15.1.33",
+   "ns": "w",
+   "element": "doNotAutoCompressPictures",
+   "type": "CT_OnOff",
+   "xml": "<w:doNotAutoCompressPictures w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.34",
+   "ns": "w",
+   "element": "doNotDemarcateInvalidXml",
+   "type": "CT_OnOff",
+   "xml": "<w:doNotDemarcateInvalidXml w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.35",
+   "ns": "w",
+   "element": "doNotDisplayPageBoundaries",
+   "type": "CT_OnOff",
+   "xml": "<w:doNotDisplayPageBoundaries w:val=\"true\" />"
+  },
+  {
+   "section": "17.15.1.36",
+   "ns": "w",
+   "element": "doNotEmbedSmartTags",
+   "type": "CT_OnOff",
+   "xml": "<w:doNotEmbedSmartTags w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.37",
+   "ns": "w",
+   "element": "doNotHyphenateCaps",
+   "type": "CT_OnOff",
+   "xml": "<w:doNotHyphenateCaps w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.38",
+   "ns": "w",
+   "element": "doNotIncludeSubdocsInStats",
+   "type": "CT_OnOff",
+   "xml": "<w:doNotIncludeSubdocsInStats w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.39",
+   "ns": "w",
+   "element": "doNotShadeFormData",
+   "type": "CT_OnOff",
+   "xml": "<w:doNotShadeFormData w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.41",
+   "ns": "w",
+   "element": "doNotTrackMoves",
+   "type": "CT_OnOff",
+   "xml": "<w:doNotTrackMoves w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.42",
+   "ns": "w",
+   "element": "doNotUseMarginsForDrawingGridOrigin",
+   "type": "CT_OnOff",
+   "xml": "<w:doNotUseMarginsForDrawingGridOrigin w:val=\"true\" />"
+  },
+  {
+   "section": "17.15.1.43",
+   "ns": "w",
+   "element": "doNotValidateAgainstSchema",
+   "type": "CT_OnOff",
+   "xml": "<w:doNotValidateAgainstSchema w:val=\"true\" />"
+  },
+  {
+   "section": "17.15.1.45",
+   "ns": "w",
+   "element": "drawingGridHorizontalSpacing",
+   "type": "CT_TwipsMeasure",
+   "xml": "<w:drawingGridHorizontalSpacing w:val=\"720\" />"
+  },
+  {
+   "section": "17.15.1.47",
+   "ns": "w",
+   "element": "drawingGridVerticalSpacing",
+   "type": "CT_TwipsMeasure",
+   "xml": "<w:drawingGridVerticalSpacing w:val=\"720\" />"
+  },
+  {
+   "section": "17.15.1.48",
+   "ns": "w",
+   "element": "forceUpgrade",
+   "type": "CT_Empty",
+   "xml": "<w:forceUpgrade/>"
+  },
+  {
+   "section": "17.15.1.49",
+   "ns": "w",
+   "element": "formsDesign",
+   "type": "CT_OnOff",
+   "xml": "<w:formsDesign w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.50",
+   "ns": "w",
+   "element": "gutterAtTop",
+   "type": "CT_OnOff",
+   "xml": "<w:gutterAtTop w:val=\"true\" />"
+  },
+  {
+   "section": "17.15.1.51",
+   "ns": "w",
+   "element": "hideGrammaticalErrors",
+   "type": "CT_OnOff",
+   "xml": "<w:hideGrammaticalErrors w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.52",
+   "ns": "w",
+   "element": "hideSpellingErrors",
+   "type": "CT_OnOff",
+   "xml": "<w:hideSpellingErrors w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.53",
+   "ns": "w",
+   "element": "hyphenationZone",
+   "type": "CT_TwipsMeasure",
+   "xml": "<w:hyphenationZone w:val=\"720\" />"
+  },
+  {
+   "section": "17.15.1.56",
+   "ns": "w",
+   "element": "listSeparator",
+   "type": "CT_String",
+   "xml": "<w:listSeparator w:val=\";\" />"
+  },
+  {
+   "section": "17.15.1.57",
+   "ns": "w",
+   "element": "mirrorMargins",
+   "type": "CT_OnOff",
+   "xml": "<w:mirrorMargins w:val=\"true\" />"
+  },
+  {
+   "section": "17.15.1.58",
+   "ns": "w",
+   "element": "noLineBreaksAfter",
+   "type": "CT_Kinsoku",
+   "xml": "<w:noLineBreaksAfter w:lang=\"ja-JP\" w:val=\"$\" />"
+  },
+  {
+   "section": "17.15.1.59",
+   "ns": "w",
+   "element": "noLineBreaksBefore",
+   "type": "CT_Kinsoku",
+   "xml": "<w:noLineBreaksBefore w:lang=\"ko-KR\" w:val=\"$\" />"
+  },
+  {
+   "section": "17.15.1.60",
+   "ns": "w",
+   "element": "noPunctuationKerning",
+   "type": "CT_OnOff",
+   "xml": "<w:noPunctuationKerning w:val=\"true\" />"
+  },
+  {
+   "section": "17.15.1.61",
+   "ns": "w",
+   "element": "printFormsData",
+   "type": "CT_OnOff",
+   "xml": "<w:printFormsData w:val=\"true\" />"
+  },
+  {
+   "section": "17.15.1.62",
+   "ns": "w",
+   "element": "printFractionalCharacterWidth",
+   "type": "CT_OnOff",
+   "xml": "<w:printFractionalCharacterWidth w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.63",
+   "ns": "w",
+   "element": "printPostScriptOverText",
+   "type": "CT_OnOff",
+   "xml": "<w:printPostScriptOverText w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.64",
+   "ns": "w",
+   "element": "printTwoOnOne",
+   "type": "CT_OnOff",
+   "xml": "<w:printTwoOnOne w:val=\"true\" />"
+  },
+  {
+   "section": "17.15.1.65",
+   "ns": "w",
+   "element": "proofState",
+   "type": "CT_Proof",
+   "xml": "<w:proofState w:spelling=\"clean\" w:grammar=\"clean\" />"
+  },
+  {
+   "section": "17.15.1.65",
+   "ns": "w",
+   "element": "proofState",
+   "type": "CT_Proof",
+   "xml": "<w:proofState w:spelling=\"clean\" w:grammar=\"clean\" />"
+  },
+  {
+   "section": "17.15.1.65",
+   "ns": "w",
+   "element": "proofState",
+   "type": "CT_Proof",
+   "xml": "<w:proofState w:spelling=\"clean\" w:grammar=\"clean\" />"
+  },
+  {
+   "section": "17.15.1.66",
+   "ns": "w",
+   "element": "readModeInkLockDown",
+   "type": "CT_ReadingModeInkLockDown",
+   "xml": "<w:readModeInkLockDown w:w=\"692\" w:h=\"986\" w:fontSz=\"95\" w:actualPg=\"0\"/>"
+  },
+  {
+   "section": "17.15.1.68",
+   "ns": "w",
+   "element": "removePersonalInformation",
+   "type": "CT_OnOff",
+   "xml": "<w:removePersonalInformation w:val=\"true\" />"
+  },
+  {
+   "section": "17.15.1.69",
+   "ns": "w",
+   "element": "revisionView",
+   "type": "CT_TrackChangesView",
+   "xml": "<w:revisionView w:markup=\"false\" w:comments=\"false\" w:insDel=\"false\" />"
+  },
+  {
+   "section": "17.15.1.69",
+   "ns": "w",
+   "element": "revisionView",
+   "type": "CT_TrackChangesView",
+   "xml": "<w:revisionView w:comments=\"true\" />"
+  },
+  {
+   "section": "17.15.1.69",
+   "ns": "w",
+   "element": "revisionView",
+   "type": "CT_TrackChangesView",
+   "xml": "<w:revisionView w:formatting=\"true\" />"
+  },
+  {
+   "section": "17.15.1.69",
+   "ns": "w",
+   "element": "revisionView",
+   "type": "CT_TrackChangesView",
+   "xml": "<w:revisionView w:inkAnnotations=\"true\" />"
+  },
+  {
+   "section": "17.15.1.69",
+   "ns": "w",
+   "element": "revisionView",
+   "type": "CT_TrackChangesView",
+   "xml": "<w:revisionView w:insDel=\"true\" />"
+  },
+  {
+   "section": "17.15.1.69",
+   "ns": "w",
+   "element": "revisionView",
+   "type": "CT_TrackChangesView",
+   "xml": "<w:revisionView w:markup=\"false\" />"
+  },
+  {
+   "section": "17.15.1.72",
+   "ns": "w",
+   "element": "rsids",
+   "type": "CT_DocRsids",
+   "xml": "<w:rsids> <w:rsidRoot w:val=\"00464813\" /> <w:rsid w:val=\"00455AAB\" /> <w:rsid w:val=\"00464813\" /> <w:rsid w:val=\"00473403\" /> </w:rsids>"
+  },
+  {
+   "section": "17.15.1.73",
+   "ns": "w",
+   "element": "saveFormsData",
+   "type": "CT_OnOff",
+   "xml": "<w:saveFormsData w:val=\"true\" />"
+  },
+  {
+   "section": "17.15.1.74",
+   "ns": "w",
+   "element": "saveInvalidXml",
+   "type": "CT_OnOff",
+   "xml": "<w:saveInvalidXml w:val=\"true\" />"
+  },
+  {
+   "section": "17.15.1.75",
+   "ns": "w",
+   "element": "savePreviewPicture",
+   "type": "CT_OnOff",
+   "xml": "<w:savePreviewPicture w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.76",
+   "ns": "w",
+   "element": "saveThroughXslt",
+   "type": "CT_SaveThroughXslt",
+   "xml": "<w:saveThroughXslt r:id=\"rId5\" />"
+  },
+  {
+   "section": "17.15.1.77",
+   "ns": "w",
+   "element": "saveXmlDataOnly",
+   "type": "CT_OnOff",
+   "xml": "<w:saveXmlDataOnly w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.78",
+   "ns": "w",
+   "element": "settings",
+   "type": "CT_Settings",
+   "xml": "<w:settings> <w:defaultTabStop w:val=\"720\" /> <w:characterSpacingControl w:val=\"doNotCompress\" /> </w:settings>"
+  },
+  {
+   "section": "17.15.1.79",
+   "ns": "w",
+   "element": "showEnvelope",
+   "type": "CT_OnOff",
+   "xml": "<w:showEnvelope w:val=\"true\" />"
+  },
+  {
+   "section": "17.15.1.80",
+   "ns": "w",
+   "element": "showXMLTags",
+   "type": "CT_OnOff",
+   "xml": "<w:showXMLTags w:val=\"true\" />"
+  },
+  {
+   "section": "17.15.1.81",
+   "ns": "w",
+   "element": "smartTagType",
+   "type": "CT_SmartTagType",
+   "xml": "<w:smartTagType w:name=\"companyName\"  />"
+  },
+  {
+   "section": "17.15.1.81",
+   "ns": "w",
+   "element": "smartTagType",
+   "type": "CT_SmartTagType",
+   "xml": "<w:smartTagType w:namespaceuri=\"urn:smartTagExample\" />"
+  },
+  {
+   "section": "17.15.1.81",
+   "ns": "w",
+   "element": "smartTagType",
+   "type": "CT_SmartTagType",
+   "xml": "<w:smartTagType  w:url=\"http://www.example.com/smartTag\" />"
+  },
+  {
+   "section": "17.15.1.82",
+   "ns": "w",
+   "element": "strictFirstAndLastChars",
+   "type": "CT_OnOff",
+   "xml": "<w:strictFirstAndLastChars w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.83",
+   "ns": "w",
+   "element": "styleLockQFSet",
+   "type": "CT_OnOff",
+   "xml": "<w:styleLockQFSet w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.84",
+   "ns": "w",
+   "element": "styleLockTheme",
+   "type": "CT_OnOff",
+   "xml": "<w:styleLockTheme w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.85",
+   "ns": "w",
+   "element": "stylePaneFormatFilter",
+   "type": "CT_StylePaneFilter",
+   "xml": "<w:stylePaneFormatFilter w:customStyles=\"true\" w:top3HeadingStyles=\"true\" />"
+  },
+  {
+   "section": "17.15.1.86",
+   "ns": "w",
+   "element": "stylePaneSortMethod",
+   "type": "CT_StyleSort",
+   "xml": "<w:stylePaneSortMethod w:val=\"type\" />"
+  },
+  {
+   "section": "17.15.1.87",
+   "ns": "w",
+   "element": "summaryLength",
+   "type": "CT_DecimalNumberOrPrecent",
+   "xml": "<w:summaryLength w:val=\"10%\" />"
+  },
+  {
+   "section": "17.15.1.88",
+   "ns": "w",
+   "element": "themeFontLang",
+   "type": "CT_Language",
+   "xml": "<w:themeFontLang w:val=\"ja-JP\" />"
+  },
+  {
+   "section": "17.15.1.90",
+   "ns": "w",
+   "element": "updateFields",
+   "type": "CT_OnOff",
+   "xml": "<w:updateFields w:val=\"true\"/>"
+  },
+  {
+   "section": "17.15.1.91",
+   "ns": "w",
+   "element": "useXSLTWhenSaving",
+   "type": "CT_OnOff",
+   "xml": "<w:useXSLTWhenSaving w:val=\"true\" />"
+  },
+  {
+   "section": "17.15.1.92",
+   "ns": "w",
+   "element": "view",
+   "type": "CT_View",
+   "xml": "<w:view w:val=\"web\" />"
+  },
+  {
+   "section": "17.15.1.93",
+   "ns": "w",
+   "element": "writeProtection",
+   "type": "CT_WriteProtection",
+   "xml": "<w:writeProtection w:hashValue=\"9oN7nWkCAyEZib1RomSJTjmPpCY=\" />"
+  },
+  {
+   "section": "17.15.1.93",
+   "ns": "w",
+   "element": "writeProtection",
+   "type": "CT_WriteProtection",
+   "xml": "<w:writeProtection w:recommended=\"true\" />"
+  },
+  {
+   "section": "17.15.1.94",
+   "ns": "w",
+   "element": "zoom",
+   "type": "CT_Zoom",
+   "xml": "<w:zoom w:percent=\"71%\" />"
+  },
+  {
+   "section": "17.15.1.94",
+   "ns": "w",
+   "element": "zoom",
+   "type": "CT_Zoom",
+   "xml": "<w:zoom w:percent=\"50%\" />"
+  },
+  {
+   "section": "17.15.1.94",
+   "ns": "w",
+   "element": "zoom",
+   "type": "CT_Zoom",
+   "xml": "<w:zoom w:val=\"bestFit\" w:percent=\"90%\" />"
+  },
+  {
+   "section": "17.15.2.6",
+   "ns": "w",
+   "element": "div",
+   "type": "CT_Div",
+   "xml": "<div> <div> <p>Paragraph</p> </div> </div>"
+  },
+  {
+   "section": "17.15.2.33",
+   "ns": "w",
+   "element": "optimizeForBrowser",
+   "type": "CT_OptimizeForBrowser",
+   "xml": "<w:optimizeForBrowser w:target=\"W3C XHTML+CSS2\"/>"
+  },
+  {
+   "section": "17.16.18",
+   "ns": "w",
+   "element": "fldChar",
+   "type": "CT_FldChar",
+   "xml": "<w:fldChar w:fldCharType=\"separate\" />"
+  },
+  {
+   "section": "17.16.19",
+   "ns": "w",
+   "element": "fldSimple",
+   "type": "CT_SimpleField",
+   "xml": "<w:fldSimple w:instr=\"FILENAME\"> <w:r> <w:t>Example Document.docx</w:t> </w:r> </w:fldSimple>"
+  },
+  {
+   "section": "17.16.19",
+   "ns": "w",
+   "element": "fldSimple",
+   "type": "CT_SimpleField",
+   "xml": "<w:fldSimple w:instr=\"AUTHOR\" w:dirty=\"true\"/>"
+  },
+  {
+   "section": "17.16.19",
+   "ns": "w",
+   "element": "fldSimple",
+   "type": "CT_SimpleField",
+   "xml": "<w:fldSimple w:instr=\"AUTHOR\" w:fldLock=\"true\"> <w:r> <w:t>Rex Jaeschke</w:t> </w:r> </w:fldSimple>"
+  },
+  {
+   "section": "17.16.22",
+   "ns": "w",
+   "element": "hyperlink",
+   "type": "CT_Hyperlink",
+   "xml": "<w:hyperlink r:id=\"rId10\"> <w:r> <w:t>Click here</w:t> </w:r> </w:hyperlink>"
+  },
+  {
+   "section": "17.16.22",
+   "ns": "w",
+   "element": "hyperlink",
+   "type": "CT_Hyperlink",
+   "xml": "<w:hyperlink w:anchor=\"chapter3\"> <w:r> <w:t>Go to Chapter Three</w:t> </w:r> </w:hyperlink>"
+  },
+  {
+   "section": "17.16.22",
+   "ns": "w",
+   "element": "hyperlink",
+   "type": "CT_Hyperlink",
+   "xml": "<w:hyperlink r:id=\"rId9\" w:docLocation=\"table\"> <w:r> <w:t>Click Here</w:t> </w:r> </w:hyperlink>"
+  },
+  {
+   "section": "17.16.22",
+   "ns": "w",
+   "element": "hyperlink",
+   "type": "CT_Hyperlink",
+   "xml": "<w:hyperlink r:id=\"rId9\" w:history=\"true\"> <w:r> <w:t>http://www.example.com</w:t> </w:r> </w:hyperlink>"
+  },
+  {
+   "section": "17.16.22",
+   "ns": "w",
+   "element": "hyperlink",
+   "type": "CT_Hyperlink",
+   "xml": "<w:hyperlink r:id=\"rId9\"> <w:r> <w:t>http://www.example.com</w:t> </w:r> </w:hyperlink>"
+  },
+  {
+   "section": "17.16.22",
+   "ns": "w",
+   "element": "hyperlink",
+   "type": "CT_Hyperlink",
+   "xml": "<w:hyperlink r:id=\"rId9\" w:tgtFrame=\"_top\"> <w:r> <w:t>http://example.com</w:t> </w:r> </w:hyperlink>"
+  },
+  {
+   "section": "17.16.22",
+   "ns": "w",
+   "element": "hyperlink",
+   "type": "CT_Hyperlink",
+   "xml": "<w:hyperlink r:id=\"rId9\" w:tooltip=\"Click here!\"> <w:r> <w:t>http://example.com</w:t> </w:r> </w:hyperlink>"
+  },
+  {
+   "section": "18.2.2",
+   "ns": "x",
+   "element": "calcPr",
+   "type": "CT_CalcPr",
+   "xml": "<calcPr calcId=\"122211\"/>"
+  },
+  {
+   "section": "18.2.5",
+   "ns": "x",
+   "element": "definedName",
+   "type": "CT_DefinedName",
+   "xml": "<definedName name=\"Northwind_Database\" localSheetId=\"2\">Sheet5!$A$1:$T$47</definedName>"
+  },
+  {
+   "section": "18.2.6",
+   "ns": "x",
+   "element": "definedNames",
+   "type": "CT_DefinedNames",
+   "xml": "<definedNames> <definedName name=\"NamedFormula\" comment=\"Comment text for defined name.\">SUM(Sheet3!$B$2:$B$9)</definedName> <definedName name=\"NamedRange\">Sheet3!$A$1:$C$12</definedName> <definedName name=\"NamedRangeFromExternalReference\" localSheetId=\"2\" hidden=\"1\">Sheet5!$A$1:$T$47</definedName> </definedNames>"
+  },
+  {
+   "section": "18.2.18",
+   "ns": "x",
+   "element": "pivotCaches",
+   "type": "CT_PivotCaches",
+   "xml": "<pivotCaches> <pivotCache cacheId=\"4\" r:id=\"rId8\"/> </pivotCaches>"
+  },
+  {
+   "section": "18.2.20",
+   "ns": "x",
+   "element": "sheets",
+   "type": "CT_Sheets",
+   "xml": "<sheets> <sheet name=\"Sheet1\" sheetId=\"1\" r:id=\"rId1\"/> <sheet name=\"Sheet2\" sheetId=\"2\" r:id=\"rId2\"/> <sheet name=\"Sheet5\" sheetId=\"3\" r:id=\"rId3\"/> <sheet name=\"Chart1\" sheetId=\"4\" r:id=\"rId4\"/> </sheets>"
+  },
+  {
+   "section": "18.2.21",
+   "ns": "x",
+   "element": "smartTagPr",
+   "type": "CT_SmartTagPr",
+   "xml": "<smartTagPr embed=\"1\" show=\"noIndicator\"/>"
+  },
+  {
+   "section": "18.3.1.2",
+   "ns": "x",
+   "element": "autoFilter",
+   "type": "CT_AutoFilter",
+   "xml": "<autoFilter ref=\"B3:E8\"> <filterColumn colId=\"1\"> <customFilters> <customFilter operator=\"greaterThan\" val=\"0.5\"/> </customFilters> </filterColumn> </autoFilter>"
+  },
+  {
+   "section": "18.3.1.4",
+   "ns": "x",
+   "element": "c",
+   "type": "CT_Cell",
+   "xml": "<c r=\"C6\" s=\"1\" vm=\"15\"> <f>CUBEVALUE(\"xlextdat9 Adventure Works\",C$5,$A6)</f> <v>2838512.355</v> </c>"
+  },
+  {
+   "section": "18.3.1.7",
+   "ns": "x",
+   "element": "cellSmartTags",
+   "type": "CT_CellSmartTags",
+   "xml": "<cellSmartTags r=\"A1\"> <cellSmartTag type=\"0\"/> </cellSmartTags>"
+  },
+  {
+   "section": "18.3.1.9",
+   "ns": "x",
+   "element": "cellWatches",
+   "type": "CT_CellWatches",
+   "xml": "<cellWatches> <cellWatch r=\"B3\"/> <cellWatch r=\"B4\"/> </cellWatches>"
+  },
+  {
+   "section": "18.3.1.13",
+   "ns": "x",
+   "element": "col",
+   "type": "CT_Col",
+   "xml": "<col min=\"5\" max=\"5\" width=\"9.140625\" style=\"3\"/>"
+  },
+  {
+   "section": "18.3.1.14",
+   "ns": "x",
+   "element": "colBreaks",
+   "type": "CT_PageBreak",
+   "xml": "<colBreaks count=\"1\" manualBreakCount=\"1\"> <brk id=\"2\" max=\"1048575\" man=\"1\"/> </colBreaks>"
+  },
+  {
+   "section": "18.3.1.16",
+   "ns": "x",
+   "element": "colorScale",
+   "type": "CT_ColorScale",
+   "xml": "<colorScale> <cfvo type=\"min\" val=\"0\"/> <cfvo type=\"max\" val=\"0\"/> <color theme=\"5\"/> <color rgb=\"FFFFEF9C\"/> </colorScale>"
+  },
+  {
+   "section": "18.3.1.17",
+   "ns": "x",
+   "element": "cols",
+   "type": "CT_Cols",
+   "xml": "<cols> <col min=\"4\" max=\"4\" width=\"12\" bestFit=\"1\" customWidth=\"1\"/> <col min=\"5\" max=\"5\" width=\"9.140625\" style=\"3\"/> </cols>"
+  },
+  {
+   "section": "18.3.1.18",
+   "ns": "x",
+   "element": "conditionalFormatting",
+   "type": "CT_ConditionalFormatting",
+   "xml": "<conditionalFormatting sqref=\"C3:C8\"> <cfRule type=\"top10\" dxfId=\"1\" priority=\"3\" rank=\"2\"/> </conditionalFormatting>"
+  },
+  {
+   "section": "18.3.1.20",
+   "ns": "x",
+   "element": "controlPr",
+   "type": "CT_ControlPr",
+   "xml": "<controlPr altText=\"Alternate text\"  />"
+  },
+  {
+   "section": "18.3.1.20",
+   "ns": "x",
+   "element": "controlPr",
+   "type": "CT_ControlPr",
+   "xml": "<controlPr autoFill=\"false\"  />"
+  },
+  {
+   "section": "18.3.1.20",
+   "ns": "x",
+   "element": "controlPr",
+   "type": "CT_ControlPr",
+   "xml": "<controlPr autoLine=\"false\"  />"
+  },
+  {
+   "section": "18.3.1.20",
+   "ns": "x",
+   "element": "controlPr",
+   "type": "CT_ControlPr",
+   "xml": "<controlPr autoPict=\"false\"  />"
+  },
+  {
+   "section": "18.3.1.20",
+   "ns": "x",
+   "element": "controlPr",
+   "type": "CT_ControlPr",
+   "xml": "<controlPr cf=\"pict\"  />"
+  },
+  {
+   "section": "18.3.1.20",
+   "ns": "x",
+   "element": "controlPr",
+   "type": "CT_ControlPr",
+   "xml": "<controlPr defaultSize=\"false\"  />"
+  },
+  {
+   "section": "18.3.1.20",
+   "ns": "x",
+   "element": "controlPr",
+   "type": "CT_ControlPr",
+   "xml": "<controlPr disabled=\"true\"  />"
+  },
+  {
+   "section": "18.3.1.20",
+   "ns": "x",
+   "element": "controlPr",
+   "type": "CT_ControlPr",
+   "xml": "<controlPr linkedCell=\"$A$4\"  />"
+  },
+  {
+   "section": "18.3.1.20",
+   "ns": "x",
+   "element": "controlPr",
+   "type": "CT_ControlPr",
+   "xml": "<controlPr listFillRange=\"$A$1:$A$15\"  />"
+  },
+  {
+   "section": "18.3.1.28",
+   "ns": "x",
+   "element": "dataBar",
+   "type": "CT_DataBar",
+   "xml": "<dataBar> <cfvo type=\"min\" val=\"0\"/> <cfvo type=\"max\" val=\"0\"/> <color rgb=\"FF638EC6\"/> </dataBar>"
+  },
+  {
+   "section": "18.3.1.29",
+   "ns": "x",
+   "element": "dataConsolidate",
+   "type": "CT_DataConsolidate",
+   "xml": "<dataConsolidate function=\"count\"> <dataRefs count=\"2\"> <dataRef ref=\"A1:C1\" sheet=\"Sheet1\"/> <dataRef ref=\"A3:C3\" sheet=\"Sheet1\"/> </dataRefs> </dataConsolidate>"
+  },
+  {
+   "section": "18.3.1.35",
+   "ns": "x",
+   "element": "dimension",
+   "type": "CT_SheetDimension",
+   "xml": "<dimension ref=\"A1:C2\"/>"
+  },
+  {
+   "section": "18.3.1.37",
+   "ns": "x",
+   "element": "drawingHF",
+   "type": "CT_DrawingHF",
+   "xml": "<drawingHF  cfe=\"5\"/>"
+  },
+  {
+   "section": "18.3.1.37",
+   "ns": "x",
+   "element": "drawingHF",
+   "type": "CT_DrawingHF",
+   "xml": "<drawingHF  cff=\"5\"/>"
+  },
+  {
+   "section": "18.3.1.37",
+   "ns": "x",
+   "element": "drawingHF",
+   "type": "CT_DrawingHF",
+   "xml": "<drawingHF  cfo=\"5\"/>"
+  },
+  {
+   "section": "18.3.1.37",
+   "ns": "x",
+   "element": "drawingHF",
+   "type": "CT_DrawingHF",
+   "xml": "<drawingHF  che=\"5\"/>"
+  },
+  {
+   "section": "18.3.1.37",
+   "ns": "x",
+   "element": "drawingHF",
+   "type": "CT_DrawingHF",
+   "xml": "<drawingHF  chf=\"5\"/>"
+  },
+  {
+   "section": "18.3.1.37",
+   "ns": "x",
+   "element": "drawingHF",
+   "type": "CT_DrawingHF",
+   "xml": "<drawingHF  cho=\"5\"/>"
+  },
+  {
+   "section": "18.3.1.37",
+   "ns": "x",
+   "element": "drawingHF",
+   "type": "CT_DrawingHF",
+   "xml": "<drawingHF r:id=\"rId2\" lho=\"7\" lhf=\"6\"/>"
+  },
+  {
+   "section": "18.3.1.37",
+   "ns": "x",
+   "element": "drawingHF",
+   "type": "CT_DrawingHF",
+   "xml": "<drawingHF  lfe=\"5\"/>"
+  },
+  {
+   "section": "18.3.1.37",
+   "ns": "x",
+   "element": "drawingHF",
+   "type": "CT_DrawingHF",
+   "xml": "<drawingHF  lff=\"5\"/>"
+  },
+  {
+   "section": "18.3.1.37",
+   "ns": "x",
+   "element": "drawingHF",
+   "type": "CT_DrawingHF",
+   "xml": "<drawingHF  lfo=\"5\"/>"
+  },
+  {
+   "section": "18.3.1.37",
+   "ns": "x",
+   "element": "drawingHF",
+   "type": "CT_DrawingHF",
+   "xml": "<drawingHF  lhe=\"5\"/>"
+  },
+  {
+   "section": "18.3.1.37",
+   "ns": "x",
+   "element": "drawingHF",
+   "type": "CT_DrawingHF",
+   "xml": "<drawingHF  lhf=\"5\"/>"
+  },
+  {
+   "section": "18.3.1.40",
+   "ns": "x",
+   "element": "f",
+   "type": "CT_CellFormula",
+   "xml": "<f>SUM(C4:E4)</f>"
+  },
+  {
+   "section": "18.3.1.48",
+   "ns": "x",
+   "element": "hyperlinks",
+   "type": "CT_Hyperlinks",
+   "xml": "<hyperlinks> <hyperlink ref=\"A11\" r:id=\"rId1\" tooltip=\"Search Page\"/> </hyperlinks>"
+  },
+  {
+   "section": "18.3.1.49",
+   "ns": "x",
+   "element": "iconSet",
+   "type": "CT_IconSet",
+   "xml": "<iconSet iconSet=\"3Arrows\"> <cfvo type=\"percentile\" val=\"0\"/> <cfvo type=\"percentile\" val=\"33\"/> <cfvo type=\"percentile\" val=\"67\"/> </iconSet>"
+  },
+  {
+   "section": "18.3.1.55",
+   "ns": "x",
+   "element": "mergeCells",
+   "type": "CT_MergeCells",
+   "xml": "<mergeCells> <mergeCell ref=\"C2:F2\"/> <mergeCell ref=\"B19:C20\"/> <mergeCell ref=\"E19:G19\"/> </mergeCells>"
+  },
+  {
+   "section": "18.3.1.56",
+   "ns": "x",
+   "element": "objectPr",
+   "type": "CT_ObjectPr",
+   "xml": "<objectPr altText=\"Alternate text\"  />"
+  },
+  {
+   "section": "18.3.1.56",
+   "ns": "x",
+   "element": "objectPr",
+   "type": "CT_ObjectPr",
+   "xml": "<objectPr autoFill=\"false\"  />"
+  },
+  {
+   "section": "18.3.1.56",
+   "ns": "x",
+   "element": "objectPr",
+   "type": "CT_ObjectPr",
+   "xml": "<objectPr autoLine=\"false\"  />"
+  },
+  {
+   "section": "18.3.1.56",
+   "ns": "x",
+   "element": "objectPr",
+   "type": "CT_ObjectPr",
+   "xml": "<objectPr autoPict=\"false\"  />"
+  },
+  {
+   "section": "18.3.1.56",
+   "ns": "x",
+   "element": "objectPr",
+   "type": "CT_ObjectPr",
+   "xml": "<objectPr dde=\"true\"  />"
+  },
+  {
+   "section": "18.3.1.56",
+   "ns": "x",
+   "element": "objectPr",
+   "type": "CT_ObjectPr",
+   "xml": "<objectPr defaultSize=\"false\"  />"
+  },
+  {
+   "section": "18.3.1.56",
+   "ns": "x",
+   "element": "objectPr",
+   "type": "CT_ObjectPr",
+   "xml": "<objectPr disabled=\"true\"  />"
+  },
+  {
+   "section": "18.3.1.56",
+   "ns": "x",
+   "element": "objectPr",
+   "type": "CT_ObjectPr",
+   "xml": "<objectPr locked=\"false\"  />"
+  },
+  {
+   "section": "18.3.1.56",
+   "ns": "x",
+   "element": "objectPr",
+   "type": "CT_ObjectPr",
+   "xml": "<objectPr macro=\"Button1_Click()\"  />"
+  },
+  {
+   "section": "18.3.1.56",
+   "ns": "x",
+   "element": "objectPr",
+   "type": "CT_ObjectPr",
+   "xml": "<objectPr print=\"false\"  />"
+  },
+  {
+   "section": "18.3.1.56",
+   "ns": "x",
+   "element": "objectPr",
+   "type": "CT_ObjectPr",
+   "xml": "<objectPr uiObject=\"true\"  />"
+  },
+  {
+   "section": "18.3.1.60",
+   "ns": "x",
+   "element": "oleObjects",
+   "type": "CT_OleObjects",
+   "xml": "<oleObjects> <oleObject progId=\"Word.Document.12\" shapeId=\"1025\" r:id=\"rId4\"/> <oleObject progId=\"PowerPoint.Show.12\" shapeId=\"1026\" r:id=\"rId5\"/> </oleObjects>"
+  },
+  {
+   "section": "18.3.1.67",
+   "ns": "x",
+   "element": "picture",
+   "type": "CT_SheetBackgroundPicture",
+   "xml": "<picture r:id=\"rId1\"/>"
+  },
+  {
+   "section": "18.3.1.72",
+   "ns": "x",
+   "element": "protectedRanges",
+   "type": "CT_ProtectedRanges",
+   "xml": "<protectedRanges> <protectedRange sqref=\"A1:C5\" name=\"Range1\"/> </protectedRanges>"
+  },
+  {
+   "section": "18.3.1.74",
+   "ns": "x",
+   "element": "rowBreaks",
+   "type": "CT_PageBreak",
+   "xml": "<rowBreaks count=\"1\" manualBreakCount=\"1\"> <brk id=\"24\" max=\"16383\" man=\"1\"/> </rowBreaks>"
+  },
+  {
+   "section": "18.3.1.90",
+   "ns": "x",
+   "element": "smartTags",
+   "type": "CT_SmartTags",
+   "xml": "<smartTags> <cellSmartTags r=\"A1\"> <cellSmartTag type=\"0\"/> </cellSmartTags> <cellSmartTags r=\"B1\"> <cellSmartTag type=\"0\"/> </cellSmartTags> <cellSmartTags r=\"B2\"> <cellSmartTag type=\"0\"/> </cellSmartTags> </smartTags>"
+  },
+  {
+   "section": "18.3.1.92",
+   "ns": "x",
+   "element": "sortState",
+   "type": "CT_SortState",
+   "xml": "<sortState caseSensitive=\"1\" ref=\"B4:E8\"> <sortCondition descending=\"1\" ref=\"B4:B8\"/> </sortState>"
+  },
+  {
+   "section": "18.3.1.95",
+   "ns": "x",
+   "element": "tableParts",
+   "type": "CT_TableParts",
+   "xml": "<tableParts count=\"2\"> <tablePart r:id=\"rId1\"/> <tablePart r:id=\"rId2\"/> </tableParts>"
+  },
+  {
+   "section": "18.3.2.8",
+   "ns": "x",
+   "element": "filters",
+   "type": "CT_Filters",
+   "xml": "<filters> <dateGroupItem year=\"2006\" month=\"1\" day=\"2\" dateTimeGrouping=\"day\"/> <dateGroupItem year=\"2005\" month=\"1\" day=\"2\" dateTimeGrouping=\"day\"/> </filters>"
+  },
+  {
+   "section": "18.7.5",
+   "ns": "x",
+   "element": "commentPr",
+   "type": "CT_CommentPr",
+   "xml": "<commentPr altText=\"Alternate text\"  />"
+  },
+  {
+   "section": "18.7.5",
+   "ns": "x",
+   "element": "commentPr",
+   "type": "CT_CommentPr",
+   "xml": "<commentPr autoFill=\"false\"  />"
+  },
+  {
+   "section": "18.7.5",
+   "ns": "x",
+   "element": "commentPr",
+   "type": "CT_CommentPr",
+   "xml": "<commentPr autoLine=\"false\"  />"
+  },
+  {
+   "section": "18.7.5",
+   "ns": "x",
+   "element": "commentPr",
+   "type": "CT_CommentPr",
+   "xml": "<commentPr autoScale=\"true\"  />"
+  },
+  {
+   "section": "18.7.5",
+   "ns": "x",
+   "element": "commentPr",
+   "type": "CT_CommentPr",
+   "xml": "<commentPr colHidden=\"true\"  />"
+  },
+  {
+   "section": "18.7.5",
+   "ns": "x",
+   "element": "commentPr",
+   "type": "CT_CommentPr",
+   "xml": "<commentPr defaultSize=\"false\"  />"
+  },
+  {
+   "section": "18.7.5",
+   "ns": "x",
+   "element": "commentPr",
+   "type": "CT_CommentPr",
+   "xml": "<commentPr disabled=\"true\"  />"
+  },
+  {
+   "section": "18.7.5",
+   "ns": "x",
+   "element": "commentPr",
+   "type": "CT_CommentPr",
+   "xml": "<commentPr justLastX=\"true\"  />"
+  },
+  {
+   "section": "18.7.5",
+   "ns": "x",
+   "element": "commentPr",
+   "type": "CT_CommentPr",
+   "xml": "<commentPr locked=\"false\"  />"
+  },
+  {
+   "section": "18.7.5",
+   "ns": "x",
+   "element": "commentPr",
+   "type": "CT_CommentPr",
+   "xml": "<commentPr lockText=\"true\"  />"
+  },
+  {
+   "section": "18.7.5",
+   "ns": "x",
+   "element": "commentPr",
+   "type": "CT_CommentPr",
+   "xml": "<commentPr print=\"false\"  />"
+  },
+  {
+   "section": "18.7.5",
+   "ns": "x",
+   "element": "commentPr",
+   "type": "CT_CommentPr",
+   "xml": "<commentPr rowHidden=\"true\"  />"
+  },
+  {
+   "section": "18.7.5",
+   "ns": "x",
+   "element": "commentPr",
+   "type": "CT_CommentPr",
+   "xml": "<commentPr textHAlign=\"center\"  />"
+  },
+  {
+   "section": "18.8.5",
+   "ns": "x",
+   "element": "borders",
+   "type": "CT_Borders",
+   "xml": "<borders count=\"3\"> <border> <begin/> <end/> <top/> <bottom/> <diagonal/> </border> <border> <begin/> <end style=\"medium\"> <color indexed=\"64\"/> </end> <top/> <bottom style=\"thin\"> <color indexed=\"64\"/> </bottom> <diagonal/> </border> <border> <begin/> <end/> <top style=\"double\"> <color auto=\"1\"/> </top> <bottom/> <diagonal/> </border> </borders>"
+  },
+  {
+   "section": "18.8.8",
+   "ns": "x",
+   "element": "cellStyles",
+   "type": "CT_CellStyles",
+   "xml": "<cellStyles count=\"4\"> <cellStyle name=\"20% - Accent1\" xfId=\"3\" builtinId=\"30\"/> <cellStyle name=\"Heading 1\" xfId=\"2\" builtinId=\"16\"/> <cellStyle name=\"Normal\" xfId=\"0\" builtinId=\"0\"/> <cellStyle name=\"Title\" xfId=\"1\" builtinId=\"15\"/> </cellStyles>"
+  },
+  {
+   "section": "18.8.23",
+   "ns": "x",
+   "element": "fonts",
+   "type": "CT_Fonts",
+   "xml": "<fonts count=\"2\"> <font> <sz val=\"11\"/> <color theme=\"1\"/> <name val=\"Calibri\"/> <family val=\"2\"/> <scheme val=\"minor\"/> </font> <font> <strike/> <sz val=\"12\"/> <color theme=\"1\"/> <name val=\"Arial\"/> <family val=\"2\"/> </font> </fonts>"
+  },
+  {
+   "section": "18.8.31",
+   "ns": "x",
+   "element": "numFmts",
+   "type": "CT_NumFmts",
+   "xml": "<numFmts count=\"1\"> <numFmt numFmtId=\"166\" formatCode=\"&quot;$&quot;#,##0.00\"/> </numFmts>"
+  },
+  {
+   "section": "18.10.1.3",
+   "ns": "x",
+   "element": "cacheField",
+   "type": "CT_CacheField",
+   "xml": "<cacheField name=\"Group\" numFmtId=\"0\"> <sharedItems count=\"3\"> <s v=\"Pacific\"/> <s v=\"North America\"/> <s v=\"Europe\"/> </sharedItems> </cacheField>"
+  },
+  {
+   "section": "18.10.1.4",
+   "ns": "x",
+   "element": "cacheFields",
+   "type": "CT_CacheFields",
+   "xml": "<cacheFields count=\"1\"> <cacheField name=\"Group\" numFmtId=\"0\"> <sharedItems count=\"3\"> <s v=\"One\"/> <s v=\"Two\"/> <s v=\"Three\"/> </sharedItems> </cacheField> </cacheFields>"
+  },
+  {
+   "section": "18.10.1.7",
+   "ns": "x",
+   "element": "cacheSource",
+   "type": "CT_CacheSource",
+   "xml": "<cacheSource type=\"external\" connectionId=\"1\"/>"
+  },
+  {
+   "section": "18.10.1.14",
+   "ns": "x",
+   "element": "colFields",
+   "type": "CT_ColFields",
+   "xml": "<colFields count=\"3\"> <field x=\"14\"/> <field x=\"15\"/> <field x=\"16\"/> </colFields>"
+  },
+  {
+   "section": "18.10.1.17",
+   "ns": "x",
+   "element": "colItems",
+   "type": "CT_colItems",
+   "xml": "<colItems count=\"5\"> <i> <x/> <x/> <x/> </i> <i r=\"2\"> <x v=\"1\"/> </i> <i r=\"2\"> <x v=\"2\"/> </i> <i t=\"default\" r=\"1\"> <x/> </i> <i t=\"default\"> <x/> </i> </colItems>"
+  },
+  {
+   "section": "18.10.1.23",
+   "ns": "x",
+   "element": "dataFields",
+   "type": "CT_DataFields",
+   "xml": "<dataFields count=\"1\"> <dataField name=\"Sum of Sales Amount\" fld=\"25\" baseField=\"0\" baseItem=\"0\"/> </dataFields>"
+  },
+  {
+   "section": "18.10.1.31",
+   "ns": "x",
+   "element": "fieldsUsage",
+   "type": "CT_FieldsUsage",
+   "xml": "<fieldsUsage count=\"6\"> <fieldUsage x=\"-1\"/> <fieldUsage x=\"2\"/> <fieldUsage x=\"3\"/> <fieldUsage x=\"4\"/> <fieldUsage x=\"5\"/> <fieldUsage x=\"6\"/> </fieldsUsage>"
+  },
+  {
+   "section": "18.10.1.32",
+   "ns": "x",
+   "element": "fieldUsage",
+   "type": "CT_FieldUsage",
+   "xml": "<fieldUsage x=\"-1\"/>"
+  },
+  {
+   "section": "18.10.1.41",
+   "ns": "x",
+   "element": "groupMember",
+   "type": "CT_GroupMember",
+   "xml": "<groupMember uniqueName=\"[Product].[Product Categories].[Category].&amp;[1]\"/>"
+  },
+  {
+   "section": "18.10.1.42",
+   "ns": "x",
+   "element": "groupMembers",
+   "type": "CT_GroupMembers",
+   "xml": "<groupMembers count=\"2\"> <groupMember uniqueName=\"[Product].[Product Categories].[Category].&amp;[4]\"/> <groupMember uniqueName=\"[Product].[Product Categories].[Category].&amp;[1]\"/> </groupMembers>"
+  },
+  {
+   "section": "18.10.1.51",
+   "ns": "x",
+   "element": "map",
+   "type": "CT_MeasureDimensionMap",
+   "xml": "<map measureGroup=\"0\" dimension=\"2\"/>"
+  },
+  {
+   "section": "18.10.1.52",
+   "ns": "x",
+   "element": "maps",
+   "type": "CT_MeasureDimensionMaps",
+   "xml": "<maps count=\"3\"> <map measureGroup=\"0\" dimension=\"2\"/> <map measureGroup=\"1\" dimension=\"19\"/> <map measureGroup=\"2\" dimension=\"8\"/> </maps>"
+  },
+  {
+   "section": "18.10.1.53",
+   "ns": "x",
+   "element": "measureGroup",
+   "type": "CT_MeasureGroup",
+   "xml": "<measureGroup name=\"Sales Orders\" caption=\"Sales Orders\"/>"
+  },
+  {
+   "section": "18.10.1.54",
+   "ns": "x",
+   "element": "measureGroups",
+   "type": "CT_MeasureGroups",
+   "xml": "<measureGroups count=\"11\"> <measureGroup name=\"Exchange Rates\" caption=\"Exchange Rates\"/> <measureGroup name=\"Financial Reporting\" caption=\"Financial Reporting\"/> <measureGroup name=\"Internet Customers\" caption=\"Internet Customers\"/> <measureGroup name=\"Internet Orders\" caption=\"Internet Orders\"/> <measureGroup name=\"Internet Sales\" caption=\"Internet Sales\"/> <measureGroup name=\"Reseller Orders\" caption=\"Reseller Orders\"/> <measureGroup name=\"Reseller Sales\" caption=\"Reseller Sales\"/> <measureGroup name=\"Sales Orders\" caption=\"Sales Orders\"/> <measureGroup name=\"Sales Reasons\" caption=\"Sales Reasons\"/> <measureGroup name=\"Sales Summary\" caption=\"Sales Summary\"/> <measureGroup name=\"Sales Targets\" caption=\"Sales Targets\"/> </measureGroups>"
+  },
+  {
+   "section": "18.10.1.58",
+   "ns": "x",
+   "element": "mpMap",
+   "type": "CT_X",
+   "xml": "<mpMap v=\"7\"/>"
+  },
+  {
+   "section": "18.10.1.81",
+   "ns": "x",
+   "element": "rowFields",
+   "type": "CT_RowFields",
+   "xml": "<rowFields count=\"2\"> <field x=\"7\"/> <field x=\"8\"/> </rowFields>"
+  },
+  {
+   "section": "18.10.1.84",
+   "ns": "x",
+   "element": "rowItems",
+   "type": "CT_rowItems",
+   "xml": "<rowItems count=\"4\"> <i> <x/> </i> <i r=\"1\"> <x/> </i> <i r=\"1\"> <x v=\"1\"/> </i> <i t=\"grand\"> <x/> </i> </rowItems>"
+  },
+  {
+   "section": "18.12.3",
+   "ns": "x",
+   "element": "queryTableDeletedFields",
+   "type": "CT_QueryTableDeletedFields",
+   "xml": "<queryTableDeletedFields count=\"2\"> <deletedField name=\"ShipVia\"/> <deletedField name=\"Freight\"/> </queryTableDeletedFields>"
+  },
+  {
+   "section": "18.14.1",
+   "ns": "x",
+   "element": "cell",
+   "type": "CT_ExternalCell",
+   "xml": "<cell r=\"B12\"> <v>74</v> </cell>"
+  },
+  {
+   "section": "18.15.3",
+   "ns": "x",
+   "element": "tp",
+   "type": "CT_VolTopic",
+   "xml": "<tp t=\"s\"> <v>aaa: 4447</v> </tp>"
+  },
+  {
+   "section": "18.15.4",
+   "ns": "x",
+   "element": "tr",
+   "type": "CT_VolTopicRef",
+   "xml": "<tr r=\"A6\" s=\"1\"/>"
+  },
+  {
+   "section": "18.15.6",
+   "ns": "x",
+   "element": "volTypes",
+   "type": "CT_VolTypes",
+   "xml": "<volTypes xmlns=\"\"> <volType type=\"realTimeData\"> </volType> <volType type=\"olapFunctions\"> </volType> </volTypes>"
+  },
+  {
+   "section": "18.16.1",
+   "ns": "x",
+   "element": "DataBinding",
+   "type": "CT_DataBinding",
+   "xml": "<DataBinding ConnectionID=\"1\" FileBinding=\"true\" DataBindingLoadMode=\"1\"/>"
+  },
+  {
+   "section": "19.2.1.3",
+   "ns": "p",
+   "element": "browse",
+   "type": "CT_ShowInfoBrowse",
+   "xml": "<p:browse showScrollbar=\"0\"/>"
+  },
+  {
+   "section": "19.2.1.4",
+   "ns": "p",
+   "element": "clrMru",
+   "type": "CT_ColorMRU",
+   "xml": "<p:clrMru> <a:srgbClr val=\"5361EB\"/> <a:srgbClr val=\"CCECFF\"/> </p:clrMru>"
+  },
+  {
+   "section": "19.2.1.6",
+   "ns": "p",
+   "element": "custShow",
+   "type": "CT_CustomShow",
+   "xml": "<p:custShow name=\"Custom Show 1\" id=\"0\"> <p:sldLst> <p:sld r:id=\"rId5\"/> <p:sld r:id=\"rId2\"/> <p:sld r:id=\"rId4\"/> </p:sldLst> </p:custShow>"
+  },
+  {
+   "section": "19.2.1.9",
+   "ns": "p",
+   "element": "embeddedFont",
+   "type": "CT_EmbeddedFontListEntry",
+   "xml": "<p:embeddedFont> <p:font typeface=\"MyFont\" pitchFamily=\"34\" charset=\"0\"/> <p:regular r:id=\"rId2\"/> </p:embeddedFont>"
+  },
+  {
+   "section": "19.2.1.18",
+   "ns": "p",
+   "element": "kiosk",
+   "type": "CT_ShowInfoKiosk",
+   "xml": "<p:kiosk/>"
+  },
+  {
+   "section": "19.2.1.22",
+   "ns": "p",
+   "element": "notesSz",
+   "type": "CT_PositiveSize2D",
+   "xml": "<p:notesSz cx=\"9144000\" cy=\"6858000\"/>"
+  },
+  {
+   "section": "19.2.1.24",
+   "ns": "p",
+   "element": "photoAlbum",
+   "type": "CT_PhotoAlbum",
+   "xml": "<p:photoAlbum bw=\"1\" layout=\"2pic\"/>"
+  },
+  {
+   "section": "19.2.1.25",
+   "ns": "p",
+   "element": "present",
+   "type": "CT_Empty",
+   "xml": "<p:present/>"
+  },
+  {
+   "section": "19.2.1.39",
+   "ns": "p",
+   "element": "sldSz",
+   "type": "CT_SlideSize",
+   "xml": "<p:sldSz cx=\"9144000\" cy=\"6858000\" type=\"screen4x3\"/>"
+  },
+  {
+   "section": "19.3.1.3",
+   "ns": "p",
+   "element": "bgRef",
+   "type": "CT_StyleMatrixReference",
+   "xml": "<p:bgRef idx=\"2\"> <a:schemeClr val=\"bg2\"/> </p:bgRef>"
+  },
+  {
+   "section": "19.3.1.3",
+   "ns": "p",
+   "element": "bgRef",
+   "type": "CT_StyleMatrixReference",
+   "xml": "<p:bgRef idx=\"1001\"> <a:schemeClr val=\"bg2\"/> </p:bgRef>"
+  },
+  {
+   "section": "19.3.1.4",
+   "ns": "p",
+   "element": "blipFill",
+   "type": "CT_BlipFillProperties",
+   "xml": "<p:blipFill> <a:blip r:embed=\"rId2\"/> <a:stretch> <a:fillRect/> </a:stretch> </p:blipFill>"
+  },
+  {
+   "section": "19.3.1.14",
+   "ns": "p",
+   "element": "contentPart",
+   "type": "CT_Rel",
+   "xml": "<p:contentPart r:id=\"smil01\"/>"
+  },
+  {
+   "section": "19.3.1.52",
+   "ns": "p",
+   "element": "txStyles",
+   "type": "CT_SlideMasterTextStyles",
+   "xml": "<p:txStyles> <p:titleStyle> <a:lvl1pPr algn=\"ctr\" rtl=\"0\" latinLnBrk=\"0\"> <a:spcBef> <a:spcPct val=\"0\"/> </a:spcBef> <a:buNone/> <a:defRPr sz=\"4400\" kern=\"1200\"> <a:solidFill> <a:schemeClr val=\"tx1\"/> </a:solidFill> <a:latin typeface=\"+mj-lt\"/> <a:ea typeface=\"+mj-ea\"/> <a:cs typeface=\"+mj-cs\"/> </a:defRPr> </a:lvl1pPr> </p:titleStyle> </p:txStyles>"
+  },
+  {
+   "section": "19.4.1",
+   "ns": "p",
+   "element": "cm",
+   "type": "CT_Comment",
+   "xml": "<p:cm authorId=\"0\" dt=\"2006-08-28T17:26:44.129\" idx=\"1\"> <p:pos x=\"10\" y=\"10\"/> <p:text>Add diagram to clarify.</p:text> </p:cm>"
+  },
+  {
+   "section": "19.4.2",
+   "ns": "p",
+   "element": "cmAuthor",
+   "type": "CT_CommentAuthor",
+   "xml": "<p:cmAuthor id=\"0\" name=\"Julie Lee\" initials=\"JL\" lastIdx=\"1\" clrIdx=\"0\"/>"
+  },
+  {
+   "section": "19.4.3",
+   "ns": "p",
+   "element": "cmAuthorLst",
+   "type": "CT_CommentAuthorList",
+   "xml": "<p:cmAuthorLst> <p:cmAuthor id=\"0\" name=\"Julie Lee\" initials=\"JL\" lastIdx=\"1\" clrIdx=\"0\"/> <p:cmAuthor id=\"1\" name=\"Fred Jones\" initials=\"FJ\" lastIdx=\"2\" clrIdx=\"1\"/> </p:cmAuthorLst>"
+  },
+  {
+   "section": "19.4.5",
+   "ns": "p",
+   "element": "pos",
+   "type": "CT_Point2D",
+   "xml": "<p:pos x=\"1426\" y=\"660\"/>"
+  },
+  {
+   "section": "19.5.3",
+   "ns": "p",
+   "element": "animEffect",
+   "type": "CT_TLAnimateEffectBehavior",
+   "xml": "<p:animEffect transition=\"in\" filter=\"blinds(horizontal)\"> <p:cBhvr> <p:cTn id=\"7\" dur=\"500\"/> <p:tgtEl> <p:spTgt spid=\"4\"/> </p:tgtEl> </p:cBhvr> </p:animEffect>"
+  },
+  {
+   "section": "19.5.4",
+   "ns": "p",
+   "element": "animMotion",
+   "type": "CT_TLAnimateMotionBehavior",
+   "xml": "<p:animMotion origin=\"layout\" path=\"M 0 0 L 0.25 0 E\" pathEditMode=\"relative\"> <p:cBhvr> <p:cTn id=\"1\" dur=\"2000\" fill=\"hold\"/> <p:tgtEl> <p:spTgt spid=\"1\"/> </p:tgtEl> <p:attrNameLst> <p:attrName>ppt_x</p:attrName> <p:attrName>ppt_y</p:attrName> </p:attrNameLst> </p:cBhvr> </p:animMotion>"
+  },
+  {
+   "section": "19.5.5",
+   "ns": "p",
+   "element": "animRot",
+   "type": "CT_TLAnimateRotationBehavior",
+   "xml": "<p:animRot by=\"21600000\"> <p:cBhvr> <p:cTn id=\"6\" dur=\"2000\" fill=\"hold\"/> <p:tgtEl> <p:spTgt spid=\"5\"/> </p:tgtEl> <p:attrNameLst> <p:attrName>r</p:attrName> </p:attrNameLst> </p:cBhvr> </p:animRot>"
+  },
+  {
+   "section": "19.5.14",
+   "ns": "p",
+   "element": "bldLst",
+   "type": "CT_BuildList",
+   "xml": "<p:bldLst> <p:bldGraphic spid=\"1\" grpId=\"0\"> <p:bldSub> <a:bldChart bld=\"category\"/> </p:bldSub> </p:bldGraphic> </p:bldLst>"
+  },
+  {
+   "section": "19.5.28",
+   "ns": "p",
+   "element": "cmd",
+   "type": "CT_TLCommandBehavior",
+   "xml": "<p:cmd type=\"evt\" cmd=\"onstopaudio\"> <p:cBhvr> <p:cTn display=\"0\" masterRel=\"sameClick\"> <p:stCondLst> <p:cond evt=\"begin\" delay=\"0\"> <p:tn val=\"5\"/> </p:cond> </p:stCondLst> </p:cTn> <p:tgtEl> <p:sldTgt/> </p:tgtEl> </p:cBhvr> </p:cmd>"
+  },
+  {
+   "section": "20.1.4.1.16",
+   "ns": "a",
+   "element": "font",
+   "type": "CT_SupplementalFont",
+   "xml": "<font script=\"Thai\" typeface=\"Cordia New\"/>"
+  },
+  {
+   "section": "20.1.4.1.17",
+   "ns": "a",
+   "element": "fontRef",
+   "type": "CT_FontReference",
+   "xml": "<fontRef idx=\"minor\"> <schemeClr val=\"tx1\"/> </fontRef>"
+  },
+  {
+   "section": "20.1.4.1.24",
+   "ns": "a",
+   "element": "majorFont",
+   "type": "CT_FontCollection",
+   "xml": "<majorFont> <latin typeface=\"Calibri\"/> <ea typeface=\"Arial\"/> <cs typeface=\"Arial\"/> <font script=\"Jpan\" typeface=\"ＭＳ Ｐ ゴ シ ッ ク\"/> <font script=\"Hang\" typeface=\"HY중고딕\"/> <font script=\"Hans\" typeface=\"隶书\"/> <font script=\"Hant\" typeface=\"微 軟 正 黑 體\"/> <font script=\"Arab\" typeface=\"Traditional Arabic\"/> <font script=\"Hebr\" typeface=\"Arial\"/> <font script=\"Thai\" typeface=\"Cordia New\"/> <font script=\"Ethi\" typeface=\"Nyala\"/> <font script=\"Beng\" typeface=\"Vrinda\"/> <font script=\"Gujr\" typeface=\"Shruti\"/> <font script=\"Khmr\" typeface=\"DaunPenh\"/> <font script=\"Knda\" typeface=\"Tunga\"/> </majorFont>"
+  },
+  {
+   "section": "20.1.4.1.25",
+   "ns": "a",
+   "element": "minorFont",
+   "type": "CT_FontCollection",
+   "xml": "<minorFont> <latin typeface=\"Calibri\"/> <ea typeface=\"Arial\"/> <cs typeface=\"Arial\"/> <font script=\"Jpan\" typeface=\"ＭＳ Ｐ ゴ シ ッ ク\"/> <font script=\"Hang\" typeface=\"HY중고딕\"/> <font script=\"Hans\" typeface=\"隶书\"/> <font script=\"Hant\" typeface=\"微 軟 正 黑 體\"/> <font script=\"Arab\" typeface=\"Traditional Arabic\"/> <font script=\"Hebr\" typeface=\"Arial\"/> <font script=\"Thai\" typeface=\"Cordia New\"/> <font script=\"Ethi\" typeface=\"Nyala\"/> <font script=\"Beng\" typeface=\"Vrinda\"/> <font script=\"Gujr\" typeface=\"Shruti\"/> <font script=\"Khmr\" typeface=\"DaunPenh\"/> <font script=\"Knda\" typeface=\"Tunga\"/> </minorFont>"
+  },
+  {
+   "section": "20.1.4.1.27",
+   "ns": "a",
+   "element": "spDef",
+   "type": "CT_DefaultShapeDefinition",
+   "xml": "<spDef> <spPr> <solidFill> <schemeClr val=\"accent2\"> <shade val=\"75000\"/> </schemeClr> </solidFill> </spPr> <bodyPr rtlCol=\"0\" anchor=\"ctr\"/> <lstStyle> <defPPr algn=\"ctr\"> <defRPr/> </defPPr> </lstStyle> <style> <lnRef idx=\"1\"> <schemeClr val=\"accent1\"/> </lnRef> <fillRef idx=\"2\"> <schemeClr val=\"accent1\"/> </fillRef> <effectRef idx=\"1\"> <schemeClr val=\"accent1\"/> </effectRef> <fontRef idx=\"minor\"> <schemeClr val=\"dk1\"/> </fontRef> </style> </spDef>"
+  },
+  {
+   "section": "20.1.4.1.28",
+   "ns": "a",
+   "element": "txDef",
+   "type": "CT_DefaultShapeDefinition",
+   "xml": "<txDef> <spPr> <solidFill> <schemeClr val=\"accent2\"> <shade val=\"75000\"/> </schemeClr> </solidFill> </spPr> <bodyPr rtlCol=\"0\" anchor=\"ctr\"/> <lstStyle> <defPPr algn=\"ctr\"> <defRPr/> </defPPr> </lstStyle> <style> <lnRef idx=\"1\"> <schemeClr val=\"accent1\"/> </lnRef> <fillRef idx=\"2\"> <schemeClr val=\"accent1\"/> </fillRef> <effectRef idx=\"1\"> <schemeClr val=\"accent1\"/> </effectRef> <fontRef idx=\"minor\"> <schemeClr val=\"dk1\"/> </fontRef> </style> </txDef>"
+  },
+  {
+   "section": "20.1.4.2.9",
+   "ns": "a",
+   "element": "fill",
+   "type": "CT_FillProperties",
+   "xml": "<fill> <gradFill flip=\"none\" rotWithShape=\"1\"> <gsLst> <gs pos=\"0\"> <schemeClr val=\"accent2\"> <shade val=\"75000\"/> </schemeClr> </gs> <gs pos=\"100000\"> <schemeClr val=\"accent2\"> <shade val=\"75000\"/> <tint val=\"20000\"/> </schemeClr> </gs> </gsLst> <lin ang=\"2700000\" scaled=\"1\"/> <tileRect/> </gradFill> </fill>"
+  },
+  {
+   "section": "20.1.4.2.10",
+   "ns": "a",
+   "element": "fillRef",
+   "type": "CT_StyleMatrixReference",
+   "xml": "<a:fillRef idx=\"2\"> <a:schemeClr val=\"accent2\"/> </a:fillRef>"
+  },
+  {
+   "section": "20.1.4.2.10",
+   "ns": "a",
+   "element": "fillRef",
+   "type": "CT_StyleMatrixReference",
+   "xml": "<a:fillRef idx=\"1001\"> <a:schemeClr val=\"accent2\"/> </a:fillRef>"
+  },
+  {
+   "section": "20.1.4.2.11",
+   "ns": "a",
+   "element": "firstCol",
+   "type": "CT_TablePartStyle",
+   "xml": "<firstCol> <tcTxStyle b=\"on\"> <fontRef idx=\"minor\"> <scrgbClr r=\"0\" g=\"0\" b=\"0\"/> </fontRef> <schemeClr val=\"lt1\"/> </tcTxStyle> <tcStyle> <tcBdr/> <fill> <solidFill> <schemeClr val=\"accent1\"/> </solidFill> </fill> </tcStyle> </firstCol>"
+  },
+  {
+   "section": "20.1.4.2.12",
+   "ns": "a",
+   "element": "firstRow",
+   "type": "CT_TablePartStyle",
+   "xml": "<firstRow> <tcTxStyle b=\"on\"> <fontRef idx=\"minor\"> <scrgbClr r=\"0\" g=\"0\" b=\"0\"/> </fontRef> <schemeClr val=\"lt1\"/> </tcTxStyle> <tcStyle> <tcBdr/> <fill> <solidFill> <schemeClr val=\"accent1\"/> </solidFill> </fill> </tcStyle> </firstRow>"
+  },
+  {
+   "section": "20.1.4.2.14",
+   "ns": "a",
+   "element": "insideH",
+   "type": "CT_ThemeableLineStyle",
+   "xml": "<insideH> <ln w=\"12700\" cmpd=\"sng\"> <solidFill> <schemeClr val=\"accent1\"/> </solidFill> </ln> </insideH>"
+  },
+  {
+   "section": "20.1.4.2.16",
+   "ns": "a",
+   "element": "lastCol",
+   "type": "CT_TablePartStyle",
+   "xml": "<lastCol> <tcTxStyle b=\"on\"> <fontRef idx=\"minor\"> <scrgbClr r=\"0\" g=\"0\" b=\"0\"/> </fontRef> <schemeClr val=\"lt1\"/> </tcTxStyle> <tcStyle> <tcBdr/> <fill> <solidFill> <schemeClr val=\"accent1\"/> </solidFill> </fill> </tcStyle> </lastCol>"
+  },
+  {
+   "section": "20.1.4.2.17",
+   "ns": "a",
+   "element": "lastRow",
+   "type": "CT_TablePartStyle",
+   "xml": "<lastRow> <tcTxStyle b=\"on\"> <fontRef idx=\"minor\"> <scrgbClr r=\"0\" g=\"0\" b=\"0\"/> </fontRef> <schemeClr val=\"lt1\"/> </tcTxStyle> <tcStyle> <tcBdr/> <fill> <solidFill> <schemeClr val=\"accent1\"/> </solidFill> </fill> </tcStyle> </lastRow>"
+  },
+  {
+   "section": "20.1.4.2.20",
+   "ns": "a",
+   "element": "neCell",
+   "type": "CT_TablePartStyle",
+   "xml": "<neCell> <tcTxStyle b=\"on\"> <fontRef idx=\"minor\"> <scrgbClr r=\"0\" g=\"0\" b=\"0\"/> </fontRef> <schemeClr val=\"lt1\"/> </tcTxStyle> <tcStyle> <tcBdr/> <fill> <solidFill> <schemeClr val=\"accent1\"/> </solidFill> </fill> </tcStyle> </neCell>"
+  },
+  {
+   "section": "20.1.4.2.21",
+   "ns": "a",
+   "element": "nwCell",
+   "type": "CT_TablePartStyle",
+   "xml": "<nwCell> <tcTxStyle b=\"on\"> <fontRef idx=\"minor\"> <scrgbClr r=\"0\" g=\"0\" b=\"0\"/> </fontRef> <schemeClr val=\"lt1\"/> </tcTxStyle> <tcStyle> <tcBdr/> <fill> <solidFill> <schemeClr val=\"accent1\"/> </solidFill> </fill> </tcStyle> </nwCell>"
+  },
+  {
+   "section": "20.1.4.2.23",
+   "ns": "a",
+   "element": "seCell",
+   "type": "CT_TablePartStyle",
+   "xml": "<seCell> <tcTxStyle b=\"on\"> <fontRef idx=\"minor\"> <scrgbClr r=\"0\" g=\"0\" b=\"0\"/> </fontRef> <schemeClr val=\"lt1\"/> </tcTxStyle> <tcStyle> <tcBdr/> <fill> <solidFill> <schemeClr val=\"accent1\"/> </solidFill> </fill> </tcStyle> </seCell>"
+  },
+  {
+   "section": "20.1.4.2.25",
+   "ns": "a",
+   "element": "tblBg",
+   "type": "CT_TableBackgroundStyle",
+   "xml": "<tblBg> <fillRef idx=\"2\"> <schemeClr val=\"accent1\"/> </fillRef> <effectRef idx=\"1\"> <schemeClr val=\"accent1\"/> </effectRef> </tblBg>"
+  },
+  {
+   "section": "20.1.4.2.28",
+   "ns": "a",
+   "element": "tcBdr",
+   "type": "CT_TableCellBorderStyle",
+   "xml": "<tcBdr> <left> <lnRef idx=\"1\"> <schemeClr val=\"accent1\"/> </lnRef> </left> <right> <lnRef idx=\"1\"> <schemeClr val=\"accent1\"/> </lnRef> </right> <top> <lnRef idx=\"1\"> <schemeClr val=\"accent1\"/> </lnRef> </top> <bottom> <lnRef idx=\"2\"> <schemeClr val=\"lt1\"/> </lnRef> </bottom> <insideH> <ln> <noFill/> </ln> </insideH> <insideV> <ln> <noFill/> </ln> </insideV> </tcBdr>"
+  },
+  {
+   "section": "20.1.4.2.30",
+   "ns": "a",
+   "element": "tcTxStyle",
+   "type": "CT_TableStyleTextStyle",
+   "xml": "<tcTxStyle b=\"on\"> <fontRef idx=\"minor\"> <scrgbClr r=\"0\" g=\"0\" b=\"0\"/> </fontRef> <schemeClr val=\"lt1\"/> </tcTxStyle>"
+  },
+  {
+   "section": "20.1.4.2.31",
+   "ns": "a",
+   "element": "tl2br",
+   "type": "CT_ThemeableLineStyle",
+   "xml": "<tl2br> <ln w=\"12700\" cmpd=\"sng\"> <solidFill> <schemeClr val=\"accent1\"/> </solidFill> </ln> </tl2br>"
+  },
+  {
+   "section": "20.1.4.2.33",
+   "ns": "a",
+   "element": "tr2bl",
+   "type": "CT_ThemeableLineStyle",
+   "xml": "<tr2bl> <ln w=\"12700\" cmpd=\"sng\"> <solidFill> <schemeClr val=\"accent1\"/> </solidFill> </ln> </tr2bl>"
+  },
+  {
+   "section": "20.1.5.5",
+   "ns": "a",
+   "element": "camera",
+   "type": "CT_Camera",
+   "xml": "<a:camera prst=\"orthographicFront\"> <a:rot lat=\"19902513\" lon=\"17826689\" rev=\"1362739\"/> </a:camera>"
+  },
+  {
+   "section": "20.1.5.9",
+   "ns": "a",
+   "element": "lightRig",
+   "type": "CT_LightRig",
+   "xml": "<a:lightRig rig=\"threePt\" dir=\"t\"/>"
+  },
+  {
+   "section": "20.1.5.9",
+   "ns": "a",
+   "element": "lightRig",
+   "type": "CT_LightRig",
+   "xml": "<a:lightRig rig=\"threePt\" dir=\"t\"/>"
+  },
+  {
+   "section": "20.1.5.11",
+   "ns": "a",
+   "element": "rot",
+   "type": "CT_SphereCoords",
+   "xml": "<a:rot lat=\"0\" lon=\"0\" rev=\"6000000\"/>"
+  },
+  {
+   "section": "20.1.5.11",
+   "ns": "a",
+   "element": "rot",
+   "type": "CT_SphereCoords",
+   "xml": "<a:rot lat=\"0\" lon=\"0\" rev=\"6000000\"/>"
+  },
+  {
+   "section": "20.1.5.11",
+   "ns": "a",
+   "element": "rot",
+   "type": "CT_SphereCoords",
+   "xml": "<a:rot lat=\"0\" lon=\"0\" rev=\"6000000\"/>"
+  },
+  {
+   "section": "20.1.5.12",
+   "ns": "a",
+   "element": "sp3d",
+   "type": "CT_Shape3D",
+   "xml": "<a:sp3d extrusionH=\"165100\" contourW=\"50800\" prstMaterial=\"plastic\"> <a:bevelT w=\"254000\" h=\"254000\"/> <a:bevelB w=\"254000\" h=\"254000\"/> <a:extrusionClr> <a:srgbClr val=\"FF0000\"/> </a:extrusionClr> <a:contourClr> <a:schemeClr val=\"accent3\"/> </a:contourClr> </a:sp3d>"
+  },
+  {
+   "section": "20.1.9.5",
+   "ns": "a",
+   "element": "avLst",
+   "type": "CT_GeomGuideList",
+   "xml": "<a:avLst> <a:gd name=\"myGuide\" fmla=\"val 1\"/> </a:avLst>"
+  },
+  {
+   "section": "20.4.2.6",
+   "ns": "wp",
+   "element": "effectExtent",
+   "type": "CT_EffectExtent",
+   "xml": "<wp:effectExtent l=\"504825\" t=\"447675\" r=\"771525\" b=\"809625\" />"
+  },
+  {
+   "section": "20.4.2.6",
+   "ns": "wp",
+   "element": "effectExtent",
+   "type": "CT_EffectExtent",
+   "xml": "<wp:effectExtent l=\"504825\" t=\"447675\" r=\"771525\" b=\"809625\" />"
+  },
+  {
+   "section": "20.4.2.7",
+   "ns": "wp",
+   "element": "extent",
+   "type": "CT_PositiveSize2D",
+   "xml": "<wp:extent cx=\"1828800\" cy=\"1828800\"/>"
+  },
+  {
+   "section": "20.4.2.16",
+   "ns": "wp",
+   "element": "wrapPolygon",
+   "type": "CT_WrapPath",
+   "xml": "<wp:wrapPolygon> <wp:start x=\"0\" y=\"0\" /> <wp:lineTo x=\"0\" y=\"100\" /> <wp:lineTo x=\"100\" y=\"100\" /> <wp:lineTo x=\"100\" y=\"0\" /> <wp:lineTo x=\"0\" y=\"0\" /> </wp:wrapPolygon>"
+  },
+  {
+   "section": "20.4.2.16",
+   "ns": "wp",
+   "element": "wrapPolygon",
+   "type": "CT_WrapPath",
+   "xml": "<wp:wrapPolygon edited=\"true\"> <wp:start x=\"0\" y=\"0\" /> <wp:lineTo x=\"0\" y=\"100\" /> <wp:lineTo x=\"50\" y=\"50\" /> <wp:lineTo x=\"0\" y=\"0\" /> </wp:wrapPolygon>"
+  },
+  {
+   "section": "20.4.2.17",
+   "ns": "wp",
+   "element": "wrapSquare",
+   "type": "CT_WrapSquare",
+   "xml": "<wp:wrapSquare distR=\"457200\"  />"
+  },
+  {
+   "section": "20.4.2.27",
+   "ns": "wp",
+   "element": "cNvPr",
+   "type": "CT_NonVisualDrawingProps",
+   "xml": "<cNvPr id=\"4\" name=\"Lilly_by_Lisher.jpg\"/>"
+  },
+  {
+   "section": "20.5.2.2",
+   "ns": "xdr",
+   "element": "blipFill",
+   "type": "CT_BlipFillProperties",
+   "xml": "<xdr:blipFill> <a:blip r:embed=\"rId2\"/> <a:stretch> <a:fillRect/> </a:stretch> </xdr:blipFill>"
+  },
+  {
+   "section": "20.5.2.2",
+   "ns": "xdr",
+   "element": "blipFill",
+   "type": "CT_BlipFillProperties",
+   "xml": "<xdr:blipFill> <a:blip r:embed=\"rId2\"/> <a:stretch> <a:fillRect/> </a:stretch> </xdr:blipFill>"
+  },
+  {
+   "section": "21.1.2.2.7",
+   "ns": "a",
+   "element": "pPr",
+   "type": "CT_TextParagraphProperties",
+   "xml": "<a:pPr marL=\"0\" algn=\"just\"> <a:buNone/> </a:pPr>"
+  },
+  {
+   "section": "21.1.2.3.8",
+   "ns": "a",
+   "element": "r",
+   "type": "CT_RegularTextRun",
+   "xml": "<a:r> <a:rPr b=\"1\"> </a:rPr> <a:t>Some text</a:t> </a:r>"
+  },
+  {
+   "section": "21.1.2.3.9",
+   "ns": "a",
+   "element": "rPr",
+   "type": "CT_TextCharacterProperties",
+   "xml": "<a:rPr u=\"sng\"/>"
+  },
+  {
+   "section": "21.1.2.3.9",
+   "ns": "a",
+   "element": "rPr",
+   "type": "CT_TextCharacterProperties",
+   "xml": "<a:rPr b=\"1\"/>"
+  },
+  {
+   "section": "21.1.2.3.9",
+   "ns": "a",
+   "element": "rPr",
+   "type": "CT_TextCharacterProperties",
+   "xml": "<a:rPr i=\"1\"/>"
+  },
+  {
+   "section": "21.1.3.4",
+   "ns": "a",
+   "element": "headers",
+   "type": "CT_Headers",
+   "xml": "<a:headers> <a:header val=\"HeaderA\" /> <a:header val=\"HeaderC\" /> </a:headers>"
+  },
+  {
+   "section": "21.1.3.5",
+   "ns": "a",
+   "element": "lnB",
+   "type": "CT_LineProperties",
+   "xml": "<a:lnB w=\"38100\" cap=\"flat\" cmpd=\"sng\" algn=\"ctr\"> <a:solidFill> <a:schemeClr val=\"accent2\"/> </a:solidFill> <a:prstDash val=\"solid\"/> <a:round/> <a:headEnd type=\"none\" w=\"med\" len=\"med\"/> <a:tailEnd type=\"none\" w=\"med\" len=\"med\"/> </a:lnB>"
+  },
+  {
+   "section": "21.1.3.6",
+   "ns": "a",
+   "element": "lnBlToTr",
+   "type": "CT_LineProperties",
+   "xml": "<a:lnBlToTr w=\"38100\" cap=\"flat\" cmpd=\"sng\" algn=\"ctr\"> <a:solidFill> <a:schemeClr val=\"accent2\"/> </a:solidFill> <a:prstDash val=\"solid\"/> <a:round/> <a:headEnd type=\"none\" w=\"med\" len=\"med\"/> <a:tailEnd type=\"none\" w=\"med\" len=\"med\"/> </a:lnBlToTr >"
+  },
+  {
+   "section": "21.1.3.7",
+   "ns": "a",
+   "element": "lnL",
+   "type": "CT_LineProperties",
+   "xml": "<a:lnL w=\"38100\" cap=\"flat\" cmpd=\"sng\" algn=\"ctr\"> <a:solidFill> <a:schemeClr val=\"accent2\"/> </a:solidFill> <a:prstDash val=\"solid\"/> <a:round/> <a:headEnd type=\"none\" w=\"med\" len=\"med\"/> <a:tailEnd type=\"none\" w=\"med\" len=\"med\"/> </a:lnL >"
+  },
+  {
+   "section": "21.1.3.8",
+   "ns": "a",
+   "element": "lnR",
+   "type": "CT_LineProperties",
+   "xml": "<a:lnR w=\"38100\" cap=\"flat\" cmpd=\"sng\" algn=\"ctr\"> <a:solidFill> <a:schemeClr val=\"accent2\"/> </a:solidFill> <a:prstDash val=\"solid\"/> <a:round/> <a:headEnd type=\"none\" w=\"med\" len=\"med\"/> <a:tailEnd type=\"none\" w=\"med\" len=\"med\"/> </a:lnR >"
+  },
+  {
+   "section": "21.1.3.9",
+   "ns": "a",
+   "element": "lnT",
+   "type": "CT_LineProperties",
+   "xml": "<a:lnT w=\"38100\" cap=\"flat\" cmpd=\"sng\" algn=\"ctr\"> <a:solidFill> <a:schemeClr val=\"accent2\"/> </a:solidFill> <a:prstDash val=\"solid\"/> <a:round/> <a:headEnd type=\"none\" w=\"med\" len=\"med\"/> <a:tailEnd type=\"none\" w=\"med\" len=\"med\"/> </a:lnT >"
+  },
+  {
+   "section": "21.1.3.10",
+   "ns": "a",
+   "element": "lnTlToBr",
+   "type": "CT_LineProperties",
+   "xml": "<a:lnTlToBr w=\"38100\" cap=\"flat\" cmpd=\"sng\" algn=\"ctr\"> <a:solidFill> <a:schemeClr val=\"accent2\"/> </a:solidFill> <a:prstDash val=\"solid\"/> <a:round/> <a:headEnd type=\"none\" w=\"med\" len=\"med\"/> <a:tailEnd type=\"none\" w=\"med\" len=\"med\"/> </a:lnTlToBr>"
+  },
+  {
+   "section": "21.1.3.14",
+   "ns": "a",
+   "element": "tblGrid",
+   "type": "CT_TableGrid",
+   "xml": "<a:tblGrid> <a:gridCol w=\"1117600\"/> <a:gridCol w=\"1117600\"/> <a:gridCol w=\"1117600\"/> </a:tblGrid>"
+  },
+  {
+   "section": "21.1.3.15",
+   "ns": "a",
+   "element": "tblPr",
+   "type": "CT_TableProperties",
+   "xml": "<a:tblPr firstRow=\"1\" bandRow=\"1\"> <a:tableStyleId>{5940675A-B579-460E-94D1-54222C63F5DA}</a:tableStyleId> </a:tblPr>"
+  },
+  {
+   "section": "21.1.3.15",
+   "ns": "a",
+   "element": "tblPr",
+   "type": "CT_TableProperties",
+   "xml": "<a:tblPr bandCol=\"1\"> <a:tableStyleId>{5940675A-B579-460E-94D1- 54222C63F5DA}</a:tableStyleId> </a:tblPr>"
+  },
+  {
+   "section": "21.1.3.15",
+   "ns": "a",
+   "element": "tblPr",
+   "type": "CT_TableProperties",
+   "xml": "<a:tblPr bandRow=\"1\"> <a:tableStyleId>{5940675A-B579-460E-94D1- 54222C63F5DA}</a:tableStyleId> </a:tblPr>"
+  },
+  {
+   "section": "21.1.3.15",
+   "ns": "a",
+   "element": "tblPr",
+   "type": "CT_TableProperties",
+   "xml": "<a:tblPr firstRow=\"1\"> <a:tableStyleId>{5940675A-B579-460E-94D1- 54222C63F5DA}</a:tableStyleId> </a:tblPr>"
+  },
+  {
+   "section": "21.1.3.15",
+   "ns": "a",
+   "element": "tblPr",
+   "type": "CT_TableProperties",
+   "xml": "<a:tblPr lastCol=\"1\"> <a:tableStyleId>{5940675A-B579-460E-94D1- 54222C63F5DA}</a:tableStyleId> </a:tblPr>"
+  },
+  {
+   "section": "21.1.3.15",
+   "ns": "a",
+   "element": "tblPr",
+   "type": "CT_TableProperties",
+   "xml": "<a:tblPr lastRow=\"1\"> <a:tableStyleId>{5940675A-B579-460E-94D1- 54222C63F5DA}</a:tableStyleId> </a:tblPr>"
+  },
+  {
+   "section": "21.1.3.16",
+   "ns": "a",
+   "element": "tc",
+   "type": "CT_TableCell",
+   "xml": "<a:tc> <a:txBody> <a:bodyPr/> <a:lstStyle/> <a:p> <a:pPr marL=\"0\" algn=\"ctr\" rtl=\"0\"/> <a:r> <a:rPr lang=\"en-US\" dirty=\"0\" smtClean=\"0\"/> <a:t>data</a:t> </a:r> <a:endParaRPr lang=\"en-US\" dirty=\"0\"/> </a:p> </a:txBody> <a:tcPr/> </a:tc>"
+  },
+  {
+   "section": "21.1.3.17",
+   "ns": "a",
+   "element": "tcPr",
+   "type": "CT_TableCellProperties",
+   "xml": "<a:tcPr marL=\"45720\" marR=\"45720\"> <a:lnL w=\"38100\" cap=\"flat\" cmpd=\"sng\" algn=\"ctr\"> <a:solidFill> <a:schemeClr val=\"accent2\"/> </a:solidFill> <a:prstDash val=\"solid\"/> <a:round/> <a:headEnd type=\"none\" w=\"med\" len=\"med\"/> <a:tailEnd type=\"none\" w=\"med\" len=\"med\"/> </a:lnL> </a:tcPr>"
+  },
+  {
+   "section": "21.1.3.17",
+   "ns": "a",
+   "element": "tcPr",
+   "type": "CT_TableCellProperties",
+   "xml": "<a:tcPr marL=\"45720\" anchor=\"ctr\"/>"
+  },
+  {
+   "section": "21.4.2.2",
+   "ns": "dgm",
+   "element": "adjLst",
+   "type": "CT_AdjLst",
+   "xml": "<adjLst> <adj idx=\"1\" val=\"1.35\" /> <adj idx=\"2\" val=\".35\" /> </adjLst>"
+  },
+  {
+   "section": "21.4.2.5",
+   "ns": "dgm",
+   "element": "catLst",
+   "type": "CT_Categories",
+   "xml": "<catLst> <cat type=\"list\" pri=\"18000\" /> <cat type=\"relationship\" pri=\"19000\" /> </catLst>"
+  },
+  {
+   "section": "21.4.2.17",
+   "ns": "dgm",
+   "element": "layoutDefHdr",
+   "type": "CT_DiagramDefinitionHeader",
+   "xml": "<layoutDefHdr uniqueId=\"urn:layout/default\"> <title val=\"Basic Block List\" /> <desc val=\"\" /> <catLst> <cat type=\"list\" pri=\"1000\" /> </catLst> </layoutDefHdr>"
+  },
+  {
+   "section": "21.4.2.21",
+   "ns": "dgm",
+   "element": "presOf",
+   "type": "CT_PresentationOf",
+   "xml": "<presOf axis=\"desOrSelf\" ptType=\"node\"/>"
+  },
+  {
+   "section": "21.4.2.21",
+   "ns": "dgm",
+   "element": "presOf",
+   "type": "CT_PresentationOf",
+   "xml": "<presOf axis=\"desOrSelf\" ptType=\"node\" st=\"2\"/>"
+  },
+  {
+   "section": "21.4.2.25",
+   "ns": "dgm",
+   "element": "ruleLst",
+   "type": "CT_Rules",
+   "xml": "<ruleLst> <rule type=\"primFontSz\" val=\"2\" /> </ruleLst>"
+  },
+  {
+   "section": "21.4.3.1",
+   "ns": "dgm",
+   "element": "bg",
+   "type": "CT_BackgroundFormatting",
+   "xml": "<bg> <solidFill> <schemeClr val=\"tx1\"/> </solidFill> <effectLst> <glow rad=\"152400\"> <schemeClr val=\"accent1\"> <alpha val=\"75000\"/> </schemeClr> </glow> </effectLst> </bg>"
+  },
+  {
+   "section": "21.4.3.2",
+   "ns": "dgm",
+   "element": "cxn",
+   "type": "CT_Cxn",
+   "xml": "<cxn modelId=\"10\" srcId=\"0\" destId=\"4\" srcOrd=\"3\" destOrd=\"0\"/>"
+  },
+  {
+   "section": "21.4.3.2",
+   "ns": "dgm",
+   "element": "cxn",
+   "type": "CT_Cxn",
+   "xml": "<cxn modelId=\"10\" srcId=\"0\" destId=\"4\" srcOrd=\"3\" destOrd=\"0\"/>"
+  },
+  {
+   "section": "21.4.3.2",
+   "ns": "dgm",
+   "element": "cxn",
+   "type": "CT_Cxn",
+   "xml": "<cxn modelId=\"10\" srcId=\"0\" destId=\"4\" srcOrd=\"3\" destOrd=\"0\"/>"
+  },
+  {
+   "section": "21.4.3.2",
+   "ns": "dgm",
+   "element": "cxn",
+   "type": "CT_Cxn",
+   "xml": "<cxn modelId=\"10\" srcId=\"0\" destId=\"4\" srcOrd=\"3\" destOrd=\"0\"/>"
+  },
+  {
+   "section": "21.4.3.2",
+   "ns": "dgm",
+   "element": "cxn",
+   "type": "CT_Cxn",
+   "xml": "<cxn modelId=\"10\" srcId=\"0\" destId=\"4\" srcOrd=\"3\" destOrd=\"0\"/>"
+  },
+  {
+   "section": "21.4.3.5",
+   "ns": "dgm",
+   "element": "pt",
+   "type": "CT_Pt",
+   "xml": "<dgm:pt modelId=\"5\" type=\"parTrans\" cxnId=\"9\"> <dgm:prSet/> <dgm:spPr/> </dgm:pt>"
+  },
+  {
+   "section": "21.4.3.5",
+   "ns": "dgm",
+   "element": "pt",
+   "type": "CT_Pt",
+   "xml": "<dgm:pt modelId=\"5\" type=\"parTrans\" cxnId=\"9\"> <dgm:prSet/> <dgm:spPr/> </dgm:pt>"
+  },
+  {
+   "section": "21.4.3.5",
+   "ns": "dgm",
+   "element": "pt",
+   "type": "CT_Pt",
+   "xml": "<dgm:pt modelId=\"5\" type=\"parTrans\" cxnId=\"9\"> <dgm:prSet/> <dgm:spPr/> </dgm:pt>"
+  },
+  {
+   "section": "21.4.3.6",
+   "ns": "dgm",
+   "element": "ptLst",
+   "type": "CT_PtList",
+   "xml": "<dgm:ptLst> <dgm:pt modelId=\"0\" type=\"doc\"/> <dgm:pt modelId=\"1\"/> <dgm:pt modelId=\"2\"/> <dgm:pt modelId=\"3\"/> <dgm:pt modelId=\"4\"/> <dgm:pt modelId=\"5\"/> <dgm:pt modelId=\"6\"/> </dgm:ptLst>"
+  },
+  {
+   "section": "21.4.4.1",
+   "ns": "dgm",
+   "element": "cat",
+   "type": "CT_CTCategory",
+   "xml": "<dgm:cat type=\"mainScheme\" pri=\"10300\"/>"
+  },
+  {
+   "section": "21.4.4.2",
+   "ns": "dgm",
+   "element": "catLst",
+   "type": "CT_CTCategories",
+   "xml": "<dgm:catLst> <dgm:cat type=\"mainScheme\" pri=\"10300\"/> </dgm:catLst>"
+  },
+  {
+   "section": "21.4.4.4",
+   "ns": "dgm",
+   "element": "colorsDefHdr",
+   "type": "CT_ColorTransformHeader",
+   "xml": "<colorsDefHdr uniqueId=\"urn:colors/accent0_1\"> <title val=\"Main 1\" /> <desc val=\"\" /> <catLst> <cat type=\"mainScheme\" pri=\"10100\" /> </catLst> </colorsDefHdr>"
+  },
+  {
+   "section": "21.4.4.7",
+   "ns": "dgm",
+   "element": "effectClrLst",
+   "type": "CT_Colors",
+   "xml": "<dgm:effectClrLst meth=\"repeat\"> <a:schemeClr val=\"dk2\"> <a:tint val=\"60000\"/> </a:schemeClr> </dgm:effectClrLst>"
+  },
+  {
+   "section": "21.4.4.8",
+   "ns": "dgm",
+   "element": "fillClrLst",
+   "type": "CT_Colors",
+   "xml": "<dgm:fillClrLst meth=\"repeat\"> <a:schemeClr val=\"dk2\"/> </dgm:fillClrLst>"
+  },
+  {
+   "section": "21.4.4.10",
+   "ns": "dgm",
+   "element": "styleLbl",
+   "type": "CT_CTStyleLabel",
+   "xml": "<dgm:styleLbl name=\"exampleStyleLabel\"> <dgm:fillClrLst> <a:schemeClr val=\"accent2\"/> <a:schemeClr val=\"accent3\"/> </dgm:fillClrLst> <dgm:linClrLst meth=\"repeat\"> <a:schemeClr val=\"lt1\"/> </dgm:linClrLst> <dgm:effectClrLst/> <dgm:txLinClrLst/> <dgm:txFillClrLst/> <dgm:txEffectClrLst/> </dgm:styleLbl>"
+  },
+  {
+   "section": "21.4.4.12",
+   "ns": "dgm",
+   "element": "txEffectClrLst",
+   "type": "CT_Colors",
+   "xml": "<dgm:txEffectClrLst meth=\"repeat\"> <a:schemeClr val=\"dk2\"/> </dgm:txEffectClrLst>"
+  },
+  {
+   "section": "21.4.4.13",
+   "ns": "dgm",
+   "element": "txFillClrLst",
+   "type": "CT_Colors",
+   "xml": "<dgm:txFillClrLst meth=\"repeat\"> <a:schemeClr val=\"dk2\"/> </dgm:txFillClrLst>"
+  },
+  {
+   "section": "21.4.4.14",
+   "ns": "dgm",
+   "element": "txLinClrLst",
+   "type": "CT_Colors",
+   "xml": "<dgm:txLinClrLst meth=\"repeat\"> <a:schemeClr val=\"dk2\"/> </dgm:txLinClrLst>"
+  },
+  {
+   "section": "21.4.5.2",
+   "ns": "dgm",
+   "element": "catLst",
+   "type": "CT_SDCategories",
+   "xml": "<catLst> <cat type=\"Simple\" pri=\"10000\"/> <cat type=\"3D\" pri=\"11100\"/> </catLst>"
+  },
+  {
+   "section": "21.4.5.3",
+   "ns": "dgm",
+   "element": "desc",
+   "type": "CT_SDDescription",
+   "xml": "<desc lang=\"\" val=\"3-D Style 1\"/>"
+  },
+  {
+   "section": "22.1.2.1",
+   "ns": "m",
+   "element": "acc",
+   "type": "CT_Acc",
+   "xml": "<m:acc> <m:accPr> <m:chr m:val=\"&#771;\"/> <m:ctrlPr/> </m:accPr> <m:e> <m:r> <m:t>a</m:t> </m:r> </m:e> </m:acc>"
+  },
+  {
+   "section": "22.1.2.2",
+   "ns": "m",
+   "element": "accPr",
+   "type": "CT_AccPr",
+   "xml": "<m:accPr> <m:chr m:val=\"&#771;\"/> </m:accPr>"
+  },
+  {
+   "section": "22.1.2.7",
+   "ns": "m",
+   "element": "bar",
+   "type": "CT_Bar",
+   "xml": "<m:bar> <m:barPr> <m:pos   m:val=\"top\"/> </m:barPr> <m:e> <m:r> <m:t>a</m:t> </m:r> </m:e> </m:bar>"
+  },
+  {
+   "section": "22.1.2.11",
+   "ns": "m",
+   "element": "borderBox",
+   "type": "CT_BorderBox",
+   "xml": "<m:borderBox> <m:e> <m:r> <m:t>abc</m:t> </m:r> </m:e> </m:borderBox>"
+  },
+  {
+   "section": "22.1.2.17",
+   "ns": "m",
+   "element": "brkBinSub",
+   "type": "CT_BreakBinSub",
+   "xml": "<m:brkBinSub m:val=\"-+\"/>"
+  },
+  {
+   "section": "22.1.2.23",
+   "ns": "m",
+   "element": "ctrlPr",
+   "type": "CT_CtrlPr",
+   "xml": "<m:ctrlPr> <w:rPr> <w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\"/> </w:rPr> </m:ctrlPr>"
+  },
+  {
+   "section": "22.1.2.34",
+   "ns": "m",
+   "element": "eqArr",
+   "type": "CT_EqArr",
+   "xml": "<m:eqArr> <m:e> <m:r> <m:t>a=b+c</m:t> </m:r> </m:e> <m:e> <m:r> <m:t>d+e=f</m:t> </m:r> </m:e> </m:eqArr>"
+  },
+  {
+   "section": "22.1.2.36",
+   "ns": "m",
+   "element": "f",
+   "type": "CT_F",
+   "xml": "<m:f> <m:fPr> <m:type  m:val=\"skw\"/> </m:fPr> <m:num> <m:r> <m:t>a</m:t> </m:r> </m:num> <m:den> <m:r> <m:t>b</m:t> </m:r> </m:den> </m:f>"
+  },
+  {
+   "section": "22.1.2.39",
+   "ns": "m",
+   "element": "func",
+   "type": "CT_Func",
+   "xml": "<m:func> <m:fName> <m:r> <m:t>sin</m:t> </m:r> </m:fName> <m:e> <m:r> <m:t>x</m:t> </m:r> </m:e> </m:func>"
+  },
+  {
+   "section": "22.1.2.56",
+   "ns": "m",
+   "element": "limUpp",
+   "type": "CT_LimUpp",
+   "xml": "<m:limUpp> <m:e> <m:r> <m:t>=</m:t> </m:r> </m:e> <m:lim> <m:r> <m:rPr> <m:nor/> </m:rPr> <m:t>def</m:t> </m:r> </m:lim> </m:limUpp>"
+  },
+  {
+   "section": "22.1.2.61",
+   "ns": "m",
+   "element": "mathFont",
+   "type": "CT_String",
+   "xml": "<m:mathFont m:val=\"Cambria Math\"/>"
+  },
+  {
+   "section": "22.1.2.62",
+   "ns": "m",
+   "element": "mathPr",
+   "type": "CT_MathPr",
+   "xml": "<m:mathPr> <m:mathFont m:val=\"Cambria Math\"/> <m:brkBin m:val=\"before\"/> <m:brkBinSub m:val=\"--\"/> <m:smallFrac m:val=\"0\"/> <m:dispDef/> <m:lMargin m:val=\"0\"/> <m:rMargin m:val=\"0\"/> <m:defJc m:val=\"centerGroup\"/> <m:wrapIndent m:val=\"1440\"/> <m:intLim m:val=\"subSup\"/> <m:naryLim m:val=\"undOvr\"/> </m:mathPr>"
+  },
+  {
+   "section": "22.1.2.77",
+   "ns": "m",
+   "element": "oMath",
+   "type": "CT_OMath",
+   "xml": "<m:oMath> <m:r> <m:t>1+1=2</m:t> </m:r> </m:oMath>"
+  },
+  {
+   "section": "22.1.2.78",
+   "ns": "m",
+   "element": "oMathPara",
+   "type": "CT_OMathPara",
+   "xml": "<m:oMathPara> <m:oMath> <m:r> <m:t>1+1=2</m:t> </m:r> <m:r> <w:br/> </m:r> </m:oMath> <m:oMath> <m:r> <m:t>2+2=4</m:t> </m:r> </m:oMath> </m:oMathPara>"
+  },
+  {
+   "section": "22.1.2.99",
+   "ns": "m",
+   "element": "sPre",
+   "type": "CT_SPre",
+   "xml": "<m:sPre> <m:sub> <m:r> <m:t>1</m:t> </m:r> </m:sub> <m:sup> <m:r> <m:t>2</m:t> </m:r> </m:sup> <m:e> <m:r> <m:t>A</m:t> </m:r> </m:e> </m:sPre>"
+  },
+  {
+   "section": "22.2.2.8",
+   "ns": "ep",
+   "element": "HeadingPairs",
+   "type": "CT_VectorVariant",
+   "xml": "<HeadingPairs> <vt:vector size=\"4\" baseType=\"variant\"> <vt:variant> <vt:lpstr>Theme</vt:lpstr> </vt:variant> <vt:variant> <vt:i4>1</vt:i4> </vt:variant> <vt:variant> <vt:lpstr>Slide Titles</vt:lpstr> </vt:variant> <vt:variant> <vt:i4>3</vt:i4> </vt:variant> </vt:vector> </HeadingPairs>"
+  },
+  {
+   "section": "22.4.2.1",
+   "ns": "vt",
+   "element": "array",
+   "type": "CT_Array",
+   "xml": "<vt:array lBounds=\"0,0\" uBounds=\"1,2\" baseType=\"i4\"> <vt:i4>0</vt:i4> <vt:i4>1</vt:i4> <vt:i4>2</vt:i4> <vt:i4>3</vt:i4> <vt:i4>4</vt:i4> </vt:array>"
+  },
+  {
+   "section": "22.4.2.33",
+   "ns": "vt",
+   "element": "vector",
+   "type": "CT_Vector",
+   "xml": "<vt:vector baseType=\"lpstr\"> <vt:lpstr>One</vt:lpstr> <vt:lpstr>Two</vt:lpstr> <vt:lpstr>Three</vt:lpstr> </vt:vector>"
+  },
+  {
+   "section": "22.6.2.5",
+   "ns": "b",
+   "element": "Author",
+   "type": "CT_NameOrCorporateType",
+   "xml": "<b:Author> <b:Author> <b:NameList> <b:Person> <b:Last>Jones</b:Last> <b:First>Brian</b:First> </b:Person> </b:NameList> </b:Author> </b:Author>"
+  },
+  {
+   "section": "22.6.2.33",
+   "ns": "b",
+   "element": "Interviewee",
+   "type": "CT_NameType",
+   "xml": "<b:Interviewee> <b:NameList> <b:Person> <b:Last>Rothschiller</b:Last> <b:First>Chad</b:First> </b:Person> </b:NameList> </b:Interviewee>"
+  },
+  {
+   "section": "22.6.2.34",
+   "ns": "b",
+   "element": "Interviewer",
+   "type": "CT_NameType",
+   "xml": "<b:Interviewer> <b:NameList> <b:Person> <b:Last>Davis</b:Last> <b:First>Tristan</b:First> </b:Person> </b:NameList> </b:Interviewer>"
+  },
+  {
+   "section": "22.6.2.39",
+   "ns": "b",
+   "element": "LCID",
+   "type": "ST_Lang",
+   "xml": "<b:LCID>ja-JP</b:LCID>"
+  },
+  {
+   "section": "22.6.2.48",
+   "ns": "b",
+   "element": "Performer",
+   "type": "CT_NameOrCorporateType",
+   "xml": "<b:Performer> <b:NameList> <b:Person> <b:Last>Rothschiller</b:Last> <b:First>Chad</b:First> </b:Person> </b:NameList> </b:Performer>"
+  },
+  {
+   "section": "22.6.2.51",
+   "ns": "b",
+   "element": "ProducerName",
+   "type": "CT_NameType",
+   "xml": "<b:ProducerName> <b:NameList> <b:Person> <b:Last>Rothschiller</b:Last> <b:First>Chad</b:First> </b:Person> </b:NameList> </b:ProducerName>"
+  },
+  {
+   "section": "22.7.2.1",
+   "ns": "ac",
+   "element": "additionalCharacteristics",
+   "type": "CT_AdditionalCharacteristics",
+   "xml": "<additionalCharacteristics> <characteristic name=\"numColumns\" relation=\"le\" val=\"10000\"/> <characteristic name=\"numColumns\" relation=\"ge\" val=\"0\"/> </additionalCharacteristics>"
+  },
+  {
+   "section": "23.2.2",
+   "ns": "sl",
+   "element": "schemaLibrary",
+   "type": "CT_SchemaLibrary",
+   "xml": "<sl:schemaLibrary> <sl:schema  /> <sl:schema  /> </sl:schemaLibrary>"
+  }
+ ]
+}
