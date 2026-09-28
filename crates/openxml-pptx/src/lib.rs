@@ -3,7 +3,7 @@
 //! [`Presentation`] is the entry point. It opens existing files or starts a
 //! new 16:9 deck with a slide master, six common layouts and the Office theme,
 //! and offers a high-level API for slides, placeholders, text boxes,
-//! pictures, tables and speaker notes. Everything is built on the generated
+//! pictures, tables, charts and speaker notes. Everything is built on the generated
 //! schema types of [`openxml_schema::pml`] and [`openxml_schema::dml`], which
 //! remain reachable through the `raw()` / `raw_mut()` escape hatches.
 //!
@@ -66,6 +66,7 @@
 #![warn(missing_docs)]
 
 mod animation;
+mod chart;
 mod clone;
 mod comments;
 mod connector;
@@ -118,3 +119,5 @@ pub use transition::{
 };
 
 pub use openxml_core::{Error, FontSize, Length, Result};
+
+pub use openxml_chart::{Chart, ChartInfo, ChartKind, Grouping, LegendPosition, Series};

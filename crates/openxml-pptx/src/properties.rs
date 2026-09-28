@@ -2,10 +2,11 @@
 //! (`presProps.xml`), custom shows and custom document properties.
 
 use openxml_core::part::{read_related, write_part};
+use openxml_core::properties::CustomProperties;
 use openxml_core::{Error, Length, Result};
 use openxml_opc::PartName;
 use openxml_opc::known::{content_types as ct, rel_types};
-use openxml_schema::{pml, shared_custom_properties as cp, shared_extended_properties as ep};
+use openxml_schema::{pml, shared_extended_properties as ep};
 
 use crate::presentation::Presentation;
 
@@ -211,52 +212,7 @@ pub struct CustomShow {
     pub slides: Vec<usize>,
 }
 
-/// The value of a custom document property.
-#[derive(Clone, Debug, PartialEq)]
-pub enum PropertyValue {
-    /// Text.
-    Text(String),
-    /// A 32-bit integer.
-    Integer(i32),
-    /// A floating-point number.
-    Number(f64),
-    /// Yes / no.
-    Bool(bool),
-    /// A date and time in ISO 8601 form (`2024-05-01T12:00:00Z`).
-    Date(String),
-}
-
-impl PropertyValue {
-    fn to_pml(&self) -> cp::CT_Property_Choice {
-        match self {
-            PropertyValue::Text(s) => cp::CT_Property_Choice::Lpwstr(s.clone()),
-            PropertyValue::Integer(i) => cp::CT_Property_Choice::I4(*i),
-            PropertyValue::Number(n) => cp::CT_Property_Choice::R8(*n),
-            PropertyValue::Bool(b) => cp::CT_Property_Choice::Bool(*b),
-            PropertyValue::Date(d) => cp::CT_Property_Choice::Filetime(d.clone()),
-        }
-    }
-
-    fn from_pml(c: &cp::CT_Property_Choice) -> Option<PropertyValue> {
-        use cp::CT_Property_Choice as P;
-        Some(match c {
-            P::Lpwstr(s) | P::Lpstr(s) | P::Bstr(s) => PropertyValue::Text(s.clone()),
-            P::I4(i) | P::Int(i) => PropertyValue::Integer(*i),
-            P::I1(i) => PropertyValue::Integer(i32::from(*i)),
-            P::I2(i) => PropertyValue::Integer(i32::from(*i)),
-            P::Ui1(i) => PropertyValue::Integer(i32::from(*i)),
-            P::Ui2(i) => PropertyValue::Integer(i32::from(*i)),
-            P::R8(n) | P::Decimal(n) => PropertyValue::Number(*n),
-            P::R4(n) => PropertyValue::Number(f64::from(*n)),
-            P::Bool(b) => PropertyValue::Bool(*b),
-            P::Filetime(d) | P::Date(d) => PropertyValue::Date(d.clone()),
-            _ => return None,
-        })
-    }
-}
-
-/// Format identifier of user-defined custom properties.
-const CUSTOM_FMTID: &str = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}";
+pub use openxml_core::properties::PropertyValue;
 
 impl Presentation {
     // ----- slide size -------------------------------------------------------------
@@ -511,32 +467,14 @@ impl Presentation {
 
     // ----- custom properties ---------------------------------------------------------------
 
-    fn custom_part(&self) -> Result<Option<(PartName, cp::CT_Properties)>> {
-        read_related(
-            &self.package,
-            None,
-            rel_types::CUSTOM_PROPERTIES,
-            &cp::elements::PROPERTIES,
-        )
-    }
-
     /// The custom document properties (File > Properties > Custom) as
     /// `(name, value)` pairs; properties of unsupported types are skipped.
     pub fn custom_properties(&self) -> Result<Vec<(String, PropertyValue)>> {
-        Ok(self
-            .custom_part()?
-            .map(|(_, p)| {
-                p.property
-                    .iter()
-                    .filter_map(|prop| {
-                        Some((
-                            prop.name.clone()?,
-                            PropertyValue::from_pml(prop.choice.as_ref()?)?,
-                        ))
-                    })
-                    .collect()
-            })
-            .unwrap_or_default())
+        let props = CustomProperties::read(&self.package)?;
+        Ok(props
+            .iter()
+            .filter_map(|(name, value)| Some((name.to_owned(), value?)))
+            .collect())
     }
 
     /// Sets a custom document property, creating `docProps/custom.xml` when needed.
@@ -556,63 +494,18 @@ impl Presentation {
                 "custom property names cannot be empty".into(),
             ));
         }
-        let (part, mut props) = match self.custom_part()? {
-            Some(found) => found,
-            None => {
-                let part = PartName::new("/docProps/custom.xml")?;
-                if self.package.contains(&part) {
-                    return Err(Error::InvalidDocument(format!(
-                        "{part} exists but is not related to the package"
-                    )));
-                }
-                self.package
-                    .add_relationship(None, rel_types::CUSTOM_PROPERTIES, &part)?;
-                (part, cp::CT_Properties::default())
-            }
-        };
-        match props
-            .property
-            .iter_mut()
-            .find(|p| p.name.as_deref() == Some(name))
-        {
-            Some(p) => p.choice = Some(value.to_pml()),
-            None => {
-                let pid = props.property.iter().filter_map(|p| p.pid).max().unwrap_or(1) + 1;
-                props.property.push(cp::CT_Property {
-                    fmtid: Some(CUSTOM_FMTID.to_owned()),
-                    pid: Some(pid.max(2)),
-                    name: Some(name.to_owned()),
-                    choice: Some(value.to_pml()),
-                    ..Default::default()
-                });
-            }
-        }
-        write_part(
-            &mut self.package,
-            &part,
-            ct::CUSTOM_PROPERTIES,
-            &cp::elements::PROPERTIES,
-            &props,
-        )
+        let mut props = CustomProperties::read(&self.package)?;
+        props.set(name, value);
+        props.write(&mut self.package)
     }
 
     /// Removes a custom document property. Returns whether it existed.
     pub fn remove_custom_property(&mut self, name: &str) -> Result<bool> {
-        let Some((part, mut props)) = self.custom_part()? else {
-            return Ok(false);
-        };
-        let before = props.property.len();
-        props.property.retain(|p| p.name.as_deref() != Some(name));
-        if before == props.property.len() {
+        let mut props = CustomProperties::read(&self.package)?;
+        if !props.remove(name) {
             return Ok(false);
         }
-        write_part(
-            &mut self.package,
-            &part,
-            ct::CUSTOM_PROPERTIES,
-            &cp::elements::PROPERTIES,
-            &props,
-        )?;
+        props.write(&mut self.package)?;
         Ok(true)
     }
 }
@@ -675,23 +568,23 @@ mod tests {
     }
 
     #[test]
-    fn property_values_round_trip() {
-        for v in [
-            PropertyValue::Text("x".into()),
-            PropertyValue::Integer(-4),
-            PropertyValue::Number(2.5),
-            PropertyValue::Bool(true),
-            PropertyValue::Date("2024-01-02T03:04:05Z".into()),
+    fn custom_properties_use_the_shared_implementation() {
+        let mut deck = Presentation::new();
+        for (name, v) in [
+            ("t", PropertyValue::Text("x".into())),
+            ("i", PropertyValue::Integer(-4)),
+            ("n", PropertyValue::Number(2.5)),
+            ("b", PropertyValue::Bool(true)),
+            ("d", PropertyValue::DateTime("2024-01-02T03:04:05Z".into())),
         ] {
-            assert_eq!(PropertyValue::from_pml(&v.to_pml()), Some(v));
+            deck.set_custom_property(name, v).unwrap();
         }
-        assert_eq!(
-            PropertyValue::from_pml(&cp::CT_Property_Choice::I2(7)),
-            Some(PropertyValue::Integer(7))
-        );
-        assert_eq!(
-            PropertyValue::from_pml(&cp::CT_Property_Choice::Blob(Default::default())),
-            None
-        );
+        let props = deck.custom_properties().unwrap();
+        assert_eq!(props.len(), 5);
+        assert_eq!(props[1], ("i".to_owned(), PropertyValue::Integer(-4)));
+        assert!(deck.set_custom_property("", PropertyValue::Bool(true)).is_err());
+        assert!(deck.remove_custom_property("t").unwrap());
+        assert!(!deck.remove_custom_property("t").unwrap());
+        assert_eq!(deck.custom_properties().unwrap().len(), 4);
     }
 }

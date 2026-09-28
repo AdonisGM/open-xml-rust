@@ -520,7 +520,7 @@ fn presentation_level_settings() {
         .unwrap();
     deck.set_custom_property("Budget", PropertyValue::Number(1.5e6))
         .unwrap();
-    deck.set_custom_property("Due", PropertyValue::Date("2024-12-31T00:00:00Z".into()))
+    deck.set_custom_property("Due", PropertyValue::DateTime("2024-12-31T00:00:00Z".into()))
         .unwrap();
     deck.set_custom_property("Revision", PropertyValue::Integer(8))
         .unwrap();
