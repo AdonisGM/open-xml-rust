@@ -78,8 +78,11 @@ dependencies = [
 name = "openxml-cli"
 version = "0.1.0"
 dependencies = [
+ "openxml-docx",
  "openxml-opc",
+ "openxml-pptx",
  "openxml-schema",
+ "openxml-xlsx",
  "openxml-xml",
 ]
 

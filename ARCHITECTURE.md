@@ -171,6 +171,45 @@ from *invalid* ones (whose raw form was preserved):
 `ElementDef::validate(&value)` checks one document; the generated
 `validate_xml(xml)` dispatches on the root element of any part.
 
+## Layer 4 — `openxml-core` and the document APIs
+
+`openxml-core` holds what the three document APIs share: the `Error` type,
+typed part I/O (`part::read_part`, `write_part`, `read_related`,
+`add_related_part`), `Length` (EMU, with twip/point/inch/cm conversions) and
+`FontSize`, and image detection (`sniff_image`: PNG, JPEG, GIF, BMP, TIFF,
+EMF, WMF — format, pixel size and resolution).
+
+`openxml-docx`, `openxml-xlsx` and `openxml-pptx` follow the same design:
+
+* **The package is the source of truth.** `Document` / `Workbook` /
+  `Presentation` own the `Package`; the parts they manage are parsed into
+  generated schema types (lazily for worksheets) and tracked with dirty
+  flags. Saving rewrites only changed parts; every other part is written
+  back byte-for-byte, so an untouched file round-trips byte-identically and
+  an edited one loses nothing the API does not understand.
+* **Views over typed data.** Read-only views (`Paragraph`, `Worksheet`,
+  `Slide`, …) and mutable views (`ParagraphMut`, `WorksheetMut`,
+  `SlideMut`, …) wrap the generated structs. Mutable views know the part
+  they belong to, so new relationships (hyperlinks, images) land in the
+  right part.
+* **Escape hatches everywhere.** Each view exposes the underlying schema
+  object (`raw()` / `raw_mut()`, `document_mut()`, `stylesheet_mut()`), and
+  every API exposes `package_mut()`.
+* **New documents are schema-valid.** Templates (styles, stylesheet, slide
+  master with six layouts and a theme) are built so that every part
+  validates against the ECMA-376 schemas and follows the conventions of the
+  Office applications (ID ranges, required parts, `docProps`).
+
+| API | Highlights |
+|-----|------------|
+| docx | paragraphs, runs (bold/italic/underline/size/color/font/highlight/…), headings and built-in styles resolved against the document's own styles, bullet and numbered lists, tables (styles, widths, merges, shading), inline pictures, hyperlinks, headers/footers, page setup, text extraction and replacement |
+| xlsx | cell values (strings via the shared-string table, numbers, booleans, errors, dates in both date systems, formulas with cached results, shared-formula expansion), styles with deduplication, merges, column widths, row heights, frozen panes, defined names, streaming writer and row-by-row reader |
+| pptx | 16:9 template, add/remove/move slides, placeholders (title, subtitle, body levels), text boxes with formatting, pictures, tables, speaker notes, backgrounds, text extraction |
+
+Files produced by the examples were cross-checked with independent
+readers available on macOS: `textutil` (Apple's DOCX importer) extracts the
+full text including list bullets, and Quick Look renders all three formats.
+
 ## Test strategy
 
 | Level | What is checked |
@@ -184,6 +223,8 @@ from *invalid* ones (whose raw form was preserved):
 | corpus round trip | every XML part of every fixture: typed read → write → semantic diff = ∅, and writing twice is byte-identical |
 | XSD validation | documents produced by the APIs validate against the ECMA schemas with `xmllint` |
 | generated code freshness | regenerating from the XSDs reproduces the committed sources |
+| document APIs | per crate: unit tests, create → save → reopen for every feature, XSD validation of every produced part, reading real fixtures with asserted content, byte-identical untouched round trips and semantically equal forced rewrites |
+| facade | the three formats produced through `openxml` validate against the XSDs and the Rust validator, and read back |
 | CLI | end-to-end runs of the binary |
 
 `OPENXML_CORPUS=<dir> cargo test --release -p openxml-schema --test corpus --

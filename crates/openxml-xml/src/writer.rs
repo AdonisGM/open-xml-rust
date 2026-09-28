@@ -346,14 +346,17 @@ impl XmlWriter {
         escape_text(&mut self.out, &self.scratch);
     }
 
-    /// Writes a complete element whose content is a simple-type value. Adds
-    /// `xml:space="preserve"` when the text has leading or trailing
-    /// whitespace or contains line breaks or tabs, so that consumers keep it.
+    /// Writes a complete element whose content is a simple-type value.
+    ///
+    /// In SpreadsheetML, `xml:space="preserve"` is added when the text has
+    /// leading or trailing whitespace or contains line breaks or tabs: Excel
+    /// relies on it (and writes it itself) although the schema does not
+    /// declare it. Other vocabularies keep whitespace without the attribute.
     pub fn simple_element<T: XmlValue>(&mut self, ns: Ns, local: &str, value: &T) {
         self.scratch.clear();
         value.write_xml(&mut self.scratch);
         self.start(ns, local);
-        if needs_space_preserve(&self.scratch) {
+        if ns == Ns::X && needs_space_preserve(&self.scratch) {
             self.attr(Ns::XML, "space", "preserve");
         }
         if !self.scratch.is_empty() {
@@ -606,18 +609,24 @@ mod tests {
 
     #[test]
     fn simple_elements_preserve_significant_whitespace() {
+        let x = Ns::X.uri();
         let mut w = XmlWriter::new();
-        w.start(Ns::NONE, "r");
-        w.simple_element(Ns::NONE, "t", &String::from("plain"));
-        w.simple_element(Ns::NONE, "t", &String::from(" lead"));
-        w.simple_element(Ns::NONE, "t", &String::from("two\nlines"));
-        w.simple_element(Ns::NONE, "t", &String::new());
-        w.simple_element(Ns::NONE, "n", &42u32);
+        w.predeclare(&[Ns::X]);
+        w.start(Ns::X, "r");
+        w.simple_element(Ns::X, "t", &String::from("plain"));
+        w.simple_element(Ns::X, "t", &String::from(" lead"));
+        w.simple_element(Ns::X, "t", &String::from("two\nlines"));
+        w.simple_element(Ns::X, "t", &String::new());
+        w.simple_element(Ns::X, "n", &42u32);
+        w.simple_element(Ns::A, "t", &String::from(" drawingml keeps spaces "));
         w.end();
+        let a = Ns::A.uri();
         assert_eq!(
             w.finish(),
-            r#"<r><t>plain</t><t xml:space="preserve"> lead</t><t xml:space="preserve">two
-lines</t><t/><n>42</n></r>"#
+            format!(
+                r#"<r xmlns="{x}"><t>plain</t><t xml:space="preserve"> lead</t><t xml:space="preserve">two
+lines</t><t/><n>42</n><a:t xmlns:a="{a}"> drawingml keeps spaces </a:t></r>"#
+            )
         );
         assert!(needs_space_preserve("a\tb"));
         assert!(!needs_space_preserve("a b"));

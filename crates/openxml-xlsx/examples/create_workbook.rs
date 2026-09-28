@@ -1,7 +1,7 @@
 //! Creates a small sales report workbook.
 //!
 //! ```text
-//! cargo run -p openxml-xlsx --example create_report -- report.xlsx
+//! cargo run -p openxml-xlsx --example create_workbook -- report.xlsx
 //! ```
 
 use openxml_opc::CoreProperties;

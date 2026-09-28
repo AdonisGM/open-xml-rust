@@ -85,3 +85,16 @@ fn validate_checks_parts_against_the_schemas() {
     ]);
     assert!(!ok && err.contains("schema driver not found"));
 }
+
+#[test]
+fn text_extracts_words_cells_and_slides() {
+    let (ok, out, err) = run(&["text", &fixture("poi/sample.docx")]);
+    assert!(ok, "{err}");
+    assert!(!out.trim().is_empty());
+    let (ok, out, err) = run(&["text", &fixture("ecma/PivotTableFormats.xlsx")]);
+    assert!(ok, "{err}");
+    assert!(out.starts_with("== "), "{out}");
+    let (ok, out, err) = run(&["text", &fixture("poi/SampleShow.pptx")]);
+    assert!(ok, "{err}");
+    assert!(out.contains("--- slide 1"), "{out}");
+}

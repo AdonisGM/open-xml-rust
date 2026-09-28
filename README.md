@@ -32,6 +32,51 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the design.
 | `openxml-cli` | The `openxml` command-line tool |
 | `openxml-testkit` | Test helpers (XSD validation with `xmllint`) |
 
+## Quick start
+
+```rust
+use openxml::docx::{Document, ListKind};
+use openxml::xlsx::{CellStyle, Workbook};
+use openxml::pptx::{LayoutKind, Presentation};
+
+// Word
+let mut doc = Document::new();
+doc.add_heading("Quarterly report", 1)?;
+doc.add_paragraph("Revenue grew by ").add_run("12%").bold(true);
+doc.add_list_item("New product line", ListKind::Bullet, 0)?;
+doc.save("report.docx")?;
+
+// Excel
+let mut wb = Workbook::new();
+let bold = wb.add_style(&CellStyle::new().bold());
+let mut sheet = wb.worksheet_mut("Sheet1")?;
+sheet.set_value("A1", "Total")?;
+sheet.set_cell_style("A1", bold)?;
+sheet.set_formula("B1", "SUM(B2:B10)")?;
+wb.save("report.xlsx")?;
+
+// PowerPoint
+let mut deck = Presentation::new();
+let mut slide = deck.add_slide(LayoutKind::Title)?;
+slide.set_title("Project Aurora")?;
+deck.save("deck.pptx")?;
+
+// Reading
+let text = Document::open("report.docx")?.text();
+```
+
+Every API keeps the whole package: parts it does not manage are saved
+byte-for-byte, and the typed schema objects are always reachable
+(`document_mut()`, `raw_mut()`, `package_mut()`) for anything the
+convenience methods do not cover. Runnable examples:
+
+```text
+cargo run -p openxml --example all_formats -- out/
+cargo run -p openxml-docx --example create_report -- out/report.docx
+cargo run -p openxml-xlsx --example create_workbook -- out/report.xlsx
+cargo run -p openxml-pptx --example create_deck -- out/deck.pptx
+```
+
 ## Working with the schema types directly
 
 ```rust
@@ -48,6 +93,7 @@ let out = wml::elements::DOCUMENT.to_xml(&doc);
 ```text
 cargo run -p openxml-cli -- info report.docx          # parts, content types, relationships
 cargo run -p openxml-cli -- cat report.docx /word/document.xml
+cargo run -p openxml-cli -- text report.xlsx          # plain text of any docx/xlsx/pptx
 cargo run -p openxml-cli -- roundtrip report.docx out.docx
 cargo run -p openxml-cli -- validate report.docx      # XSD validation (needs xmllint)
 ```

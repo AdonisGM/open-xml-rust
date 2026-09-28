@@ -3,12 +3,12 @@
 use std::collections::HashMap;
 
 use openxml_schema::sml;
-use openxml_xml::{ExtraChild, Ns, RawAttribute, RawElement, RawNode};
+use openxml_xml::{ExtraChild, Ns, RawAttribute};
 
 use crate::value::{decode_xstring, encode_xstring};
 
 /// Text of a `<t>` element that the typed model kept as raw XML (this
-/// happens when it carries `xml:space="preserve"`).
+/// happens when it carries attributes other than `xml:space`).
 fn raw_t_text(extras: &[ExtraChild]) -> Option<String> {
     extras
         .iter()
@@ -35,31 +35,13 @@ pub fn rst_text(rst: &sml::CT_Rst) -> String {
     decode_xstring(&out).into_owned()
 }
 
-fn needs_space_preserve(s: &str) -> bool {
-    s.starts_with([' ', '\t', '\n', '\r']) || s.ends_with([' ', '\t', '\n', '\r'])
-}
-
-/// Builds a plain (unformatted) string item. Text with leading or trailing
-/// whitespace is written as `<t xml:space="preserve">`.
+/// Builds a plain (unformatted) string item. The writer adds
+/// `xml:space="preserve"` to `<t>` when the text has leading or trailing
+/// whitespace.
 pub fn rst_from_text(text: &str) -> sml::CT_Rst {
-    let encoded = encode_xstring(text).into_owned();
-    if needs_space_preserve(text) {
-        let mut t = RawElement::new(Ns::X, "t");
-        t.attributes.push(RawAttribute::new(Ns::XML, "space", "preserve"));
-        t.children.push(RawNode::Text(encoded));
-        sml::CT_Rst {
-            extra_children: vec![ExtraChild {
-                anchor: 0,
-                index: 0,
-                element: t,
-            }],
-            ..Default::default()
-        }
-    } else {
-        sml::CT_Rst {
-            t: Some(encoded),
-            ..Default::default()
-        }
+    sml::CT_Rst {
+        t: Some(encode_xstring(text).into_owned()),
+        ..Default::default()
     }
 }
 

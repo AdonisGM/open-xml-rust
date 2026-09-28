@@ -12,7 +12,10 @@ name = "openxml"
 path = "src/main.rs"
 
 [dependencies]
+openxml-docx = { workspace = true }
 openxml-opc = { workspace = true }
+openxml-pptx = { workspace = true }
+openxml-xlsx = { workspace = true }
 openxml-schema = { workspace = true }
 openxml-xml = { workspace = true }
 

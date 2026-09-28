@@ -3,6 +3,7 @@
 //! ```text
 //! openxml info <file>                  list parts, content types and relationships
 //! openxml cat <file> <part>            print a part (e.g. /word/document.xml)
+//! openxml text <file>                  plain text of a document, workbook or presentation
 //! openxml roundtrip <file> [<out>]     parse every XML part into the typed model, write it back
 //!                                      and compare; optionally save the re-serialized package
 //! openxml validate <file> [--schemas <dir>]
@@ -17,9 +18,24 @@ use openxml_opc::{Package, PartName};
 use openxml_xml::compare::{DiffKind, semantic_diff};
 use openxml_xml::{Ns, RawElement, decode_xml_bytes};
 
+/// Prints a line to stdout; exits quietly when the reader has gone away
+/// (e.g. `openxml text big.xlsx | head`).
+macro_rules! say {
+    ($($arg:tt)*) => {{
+        let mut out = std::io::stdout().lock();
+        if let Err(e) = writeln!(out, $($arg)*) {
+            if e.kind() == std::io::ErrorKind::BrokenPipe {
+                std::process::exit(0);
+            }
+            panic!("cannot write to stdout: {e}");
+        }
+    }};
+}
+
 const USAGE: &str = "usage:
   openxml info <file>
   openxml cat <file> <part>
+  openxml text <file>
   openxml roundtrip <file> [<out>]
   openxml validate <file> [--schemas <dir>]";
 
@@ -28,11 +44,12 @@ fn main() -> ExitCode {
     let result = match args.first().map(String::as_str) {
         Some("info") if args.len() == 2 => info(&args[1]),
         Some("cat") if args.len() == 3 => cat(&args[1], &args[2]),
+        Some("text") if args.len() == 2 => text(&args[1]),
         Some("roundtrip") if args.len() == 2 || args.len() == 3 => roundtrip(&args[1], args.get(2)),
         Some("validate") if args.len() == 2 => validate(&args[1], None),
         Some("validate") if args.len() == 4 && args[2] == "--schemas" => validate(&args[1], Some(&args[3])),
         Some("-h" | "--help" | "help") => {
-            println!("{USAGE}");
+            say!("{USAGE}");
             Ok(true)
         }
         _ => {
@@ -54,35 +71,35 @@ type CliResult = Result<bool, Box<dyn std::error::Error>>;
 
 fn info(file: &str) -> CliResult {
     let pkg = Package::open_path(file)?;
-    println!("{file}");
+    say!("{file}");
     match pkg.main_part() {
-        Some(main) => println!("main part: {main}"),
-        None => println!("main part: (none)"),
+        Some(main) => say!("main part: {main}"),
+        None => say!("main part: (none)"),
     }
     let core = pkg.core_properties()?;
     if let Some(t) = &core.title {
-        println!("title: {t}");
+        say!("title: {t}");
     }
     if let Some(c) = &core.creator {
-        println!("creator: {c}");
+        say!("creator: {c}");
     }
-    println!("\n{:<48} {:>9}  content type", "part", "bytes");
+    say!("\n{:<48} {:>9}  content type", "part", "bytes");
     for (name, part) in pkg.parts() {
-        println!(
+        say!(
             "{:<48} {:>9}  {}",
             name.as_str(),
             part.data().len(),
             part.content_type()
         );
     }
-    println!("\nrelationships:");
+    say!("\nrelationships:");
     for r in pkg.package_relationships().iter() {
-        println!("  / --{}--> {}", short_type(&r.rel_type), r.target);
+        say!("  / --{}--> {}", short_type(&r.rel_type), r.target);
     }
     for (name, part) in pkg.parts() {
         for r in part.relationships().iter() {
             let ext = if r.is_external() { " (external)" } else { "" };
-            println!("  {name} --{}--> {}{ext}", short_type(&r.rel_type), r.target);
+            say!("  {name} --{}--> {}{ext}", short_type(&r.rel_type), r.target);
         }
     }
     Ok(true)
@@ -97,6 +114,42 @@ fn cat(file: &str, part: &str) -> CliResult {
     let name = PartName::new(part)?;
     let data = pkg.part(&name).ok_or_else(|| format!("no part {part}"))?.data();
     std::io::stdout().write_all(data)?;
+    Ok(true)
+}
+
+fn text(file: &str) -> CliResult {
+    let pkg = Package::open_path(file)?;
+    let main = pkg.main_part().ok_or("the package has no main document part")?;
+    let ct = pkg
+        .part(&main)
+        .map(|p| p.content_type().to_owned())
+        .unwrap_or_default();
+    if ct.contains("wordprocessingml") || ct.contains("ms-word") {
+        let doc = openxml_docx::Document::from_package(pkg)?;
+        say!("{}", doc.text());
+    } else if ct.contains("spreadsheetml") || ct.contains("ms-excel") {
+        let wb = openxml_xlsx::Workbook::from_package(pkg)?;
+        for name in wb.worksheet_names() {
+            say!("== {name}");
+            let sheet = wb.worksheet(&name)?;
+            for row in sheet.rows() {
+                // Formulas show their cached result when there is one.
+                let cells: Vec<String> = row.cells().map(|(_, v)| v.result().to_string()).collect();
+                say!("{}", cells.join("\t"));
+            }
+        }
+    } else if ct.contains("presentationml") || ct.contains("ms-powerpoint") {
+        let deck = openxml_pptx::Presentation::from_package(pkg)?;
+        for (i, slide) in deck.slides().iter().enumerate() {
+            say!("--- slide {}", i + 1);
+            say!("{}", slide.text());
+            if let Some(notes) = slide.notes_text() {
+                say!("[notes] {notes}");
+            }
+        }
+    } else {
+        return Err(format!("unsupported main part type {ct}").into());
+    }
     Ok(true)
 }
 
@@ -122,7 +175,7 @@ fn roundtrip(file: &str, out: Option<&String>) -> CliResult {
             None => unknown += 1,
             Some(Err(e)) => {
                 failed += 1;
-                println!("FAIL  {name}: {e}");
+                say!("FAIL  {name}: {e}");
             }
             Some(Ok(written)) => {
                 typed += 1;
@@ -132,12 +185,12 @@ fn roundtrip(file: &str, out: Option<&String>) -> CliResult {
                     .filter(|d| d.kind != DiffKind::Reordered)
                     .collect();
                 if diffs.is_empty() {
-                    println!("ok    {name}");
+                    say!("ok    {name}");
                 } else {
                     differing += 1;
-                    println!("DIFF  {name}");
+                    say!("DIFF  {name}");
                     for d in diffs.iter().take(10) {
-                        println!("        {d}");
+                        say!("        {d}");
                     }
                 }
                 let ct = pkg
@@ -148,12 +201,12 @@ fn roundtrip(file: &str, out: Option<&String>) -> CliResult {
             }
         }
     }
-    println!(
+    say!(
         "\n{typed} typed parts, {unknown} parts without a schema, {failed} failures, {differing} with differences"
     );
     if let Some(path) = out {
         pkg.save_path(path)?;
-        println!("written {path}");
+        say!("written {path}");
     }
     Ok(failed == 0 && differing == 0)
 }
@@ -181,18 +234,18 @@ fn validate(file: &str, schemas: Option<&String>) -> CliResult {
         match xmllint(&driver, &text) {
             Ok(()) => {
                 valid += 1;
-                println!("valid    {name}");
+                say!("valid    {name}");
             }
             Err(msg) => {
                 invalid += 1;
-                println!("INVALID  {name}");
+                say!("INVALID  {name}");
                 for line in msg.lines().filter(|l| !l.contains("fails to validate")).take(10) {
-                    println!("           {}", line.trim_start_matches("-:"));
+                    say!("           {}", line.trim_start_matches("-:"));
                 }
             }
         }
     }
-    println!("\n{valid} valid, {invalid} invalid, {skipped} not covered by the ECMA-376 schemas");
+    say!("\n{valid} valid, {invalid} invalid, {skipped} not covered by the ECMA-376 schemas");
     Ok(invalid == 0)
 }
 
