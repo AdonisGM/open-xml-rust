@@ -2,16 +2,19 @@
 
 use std::ops::Deref;
 
-use openxml_core::{Error, Length, Result, sniff_image};
+use openxml_core::{Error, Length, Result};
 use openxml_opc::PartName;
 use openxml_opc::known::{content_types as ct, rel_types};
 use openxml_schema::{dml, pml};
 
+use crate::drawing::ShapeType;
+use crate::picture;
 use crate::presentation::Presentation;
 use crate::shape::{self, PlaceholderKind, ShapeInfo, ShapeMut};
 use crate::table::{self, TableMut};
 use crate::template;
 use crate::text::{self, Rgb};
+use crate::util;
 
 /// A notes page attached to a slide.
 #[derive(Clone, Debug)]
@@ -135,12 +138,34 @@ impl Deref for SlideMut<'_> {
     }
 }
 
+/// Placeholders present on a slide in any form (`p:sp`, `p:pic`, `p:graphicFrame`).
+fn used_placeholders(tree: &pml::CT_GroupShape) -> Vec<shape::Placeholder> {
+    tree.choice
+        .iter()
+        .filter_map(|c| {
+            let nv_pr = match c {
+                pml::CT_GroupShape_Choice::Sp(sp) => sp.nv_sp_pr.as_ref()?.nv_pr.as_deref(),
+                pml::CT_GroupShape_Choice::Pic(p) => p.nv_pic_pr.as_ref()?.nv_pr.as_deref(),
+                pml::CT_GroupShape_Choice::GraphicFrame(f) => {
+                    f.nv_graphic_frame_pr.as_ref()?.nv_pr.as_deref()
+                }
+                _ => None,
+            }?;
+            let ph = nv_pr.ph.as_deref()?;
+            Some(shape::Placeholder {
+                kind: PlaceholderKind::from_pml(ph.type_),
+                index: ph.idx,
+            })
+        })
+        .collect()
+}
+
 fn is_body_like(kind: PlaceholderKind) -> bool {
     matches!(kind, PlaceholderKind::Body | PlaceholderKind::Object)
 }
 
 impl SlideMut<'_> {
-    fn slide(&mut self) -> &mut Slide {
+    pub(crate) fn slide(&mut self) -> &mut Slide {
         let s = &mut self.pres.slides[self.index];
         s.dirty = true;
         s
@@ -151,7 +176,7 @@ impl SlideMut<'_> {
         &mut self.slide().data
     }
 
-    fn tree_mut(&mut self) -> &mut pml::CT_GroupShape {
+    pub(crate) fn tree_mut(&mut self) -> &mut pml::CT_GroupShape {
         let c_sld = self.slide().data.c_sld.get_or_insert_with(Box::default);
         c_sld.sp_tree.get_or_insert_with(|| {
             Box::new(pml::CT_GroupShape {
@@ -167,7 +192,7 @@ impl SlideMut<'_> {
         })
     }
 
-    fn next_id(&mut self) -> u32 {
+    pub(crate) fn next_id(&mut self) -> u32 {
         shape::max_shape_id(self.tree_mut()) + 1
     }
 
@@ -190,17 +215,25 @@ impl SlideMut<'_> {
 
     /// Returns the placeholder accepted by `pred`, copying it from the layout
     /// if the slide does not have it yet.
-    fn placeholder(&mut self, what: &str, pred: impl Fn(PlaceholderKind) -> bool) -> Result<ShapeMut<'_>> {
+    pub(crate) fn placeholder(
+        &mut self,
+        what: &str,
+        pred: impl Fn(PlaceholderKind) -> bool,
+    ) -> Result<ShapeMut<'_>> {
         let index = match self.find_placeholder(&pred) {
             Some(i) => i,
             None => {
                 let layout_part = self.layout.clone();
+                // Layout placeholders already instantiated on the slide (possibly
+                // filled with a picture, table or chart) are not copied again.
+                let used = used_placeholders(self.tree_mut());
                 let template = layout_part
                     .and_then(|lp| self.pres.layouts.iter().find(|l| l.part == lp))
                     .and_then(|l| {
                         let mut candidates: Vec<&pml::CT_Shape> = l
                             .placeholder_shapes()
                             .filter(|sp| shape::shape_placeholder(sp).is_some_and(|p| pred(p.kind)))
+                            .filter(|sp| !shape::shape_placeholder(sp).is_some_and(|p| used.contains(&p)))
                             .collect();
                         candidates.sort_by_key(|sp| {
                             shape::shape_placeholder(sp).and_then(|p| p.index).unwrap_or(0)
@@ -307,6 +340,52 @@ impl SlideMut<'_> {
         })
     }
 
+    /// The `p:sp` shape (text box, placeholder or autoshape) with the given
+    /// identifier, searching groups.
+    pub fn shape_by_id(&mut self, shape_id: u32) -> Option<ShapeMut<'_>> {
+        match util::find_mut(self.tree_mut(), shape_id)? {
+            pml::CT_GroupShape_Choice::Sp(sp) => Some(ShapeMut::new(sp)),
+            _ => None,
+        }
+    }
+
+    /// Adds a preset-geometry shape styled by the theme (accent 1 fill,
+    /// darker outline, centred light text) and returns it for editing.
+    ///
+    /// ```
+    /// use openxml_core::Length;
+    /// use openxml_pptx::{Fill, LayoutKind, Line, LineDash, Presentation, Rgb, ShapeType};
+    ///
+    /// let mut deck = Presentation::new();
+    /// let mut slide = deck.add_slide(LayoutKind::Blank)?;
+    /// let mut star = slide.add_shape(ShapeType::Star5, Length::cm(2.0), Length::cm(2.0), Length::cm(4.0), Length::cm(4.0));
+    /// star.set_text("Top");
+    /// star.set_fill(Fill::solid(Rgb(0xFF, 0xC0, 0)))
+    ///     .set_line(Line::solid(Rgb(0x80, 0x60, 0), Length::pt(2.0)).dash(LineDash::Dash))
+    ///     .set_rotation(15.0);
+    /// assert_eq!(star.geometry(), Some(ShapeType::Star5));
+    /// # Ok::<(), openxml_core::Error>(())
+    /// ```
+    pub fn add_shape(
+        &mut self,
+        geometry: ShapeType,
+        x: Length,
+        y: Length,
+        w: Length,
+        h: Length,
+    ) -> ShapeMut<'_> {
+        let id = self.next_id();
+        let tree = self.tree_mut();
+        tree.choice
+            .push(pml::CT_GroupShape_Choice::Sp(Box::new(shape::new_auto_shape(
+                id, geometry, x, y, w, h,
+            ))));
+        match tree.choice.last_mut() {
+            Some(pml::CT_GroupShape_Choice::Sp(sp)) => ShapeMut::new(sp),
+            _ => unreachable!("just pushed a shape"),
+        }
+    }
+
     /// Adds a picture. When `height` is `None` it follows from the image's aspect ratio.
     ///
     /// Identical images are stored once in the package. Returns the shape identifier.
@@ -318,68 +397,20 @@ impl SlideMut<'_> {
         width: Length,
         height: Option<Length>,
     ) -> Result<u32> {
-        let info = sniff_image(image).ok_or(Error::UnsupportedImage)?;
+        let slide_part = self.part.clone();
+        let (rid, info) = picture::relate_image(&mut self.pres.package, &slide_part, image)?;
         let (w, h) = match height {
             Some(h) => (width, h),
             None => info.size_for_width(width),
         };
-        let slide_part = self.part.clone();
-        let pkg = &mut self.pres.package;
-        let existing = pkg
-            .parts()
-            .find(|(name, part)| name.as_str().starts_with("/ppt/media/") && part.data() == image)
-            .map(|(name, _)| name.clone());
-        let media = match existing {
-            Some(m) => m,
-            None => {
-                let name =
-                    pkg.next_part_name(&format!("/ppt/media/image{{}}.{}", info.format.extension()))?;
-                pkg.add_part(name.clone(), info.format.content_type(), image.to_vec())?;
-                name
-            }
-        };
-        let rid = match pkg.relationships(Some(&slide_part)).and_then(|rels| {
-            rels.by_type(rel_types::IMAGE)
-                .find(|r| PartName::resolve(Some(&slide_part), &r.target).ok().as_ref() == Some(&media))
-                .map(|r| r.id.clone())
-        }) {
-            Some(id) => id,
-            None => pkg.add_relationship(Some(&slide_part), rel_types::IMAGE, &media)?,
-        };
         let id = self.next_id();
-        let pic = pml::CT_Picture {
-            nv_pic_pr: Some(Box::new(pml::CT_PictureNonVisual {
-                c_nv_pr: Some(Box::new(shape::nv_props(id, &format!("Picture {}", id - 1)))),
-                c_nv_pic_pr: Some(Box::new(dml::CT_NonVisualPictureProperties {
-                    pic_locks: Some(Box::new(dml::CT_PictureLocking {
-                        no_change_aspect: Some(true),
-                        ..Default::default()
-                    })),
-                    ..Default::default()
-                })),
-                nv_pr: Some(Box::default()),
-                ..Default::default()
-            })),
-            blip_fill: Some(Box::new(dml::CT_BlipFillProperties {
-                blip: Some(Box::new(dml::CT_Blip {
-                    r_embed: Some(rid),
-                    ..Default::default()
-                })),
-                fill_mode_properties: Some(dml::EG_FillModeProperties::Stretch(Box::new(
-                    dml::CT_StretchInfoProperties {
-                        fill_rect: Some(Box::default()),
-                        ..Default::default()
-                    },
-                ))),
-                ..Default::default()
-            })),
-            sp_pr: Some(Box::new(dml::CT_ShapeProperties {
-                xfrm: Some(Box::new(shape::transform(x, y, w, h))),
-                geometry: Some(shape::rect_geometry()),
-                ..Default::default()
-            })),
-            ..Default::default()
-        };
+        let pic = picture::new_picture(
+            id,
+            &format!("Picture {}", id - 1),
+            rid,
+            Some(shape::transform(x, y, w, h)),
+            None,
+        );
         self.tree_mut()
             .choice
             .push(pml::CT_GroupShape_Choice::Pic(Box::new(pic)));
@@ -424,12 +455,37 @@ impl SlideMut<'_> {
         })
     }
 
-    /// Removes the top-level shape with the given identifier. Returns whether one was removed.
+    /// Removes the shape with the given identifier (searching groups), with
+    /// its animations and the images, media and links only it used. A group
+    /// left empty is removed too. Returns whether a shape was removed.
     pub fn remove_shape(&mut self, shape_id: u32) -> bool {
-        let tree = self.tree_mut();
-        let before = tree.choice.len();
-        tree.choice.retain(|c| shape::describe(c).id != shape_id);
-        before != tree.choice.len()
+        fn remove(tree: &mut pml::CT_GroupShape, id: u32) -> bool {
+            let before = tree.choice.len();
+            tree.choice.retain(|c| util::choice_id(c) != Some(id));
+            if before != tree.choice.len() {
+                return true;
+            }
+            let mut found = false;
+            for c in &mut tree.choice {
+                if let pml::CT_GroupShape_Choice::GrpSp(g) = c
+                    && remove(g, id)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if found {
+                tree.choice
+                    .retain(|c| !matches!(c, pml::CT_GroupShape_Choice::GrpSp(g) if g.choice.is_empty()));
+            }
+            found
+        }
+        let removed = remove(self.tree_mut(), shape_id);
+        if removed {
+            crate::animation::remove_targets(self.raw_mut(), &[shape_id]);
+            self.prune_relationships();
+        }
+        removed
     }
 
     /// Replaces `from` with `to` in the text runs of every shape and table on
@@ -489,6 +545,26 @@ impl SlideMut<'_> {
     /// page — and the presentation's notes master — when needed.
     pub fn set_notes(&mut self, notes: &str) -> Result<()> {
         let paragraphs = text::paragraphs_from_text(notes);
+        let mut body = self.notes_mut()?;
+        text::set_paragraphs(body.body(), paragraphs);
+        Ok(())
+    }
+
+    /// The body placeholder of the notes page, for formatted notes (bullets,
+    /// runs, colours…). The notes page is created when needed.
+    ///
+    /// ```
+    /// use openxml_pptx::{Bullet, LayoutKind, Presentation};
+    ///
+    /// let mut deck = Presentation::new();
+    /// let mut slide = deck.add_slide(LayoutKind::Blank)?;
+    /// let mut notes = slide.notes_mut()?;
+    /// notes.add_paragraph("Key points").set_bullet(Bullet::None);
+    /// notes.add_paragraph("").add_run("Mention the budget").bold(true);
+    /// assert_eq!(slide.notes_text().as_deref(), Some("Key points\nMention the budget"));
+    /// # Ok::<(), openxml_core::Error>(())
+    /// ```
+    pub fn notes_mut(&mut self) -> Result<ShapeMut<'_>> {
         if self.pres.slides[self.index].notes.is_none() {
             self.create_notes()?;
         }
@@ -525,13 +601,15 @@ impl SlideMut<'_> {
                 tree.choice.len() - 1
             }
         };
-        if let pml::CT_GroupShape_Choice::Sp(sp) = &mut tree.choice[index] {
-            let body = sp
-                .tx_body
-                .get_or_insert_with(|| Box::new(text::text_body(Vec::new())));
-            text::set_paragraphs(body, paragraphs);
+        match &mut tree.choice[index] {
+            pml::CT_GroupShape_Choice::Sp(sp) => {
+                if sp.tx_body.is_none() {
+                    sp.tx_body = Some(Box::new(text::text_body(Vec::new())));
+                }
+                Ok(ShapeMut::new(sp))
+            }
+            _ => unreachable!("placeholders are p:sp shapes"),
         }
-        Ok(())
     }
 
     fn create_notes(&mut self) -> Result<()> {
