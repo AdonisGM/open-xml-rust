@@ -4,10 +4,10 @@
 use std::hash::{BuildHasher, Hasher};
 
 use openxml_core::part::{read_part, write_part};
+use openxml_core::properties::CustomProperties;
 use openxml_core::{Error, Length, Result};
 use openxml_opc::PartName;
 use openxml_opc::known::{content_types as ct, rel_types};
-use openxml_schema::shared_custom_properties as cp;
 use openxml_schema::shared_extended_properties as ep;
 use openxml_schema::shared_types::{ST_AlgClass, ST_AlgType, ST_CryptProv, ST_OnOff};
 use openxml_schema::wml::{self, ST_DocProtect};
@@ -16,60 +16,11 @@ use openxml_xml::Base64Binary;
 use crate::document::Document;
 use crate::util::{hex_color, hex_color_string, is_on, on, twips, twips_value};
 
-/// Format id of user-defined custom properties.
-const CUSTOM_FMTID: &str = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}";
 const COMPAT_URI: &str = "http://schemas.microsoft.com/office/word";
 /// SHA-1 (`cryptAlgorithmSid` 4) iterations used for new password hashes.
 const SPIN_COUNT: u32 = 100_000;
 
-/// Value of a custom document property.
-#[derive(Clone, Debug, PartialEq)]
-pub enum PropertyValue {
-    /// Text (`vt:lpwstr`).
-    Text(String),
-    /// Integer (`vt:i4`, or `vt:i8` when it does not fit).
-    Integer(i64),
-    /// Floating-point number (`vt:r8`).
-    Number(f64),
-    /// Yes/no (`vt:bool`).
-    Bool(bool),
-    /// Date and time, `YYYY-MM-DDThh:mm:ssZ` (`vt:filetime`).
-    Date(String),
-}
-
-impl PropertyValue {
-    fn to_choice(&self) -> cp::CT_Property_Choice {
-        match self {
-            PropertyValue::Text(s) => cp::CT_Property_Choice::Lpwstr(s.clone()),
-            PropertyValue::Integer(i) => match i32::try_from(*i) {
-                Ok(v) => cp::CT_Property_Choice::I4(v),
-                Err(_) => cp::CT_Property_Choice::I8(*i),
-            },
-            PropertyValue::Number(n) => cp::CT_Property_Choice::R8(*n),
-            PropertyValue::Bool(b) => cp::CT_Property_Choice::Bool(*b),
-            PropertyValue::Date(d) => cp::CT_Property_Choice::Filetime(d.clone()),
-        }
-    }
-
-    fn from_choice(c: &cp::CT_Property_Choice) -> Option<Self> {
-        use cp::CT_Property_Choice as C;
-        Some(match c {
-            C::Lpwstr(s) | C::Lpstr(s) | C::Bstr(s) => PropertyValue::Text(s.clone()),
-            C::I1(v) => PropertyValue::Integer(i64::from(*v)),
-            C::I2(v) => PropertyValue::Integer(i64::from(*v)),
-            C::I4(v) | C::Int(v) => PropertyValue::Integer(i64::from(*v)),
-            C::I8(v) => PropertyValue::Integer(*v),
-            C::Ui1(v) => PropertyValue::Integer(i64::from(*v)),
-            C::Ui2(v) => PropertyValue::Integer(i64::from(*v)),
-            C::Ui4(v) | C::Uint(v) => PropertyValue::Integer(i64::from(*v)),
-            C::R4(v) => PropertyValue::Number(f64::from(*v)),
-            C::R8(v) | C::Decimal(v) => PropertyValue::Number(*v),
-            C::Bool(b) => PropertyValue::Bool(*b),
-            C::Filetime(d) | C::Date(d) => PropertyValue::Date(d.clone()),
-            _ => return None,
-        })
-    }
-}
+pub use openxml_core::properties::PropertyValue;
 
 /// Kind of editing restriction.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -229,43 +180,6 @@ fn random_salt() -> [u8; 16] {
 impl Document {
     // ----- custom properties ------------------------------------------------------------
 
-    fn custom_part(&self) -> Option<PartName> {
-        self.shared
-            .package
-            .related_part(None, rel_types::CUSTOM_PROPERTIES)
-            .filter(|p| self.shared.package.contains(p))
-    }
-
-    fn read_custom(&self) -> Result<cp::CT_Properties> {
-        match self.custom_part() {
-            Some(name) => read_part(&self.shared.package, &name, &cp::elements::PROPERTIES),
-            None => Ok(cp::CT_Properties::default()),
-        }
-    }
-
-    fn write_custom(&mut self, props: &cp::CT_Properties) -> Result<()> {
-        let name = match self.custom_part() {
-            Some(name) => name,
-            None => {
-                let name = PartName::new("/docProps/custom.xml")?;
-                self.shared
-                    .package
-                    .add_part(name.clone(), ct::CUSTOM_PROPERTIES, Vec::new())?;
-                self.shared
-                    .package
-                    .add_relationship(None, rel_types::CUSTOM_PROPERTIES, &name)?;
-                name
-            }
-        };
-        write_part(
-            &mut self.shared.package,
-            &name,
-            ct::CUSTOM_PROPERTIES,
-            &cp::elements::PROPERTIES,
-            props,
-        )
-    }
-
     /// Custom document properties (`docProps/custom.xml`) with a supported value type.
     ///
     /// ```
@@ -279,21 +193,16 @@ impl Document {
     /// # Ok::<(), openxml_docx::Error>(())
     /// ```
     pub fn custom_properties(&self) -> Result<Vec<(String, PropertyValue)>> {
-        Ok(self
-            .read_custom()?
-            .property
+        let props = CustomProperties::read(&self.shared.package)?;
+        Ok(props
             .iter()
-            .filter_map(|p| Some((p.name.clone()?, PropertyValue::from_choice(p.choice.as_ref()?)?)))
+            .filter_map(|(name, value)| Some((name.to_owned(), value?)))
             .collect())
     }
 
     /// A custom property by name.
     pub fn custom_property(&self, name: &str) -> Result<Option<PropertyValue>> {
-        Ok(self
-            .custom_properties()?
-            .into_iter()
-            .find(|(n, _)| n == name)
-            .map(|(_, v)| v))
+        Ok(CustomProperties::read(&self.shared.package)?.get(name))
     }
 
     /// Adds or replaces a custom property.
@@ -301,44 +210,18 @@ impl Document {
         if name.is_empty() {
             return Err(Error::InvalidArgument("a custom property needs a name".into()));
         }
-        let mut props = self.read_custom()?;
-        match props
-            .property
-            .iter_mut()
-            .find(|p| p.name.as_deref() == Some(name))
-        {
-            Some(p) => p.choice = Some(value.to_choice()),
-            None => {
-                // Property ids start at 2 (0 and 1 are reserved).
-                let pid = props
-                    .property
-                    .iter()
-                    .filter_map(|p| p.pid)
-                    .max()
-                    .unwrap_or(1)
-                    .max(1)
-                    + 1;
-                props.property.push(cp::CT_Property {
-                    fmtid: Some(CUSTOM_FMTID.into()),
-                    pid: Some(pid),
-                    name: Some(name.to_owned()),
-                    choice: Some(value.to_choice()),
-                    ..Default::default()
-                });
-            }
-        }
-        self.write_custom(&props)
+        let mut props = CustomProperties::read(&self.shared.package)?;
+        props.set(name, value);
+        props.write(&mut self.shared.package)
     }
 
     /// Removes a custom property; returns whether it existed.
     pub fn remove_custom_property(&mut self, name: &str) -> Result<bool> {
-        let mut props = self.read_custom()?;
-        let before = props.property.len();
-        props.property.retain(|p| p.name.as_deref() != Some(name));
-        if props.property.len() == before {
+        let mut props = CustomProperties::read(&self.shared.package)?;
+        if !props.remove(name) {
             return Ok(false);
         }
-        self.write_custom(&props)?;
+        props.write(&mut self.shared.package)?;
         Ok(true)
     }
 
@@ -659,32 +542,23 @@ mod tests {
     }
 
     #[test]
-    fn property_values_map_to_variant_types() {
-        for v in [
-            PropertyValue::Text("x".into()),
-            PropertyValue::Integer(42),
-            PropertyValue::Integer(1 << 40),
-            PropertyValue::Number(2.5),
-            PropertyValue::Bool(true),
-            PropertyValue::Date("2024-01-01T00:00:00Z".into()),
+    fn custom_properties_use_the_shared_implementation() {
+        let mut doc = Document::new();
+        for (name, v) in [
+            ("text", PropertyValue::Text("x".into())),
+            ("small", PropertyValue::Integer(42)),
+            ("big", PropertyValue::Integer(1 << 40)),
+            ("number", PropertyValue::Number(2.5)),
+            ("flag", PropertyValue::Bool(true)),
+            ("date", PropertyValue::DateTime("2024-01-01T00:00:00Z".into())),
         ] {
-            assert_eq!(PropertyValue::from_choice(&v.to_choice()), Some(v));
+            doc.set_custom_property(name, v.clone()).unwrap();
+            assert_eq!(doc.custom_property(name).unwrap(), Some(v));
         }
-        assert!(matches!(
-            PropertyValue::Integer(1).to_choice(),
-            cp::CT_Property_Choice::I4(1)
-        ));
-        assert!(matches!(
-            PropertyValue::Integer(1 << 40).to_choice(),
-            cp::CT_Property_Choice::I8(_)
-        ));
-        assert_eq!(
-            PropertyValue::from_choice(&cp::CT_Property_Choice::Ui2(7)),
-            Some(PropertyValue::Integer(7))
-        );
-        assert_eq!(
-            PropertyValue::from_choice(&cp::CT_Property_Choice::Blob(Base64Binary(vec![]))),
-            None
-        );
+        assert_eq!(doc.custom_properties().unwrap().len(), 6);
+        assert!(doc.set_custom_property("", PropertyValue::Bool(true)).is_err());
+        assert!(doc.remove_custom_property("text").unwrap());
+        assert!(!doc.remove_custom_property("text").unwrap());
+        assert_eq!(doc.custom_property("missing").unwrap(), None);
     }
 }

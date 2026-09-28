@@ -806,7 +806,7 @@ fn custom_and_application_properties() {
         .unwrap();
     doc.set_custom_property("Final", PropertyValue::Bool(false))
         .unwrap();
-    doc.set_custom_property("Due", PropertyValue::Date("2024-12-31T00:00:00Z".into()))
+    doc.set_custom_property("Due", PropertyValue::DateTime("2024-12-31T00:00:00Z".into()))
         .unwrap();
     doc.set_custom_property("Version", PropertyValue::Integer(4))
         .unwrap();

@@ -54,6 +54,7 @@
 #![warn(missing_docs)]
 
 mod bookmarks;
+mod chart;
 mod comments;
 mod document;
 mod drawing;
@@ -115,3 +116,5 @@ pub use openxml_schema::wml::{
     ST_HighlightColor as HighlightColor, ST_NumberFormat as NumberFormat, ST_Underline as UnderlineStyle,
 };
 pub use properties::{PropertyValue, Protection};
+
+pub use openxml_chart::{Chart, ChartInfo, ChartKind, Grouping, LegendPosition, Series};

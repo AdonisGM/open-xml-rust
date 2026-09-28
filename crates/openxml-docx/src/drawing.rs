@@ -628,14 +628,14 @@ fn set_blip_embed(e: &mut RawElement, rel_id: &str) -> bool {
 }
 
 /// Frame properties shared by inline and anchored drawings.
-struct Frame<'a> {
+pub(crate) struct Frame<'a> {
     doc_pr: Option<&'a dml::CT_NonVisualDrawingProps>,
     extent: Option<&'a dml::CT_PositiveSize2D>,
-    data: Option<&'a dml::CT_GraphicalObjectData>,
+    pub(crate) data: Option<&'a dml::CT_GraphicalObjectData>,
     floating: bool,
 }
 
-fn frames(d: &wml::CT_Drawing) -> Vec<Frame<'_>> {
+pub(crate) fn frames(d: &wml::CT_Drawing) -> Vec<Frame<'_>> {
     d.choice
         .iter()
         .filter_map(|c| match c {
