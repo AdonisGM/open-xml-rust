@@ -385,6 +385,26 @@ impl XmlWrite for CT_Array {
     }
 }
 
+impl Validate for CT_Array {
+    fn validate(&self, v: &mut Validator) {
+        if self.l_bounds.is_none() {
+            v.required_attribute(Ns::NONE, "lBounds", &self.extra_attrs);
+        }
+        if self.u_bounds.is_none() {
+            v.required_attribute(Ns::NONE, "uBounds", &self.extra_attrs);
+        }
+        if self.base_type.is_none() {
+            v.required_attribute(Ns::NONE, "baseType", &self.extra_attrs);
+        }
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if self.choice.is_empty() {
+            v.missing_content("one of vt:variant, vt:i1, vt:i2, vt:i4, vt:int, vt:ui1, …");
+        }
+    }
+}
+
 /// Empty (ECMA-376 Part 1 §22.4.2.9).
 ///
 /// This element specifies an empty variant type. No values or child elements are allowed.
@@ -425,6 +445,10 @@ impl XmlWrite for CT_Empty {
     }
 }
 
+impl Validate for CT_Empty {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Null (ECMA-376 Part 1 §22.4.2.19).
 ///
 /// This element specifies a null variant type.
@@ -463,6 +487,10 @@ impl XmlWrite for CT_Null {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Null {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Variant (ECMA-376 Part 1 §22.4.2.32).
@@ -553,6 +581,16 @@ impl XmlWrite for CT_Variant {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Variant {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of vt:variant, vt:vector, vt:array, vt:blob, vt:oblob, vt:empty, …");
+        }
     }
 }
 
@@ -653,6 +691,23 @@ impl XmlWrite for CT_Vector {
     }
 }
 
+impl Validate for CT_Vector {
+    fn validate(&self, v: &mut Validator) {
+        if self.base_type.is_none() {
+            v.required_attribute(Ns::NONE, "baseType", &self.extra_attrs);
+        }
+        if self.size.is_none() {
+            v.required_attribute(Ns::NONE, "size", &self.extra_attrs);
+        }
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if self.choice.is_empty() {
+            v.missing_content("one of vt:variant, vt:i1, vt:i2, vt:i4, vt:i8, vt:ui1, …");
+        }
+    }
+}
+
 /// Binary Versioned Stream (ECMA-376 Part 1 §22.4.2.34).
 ///
 /// This element specifies a binary versioned stream variant type. This type is defined as follows: A stream element's content with a GUID version (the version attribute).
@@ -707,6 +762,10 @@ impl XmlWrite for CT_Vstream {
         w.text_value(&self.value);
         w.end();
     }
+}
+
+impl Validate for CT_Vstream {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// A choice among the child elements of `CT_Array`.
@@ -844,6 +903,14 @@ impl CT_Array_Choice {
             Self::Error(v) => rt::write_simple(w, Ns::VT, "error", v),
             Self::Cy(v) => rt::write_simple(w, Ns::VT, "cy", v),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Variant(x) => v.enter("vt:variant", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -1114,6 +1181,19 @@ impl CT_Variant_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Variant(x) => v.enter("vt:variant", index, |v| x.validate(v)),
+            Self::Vector(x) => v.enter("vt:vector", index, |v| x.validate(v)),
+            Self::Array(x) => v.enter("vt:array", index, |v| x.validate(v)),
+            Self::Empty(x) => v.enter("vt:empty", index, |v| x.validate(v)),
+            Self::Null(x) => v.enter("vt:null", index, |v| x.validate(v)),
+            Self::Vstream(x) => v.enter("vt:vstream", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -1312,6 +1392,14 @@ impl CT_Vector_Choice {
             Self::Error(v) => rt::write_simple(w, Ns::VT, "error", v),
             Self::Clsid(v) => rt::write_simple(w, Ns::VT, "clsid", v),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Variant(x) => v.enter("vt:variant", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 

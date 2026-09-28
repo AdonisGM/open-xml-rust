@@ -204,6 +204,8 @@ pub struct AttrField {
     pub local: String,
     /// Value type.
     pub ty: ValueType,
+    /// `use="required"`.
+    pub required: bool,
     /// Documentation.
     pub doc: Option<String>,
 }
@@ -228,6 +230,8 @@ pub struct Field {
     pub name: String,
     /// Shape.
     pub kind: FieldKind,
+    /// Whether the schema requires at least one element for this field.
+    pub required: bool,
     /// Documentation.
     pub doc: Option<String>,
 }

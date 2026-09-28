@@ -128,6 +128,14 @@ impl XmlWrite for CT_AdditionalCharacteristics {
     }
 }
 
+impl Validate for CT_AdditionalCharacteristics {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.characteristic.iter().enumerate() {
+            v.enter("ac:characteristic", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Single Characteristic (ECMA-376 Part 1 §22.7.2.2).
 ///
 /// This element specifies a single characteristic. The type of characteristic is defined by the name attribute.
@@ -204,6 +212,20 @@ impl XmlWrite for CT_Characteristic {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Characteristic {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if self.relation.is_none() {
+            v.required_attribute(Ns::NONE, "relation", &self.extra_attrs);
+        }
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 

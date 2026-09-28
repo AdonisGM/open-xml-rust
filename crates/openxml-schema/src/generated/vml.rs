@@ -1183,6 +1183,14 @@ impl XmlWrite for CT_Arc {
     }
 }
 
+impl Validate for CT_Arc {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.shape_elements.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Schema complex type `CT_Background`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Background {
@@ -1298,6 +1306,14 @@ impl XmlWrite for CT_Background {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Background {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.fill {
+            v.enter("v:fill", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -1891,6 +1907,14 @@ impl XmlWrite for CT_Curve {
     }
 }
 
+impl Validate for CT_Curve {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.shape_elements.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Schema complex type `CT_F`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_F {
@@ -1935,6 +1959,10 @@ impl XmlWrite for CT_F {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_F {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Schema complex type `CT_Fill`.
@@ -2235,6 +2263,14 @@ impl XmlWrite for CT_Fill {
     }
 }
 
+impl Validate for CT_Fill {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.fill {
+            v.enter("o:fill", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_Formulas`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Formulas {
@@ -2287,6 +2323,14 @@ impl XmlWrite for CT_Formulas {
         rt::write_extras_after(w, &self.extra_children, 0, self.f.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Formulas {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.f.iter().enumerate() {
+            v.enter("v:f", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -2729,6 +2773,14 @@ impl XmlWrite for CT_Group {
     }
 }
 
+impl Validate for CT_Group {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Schema complex type `CT_H`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_H {
@@ -2847,6 +2899,10 @@ impl XmlWrite for CT_H {
     }
 }
 
+impl Validate for CT_H {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Schema complex type `CT_Handles`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Handles {
@@ -2899,6 +2955,14 @@ impl XmlWrite for CT_Handles {
         rt::write_extras_after(w, &self.extra_children, 0, self.h.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Handles {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.h.iter().enumerate() {
+            v.enter("v:h", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -3546,6 +3610,14 @@ impl XmlWrite for CT_Image {
     }
 }
 
+impl Validate for CT_Image {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.shape_elements.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Schema complex type `CT_ImageData`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_ImageData {
@@ -3797,6 +3869,10 @@ impl XmlWrite for CT_ImageData {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_ImageData {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Schema complex type `CT_Line`.
@@ -4371,6 +4447,14 @@ impl XmlWrite for CT_Line {
     }
 }
 
+impl Validate for CT_Line {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.shape_elements.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Schema complex type `CT_Oval`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Oval {
@@ -4925,6 +5009,14 @@ impl XmlWrite for CT_Oval {
     }
 }
 
+impl Validate for CT_Oval {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.shape_elements.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Schema complex type `CT_Path`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Path {
@@ -5095,6 +5187,10 @@ impl XmlWrite for CT_Path {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Path {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Schema complex type `CT_PolyLine`.
@@ -5660,6 +5756,14 @@ impl XmlWrite for CT_PolyLine {
     }
 }
 
+impl Validate for CT_PolyLine {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Schema complex type `CT_Rect`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Rect {
@@ -6211,6 +6315,14 @@ impl XmlWrite for CT_Rect {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Rect {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.shape_elements.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -6777,6 +6889,14 @@ impl XmlWrite for CT_RoundRect {
     }
 }
 
+impl Validate for CT_RoundRect {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.shape_elements.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Schema complex type `CT_Shadow`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Shadow {
@@ -6911,6 +7031,10 @@ impl XmlWrite for CT_Shadow {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Shadow {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Schema complex type `CT_Shape`.
@@ -7514,6 +7638,14 @@ impl XmlWrite for CT_Shape {
     }
 }
 
+impl Validate for CT_Shape {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Schema complex type `CT_Shapetype`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Shapetype {
@@ -8109,6 +8241,17 @@ impl XmlWrite for CT_Shapetype {
     }
 }
 
+impl Validate for CT_Shapetype {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.shape_elements.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if let Some(x) = &self.complex {
+            v.enter("o:complex", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_Stroke`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Stroke {
@@ -8481,6 +8624,26 @@ impl XmlWrite for CT_Stroke {
     }
 }
 
+impl Validate for CT_Stroke {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.left {
+            v.enter("o:left", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.top {
+            v.enter("o:top", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.right {
+            v.enter("o:right", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bottom {
+            v.enter("o:bottom", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.column {
+            v.enter("o:column", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_TextPath`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TextPath {
@@ -8590,6 +8753,10 @@ impl XmlWrite for CT_TextPath {
     }
 }
 
+impl Validate for CT_TextPath {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Schema complex type `CT_Textbox`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Textbox {
@@ -8687,6 +8854,14 @@ impl XmlWrite for CT_Textbox {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Textbox {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
     }
 }
 
@@ -8852,6 +9027,48 @@ impl CT_Group_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Path(x) => v.enter("v:path", index, |v| x.validate(v)),
+            Self::Formulas(x) => v.enter("v:formulas", index, |v| x.validate(v)),
+            Self::Handles(x) => v.enter("v:handles", index, |v| x.validate(v)),
+            Self::Fill(x) => v.enter("v:fill", index, |v| x.validate(v)),
+            Self::Stroke(x) => v.enter("v:stroke", index, |v| x.validate(v)),
+            Self::Shadow(x) => v.enter("v:shadow", index, |v| x.validate(v)),
+            Self::Textbox(x) => v.enter("v:textbox", index, |v| x.validate(v)),
+            Self::Textpath(x) => v.enter("v:textpath", index, |v| x.validate(v)),
+            Self::Imagedata(x) => v.enter("v:imagedata", index, |v| x.validate(v)),
+            Self::Skew(x) => v.enter("o:skew", index, |v| x.validate(v)),
+            Self::Extrusion(x) => v.enter("o:extrusion", index, |v| x.validate(v)),
+            Self::Callout(x) => v.enter("o:callout", index, |v| x.validate(v)),
+            Self::Lock(x) => v.enter("o:lock", index, |v| x.validate(v)),
+            Self::Clippath(x) => v.enter("o:clippath", index, |v| x.validate(v)),
+            Self::Signatureline(x) => v.enter("o:signatureline", index, |v| x.validate(v)),
+            Self::Wrap(x) => v.enter("w10:wrap", index, |v| x.validate(v)),
+            Self::Anchorlock(x) => v.enter("w10:anchorlock", index, |v| x.validate(v)),
+            Self::Bordertop(x) => v.enter("w10:bordertop", index, |v| x.validate(v)),
+            Self::Borderbottom(x) => v.enter("w10:borderbottom", index, |v| x.validate(v)),
+            Self::Borderleft(x) => v.enter("w10:borderleft", index, |v| x.validate(v)),
+            Self::Borderright(x) => v.enter("w10:borderright", index, |v| x.validate(v)),
+            Self::ClientData(x) => v.enter("x:ClientData", index, |v| x.validate(v)),
+            Self::Textdata(x) => v.enter("pvml:textdata", index, |v| x.validate(v)),
+            Self::Group(x) => v.enter("v:group", index, |v| x.validate(v)),
+            Self::Shape(x) => v.enter("v:shape", index, |v| x.validate(v)),
+            Self::Shapetype(x) => v.enter("v:shapetype", index, |v| x.validate(v)),
+            Self::Arc(x) => v.enter("v:arc", index, |v| x.validate(v)),
+            Self::Curve(x) => v.enter("v:curve", index, |v| x.validate(v)),
+            Self::Image(x) => v.enter("v:image", index, |v| x.validate(v)),
+            Self::Line(x) => v.enter("v:line", index, |v| x.validate(v)),
+            Self::Oval(x) => v.enter("v:oval", index, |v| x.validate(v)),
+            Self::Polyline(x) => v.enter("v:polyline", index, |v| x.validate(v)),
+            Self::Rect(x) => v.enter("v:rect", index, |v| x.validate(v)),
+            Self::Roundrect(x) => v.enter("v:roundrect", index, |v| x.validate(v)),
+            Self::Diagram(x) => v.enter("o:diagram", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -9013,6 +9230,37 @@ impl CT_PolyLine_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Path(x) => v.enter("v:path", index, |v| x.validate(v)),
+            Self::Formulas(x) => v.enter("v:formulas", index, |v| x.validate(v)),
+            Self::Handles(x) => v.enter("v:handles", index, |v| x.validate(v)),
+            Self::Fill(x) => v.enter("v:fill", index, |v| x.validate(v)),
+            Self::Stroke(x) => v.enter("v:stroke", index, |v| x.validate(v)),
+            Self::Shadow(x) => v.enter("v:shadow", index, |v| x.validate(v)),
+            Self::Textbox(x) => v.enter("v:textbox", index, |v| x.validate(v)),
+            Self::Textpath(x) => v.enter("v:textpath", index, |v| x.validate(v)),
+            Self::Imagedata(x) => v.enter("v:imagedata", index, |v| x.validate(v)),
+            Self::Skew(x) => v.enter("o:skew", index, |v| x.validate(v)),
+            Self::Extrusion(x) => v.enter("o:extrusion", index, |v| x.validate(v)),
+            Self::Callout(x) => v.enter("o:callout", index, |v| x.validate(v)),
+            Self::Lock(x) => v.enter("o:lock", index, |v| x.validate(v)),
+            Self::Clippath(x) => v.enter("o:clippath", index, |v| x.validate(v)),
+            Self::Signatureline(x) => v.enter("o:signatureline", index, |v| x.validate(v)),
+            Self::Wrap(x) => v.enter("w10:wrap", index, |v| x.validate(v)),
+            Self::Anchorlock(x) => v.enter("w10:anchorlock", index, |v| x.validate(v)),
+            Self::Bordertop(x) => v.enter("w10:bordertop", index, |v| x.validate(v)),
+            Self::Borderbottom(x) => v.enter("w10:borderbottom", index, |v| x.validate(v)),
+            Self::Borderleft(x) => v.enter("w10:borderleft", index, |v| x.validate(v)),
+            Self::Borderright(x) => v.enter("w10:borderright", index, |v| x.validate(v)),
+            Self::ClientData(x) => v.enter("x:ClientData", index, |v| x.validate(v)),
+            Self::Textdata(x) => v.enter("pvml:textdata", index, |v| x.validate(v)),
+            Self::Ink(x) => v.enter("o:ink", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -9171,6 +9419,39 @@ impl CT_Shape_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Path(x) => v.enter("v:path", index, |v| x.validate(v)),
+            Self::Formulas(x) => v.enter("v:formulas", index, |v| x.validate(v)),
+            Self::Handles(x) => v.enter("v:handles", index, |v| x.validate(v)),
+            Self::Fill(x) => v.enter("v:fill", index, |v| x.validate(v)),
+            Self::Stroke(x) => v.enter("v:stroke", index, |v| x.validate(v)),
+            Self::Shadow(x) => v.enter("v:shadow", index, |v| x.validate(v)),
+            Self::Textbox(x) => v.enter("v:textbox", index, |v| x.validate(v)),
+            Self::Textpath(x) => v.enter("v:textpath", index, |v| x.validate(v)),
+            Self::Imagedata(x) => v.enter("v:imagedata", index, |v| x.validate(v)),
+            Self::Skew(x) => v.enter("o:skew", index, |v| x.validate(v)),
+            Self::Extrusion(x) => v.enter("o:extrusion", index, |v| x.validate(v)),
+            Self::Callout(x) => v.enter("o:callout", index, |v| x.validate(v)),
+            Self::Lock(x) => v.enter("o:lock", index, |v| x.validate(v)),
+            Self::Clippath(x) => v.enter("o:clippath", index, |v| x.validate(v)),
+            Self::Signatureline(x) => v.enter("o:signatureline", index, |v| x.validate(v)),
+            Self::Wrap(x) => v.enter("w10:wrap", index, |v| x.validate(v)),
+            Self::Anchorlock(x) => v.enter("w10:anchorlock", index, |v| x.validate(v)),
+            Self::Bordertop(x) => v.enter("w10:bordertop", index, |v| x.validate(v)),
+            Self::Borderbottom(x) => v.enter("w10:borderbottom", index, |v| x.validate(v)),
+            Self::Borderleft(x) => v.enter("w10:borderleft", index, |v| x.validate(v)),
+            Self::Borderright(x) => v.enter("w10:borderright", index, |v| x.validate(v)),
+            Self::ClientData(x) => v.enter("x:ClientData", index, |v| x.validate(v)),
+            Self::Textdata(x) => v.enter("pvml:textdata", index, |v| x.validate(v)),
+            Self::Ink(x) => v.enter("o:ink", index, |v| x.validate(v)),
+            Self::Iscomment(x) => v.enter("pvml:iscomment", index, |v| x.validate(v)),
+            Self::Equationxml(x) => v.enter("o:equationxml", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -9228,6 +9509,14 @@ impl CT_Textbox_Choice {
         match self {
             Self::TxbxContent(v) => v.write_xml(w, Ns::W, "txbxContent"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::TxbxContent(x) => v.enter("w:txbxContent", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -9351,6 +9640,36 @@ impl EG_ShapeElements {
             Self::ClientData(v) => v.write_xml(w, Ns::XVML, "ClientData"),
             Self::Textdata(v) => v.write_xml(w, Ns::PVML, "textdata"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Path(x) => v.enter("v:path", index, |v| x.validate(v)),
+            Self::Formulas(x) => v.enter("v:formulas", index, |v| x.validate(v)),
+            Self::Handles(x) => v.enter("v:handles", index, |v| x.validate(v)),
+            Self::Fill(x) => v.enter("v:fill", index, |v| x.validate(v)),
+            Self::Stroke(x) => v.enter("v:stroke", index, |v| x.validate(v)),
+            Self::Shadow(x) => v.enter("v:shadow", index, |v| x.validate(v)),
+            Self::Textbox(x) => v.enter("v:textbox", index, |v| x.validate(v)),
+            Self::Textpath(x) => v.enter("v:textpath", index, |v| x.validate(v)),
+            Self::Imagedata(x) => v.enter("v:imagedata", index, |v| x.validate(v)),
+            Self::Skew(x) => v.enter("o:skew", index, |v| x.validate(v)),
+            Self::Extrusion(x) => v.enter("o:extrusion", index, |v| x.validate(v)),
+            Self::Callout(x) => v.enter("o:callout", index, |v| x.validate(v)),
+            Self::Lock(x) => v.enter("o:lock", index, |v| x.validate(v)),
+            Self::Clippath(x) => v.enter("o:clippath", index, |v| x.validate(v)),
+            Self::Signatureline(x) => v.enter("o:signatureline", index, |v| x.validate(v)),
+            Self::Wrap(x) => v.enter("w10:wrap", index, |v| x.validate(v)),
+            Self::Anchorlock(x) => v.enter("w10:anchorlock", index, |v| x.validate(v)),
+            Self::Bordertop(x) => v.enter("w10:bordertop", index, |v| x.validate(v)),
+            Self::Borderbottom(x) => v.enter("w10:borderbottom", index, |v| x.validate(v)),
+            Self::Borderleft(x) => v.enter("w10:borderleft", index, |v| x.validate(v)),
+            Self::Borderright(x) => v.enter("w10:borderright", index, |v| x.validate(v)),
+            Self::ClientData(x) => v.enter("x:ClientData", index, |v| x.validate(v)),
+            Self::Textdata(x) => v.enter("pvml:textdata", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 

@@ -3905,6 +3905,17 @@ impl XmlWrite for CT_Adj {
     }
 }
 
+impl Validate for CT_Adj {
+    fn validate(&self, v: &mut Validator) {
+        if self.idx.is_none() {
+            v.required_attribute(Ns::NONE, "idx", &self.extra_attrs);
+        }
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Shape Adjust List (ECMA-376 Part 1 §21.4.2.2).
 ///
 /// This element is simply a list of shape adjusts.
@@ -3963,6 +3974,14 @@ impl XmlWrite for CT_AdjLst {
         rt::write_extras_after(w, &self.extra_children, 0, self.adj.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_AdjLst {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.adj.iter().enumerate() {
+            v.enter("dgm:adj", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -4062,6 +4081,20 @@ impl XmlWrite for CT_Algorithm {
     }
 }
 
+impl Validate for CT_Algorithm {
+    fn validate(&self, v: &mut Validator) {
+        if self.type_.is_none() {
+            v.required_attribute(Ns::NONE, "type", &self.extra_attrs);
+        }
+        for (i, x) in self.param.iter().enumerate() {
+            v.enter("dgm:param", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("dgm:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Level Animation (ECMA-376 Part 1 §21.4.6.1).
 ///
 /// This variable is used to indicate the animate by level string which is displayed to a user in the user interface.
@@ -4112,6 +4145,10 @@ impl XmlWrite for CT_AnimLvl {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_AnimLvl {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// One by One Animation String (ECMA-376 Part 1 §21.4.6.2).
@@ -4166,6 +4203,10 @@ impl XmlWrite for CT_AnimOne {
     }
 }
 
+impl Validate for CT_AnimOne {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Show Insert Node (ECMA-376 Part 1 §21.4.6.3).
 ///
 /// This element is used to indicate whether to enable user interface components associated with inserting a node in the data model.
@@ -4216,6 +4257,10 @@ impl XmlWrite for CT_BulletEnabled {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_BulletEnabled {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Color Transform Category List (ECMA-376 Part 1 §21.4.4.2).
@@ -4276,6 +4321,14 @@ impl XmlWrite for CT_CTCategories {
         rt::write_extras_after(w, &self.extra_children, 0, self.cat.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_CTCategories {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cat.iter().enumerate() {
+            v.enter("dgm:cat", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -4340,6 +4393,17 @@ impl XmlWrite for CT_CTCategory {
     }
 }
 
+impl Validate for CT_CTCategory {
+    fn validate(&self, v: &mut Validator) {
+        if self.type_.is_none() {
+            v.required_attribute(Ns::NONE, "type", &self.extra_attrs);
+        }
+        if self.pri.is_none() {
+            v.required_attribute(Ns::NONE, "pri", &self.extra_attrs);
+        }
+    }
+}
+
 /// Description (ECMA-376 Part 1 §21.4.4.6).
 ///
 /// This element holds a description for a color definition. The description can be used to describe the qualities associated with a particular color transform definition.
@@ -4401,6 +4465,14 @@ impl XmlWrite for CT_CTDescription {
     }
 }
 
+impl Validate for CT_CTDescription {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Title (ECMA-376 Part 1 §21.4.4.11).
 ///
 /// The name or title given to the color definition header.
@@ -4459,6 +4531,14 @@ impl XmlWrite for CT_CTName {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_CTName {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -4616,6 +4696,35 @@ impl XmlWrite for CT_CTStyleLabel {
     }
 }
 
+impl Validate for CT_CTStyleLabel {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if let Some(x) = &self.fill_clr_lst {
+            v.enter("dgm:fillClrLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lin_clr_lst {
+            v.enter("dgm:linClrLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.effect_clr_lst {
+            v.enter("dgm:effectClrLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx_lin_clr_lst {
+            v.enter("dgm:txLinClrLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx_fill_clr_lst {
+            v.enter("dgm:txFillClrLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx_effect_clr_lst {
+            v.enter("dgm:txEffectClrLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("dgm:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Category List (ECMA-376 Part 1 §21.4.2.5).
 ///
 /// This element is simply a list of cat elements.
@@ -4674,6 +4783,14 @@ impl XmlWrite for CT_Categories {
         rt::write_extras_after(w, &self.extra_children, 0, self.cat.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Categories {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cat.iter().enumerate() {
+            v.enter("dgm:cat", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -4738,6 +4855,17 @@ impl XmlWrite for CT_Category {
     }
 }
 
+impl Validate for CT_Category {
+    fn validate(&self, v: &mut Validator) {
+        if self.type_.is_none() {
+            v.required_attribute(Ns::NONE, "type", &self.extra_attrs);
+        }
+        if self.pri.is_none() {
+            v.required_attribute(Ns::NONE, "pri", &self.extra_attrs);
+        }
+    }
+}
+
 /// Maximum Children (ECMA-376 Part 1 §21.4.6.4).
 ///
 /// This element is used to indicate when to enable and disable the user interface components associated with adding a new shape to a diagram. This element defines a max number of nodes a diagram can support through the user interface directly.
@@ -4790,6 +4918,10 @@ impl XmlWrite for CT_ChildMax {
     }
 }
 
+impl Validate for CT_ChildMax {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Preferred Number of Children (ECMA-376 Part 1 §21.4.6.5).
 ///
 /// This variable indicates the number of children that the current node prefers to have. \[Note: For example, this could be used to guide how many shapes to add by default to a diagram at various levels in the hierarchy. end note\]
@@ -4840,6 +4972,10 @@ impl XmlWrite for CT_ChildPref {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_ChildPref {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Choose Element (ECMA-376 Part 1 §21.4.2.6).
@@ -4926,6 +5062,20 @@ impl XmlWrite for CT_Choose {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_Choose {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.if_.iter().enumerate() {
+            v.enter("dgm:if", Some(i), |v| x.validate(v));
+        }
+        if self.if_.is_empty() {
+            v.required_element(Ns::DGM, "if", &self.extra_children);
+        }
+        if let Some(x) = &self.else_ {
+            v.enter("dgm:else", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -5073,6 +5223,26 @@ impl XmlWrite for CT_ColorTransform {
     }
 }
 
+impl Validate for CT_ColorTransform {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.title.iter().enumerate() {
+            v.enter("dgm:title", Some(i), |v| x.validate(v));
+        }
+        for (i, x) in self.desc.iter().enumerate() {
+            v.enter("dgm:desc", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.cat_lst {
+            v.enter("dgm:catLst", None, |v| x.validate(v));
+        }
+        for (i, x) in self.style_lbl.iter().enumerate() {
+            v.enter("dgm:styleLbl", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("dgm:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Color Transform Definition Header (ECMA-376 Part 1 §21.4.4.4).
 ///
 /// This element specifies header information associated with a color transform definition. The header information is used by an application to preprocess required data in order to help with possible performance concerns associated with an initial full load of a color transform definition.
@@ -5209,6 +5379,32 @@ impl XmlWrite for CT_ColorTransformHeader {
     }
 }
 
+impl Validate for CT_ColorTransformHeader {
+    fn validate(&self, v: &mut Validator) {
+        if self.unique_id.is_none() {
+            v.required_attribute(Ns::NONE, "uniqueId", &self.extra_attrs);
+        }
+        for (i, x) in self.title.iter().enumerate() {
+            v.enter("dgm:title", Some(i), |v| x.validate(v));
+        }
+        if self.title.is_empty() {
+            v.required_element(Ns::DGM, "title", &self.extra_children);
+        }
+        for (i, x) in self.desc.iter().enumerate() {
+            v.enter("dgm:desc", Some(i), |v| x.validate(v));
+        }
+        if self.desc.is_empty() {
+            v.required_element(Ns::DGM, "desc", &self.extra_children);
+        }
+        if let Some(x) = &self.cat_lst {
+            v.enter("dgm:catLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("dgm:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Color Transform Header List (ECMA-376 Part 1 §21.4.4.5).
 ///
 /// This element is simply a list of color transform definition headers and is used to consolidate multiple headers in a group.
@@ -5267,6 +5463,14 @@ impl XmlWrite for CT_ColorTransformHeaderLst {
         rt::write_extras_after(w, &self.extra_children, 0, self.colors_def_hdr.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ColorTransformHeaderLst {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.colors_def_hdr.iter().enumerate() {
+            v.enter("dgm:colorsDefHdr", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -5356,6 +5560,14 @@ impl XmlWrite for CT_Colors {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Colors {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.color_choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -5519,6 +5731,17 @@ impl XmlWrite for CT_Constraint {
     }
 }
 
+impl Validate for CT_Constraint {
+    fn validate(&self, v: &mut Validator) {
+        if self.type_.is_none() {
+            v.required_attribute(Ns::NONE, "type", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("dgm:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Constraint List (ECMA-376 Part 1 §21.4.2.9).
 ///
 /// This element is simply a list of constraints.
@@ -5577,6 +5800,14 @@ impl XmlWrite for CT_Constraints {
         rt::write_extras_after(w, &self.extra_children, 0, self.constr.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Constraints {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.constr.iter().enumerate() {
+            v.enter("dgm:constr", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -5722,6 +5953,29 @@ impl XmlWrite for CT_Cxn {
     }
 }
 
+impl Validate for CT_Cxn {
+    fn validate(&self, v: &mut Validator) {
+        if self.model_id.is_none() {
+            v.required_attribute(Ns::NONE, "modelId", &self.extra_attrs);
+        }
+        if self.src_id.is_none() {
+            v.required_attribute(Ns::NONE, "srcId", &self.extra_attrs);
+        }
+        if self.dest_id.is_none() {
+            v.required_attribute(Ns::NONE, "destId", &self.extra_attrs);
+        }
+        if self.src_ord.is_none() {
+            v.required_attribute(Ns::NONE, "srcOrd", &self.extra_attrs);
+        }
+        if self.dest_ord.is_none() {
+            v.required_attribute(Ns::NONE, "destOrd", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("dgm:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Connection List (ECMA-376 Part 1 §21.4.3.3).
 ///
 /// This element defines a group of connections. There can be a connection list defined for any data model which holds all of the connections between points defined in the diagram.
@@ -5780,6 +6034,14 @@ impl XmlWrite for CT_CxnList {
         rt::write_extras_after(w, &self.extra_children, 0, self.cxn.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_CxnList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cxn.iter().enumerate() {
+            v.enter("dgm:cxn", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -5897,6 +6159,28 @@ impl XmlWrite for CT_DataModel {
     }
 }
 
+impl Validate for CT_DataModel {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pt_lst {
+            v.enter("dgm:ptLst", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::DGM, "ptLst", &self.extra_children);
+        }
+        if let Some(x) = &self.cxn_lst {
+            v.enter("dgm:cxnLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bg {
+            v.enter("dgm:bg", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.whole {
+            v.enter("dgm:whole", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("dgm:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Description (ECMA-376 Part 1 §21.4.2.11).
 ///
 /// This element holds a description for a layout definition. The description can be used to describe the qualities associated with a particular layout definition.
@@ -5955,6 +6239,14 @@ impl XmlWrite for CT_Description {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Description {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -6150,6 +6442,37 @@ impl XmlWrite for CT_DiagramDefinition {
     }
 }
 
+impl Validate for CT_DiagramDefinition {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.title.iter().enumerate() {
+            v.enter("dgm:title", Some(i), |v| x.validate(v));
+        }
+        for (i, x) in self.desc.iter().enumerate() {
+            v.enter("dgm:desc", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.cat_lst {
+            v.enter("dgm:catLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.samp_data {
+            v.enter("dgm:sampData", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.style_data {
+            v.enter("dgm:styleData", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.clr_data {
+            v.enter("dgm:clrData", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.layout_node {
+            v.enter("dgm:layoutNode", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::DGM, "layoutNode", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("dgm:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Layout Definition Header (ECMA-376 Part 1 §21.4.2.17).
 ///
 /// This element is the header information representing the minimum knowledge needed by an application to preload information about a layout definition. This preloading allows for the actual load of the layout definition to occur at a later time which helps with any performance concerns an application might have.
@@ -6295,6 +6618,32 @@ impl XmlWrite for CT_DiagramDefinitionHeader {
     }
 }
 
+impl Validate for CT_DiagramDefinitionHeader {
+    fn validate(&self, v: &mut Validator) {
+        if self.unique_id.is_none() {
+            v.required_attribute(Ns::NONE, "uniqueId", &self.extra_attrs);
+        }
+        for (i, x) in self.title.iter().enumerate() {
+            v.enter("dgm:title", Some(i), |v| x.validate(v));
+        }
+        if self.title.is_empty() {
+            v.required_element(Ns::DGM, "title", &self.extra_children);
+        }
+        for (i, x) in self.desc.iter().enumerate() {
+            v.enter("dgm:desc", Some(i), |v| x.validate(v));
+        }
+        if self.desc.is_empty() {
+            v.required_element(Ns::DGM, "desc", &self.extra_children);
+        }
+        if let Some(x) = &self.cat_lst {
+            v.enter("dgm:catLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("dgm:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Diagram Layout Header List (ECMA-376 Part 1 §21.4.2.18).
 ///
 /// This element is simply a list of layout definition headers. This list of headers is used internally as a way to group all of the layout definition headers together into a single structure.
@@ -6356,6 +6705,14 @@ impl XmlWrite for CT_DiagramDefinitionHeaderLst {
     }
 }
 
+impl Validate for CT_DiagramDefinitionHeaderLst {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.layout_def_hdr.iter().enumerate() {
+            v.enter("dgm:layoutDefHdr", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Diagram Direction (ECMA-376 Part 1 §21.4.6.6).
 ///
 /// This element indicates whether the diagram should switch direction. This element provides the ability to define different behavior for diagrams considering LTR or RTL directions.
@@ -6406,6 +6763,10 @@ impl XmlWrite for CT_Direction {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Direction {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Property Set (ECMA-376 Part 1 §21.4.3.4).
@@ -6745,6 +7106,17 @@ impl XmlWrite for CT_ElemPropSet {
     }
 }
 
+impl Validate for CT_ElemPropSet {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pres_layout_vars {
+            v.enter("dgm:presLayoutVars", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.style {
+            v.enter("dgm:style", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// For Each (ECMA-376 Part 1 §21.4.2.14).
 ///
 /// A looping structure, similar to a for loop in a programming language, which defines what data model points use this layout node.
@@ -6885,6 +7257,14 @@ impl XmlWrite for CT_ForEach {
     }
 }
 
+impl Validate for CT_ForEach {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Organization Chart Branch Style (ECMA-376 Part 1 §21.4.6.7).
 ///
 /// This element defines the layout style of a branch in an organizational chart.
@@ -6935,6 +7315,10 @@ impl XmlWrite for CT_HierBranchStyle {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_HierBranchStyle {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Layout Node (ECMA-376 Part 1 §21.4.2.19).
@@ -7039,6 +7423,14 @@ impl XmlWrite for CT_LayoutNode {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_LayoutNode {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -7213,6 +7605,38 @@ impl XmlWrite for CT_LayoutVariablePropertySet {
     }
 }
 
+impl Validate for CT_LayoutVariablePropertySet {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.org_chart {
+            v.enter("dgm:orgChart", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ch_max {
+            v.enter("dgm:chMax", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ch_pref {
+            v.enter("dgm:chPref", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bullet_enabled {
+            v.enter("dgm:bulletEnabled", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.dir {
+            v.enter("dgm:dir", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hier_branch {
+            v.enter("dgm:hierBranch", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.anim_one {
+            v.enter("dgm:animOne", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.anim_lvl {
+            v.enter("dgm:animLvl", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.resize_handles {
+            v.enter("dgm:resizeHandles", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Title (ECMA-376 Part 1 §21.4.2.30).
 ///
 /// Title of the Diagram Layout.
@@ -7271,6 +7695,14 @@ impl XmlWrite for CT_Name {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Name {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -7398,6 +7830,17 @@ impl XmlWrite for CT_NumericRule {
     }
 }
 
+impl Validate for CT_NumericRule {
+    fn validate(&self, v: &mut Validator) {
+        if self.type_.is_none() {
+            v.required_attribute(Ns::NONE, "type", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("dgm:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Show Organization Chart User Interface (ECMA-376 Part 1 §21.4.6.8).
 ///
 /// This element is used to indicate when to show user interface controls specifically associated with organizational charts such as being able to add an assistant to a selected node.
@@ -7448,6 +7891,10 @@ impl XmlWrite for CT_OrgChart {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_OrgChart {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Else (ECMA-376 Part 1 §21.4.2.12).
@@ -7527,6 +7974,14 @@ impl XmlWrite for CT_Otherwise {
     }
 }
 
+impl Validate for CT_Otherwise {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Parameter (ECMA-376 Part 1 §21.4.2.20).
 ///
 /// The parameter element modifies the default behavior of an algorithm.
@@ -7585,6 +8040,17 @@ impl XmlWrite for CT_Parameter {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Parameter {
+    fn validate(&self, v: &mut Validator) {
+        if self.type_.is_none() {
+            v.required_attribute(Ns::NONE, "type", &self.extra_attrs);
+        }
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -7700,6 +8166,14 @@ impl XmlWrite for CT_PresentationOf {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_PresentationOf {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ext_lst {
+            v.enter("dgm:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -7833,6 +8307,26 @@ impl XmlWrite for CT_Pt {
     }
 }
 
+impl Validate for CT_Pt {
+    fn validate(&self, v: &mut Validator) {
+        if self.model_id.is_none() {
+            v.required_attribute(Ns::NONE, "modelId", &self.extra_attrs);
+        }
+        if let Some(x) = &self.pr_set {
+            v.enter("dgm:prSet", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("dgm:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.t {
+            v.enter("dgm:t", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("dgm:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Point List (ECMA-376 Part 1 §21.4.3.6).
 ///
 /// This element simply holds a list of points within the data model.
@@ -7891,6 +8385,14 @@ impl XmlWrite for CT_PtList {
         rt::write_extras_after(w, &self.extra_children, 0, self.pt.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_PtList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.pt.iter().enumerate() {
+            v.enter("dgm:pt", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -7973,6 +8475,23 @@ impl XmlWrite for CT_RelIds {
     }
 }
 
+impl Validate for CT_RelIds {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_dm.is_none() {
+            v.required_attribute(Ns::R, "dm", &self.extra_attrs);
+        }
+        if self.r_lo.is_none() {
+            v.required_attribute(Ns::R, "lo", &self.extra_attrs);
+        }
+        if self.r_qs.is_none() {
+            v.required_attribute(Ns::R, "qs", &self.extra_attrs);
+        }
+        if self.r_cs.is_none() {
+            v.required_attribute(Ns::R, "cs", &self.extra_attrs);
+        }
+    }
+}
+
 /// Shape Resize Style (ECMA-376 Part 1 §21.4.2.23).
 ///
 /// This element defines the behavior when resizing shapes within a diagram. Because the size of the shape plays a large role in the overall layout of other nodes within the diagram, there are two ways resize can occur on a node.
@@ -8023,6 +8542,10 @@ impl XmlWrite for CT_ResizeHandles {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_ResizeHandles {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Rule List (ECMA-376 Part 1 §21.4.2.25).
@@ -8083,6 +8606,14 @@ impl XmlWrite for CT_Rules {
         rt::write_extras_after(w, &self.extra_children, 0, self.rule.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Rules {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.rule.iter().enumerate() {
+            v.enter("dgm:rule", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -8147,6 +8678,14 @@ impl XmlWrite for CT_SDCategories {
     }
 }
 
+impl Validate for CT_SDCategories {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cat.iter().enumerate() {
+            v.enter("dgm:cat", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Category (ECMA-376 Part 1 §21.4.5.1).
 ///
 /// The category in the user interface where this quick style displays in the user interface.
@@ -8205,6 +8744,17 @@ impl XmlWrite for CT_SDCategory {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_SDCategory {
+    fn validate(&self, v: &mut Validator) {
+        if self.type_.is_none() {
+            v.required_attribute(Ns::NONE, "type", &self.extra_attrs);
+        }
+        if self.pri.is_none() {
+            v.required_attribute(Ns::NONE, "pri", &self.extra_attrs);
+        }
     }
 }
 
@@ -8269,6 +8819,14 @@ impl XmlWrite for CT_SDDescription {
     }
 }
 
+impl Validate for CT_SDDescription {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Title (ECMA-376 Part 1 §21.4.5.11).
 ///
 /// This element defines the title given to a style definition header. The title is simply a name for the style definition.
@@ -8327,6 +8885,14 @@ impl XmlWrite for CT_SDName {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_SDName {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -8399,6 +8965,14 @@ impl XmlWrite for CT_SampleData {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SampleData {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.data_model {
+            v.enter("dgm:dataModel", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -8537,6 +9111,17 @@ impl XmlWrite for CT_Shape {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_Shape {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.adj_lst {
+            v.enter("dgm:adjLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("dgm:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -8698,6 +9283,32 @@ impl XmlWrite for CT_StyleDefinition {
     }
 }
 
+impl Validate for CT_StyleDefinition {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.title.iter().enumerate() {
+            v.enter("dgm:title", Some(i), |v| x.validate(v));
+        }
+        for (i, x) in self.desc.iter().enumerate() {
+            v.enter("dgm:desc", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.cat_lst {
+            v.enter("dgm:catLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.scene3d {
+            v.enter("dgm:scene3d", None, |v| x.validate(v));
+        }
+        for (i, x) in self.style_lbl.iter().enumerate() {
+            v.enter("dgm:styleLbl", Some(i), |v| x.validate(v));
+        }
+        if self.style_lbl.is_empty() {
+            v.required_element(Ns::DGM, "styleLbl", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("dgm:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Style Definition Header (ECMA-376 Part 1 §21.4.5.8).
 ///
 /// This element specifies header information associated with a style definition. The header information is used by an application to preprocess required data in order to help with possible performance concerns associated with an initial full load of a color transform definition.
@@ -8834,6 +9445,32 @@ impl XmlWrite for CT_StyleDefinitionHeader {
     }
 }
 
+impl Validate for CT_StyleDefinitionHeader {
+    fn validate(&self, v: &mut Validator) {
+        if self.unique_id.is_none() {
+            v.required_attribute(Ns::NONE, "uniqueId", &self.extra_attrs);
+        }
+        for (i, x) in self.title.iter().enumerate() {
+            v.enter("dgm:title", Some(i), |v| x.validate(v));
+        }
+        if self.title.is_empty() {
+            v.required_element(Ns::DGM, "title", &self.extra_children);
+        }
+        for (i, x) in self.desc.iter().enumerate() {
+            v.enter("dgm:desc", Some(i), |v| x.validate(v));
+        }
+        if self.desc.is_empty() {
+            v.required_element(Ns::DGM, "desc", &self.extra_children);
+        }
+        if let Some(x) = &self.cat_lst {
+            v.enter("dgm:catLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("dgm:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// List of Style Definition Headers (ECMA-376 Part 1 §21.4.5.9).
 ///
 /// This element is simply a list of style definition headers and is used to consolidate multiple headers into one group.
@@ -8892,6 +9529,14 @@ impl XmlWrite for CT_StyleDefinitionHeaderLst {
         rt::write_extras_after(w, &self.extra_children, 0, self.style_def_hdr.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_StyleDefinitionHeaderLst {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.style_def_hdr.iter().enumerate() {
+            v.enter("dgm:styleDefHdr", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -9021,6 +9666,29 @@ impl XmlWrite for CT_StyleLabel {
     }
 }
 
+impl Validate for CT_StyleLabel {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if let Some(x) = &self.scene3d {
+            v.enter("dgm:scene3d", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp3d {
+            v.enter("dgm:sp3d", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx_pr {
+            v.enter("dgm:txPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.style {
+            v.enter("dgm:style", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("dgm:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Text Properties (ECMA-376 Part 1 §21.4.5.12).
 ///
 /// This element defines special text formatting that can be applied to text through a style label.
@@ -9076,6 +9744,14 @@ impl XmlWrite for CT_TextProps {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TextProps {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.text3_d {
+            x.validate_at(v, None);
+        }
     }
 }
 
@@ -9246,6 +9922,23 @@ impl XmlWrite for CT_When {
     }
 }
 
+impl Validate for CT_When {
+    fn validate(&self, v: &mut Validator) {
+        if self.func.is_none() {
+            v.required_attribute(Ns::NONE, "func", &self.extra_attrs);
+        }
+        if self.op.is_none() {
+            v.required_attribute(Ns::NONE, "op", &self.extra_attrs);
+        }
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// A choice among the child elements of `CT_ForEach`.
 #[derive(Clone, Debug, PartialEq)]
 pub enum CT_ForEach_Choice {
@@ -9301,6 +9994,22 @@ impl CT_ForEach_Choice {
             Self::Choose(v) => v.write_xml(w, Ns::DGM, "choose"),
             Self::ExtLst(v) => v.write_xml(w, Ns::DGM, "extLst"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Alg(x) => v.enter("dgm:alg", index, |v| x.validate(v)),
+            Self::Shape(x) => v.enter("dgm:shape", index, |v| x.validate(v)),
+            Self::PresOf(x) => v.enter("dgm:presOf", index, |v| x.validate(v)),
+            Self::ConstrLst(x) => v.enter("dgm:constrLst", index, |v| x.validate(v)),
+            Self::RuleLst(x) => v.enter("dgm:ruleLst", index, |v| x.validate(v)),
+            Self::ForEach(x) => v.enter("dgm:forEach", index, |v| x.validate(v)),
+            Self::LayoutNode(x) => v.enter("dgm:layoutNode", index, |v| x.validate(v)),
+            Self::Choose(x) => v.enter("dgm:choose", index, |v| x.validate(v)),
+            Self::ExtLst(x) => v.enter("dgm:extLst", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -9383,6 +10092,23 @@ impl CT_LayoutNode_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Alg(x) => v.enter("dgm:alg", index, |v| x.validate(v)),
+            Self::Shape(x) => v.enter("dgm:shape", index, |v| x.validate(v)),
+            Self::PresOf(x) => v.enter("dgm:presOf", index, |v| x.validate(v)),
+            Self::ConstrLst(x) => v.enter("dgm:constrLst", index, |v| x.validate(v)),
+            Self::RuleLst(x) => v.enter("dgm:ruleLst", index, |v| x.validate(v)),
+            Self::VarLst(x) => v.enter("dgm:varLst", index, |v| x.validate(v)),
+            Self::ForEach(x) => v.enter("dgm:forEach", index, |v| x.validate(v)),
+            Self::LayoutNode(x) => v.enter("dgm:layoutNode", index, |v| x.validate(v)),
+            Self::Choose(x) => v.enter("dgm:choose", index, |v| x.validate(v)),
+            Self::ExtLst(x) => v.enter("dgm:extLst", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -9459,6 +10185,22 @@ impl CT_Otherwise_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Alg(x) => v.enter("dgm:alg", index, |v| x.validate(v)),
+            Self::Shape(x) => v.enter("dgm:shape", index, |v| x.validate(v)),
+            Self::PresOf(x) => v.enter("dgm:presOf", index, |v| x.validate(v)),
+            Self::ConstrLst(x) => v.enter("dgm:constrLst", index, |v| x.validate(v)),
+            Self::RuleLst(x) => v.enter("dgm:ruleLst", index, |v| x.validate(v)),
+            Self::ForEach(x) => v.enter("dgm:forEach", index, |v| x.validate(v)),
+            Self::LayoutNode(x) => v.enter("dgm:layoutNode", index, |v| x.validate(v)),
+            Self::Choose(x) => v.enter("dgm:choose", index, |v| x.validate(v)),
+            Self::ExtLst(x) => v.enter("dgm:extLst", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -9531,6 +10273,22 @@ impl CT_When_Choice {
             Self::Choose(v) => v.write_xml(w, Ns::DGM, "choose"),
             Self::ExtLst(v) => v.write_xml(w, Ns::DGM, "extLst"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Alg(x) => v.enter("dgm:alg", index, |v| x.validate(v)),
+            Self::Shape(x) => v.enter("dgm:shape", index, |v| x.validate(v)),
+            Self::PresOf(x) => v.enter("dgm:presOf", index, |v| x.validate(v)),
+            Self::ConstrLst(x) => v.enter("dgm:constrLst", index, |v| x.validate(v)),
+            Self::RuleLst(x) => v.enter("dgm:ruleLst", index, |v| x.validate(v)),
+            Self::ForEach(x) => v.enter("dgm:forEach", index, |v| x.validate(v)),
+            Self::LayoutNode(x) => v.enter("dgm:layoutNode", index, |v| x.validate(v)),
+            Self::Choose(x) => v.enter("dgm:choose", index, |v| x.validate(v)),
+            Self::ExtLst(x) => v.enter("dgm:extLst", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 

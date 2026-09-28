@@ -87,6 +87,27 @@ pub fn emit_crate(krate: &Crate) -> Vec<(String, String)> {
         }
     }
     root.push_str("        _ => return None,\n    })\n}\n");
+    root.push_str(
+        "\n/// Parses a document whose root is any global element of the schemas and checks its\n\
+         /// required attributes and elements. Returns `None` for an unknown root element.\n\
+         pub fn validate_xml(xml: &str) -> Option<openxml_xml::Result<Vec<openxml_xml::Issue>>> {\n\
+         \x20   use openxml_xml::Ns;\n\
+         \x20   let (ns, local) = match openxml_xml::root_name(xml) {\n\
+         \x20       Ok(n) => n,\n\
+         \x20       Err(e) => return Some(Err(e)),\n\
+         \x20   };\n\
+         \x20   Some(match (ns, local.as_str()) {\n",
+    );
+    for m in &krate.modules {
+        for g in &m.globals {
+            let _ = writeln!(
+                root,
+                "        (Ns::{}, {:?}) => {{ let d = {}::elements::{}; d.parse(xml).map(|v| d.validate(&v)) }}",
+                m.ns, g.local, m.name, g.const_name
+            );
+        }
+    }
+    root.push_str("        _ => return None,\n    })\n}\n");
     root.push_str("\n/// Every global element of the schemas as `(namespace, local name)`.\n");
     let _ = writeln!(root, "pub const GLOBAL_ELEMENTS: &[(openxml_xml::Ns, &str)] = &[");
     for m in &krate.modules {
@@ -149,6 +170,16 @@ impl Out {
 
 fn lit(s: &str) -> String {
     format!("{s:?}")
+}
+
+/// `prefix:local` display name of an element or attribute.
+fn display_name(ns: &str, local: &str) -> String {
+    let prefix = crate::lower::ns_by_ident(ns).prefix();
+    if ns == "NONE" || prefix.is_empty() {
+        local.to_owned()
+    } else {
+        format!("{prefix}:{local}")
+    }
 }
 
 fn emit_module(m: &Module) -> String {
@@ -449,6 +480,107 @@ fn emit_complex(o: &mut Out, m: &Module, c: &ComplexDef) {
     o.line("");
     emit_read(o, c);
     emit_write(o, c);
+    emit_validate(o, c);
+}
+
+fn emit_validate(o: &mut Out, c: &ComplexDef) {
+    let _ = writeln!(o.buf, "impl Validate for {} {{", c.name);
+    o.line("    fn validate(&self, v: &mut Validator) {");
+    for a in c.attrs.iter().filter(|a| a.required) {
+        let _ = writeln!(
+            o.buf,
+            "        if self.{}.is_none() {{ v.required_attribute(Ns::{}, {}, &self.extra_attrs); }}",
+            a.field,
+            a.ns,
+            lit(&a.local)
+        );
+    }
+    if let ContentDef::Fields(fields) = &c.content {
+        for f in fields {
+            let name = &f.name;
+            match &f.kind {
+                FieldKind::Element { elem, multi } => {
+                    let shown = lit(&display_name(&elem.ns, &elem.local));
+                    let missing = format!(
+                        "v.required_element(Ns::{}, {}, &self.extra_children)",
+                        elem.ns,
+                        lit(&elem.local)
+                    );
+                    let complex = matches!(elem.ty, ElemType::Complex(_));
+                    match (multi, complex) {
+                        (false, true) => {
+                            let _ = write!(
+                                o.buf,
+                                "        if let Some(x) = &self.{name} {{ v.enter({shown}, None, |v| x.validate(v)); }}"
+                            );
+                            if f.required {
+                                let _ = write!(o.buf, " else {{ {missing}; }}");
+                            }
+                            o.line("");
+                        }
+                        (true, true) => {
+                            let _ = writeln!(
+                                o.buf,
+                                "        for (i, x) in self.{name}.iter().enumerate() {{ v.enter({shown}, Some(i), |v| x.validate(v)); }}"
+                            );
+                            if f.required {
+                                let _ = writeln!(o.buf, "        if self.{name}.is_empty() {{ {missing}; }}");
+                            }
+                        }
+                        (false, false) if f.required => {
+                            let _ = writeln!(o.buf, "        if self.{name}.is_none() {{ {missing}; }}");
+                        }
+                        (true, false) if f.required => {
+                            let _ = writeln!(o.buf, "        if self.{name}.is_empty() {{ {missing}; }}");
+                        }
+                        _ => {}
+                    }
+                }
+                FieldKind::Choice { elems, multi, .. } => {
+                    let names: Vec<String> = elems.iter().map(|e| display_name(&e.ns, &e.local)).collect();
+                    let what = if names.len() > 6 {
+                        format!("one of {}, …", names[..6].join(", "))
+                    } else {
+                        format!("one of {}", names.join(", "))
+                    };
+                    if *multi {
+                        let _ = writeln!(
+                            o.buf,
+                            "        for (i, x) in self.{name}.iter().enumerate() {{ x.validate_at(v, Some(i)); }}"
+                        );
+                        if f.required {
+                            let _ = writeln!(
+                                o.buf,
+                                "        if self.{name}.is_empty() {{ v.missing_content({}); }}",
+                                lit(&what)
+                            );
+                        }
+                    } else {
+                        let _ = write!(
+                            o.buf,
+                            "        if let Some(x) = &self.{name} {{ x.validate_at(v, None); }}"
+                        );
+                        if f.required {
+                            let _ = write!(o.buf, " else {{ v.missing_content({}); }}", lit(&what));
+                        }
+                        o.line("");
+                    }
+                }
+                FieldKind::Any { multi, .. } => {
+                    if f.required {
+                        let test = if *multi { "is_empty" } else { "is_none" };
+                        let _ = writeln!(
+                            o.buf,
+                            "        if self.{name}.{test}() {{ v.missing_content(\"an element (wildcard)\"); }}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+    o.line("    }");
+    o.line("}");
+    o.line("");
 }
 
 fn emit_read(o: &mut Out, c: &ComplexDef) {
@@ -803,6 +935,23 @@ fn emit_enum(o: &mut Out, e: &ChoiceEnum) {
         let _ = writeln!(o.buf, "            Self::{}(v) => {call},", v.name);
     }
     o.line("            Self::Other(v) => v.write(w),");
+    o.line("        }");
+    o.line("    }");
+    o.line("");
+    o.line("    /// Validates the variant's element, recorded at position `index` of its field.");
+    o.line("    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {");
+    o.line("        match self {");
+    for v in &e.variants {
+        if matches!(v.elem.ty, ElemType::Complex(_)) {
+            let _ = writeln!(
+                o.buf,
+                "            Self::{}(x) => v.enter({}, index, |v| x.validate(v)),",
+                v.name,
+                lit(&display_name(&v.elem.ns, &v.elem.local))
+            );
+        }
+    }
+    o.line("            _ => {}");
     o.line("        }");
     o.line("    }");
     o.line("");

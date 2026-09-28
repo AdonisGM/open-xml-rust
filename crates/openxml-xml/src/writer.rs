@@ -346,6 +346,23 @@ impl XmlWriter {
         escape_text(&mut self.out, &self.scratch);
     }
 
+    /// Writes a complete element whose content is a simple-type value. Adds
+    /// `xml:space="preserve"` when the text has leading or trailing
+    /// whitespace or contains line breaks or tabs, so that consumers keep it.
+    pub fn simple_element<T: XmlValue>(&mut self, ns: Ns, local: &str, value: &T) {
+        self.scratch.clear();
+        value.write_xml(&mut self.scratch);
+        self.start(ns, local);
+        if needs_space_preserve(&self.scratch) {
+            self.attr(Ns::XML, "space", "preserve");
+        }
+        if !self.scratch.is_empty() {
+            self.close_start_tag();
+            escape_text(&mut self.out, &self.scratch);
+        }
+        self.end();
+    }
+
     /// Ends the innermost open element.
     pub fn end(&mut self) {
         let frame = self.frames.pop().expect("end() without matching start");
@@ -369,6 +386,11 @@ impl XmlWriter {
         }
         self.end();
     }
+}
+
+/// Whether text needs `xml:space="preserve"` to survive whitespace handling of consumers.
+pub fn needs_space_preserve(s: &str) -> bool {
+    s.starts_with(char::is_whitespace) || s.ends_with(char::is_whitespace) || s.contains(['\n', '\t'])
 }
 
 fn is_xml_char(c: char) -> bool {
@@ -580,6 +602,25 @@ mod tests {
         w.text_value(&1.5f64);
         w.end();
         assert_eq!(w.finish(), r#"<n b="true" i="-42">1.5</n>"#);
+    }
+
+    #[test]
+    fn simple_elements_preserve_significant_whitespace() {
+        let mut w = XmlWriter::new();
+        w.start(Ns::NONE, "r");
+        w.simple_element(Ns::NONE, "t", &String::from("plain"));
+        w.simple_element(Ns::NONE, "t", &String::from(" lead"));
+        w.simple_element(Ns::NONE, "t", &String::from("two\nlines"));
+        w.simple_element(Ns::NONE, "t", &String::new());
+        w.simple_element(Ns::NONE, "n", &42u32);
+        w.end();
+        assert_eq!(
+            w.finish(),
+            r#"<r><t>plain</t><t xml:space="preserve"> lead</t><t xml:space="preserve">two
+lines</t><t/><n>42</n></r>"#
+        );
+        assert!(needs_space_preserve("a\tb"));
+        assert!(!needs_space_preserve("a b"));
     }
 
     #[test]

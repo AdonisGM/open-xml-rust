@@ -553,6 +553,19 @@ impl XmlWrite for CT_Acc {
     }
 }
 
+impl Validate for CT_Acc {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.acc_pr {
+            v.enter("m:accPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.e {
+            v.enter("m:e", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "e", &self.extra_children);
+        }
+    }
+}
+
 /// Accent Properties (ECMA-376 Part 1 §22.1.2.2).
 ///
 /// This element specifies the properties of the Accent function. If chr is omitted, the default accent character is U+0302 (COMBINING CIRCUMFLEX ACCENT). \[Example: The diacritical mark ~ (tilde) is: &lt;m:accPr&gt; &lt;m:chr m:val="&#771;"/&gt; &lt;/m:accPr&gt; end example\]
@@ -622,6 +635,17 @@ impl XmlWrite for CT_AccPr {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_AccPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.chr {
+            v.enter("m:chr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -697,6 +721,19 @@ impl XmlWrite for CT_Bar {
     }
 }
 
+impl Validate for CT_Bar {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.bar_pr {
+            v.enter("m:barPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.e {
+            v.enter("m:e", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "e", &self.extra_children);
+        }
+    }
+}
+
 /// Bar Properties (ECMA-376 Part 1 §22.1.2.8).
 ///
 /// This element specifies properties of the bar function. If this element is omitted, the bar assumes its default location of top (the mathematical overbar). \[Example: 𝑥 (x with an underbar) is represented by the following XML representation: &lt;m:bar&gt; &lt;m:barPr&gt; &lt;m:pos m:val="bot"/&gt;
@@ -769,6 +806,17 @@ impl XmlWrite for CT_BarPr {
     }
 }
 
+impl Validate for CT_BarPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pos {
+            v.enter("m:pos", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Border-Box Object (ECMA-376 Part 1 §22.1.2.11).
 ///
 /// This element specifies the Border Box object, consisting of a border drawn around an instance of mathematical text (such as a formula or equation), as in 𝑎2 + 𝑏2 = 𝑐2 . If borderBoxPr is omitted then the default behavior of borderBox is a rectangular border (as shown in the “abc” example below).
@@ -838,6 +886,19 @@ impl XmlWrite for CT_BorderBox {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_BorderBox {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.border_box_pr {
+            v.enter("m:borderBoxPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.e {
+            v.enter("m:e", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "e", &self.extra_children);
+        }
     }
 }
 
@@ -1011,6 +1072,38 @@ impl XmlWrite for CT_BorderBoxPr {
     }
 }
 
+impl Validate for CT_BorderBoxPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.hide_top {
+            v.enter("m:hideTop", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hide_bot {
+            v.enter("m:hideBot", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hide_left {
+            v.enter("m:hideLeft", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hide_right {
+            v.enter("m:hideRight", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.strike_h {
+            v.enter("m:strikeH", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.strike_v {
+            v.enter("m:strikeV", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.strike_bltr {
+            v.enter("m:strikeBLTR", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.strike_tlbr {
+            v.enter("m:strikeTLBR", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Box Object (ECMA-376 Part 1 §22.1.2.13).
 ///
 /// This element specifies the box object, which is used to group components of an equation or other instance of mathematical text. A boxed object can (for example) serve as an operator emulator with or without an alignment point, serve as a line break point, have associated argSz, or be grouped such as not to allow line breaks within. If boxPr is omitted, all properties will be “false” by default.
@@ -1080,6 +1173,19 @@ impl XmlWrite for CT_Box {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_Box {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.box_pr {
+            v.enter("m:boxPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.e {
+            v.enter("m:e", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "e", &self.extra_children);
+        }
     }
 }
 
@@ -1211,6 +1317,29 @@ impl XmlWrite for CT_BoxPr {
     }
 }
 
+impl Validate for CT_BoxPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.op_emu {
+            v.enter("m:opEmu", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.no_break {
+            v.enter("m:noBreak", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.diff {
+            v.enter("m:diff", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.brk {
+            v.enter("m:brk", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.aln {
+            v.enter("m:aln", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Break on Binary Operators (ECMA-376 Part 1 §22.1.2.16).
 ///
 /// This element specifies how binary operators are treated when they coincide with a line break. If this element is omitted, the line break occurs before the binary operator. That is, the binary operator is the first element on the wrapped line.
@@ -1261,6 +1390,10 @@ impl XmlWrite for CT_BreakBin {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_BreakBin {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Break on Binary Subtraction (ECMA-376 Part 1 §22.1.2.17).
@@ -1315,6 +1448,10 @@ impl XmlWrite for CT_BreakBinSub {
     }
 }
 
+impl Validate for CT_BreakBinSub {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Delimiter Beginning Character (ECMA-376 Part 1 §22.1.2.10).
 ///
 /// This element specifies the beginning, or opening, delimiter character. Mathematical delimiters are enclosing characters such as parentheses, brackets, and braces. If this element is omitted, the default begChr is '('.
@@ -1367,6 +1504,14 @@ impl XmlWrite for CT_Char {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Char {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::M, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -1425,6 +1570,14 @@ impl XmlWrite for CT_CtrlPr {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_CtrlPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.r_pr_math {
+            x.validate_at(v, None);
+        }
     }
 }
 
@@ -1500,6 +1653,20 @@ impl XmlWrite for CT_D {
         rt::write_extras_after(w, &self.extra_children, 1, self.e.len());
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_D {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.d_pr {
+            v.enter("m:dPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.e.iter().enumerate() {
+            v.enter("m:e", Some(i), |v| x.validate(v));
+        }
+        if self.e.is_empty() {
+            v.required_element(Ns::M, "e", &self.extra_children);
+        }
     }
 }
 
@@ -1631,6 +1798,29 @@ impl XmlWrite for CT_DPr {
     }
 }
 
+impl Validate for CT_DPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.beg_chr {
+            v.enter("m:begChr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sep_chr {
+            v.enter("m:sepChr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.end_chr {
+            v.enter("m:endChr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.grow {
+            v.enter("m:grow", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.shp {
+            v.enter("m:shp", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Array Object (ECMA-376 Part 1 §22.1.2.34).
 ///
 /// This element specifies the Array object (sometimes referred to as "Equation Array", despite its ability to hold mathematical text other than equations), an object consisting of one or more equations, expressions, or other mathematical text runs that can be vertically justified as a unit with respect to surrounding text on the line. Alignment of multiple points within each run of mathematical text can occur within the array through the use of align values and spacer values. An align value is an ampersand within the array which acts as an alignment point (as described in §22.1.2.3).
@@ -1703,6 +1893,20 @@ impl XmlWrite for CT_EqArr {
         rt::write_extras_after(w, &self.extra_children, 1, self.e.len());
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_EqArr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.eq_arr_pr {
+            v.enter("m:eqArrPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.e.iter().enumerate() {
+            v.enter("m:e", Some(i), |v| x.validate(v));
+        }
+        if self.e.is_empty() {
+            v.required_element(Ns::M, "e", &self.extra_children);
+        }
     }
 }
 
@@ -1834,6 +2038,29 @@ impl XmlWrite for CT_EqArrPr {
     }
 }
 
+impl Validate for CT_EqArrPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.base_jc {
+            v.enter("m:baseJc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.max_dist {
+            v.enter("m:maxDist", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.obj_dist {
+            v.enter("m:objDist", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.r_sp_rule {
+            v.enter("m:rSpRule", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.r_sp {
+            v.enter("m:rSp", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Fraction Object (ECMA-376 Part 1 §22.1.2.36).
 ///
 /// This element specifies the fraction object, consisting of a numerator and denominator separated by a fraction bar. The fraction bar can be horizontal or diagonal, depending on the fraction properties. The fraction object is also used to represent the stack function, which places one element above another, with no fraction bar.
@@ -1920,6 +2147,24 @@ impl XmlWrite for CT_F {
     }
 }
 
+impl Validate for CT_F {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.f_pr {
+            v.enter("m:fPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num {
+            v.enter("m:num", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "num", &self.extra_children);
+        }
+        if let Some(x) = &self.den {
+            v.enter("m:den", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "den", &self.extra_children);
+        }
+    }
+}
+
 /// Fraction Properties (ECMA-376 Part 1 §22.1.2.38).
 ///
 /// This element specifies the properties of the fraction object f. Properties of the Fraction object include the type or style of the fraction. The fraction bar can be horizontal or diagonal, depending on the fraction properties.
@@ -1992,6 +2237,17 @@ impl XmlWrite for CT_FPr {
     }
 }
 
+impl Validate for CT_FPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.type_ {
+            v.enter("m:type", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Fraction type (ECMA-376 Part 1 §22.1.2.118).
 ///
 /// This element specifies the type of fraction f; the default is 'bar'. Whether the element is absent or present without the val attribute, the default of the val attribute is bar. Fractions types are: Stacked Fraction: 𝑎 𝑏 Skewed Fraction: 𝑎 𝑏⁄ Linear Fraction: 𝑎 𝑏⁄ Stack Object (No-Bar Fraction): 𝑛 𝑘
@@ -2041,6 +2297,14 @@ impl XmlWrite for CT_FType {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_FType {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::M, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -2130,6 +2394,24 @@ impl XmlWrite for CT_Func {
     }
 }
 
+impl Validate for CT_Func {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.func_pr {
+            v.enter("m:funcPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.f_name {
+            v.enter("m:fName", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "fName", &self.extra_children);
+        }
+        if let Some(x) = &self.e {
+            v.enter("m:e", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "e", &self.extra_children);
+        }
+    }
+}
+
 /// Function Properties (ECMA-376 Part 1 §22.1.2.40).
 ///
 /// This element specifies properties such as ctrlPr that can be stored on the function apply object func. \[Example: 𝑡𝑎𝑛 𝑥 is represented by the following XML:
@@ -2185,6 +2467,14 @@ impl XmlWrite for CT_FuncPr {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_FuncPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -2257,6 +2547,19 @@ impl XmlWrite for CT_GroupChr {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_GroupChr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.group_chr_pr {
+            v.enter("m:groupChrPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.e {
+            v.enter("m:e", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "e", &self.extra_children);
+        }
     }
 }
 
@@ -2360,6 +2663,23 @@ impl XmlWrite for CT_GroupChrPr {
     }
 }
 
+impl Validate for CT_GroupChrPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.chr {
+            v.enter("m:chr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.pos {
+            v.enter("m:pos", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.vert_jc {
+            v.enter("m:vertJc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Argument Size (ECMA-376 Part 1 §22.1.2.6).
 ///
 /// This element specifies the size, or script level, of an argument. If the element is omitted, the default argument size is 0. Whether the element is absent or present without the val attribute, the default value of the val attribute is always 0.
@@ -2409,6 +2729,14 @@ impl XmlWrite for CT_Integer2 {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Integer2 {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::M, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -2464,6 +2792,14 @@ impl XmlWrite for CT_Integer255 {
     }
 }
 
+impl Validate for CT_Integer255 {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::M, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Integral Limit Locations (ECMA-376 Part 1 §22.1.2.49).
 ///
 /// This element specifies the document setting for the default placement of integral limits, when converted from a linear form to a two-dimensional output (professional form). Limits can be either centered above and below the integral, or positioned just to the right of the operator, as in: ∫ 𝑥 𝑑𝑥 𝑏 𝑎 ∫ 𝑥 𝑑𝑥 𝑏 𝑎
@@ -2515,6 +2851,14 @@ impl XmlWrite for CT_LimLoc {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_LimLoc {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::M, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -2604,6 +2948,24 @@ impl XmlWrite for CT_LimLow {
     }
 }
 
+impl Validate for CT_LimLow {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.lim_low_pr {
+            v.enter("m:limLowPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.e {
+            v.enter("m:e", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "e", &self.extra_children);
+        }
+        if let Some(x) = &self.lim {
+            v.enter("m:lim", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "lim", &self.extra_children);
+        }
+    }
+}
+
 /// Lower-Limit Properties (ECMA-376 Part 1 §22.1.2.55).
 ///
 /// This element specifies control properties (ctrlPr) that can be stored on the Lower Limit (limLow).
@@ -2659,6 +3021,14 @@ impl XmlWrite for CT_LimLowPr {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_LimLowPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -2748,6 +3118,24 @@ impl XmlWrite for CT_LimUpp {
     }
 }
 
+impl Validate for CT_LimUpp {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.lim_upp_pr {
+            v.enter("m:limUppPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.e {
+            v.enter("m:e", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "e", &self.extra_children);
+        }
+        if let Some(x) = &self.lim {
+            v.enter("m:lim", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "lim", &self.extra_children);
+        }
+    }
+}
+
 /// Upper-Limit Properties (ECMA-376 Part 1 §22.1.2.57).
 ///
 /// This element specifies control properties (ctrlPr) that can be stored on the Upper Limit (limUpp).
@@ -2803,6 +3191,14 @@ impl XmlWrite for CT_LimUppPr {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_LimUppPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -2881,6 +3277,20 @@ impl XmlWrite for CT_M {
     }
 }
 
+impl Validate for CT_M {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.m_pr {
+            v.enter("m:mPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.mr.iter().enumerate() {
+            v.enter("m:mr", Some(i), |v| x.validate(v));
+        }
+        if self.mr.is_empty() {
+            v.required_element(Ns::M, "mr", &self.extra_children);
+        }
+    }
+}
+
 /// Matrix Column (ECMA-376 Part 1 §22.1.2.64).
 ///
 /// This element specifies a single column in a matrix m. \[Example: An example of this element in use is: (1 2 3 4) &lt;m:m&gt; &lt;m:mPr&gt; &lt;m:mcs&gt; &lt;m:mc&gt; &lt;m:mcPr&gt; &lt;m:count m:val="2"/&gt; &lt;m:mcJc m:val="center"/&gt;
@@ -2936,6 +3346,14 @@ impl XmlWrite for CT_MC {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_MC {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.mc_pr {
+            v.enter("m:mcPr", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -3011,6 +3429,17 @@ impl XmlWrite for CT_MCPr {
     }
 }
 
+impl Validate for CT_MCPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.count {
+            v.enter("m:count", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.mc_jc {
+            v.enter("m:mcJc", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Matrix Columns (ECMA-376 Part 1 §22.1.2.67).
 ///
 /// This element specifies the collection of columns of the matrix m. \[Example: An example of this element in use is: (1 2 3 4) &lt;m:m&gt; &lt;m:mPr&gt; &lt;m:mcs&gt; &lt;m:mc&gt; &lt;m:mcPr&gt; &lt;m:count m:val="2"/&gt; &lt;m:mcJc m:val="center"/&gt;
@@ -3069,6 +3498,17 @@ impl XmlWrite for CT_MCS {
         rt::write_extras_after(w, &self.extra_children, 0, self.mc.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_MCS {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.mc.iter().enumerate() {
+            v.enter("m:mc", Some(i), |v| x.validate(v));
+        }
+        if self.mc.is_empty() {
+            v.required_element(Ns::M, "mc", &self.extra_children);
+        }
     }
 }
 
@@ -3242,6 +3682,38 @@ impl XmlWrite for CT_MPr {
     }
 }
 
+impl Validate for CT_MPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.base_jc {
+            v.enter("m:baseJc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.plc_hide {
+            v.enter("m:plcHide", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.r_sp_rule {
+            v.enter("m:rSpRule", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.c_gp_rule {
+            v.enter("m:cGpRule", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.r_sp {
+            v.enter("m:rSp", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.c_sp {
+            v.enter("m:cSp", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.c_gp {
+            v.enter("m:cGp", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.mcs {
+            v.enter("m:mcs", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Matrix Row (ECMA-376 Part 1 §22.1.2.69).
 ///
 /// This element specifies a single row of the matrix m. \[Example: An example of this element in use is the following example, a 2x2 matrix. There are two rows; the first contains the elements 1 and 2; the second contains 3 and 4. (1 2 3 4) &lt;m:m&gt; &lt;m:mPr&gt; &lt;m:mcs&gt; &lt;m:mc&gt; &lt;m:mcPr&gt;
@@ -3303,6 +3775,17 @@ impl XmlWrite for CT_MR {
     }
 }
 
+impl Validate for CT_MR {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.e.iter().enumerate() {
+            v.enter("m:e", Some(i), |v| x.validate(v));
+        }
+        if self.e.is_empty() {
+            v.required_element(Ns::M, "e", &self.extra_children);
+        }
+    }
+}
+
 /// Break (ECMA-376 Part 1 §22.1.2.15).
 ///
 /// This element specifies whether there is a line break at the start of a run, or at the start of the Box object, such that the line wraps at the start of the run or box object. These user-defined line breaks occur when the XML tag &lt;m:brk/&gt; is encountered and does not follow a mathematical "order of precedence". If this element is omitted, a manual break is not inserted.
@@ -3353,6 +3836,10 @@ impl XmlWrite for CT_ManualBreak {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_ManualBreak {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Math Properties (ECMA-376 Part 1 §22.1.2.62).
@@ -3609,6 +4096,56 @@ impl XmlWrite for CT_MathPr {
     }
 }
 
+impl Validate for CT_MathPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.math_font {
+            v.enter("m:mathFont", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.brk_bin {
+            v.enter("m:brkBin", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.brk_bin_sub {
+            v.enter("m:brkBinSub", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.small_frac {
+            v.enter("m:smallFrac", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.disp_def {
+            v.enter("m:dispDef", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.l_margin {
+            v.enter("m:lMargin", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.r_margin {
+            v.enter("m:rMargin", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.def_jc {
+            v.enter("m:defJc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.pre_sp {
+            v.enter("m:preSp", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.post_sp {
+            v.enter("m:postSp", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.inter_sp {
+            v.enter("m:interSp", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.intra_sp {
+            v.enter("m:intraSp", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.int_lim {
+            v.enter("m:intLim", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.nary_lim {
+            v.enter("m:naryLim", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// n-ary Operator Object (ECMA-376 Part 1 §22.1.2.70).
 ///
 /// This element specifies an n-ary object, consisting of an n-ary object, a base (or operand), and optional upper and lower limits. Examples of n-ary objects are: ∫ 𝑥 𝑑𝑥 0 , ∑ (𝑛 𝑘)𝑘 , ∏ 𝐴𝑘 𝑛 𝑘=1 , and ⋃ (𝑋𝑛 ∩ 𝑌𝑛)𝑚 =1 . \[Example: The example below demonstrates an n-ary object in its proper form and XML representation: ∫ 𝑥 𝑑𝑥
@@ -3706,6 +4243,29 @@ impl XmlWrite for CT_Nary {
         }
         rt::write_extras(w, &self.extra_children, 4);
         w.end();
+    }
+}
+
+impl Validate for CT_Nary {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.nary_pr {
+            v.enter("m:naryPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sub {
+            v.enter("m:sub", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "sub", &self.extra_children);
+        }
+        if let Some(x) = &self.sup {
+            v.enter("m:sup", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "sup", &self.extra_children);
+        }
+        if let Some(x) = &self.e {
+            v.enter("m:e", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "e", &self.extra_children);
+        }
     }
 }
 
@@ -3837,6 +4397,29 @@ impl XmlWrite for CT_NaryPr {
     }
 }
 
+impl Validate for CT_NaryPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.chr {
+            v.enter("m:chr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lim_loc {
+            v.enter("m:limLoc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.grow {
+            v.enter("m:grow", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sub_hide {
+            v.enter("m:subHide", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sup_hide {
+            v.enter("m:supHide", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Office Math (ECMA-376 Part 1 §22.1.2.77).
 ///
 /// This element specifies an instance of mathematical text. When used independently (not inside an oMathPara) with non-mathematical text preceding and/or following it, an independent oMath is interpreted as an inline math zone. All such math zones, including equations, expressions, arrays of equations or expressions, and formulas are represented by oMath blocks.
@@ -3941,6 +4524,14 @@ impl XmlWrite for CT_OMath {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_OMath {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.o_math_elements.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -4086,6 +4677,20 @@ impl XmlWrite for CT_OMathArg {
     }
 }
 
+impl Validate for CT_OMathArg {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.arg_pr {
+            v.enter("m:argPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.o_math_elements.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Argument Properties (ECMA-376 Part 1 §22.1.2.5).
 ///
 /// This element specifies any properties of the math argument. \[Example: The XML below represents the argSz attribute on the base element e of a box:
@@ -4144,6 +4749,14 @@ impl XmlWrite for CT_OMathArgPr {
     }
 }
 
+impl Validate for CT_OMathArgPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.arg_sz {
+            v.enter("m:argSz", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Default Justification (ECMA-376 Part 1 §22.1.2.25).
 ///
 /// This element specifies the default justification of display math, at the document level. Individual instances of mathematical text can overrule the default setting. If this element is omitted, the default justification is centerGroup.
@@ -4195,6 +4808,10 @@ impl XmlWrite for CT_OMathJc {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_OMathJc {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Office Math Paragraph (ECMA-376 Part 1 §22.1.2.78).
@@ -4272,6 +4889,20 @@ impl XmlWrite for CT_OMathPara {
     }
 }
 
+impl Validate for CT_OMathPara {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.o_math_para_pr {
+            v.enter("m:oMathParaPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.o_math.iter().enumerate() {
+            v.enter("m:oMath", Some(i), |v| x.validate(v));
+        }
+        if self.o_math.is_empty() {
+            v.required_element(Ns::M, "oMath", &self.extra_children);
+        }
+    }
+}
+
 /// Office Math Paragraph Properties (ECMA-376 Part 1 §22.1.2.79).
 ///
 /// This property specifies properties of the math paragraph oMathPara, including justification jc.
@@ -4327,6 +4958,14 @@ impl XmlWrite for CT_OMathParaPr {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_OMathParaPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.jc {
+            v.enter("m:jc", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -4411,6 +5050,10 @@ impl XmlWrite for CT_OnOff {
     }
 }
 
+impl Validate for CT_OnOff {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Phantom Object (ECMA-376 Part 1 §22.1.2.81).
 ///
 /// This element specifies the phantom object. This object has two primary uses: adding the spacing of the phantom base element e without displaying that base; and suppressing part of the glyphfor spacing considerations.
@@ -4480,6 +5123,19 @@ impl XmlWrite for CT_Phant {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_Phant {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.phant_pr {
+            v.enter("m:phantPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.e {
+            v.enter("m:e", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "e", &self.extra_children);
+        }
     }
 }
 
@@ -4611,6 +5267,29 @@ impl XmlWrite for CT_PhantPr {
     }
 }
 
+impl Validate for CT_PhantPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.show {
+            v.enter("m:show", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.zero_wid {
+            v.enter("m:zeroWid", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.zero_asc {
+            v.enter("m:zeroAsc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.zero_desc {
+            v.enter("m:zeroDesc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.transp {
+            v.enter("m:transp", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Run (ECMA-376 Part 1 §22.1.2.87).
 ///
 /// This element specifies a run of mathematical text.
@@ -4727,6 +5406,20 @@ impl XmlWrite for CT_R {
     }
 }
 
+impl Validate for CT_R {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.r_pr {
+            v.enter("m:rPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.r_pr_2 {
+            v.enter("w:rPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Run Properties (ECMA-376 Part 1 §22.1.2.91).
 ///
 /// This element specifies the properties of the math run r.
@@ -4826,6 +5519,23 @@ impl XmlWrite for CT_RPR {
     }
 }
 
+impl Validate for CT_RPR {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.lit {
+            v.enter("m:lit", None, |v| x.validate(v));
+        }
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if let Some(x) = &self.brk {
+            v.enter("m:brk", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.aln {
+            v.enter("m:aln", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Radical Object (ECMA-376 Part 1 §22.1.2.88).
 ///
 /// This element specifies the radical object, consisting of a radical, a base e, and an optional degree deg. \[Example: Examples of rad are √𝑥 (XML shown below) and √𝑥. &lt;m:rad&gt; &lt;m:deg&gt; &lt;m:r&gt; &lt;m:rPr&gt; &lt;m:scr m:val="roman"/&gt; &lt;m:sty m:val="p"/&gt; &lt;/m:rPr&gt; &lt;m:t&gt;3&lt;/m:t&gt; &lt;/m:r&gt; &lt;/m:deg&gt;
@@ -4912,6 +5622,24 @@ impl XmlWrite for CT_Rad {
     }
 }
 
+impl Validate for CT_Rad {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.rad_pr {
+            v.enter("m:radPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.deg {
+            v.enter("m:deg", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "deg", &self.extra_children);
+        }
+        if let Some(x) = &self.e {
+            v.enter("m:e", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "e", &self.extra_children);
+        }
+    }
+}
+
 /// Radical Properties (ECMA-376 Part 1 §22.1.2.89).
 ///
 /// This element specifies properties of the Radical object rad, including the hidden or shown state of the degree deg. \[Example: √𝑏 is represented by the following XML: &lt;m:rad&gt; &lt;m:radPr&gt; &lt;m:degHide m:val="1"/&gt; &lt;/m:radPr&gt; &lt;m:deg/&gt; &lt;m:e&gt; &lt;m:r&gt; &lt;m:t&gt;b&lt;/m:t&gt; &lt;/m:r&gt; &lt;/m:e&gt; &lt;/m:rad&gt; end example\]
@@ -4981,6 +5709,17 @@ impl XmlWrite for CT_RadPr {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_RadPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.deg_hide {
+            v.enter("m:degHide", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -5084,6 +5823,29 @@ impl XmlWrite for CT_SPre {
     }
 }
 
+impl Validate for CT_SPre {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.s_pre_pr {
+            v.enter("m:sPrePr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sub {
+            v.enter("m:sub", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "sub", &self.extra_children);
+        }
+        if let Some(x) = &self.sup {
+            v.enter("m:sup", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "sup", &self.extra_children);
+        }
+        if let Some(x) = &self.e {
+            v.enter("m:e", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "e", &self.extra_children);
+        }
+    }
+}
+
 /// Pre-Sub-Superscript Properties (ECMA-376 Part 1 §22.1.2.100).
 ///
 /// This element specifies properties such as ctrlPr that can be stored on the Pre-Sub-Superscript object sPre.
@@ -5139,6 +5901,14 @@ impl XmlWrite for CT_SPrePr {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SPrePr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -5228,6 +5998,24 @@ impl XmlWrite for CT_SSub {
     }
 }
 
+impl Validate for CT_SSub {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.s_sub_pr {
+            v.enter("m:sSubPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.e {
+            v.enter("m:e", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "e", &self.extra_children);
+        }
+        if let Some(x) = &self.sub {
+            v.enter("m:sub", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "sub", &self.extra_children);
+        }
+    }
+}
+
 /// Subscript Properties (ECMA-376 Part 1 §22.1.2.102).
 ///
 /// This element specifies properties such as ctrlPr that can be stored on the Subscript object sSub.
@@ -5283,6 +6071,14 @@ impl XmlWrite for CT_SSubPr {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SSubPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -5386,6 +6182,29 @@ impl XmlWrite for CT_SSubSup {
     }
 }
 
+impl Validate for CT_SSubSup {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.s_sub_sup_pr {
+            v.enter("m:sSubSupPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.e {
+            v.enter("m:e", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "e", &self.extra_children);
+        }
+        if let Some(x) = &self.sub {
+            v.enter("m:sub", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "sub", &self.extra_children);
+        }
+        if let Some(x) = &self.sup {
+            v.enter("m:sup", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "sup", &self.extra_children);
+        }
+    }
+}
+
 /// Sub-Superscript Properties (ECMA-376 Part 1 §22.1.2.104).
 ///
 /// This element specifies properties of the Sub-Superscript object, including the alignment of scripts.
@@ -5455,6 +6274,17 @@ impl XmlWrite for CT_SSubSupPr {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_SSubSupPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.aln_scr {
+            v.enter("m:alnScr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -5544,6 +6374,24 @@ impl XmlWrite for CT_SSup {
     }
 }
 
+impl Validate for CT_SSup {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.s_sup_pr {
+            v.enter("m:sSupPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.e {
+            v.enter("m:e", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "e", &self.extra_children);
+        }
+        if let Some(x) = &self.sup {
+            v.enter("m:sup", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::M, "sup", &self.extra_children);
+        }
+    }
+}
+
 /// Superscript Properties (ECMA-376 Part 1 §22.1.2.106).
 ///
 /// This element specifies properties such as ctrlPr that can be stored on the Superscript object sSup.
@@ -5602,6 +6450,14 @@ impl XmlWrite for CT_SSupPr {
     }
 }
 
+impl Validate for CT_SSupPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ctrl_pr {
+            v.enter("m:ctrlPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Script (ECMA-376 Part 1 §22.1.2.94).
 ///
 /// This element describes the script applied to the characters in the run. The XML includes the Unicode value of the character (between U+0000 and U+007F), along with the script of the character. The application maps the value and script type to the appropriate Unicode range.
@@ -5654,6 +6510,10 @@ impl XmlWrite for CT_Script {
     }
 }
 
+impl Validate for CT_Script {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Shape (Delimiters) (ECMA-376 Part 1 §22.1.2.97).
 ///
 /// This element specifies the shape of delimiters in the delimiter object d. Delimiters can be centered around the math axis of the mathematical text and still be made to fit the entire height of their contents (see right-hand example below), or their height and shape can be altered to exactly match their contents (see left-hand example below). These settings significantly impact the shape of the mathematical text.
@@ -5703,6 +6563,14 @@ impl XmlWrite for CT_Shp {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Shp {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::M, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -5759,6 +6627,14 @@ impl XmlWrite for CT_SpacingRule {
     }
 }
 
+impl Validate for CT_SpacingRule {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::M, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Math Font (ECMA-376 Part 1 §22.1.2.61).
 ///
 /// This element specifies the default math font to be used in the document. If this element is omitted, font substitution (§17.8.2) should be used to determine the most appropriate font for use throughout the document.
@@ -5811,6 +6687,10 @@ impl XmlWrite for CT_String {
     }
 }
 
+impl Validate for CT_String {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// style (ECMA-376 Part 1 §22.1.2.111).
 ///
 /// This element describes the script applied to the characters in the run. The XML includes the Unicode value of the character along with the style of the character. The application maps the value and style to the appropriate Unicode range.
@@ -5861,6 +6741,10 @@ impl XmlWrite for CT_Style {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Style {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Text (ECMA-376 Part 1 §22.1.2.116).
@@ -5919,6 +6803,10 @@ impl XmlWrite for CT_Text {
     }
 }
 
+impl Validate for CT_Text {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Position (ECMA-376 Part 1 §22.1.2.84).
 ///
 /// This element specifies the position of the bar or group character in the parent object; the default is bot. Whether the element is absent or present without the val attribute, the default of the val attribute is bot.
@@ -5969,6 +6857,14 @@ impl XmlWrite for CT_TopBot {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TopBot {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::M, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -6030,6 +6926,14 @@ impl XmlWrite for CT_TwipsMeasure {
     }
 }
 
+impl Validate for CT_TwipsMeasure {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::M, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Matrix Column Gap (ECMA-376 Part 1 §22.1.2.18).
 ///
 /// This element represents the (custom) column gap spacing information; the default value is 0 (which corresponds to 1 em). This value is interpreted differently depending on the value of cGpRule (§22.1.2.19). cGp is not used unless the value of cGpRule is 3 or 4. When cGpRule is omitted, the default spacing between matrix columns is 1 em (a val attribute value of 0).
@@ -6081,6 +6985,14 @@ impl XmlWrite for CT_UnSignedInteger {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_UnSignedInteger {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::M, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -6136,6 +7048,14 @@ impl XmlWrite for CT_XAlign {
     }
 }
 
+impl Validate for CT_XAlign {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::M, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Matrix Base Justification (ECMA-376 Part 1 §22.1.2.9).
 ///
 /// This element specifies the justification of the matrix. Text outside of the matrix can be aligned with the bottom, top, or center of a matrix object. If this element is omitted, the matrix assumes center justification.
@@ -6188,6 +7108,14 @@ impl XmlWrite for CT_YAlign {
     }
 }
 
+impl Validate for CT_YAlign {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::M, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// A choice among the child elements of `CT_MathPr`.
 #[derive(Clone, Debug, PartialEq)]
 pub enum CT_MathPr_Choice {
@@ -6215,6 +7143,15 @@ impl CT_MathPr_Choice {
             Self::WrapIndent(v) => v.write_xml(w, Ns::M, "wrapIndent"),
             Self::WrapRight(v) => v.write_xml(w, Ns::M, "wrapRight"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::WrapIndent(x) => v.enter("m:wrapIndent", index, |v| x.validate(v)),
+            Self::WrapRight(x) => v.enter("m:wrapRight", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -6259,6 +7196,16 @@ impl CT_RPR_Choice {
             Self::Scr(v) => v.write_xml(w, Ns::M, "scr"),
             Self::Sty(v) => v.write_xml(w, Ns::M, "sty"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Nor(x) => v.enter("m:nor", index, |v| x.validate(v)),
+            Self::Scr(x) => v.enter("m:scr", index, |v| x.validate(v)),
+            Self::Sty(x) => v.enter("m:sty", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -6432,6 +7379,47 @@ impl CT_R_Choice {
             Self::LastRenderedPageBreak(v) => v.write_xml(w, Ns::W, "lastRenderedPageBreak"),
             Self::MT(v) => v.write_xml(w, Ns::M, "t"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Br(x) => v.enter("w:br", index, |v| x.validate(v)),
+            Self::WT(x) => v.enter("w:t", index, |v| x.validate(v)),
+            Self::ContentPart(x) => v.enter("w:contentPart", index, |v| x.validate(v)),
+            Self::DelText(x) => v.enter("w:delText", index, |v| x.validate(v)),
+            Self::InstrText(x) => v.enter("w:instrText", index, |v| x.validate(v)),
+            Self::DelInstrText(x) => v.enter("w:delInstrText", index, |v| x.validate(v)),
+            Self::NoBreakHyphen(x) => v.enter("w:noBreakHyphen", index, |v| x.validate(v)),
+            Self::SoftHyphen(x) => v.enter("w:softHyphen", index, |v| x.validate(v)),
+            Self::DayShort(x) => v.enter("w:dayShort", index, |v| x.validate(v)),
+            Self::MonthShort(x) => v.enter("w:monthShort", index, |v| x.validate(v)),
+            Self::YearShort(x) => v.enter("w:yearShort", index, |v| x.validate(v)),
+            Self::DayLong(x) => v.enter("w:dayLong", index, |v| x.validate(v)),
+            Self::MonthLong(x) => v.enter("w:monthLong", index, |v| x.validate(v)),
+            Self::YearLong(x) => v.enter("w:yearLong", index, |v| x.validate(v)),
+            Self::AnnotationRef(x) => v.enter("w:annotationRef", index, |v| x.validate(v)),
+            Self::FootnoteRef(x) => v.enter("w:footnoteRef", index, |v| x.validate(v)),
+            Self::EndnoteRef(x) => v.enter("w:endnoteRef", index, |v| x.validate(v)),
+            Self::Separator(x) => v.enter("w:separator", index, |v| x.validate(v)),
+            Self::ContinuationSeparator(x) => v.enter("w:continuationSeparator", index, |v| x.validate(v)),
+            Self::Sym(x) => v.enter("w:sym", index, |v| x.validate(v)),
+            Self::PgNum(x) => v.enter("w:pgNum", index, |v| x.validate(v)),
+            Self::Cr(x) => v.enter("w:cr", index, |v| x.validate(v)),
+            Self::Tab(x) => v.enter("w:tab", index, |v| x.validate(v)),
+            Self::Object(x) => v.enter("w:object", index, |v| x.validate(v)),
+            Self::Pict(x) => v.enter("w:pict", index, |v| x.validate(v)),
+            Self::FldChar(x) => v.enter("w:fldChar", index, |v| x.validate(v)),
+            Self::Ruby(x) => v.enter("w:ruby", index, |v| x.validate(v)),
+            Self::FootnoteReference(x) => v.enter("w:footnoteReference", index, |v| x.validate(v)),
+            Self::EndnoteReference(x) => v.enter("w:endnoteReference", index, |v| x.validate(v)),
+            Self::CommentReference(x) => v.enter("w:commentReference", index, |v| x.validate(v)),
+            Self::Drawing(x) => v.enter("w:drawing", index, |v| x.validate(v)),
+            Self::Ptab(x) => v.enter("w:ptab", index, |v| x.validate(v)),
+            Self::LastRenderedPageBreak(x) => v.enter("w:lastRenderedPageBreak", index, |v| x.validate(v)),
+            Self::MT(x) => v.enter("m:t", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -6712,6 +7700,71 @@ impl EG_OMathElements {
             Self::OMathPara(v) => v.write_xml(w, Ns::M, "oMathPara"),
             Self::OMath(v) => v.write_xml(w, Ns::M, "oMath"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Acc(x) => v.enter("m:acc", index, |v| x.validate(v)),
+            Self::Bar(x) => v.enter("m:bar", index, |v| x.validate(v)),
+            Self::Box(x) => v.enter("m:box", index, |v| x.validate(v)),
+            Self::BorderBox(x) => v.enter("m:borderBox", index, |v| x.validate(v)),
+            Self::D(x) => v.enter("m:d", index, |v| x.validate(v)),
+            Self::EqArr(x) => v.enter("m:eqArr", index, |v| x.validate(v)),
+            Self::F(x) => v.enter("m:f", index, |v| x.validate(v)),
+            Self::Func(x) => v.enter("m:func", index, |v| x.validate(v)),
+            Self::GroupChr(x) => v.enter("m:groupChr", index, |v| x.validate(v)),
+            Self::LimLow(x) => v.enter("m:limLow", index, |v| x.validate(v)),
+            Self::LimUpp(x) => v.enter("m:limUpp", index, |v| x.validate(v)),
+            Self::M(x) => v.enter("m:m", index, |v| x.validate(v)),
+            Self::Nary(x) => v.enter("m:nary", index, |v| x.validate(v)),
+            Self::Phant(x) => v.enter("m:phant", index, |v| x.validate(v)),
+            Self::Rad(x) => v.enter("m:rad", index, |v| x.validate(v)),
+            Self::SPre(x) => v.enter("m:sPre", index, |v| x.validate(v)),
+            Self::SSub(x) => v.enter("m:sSub", index, |v| x.validate(v)),
+            Self::SSubSup(x) => v.enter("m:sSubSup", index, |v| x.validate(v)),
+            Self::SSup(x) => v.enter("m:sSup", index, |v| x.validate(v)),
+            Self::R(x) => v.enter("m:r", index, |v| x.validate(v)),
+            Self::CustomXml(x) => v.enter("w:customXml", index, |v| x.validate(v)),
+            Self::FldSimple(x) => v.enter("w:fldSimple", index, |v| x.validate(v)),
+            Self::Hyperlink(x) => v.enter("w:hyperlink", index, |v| x.validate(v)),
+            Self::SmartTag(x) => v.enter("w:smartTag", index, |v| x.validate(v)),
+            Self::Sdt(x) => v.enter("w:sdt", index, |v| x.validate(v)),
+            Self::ProofErr(x) => v.enter("w:proofErr", index, |v| x.validate(v)),
+            Self::PermStart(x) => v.enter("w:permStart", index, |v| x.validate(v)),
+            Self::PermEnd(x) => v.enter("w:permEnd", index, |v| x.validate(v)),
+            Self::BookmarkStart(x) => v.enter("w:bookmarkStart", index, |v| x.validate(v)),
+            Self::BookmarkEnd(x) => v.enter("w:bookmarkEnd", index, |v| x.validate(v)),
+            Self::MoveFromRangeStart(x) => v.enter("w:moveFromRangeStart", index, |v| x.validate(v)),
+            Self::MoveFromRangeEnd(x) => v.enter("w:moveFromRangeEnd", index, |v| x.validate(v)),
+            Self::MoveToRangeStart(x) => v.enter("w:moveToRangeStart", index, |v| x.validate(v)),
+            Self::MoveToRangeEnd(x) => v.enter("w:moveToRangeEnd", index, |v| x.validate(v)),
+            Self::CommentRangeStart(x) => v.enter("w:commentRangeStart", index, |v| x.validate(v)),
+            Self::CommentRangeEnd(x) => v.enter("w:commentRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlInsRangeStart(x) => v.enter("w:customXmlInsRangeStart", index, |v| x.validate(v)),
+            Self::CustomXmlInsRangeEnd(x) => v.enter("w:customXmlInsRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlDelRangeStart(x) => v.enter("w:customXmlDelRangeStart", index, |v| x.validate(v)),
+            Self::CustomXmlDelRangeEnd(x) => v.enter("w:customXmlDelRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlMoveFromRangeStart(x) => {
+                v.enter("w:customXmlMoveFromRangeStart", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveFromRangeEnd(x) => {
+                v.enter("w:customXmlMoveFromRangeEnd", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveToRangeStart(x) => {
+                v.enter("w:customXmlMoveToRangeStart", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveToRangeEnd(x) => {
+                v.enter("w:customXmlMoveToRangeEnd", index, |v| x.validate(v))
+            }
+            Self::Ins(x) => v.enter("w:ins", index, |v| x.validate(v)),
+            Self::Del(x) => v.enter("w:del", index, |v| x.validate(v)),
+            Self::MoveFrom(x) => v.enter("w:moveFrom", index, |v| x.validate(v)),
+            Self::MoveTo(x) => v.enter("w:moveTo", index, |v| x.validate(v)),
+            Self::OMathPara(x) => v.enter("m:oMathPara", index, |v| x.validate(v)),
+            Self::OMath(x) => v.enter("m:oMath", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 

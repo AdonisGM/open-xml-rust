@@ -453,6 +453,10 @@ impl XmlWrite for CT_AnchorLock {
     }
 }
 
+impl Validate for CT_AnchorLock {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Schema complex type `CT_Border`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Border {
@@ -515,6 +519,10 @@ impl XmlWrite for CT_Border {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Border {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Schema complex type `CT_Wrap`.
@@ -588,6 +596,10 @@ impl XmlWrite for CT_Wrap {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Wrap {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Global elements of this schema. Each can be the root of a document part.

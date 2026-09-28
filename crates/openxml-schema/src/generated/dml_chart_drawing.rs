@@ -110,6 +110,26 @@ impl XmlWrite for CT_AbsSizeAnchor {
     }
 }
 
+impl Validate for CT_AbsSizeAnchor {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.from {
+            v.enter("cdr:from", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "from", &self.extra_children);
+        }
+        if let Some(x) = &self.ext {
+            v.enter("cdr:ext", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "ext", &self.extra_children);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of cdr:sp, cdr:grpSp, cdr:graphicFrame, cdr:cxnSp, cdr:pic");
+        }
+    }
+}
+
 /// Connection Shape (ECMA-376 Part 1 §21.3.2.9).
 ///
 /// This element specifies a connection shape that is used to connect two sp elements. Once a connection is specified using a cxnSp, it is left to the generating application to determine the exact path the connector takes. That is the connector routing algorithm is left up to the generating application as the desired path might be different depending on the specific needs of the application.
@@ -217,6 +237,24 @@ impl XmlWrite for CT_Connector {
     }
 }
 
+impl Validate for CT_Connector {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.nv_cxn_sp_pr {
+            v.enter("cdr:nvCxnSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "nvCxnSpPr", &self.extra_children);
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("cdr:spPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "spPr", &self.extra_children);
+        }
+        if let Some(x) = &self.style {
+            v.enter("cdr:style", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Connector Non Visual Properties (ECMA-376 Part 1 §21.3.2.15).
 ///
 /// This element specifies all non-visual properties for a connection shape. This element is a container for the non- visual identification properties, shape properties and application properties that are to be associated with a connection shape. This allows for additional information that does not affect the appearance of the connection shape to be stored.
@@ -289,6 +327,21 @@ impl XmlWrite for CT_ConnectorNonVisual {
     }
 }
 
+impl Validate for CT_ConnectorNonVisual {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("cdr:cNvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "cNvPr", &self.extra_children);
+        }
+        if let Some(x) = &self.c_nv_cxn_sp_pr {
+            v.enter("cdr:cNvCxnSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "cNvCxnSpPr", &self.extra_children);
+        }
+    }
+}
+
 /// Schema complex type `CT_Drawing`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Drawing {
@@ -335,6 +388,14 @@ impl XmlWrite for CT_Drawing {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Drawing {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.anchor.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -445,6 +506,26 @@ impl XmlWrite for CT_GraphicFrame {
     }
 }
 
+impl Validate for CT_GraphicFrame {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.nv_graphic_frame_pr {
+            v.enter("cdr:nvGraphicFramePr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "nvGraphicFramePr", &self.extra_children);
+        }
+        if let Some(x) = &self.xfrm {
+            v.enter("cdr:xfrm", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "xfrm", &self.extra_children);
+        }
+        if let Some(x) = &self.graphic {
+            v.enter("a:graphic", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "graphic", &self.extra_children);
+        }
+    }
+}
+
 /// Non-Visual Graphic Frame Properties (ECMA-376 Part 1 §21.3.2.16).
 ///
 /// This element specifies all non-visual properties for a graphic frame. This element is a container for the non-visual identification properties, shape properties and application properties that are to be associated with a graphic frame. This allows for additional information that does not affect the appearance of the graphic frame to be stored.
@@ -514,6 +595,21 @@ impl XmlWrite for CT_GraphicFrameNonVisual {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_GraphicFrameNonVisual {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("cdr:cNvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "cNvPr", &self.extra_children);
+        }
+        if let Some(x) = &self.c_nv_graphic_frame_pr {
+            v.enter("cdr:cNvGraphicFramePr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "cNvGraphicFramePr", &self.extra_children);
+        }
     }
 }
 
@@ -606,6 +702,24 @@ impl XmlWrite for CT_GroupShape {
     }
 }
 
+impl Validate for CT_GroupShape {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.nv_grp_sp_pr {
+            v.enter("cdr:nvGrpSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "nvGrpSpPr", &self.extra_children);
+        }
+        if let Some(x) = &self.grp_sp_pr {
+            v.enter("cdr:grpSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "grpSpPr", &self.extra_children);
+        }
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Non-Visual Group Shape Properties (ECMA-376 Part 1 §21.3.2.17).
 ///
 /// This element specifies all non-visual properties for a group shape. This element is a container for the non-visual identification properties, shape properties and application properties that are to be associated with a group shape. This allows for additional information that does not affect the appearance of the group shape to be stored.
@@ -675,6 +789,21 @@ impl XmlWrite for CT_GroupShapeNonVisual {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_GroupShapeNonVisual {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("cdr:cNvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "cNvPr", &self.extra_children);
+        }
+        if let Some(x) = &self.c_nv_grp_sp_pr {
+            v.enter("cdr:cNvGrpSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "cNvGrpSpPr", &self.extra_children);
+        }
     }
 }
 
@@ -754,6 +883,17 @@ impl XmlWrite for CT_Marker {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_Marker {
+    fn validate(&self, v: &mut Validator) {
+        if self.x.is_none() {
+            v.required_element(Ns::CDR, "x", &self.extra_children);
+        }
+        if self.y.is_none() {
+            v.required_element(Ns::CDR, "y", &self.extra_children);
+        }
     }
 }
 
@@ -878,6 +1018,29 @@ impl XmlWrite for CT_Picture {
     }
 }
 
+impl Validate for CT_Picture {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.nv_pic_pr {
+            v.enter("cdr:nvPicPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "nvPicPr", &self.extra_children);
+        }
+        if let Some(x) = &self.blip_fill {
+            v.enter("cdr:blipFill", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "blipFill", &self.extra_children);
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("cdr:spPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "spPr", &self.extra_children);
+        }
+        if let Some(x) = &self.style {
+            v.enter("cdr:style", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Non-Visual Picture Properties (ECMA-376 Part 1 §21.3.2.18).
 ///
 /// This element specifies the non visual properties for a picture. This allows for additional information that does not affect the appearance of the picture to be stored.
@@ -947,6 +1110,21 @@ impl XmlWrite for CT_PictureNonVisual {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_PictureNonVisual {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("cdr:cNvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "cNvPr", &self.extra_children);
+        }
+        if let Some(x) = &self.c_nv_pic_pr {
+            v.enter("cdr:cNvPicPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "cNvPicPr", &self.extra_children);
+        }
     }
 }
 
@@ -1037,6 +1215,26 @@ impl XmlWrite for CT_RelSizeAnchor {
         }
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_RelSizeAnchor {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.from {
+            v.enter("cdr:from", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "from", &self.extra_children);
+        }
+        if let Some(x) = &self.to {
+            v.enter("cdr:to", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "to", &self.extra_children);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of cdr:sp, cdr:grpSp, cdr:graphicFrame, cdr:cxnSp, cdr:pic");
+        }
     }
 }
 
@@ -1179,6 +1377,27 @@ impl XmlWrite for CT_Shape {
     }
 }
 
+impl Validate for CT_Shape {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.nv_sp_pr {
+            v.enter("cdr:nvSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "nvSpPr", &self.extra_children);
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("cdr:spPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "spPr", &self.extra_children);
+        }
+        if let Some(x) = &self.style {
+            v.enter("cdr:style", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx_body {
+            v.enter("cdr:txBody", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Non-Visual Shape Properties (ECMA-376 Part 1 §21.3.2.19).
 ///
 /// This element specifies all non-visual properties for a shape. This element is a container for the non-visual identification properties, shape properties and application properties that are to be associated with a shape. This allows for additional information that does not affect the appearance of the shape to be stored.
@@ -1251,6 +1470,21 @@ impl XmlWrite for CT_ShapeNonVisual {
     }
 }
 
+impl Validate for CT_ShapeNonVisual {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("cdr:cNvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "cNvPr", &self.extra_children);
+        }
+        if let Some(x) = &self.c_nv_sp_pr {
+            v.enter("cdr:cNvSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::CDR, "cNvSpPr", &self.extra_children);
+        }
+    }
+}
+
 /// A choice among the child elements of `CT_AbsSizeAnchor`.
 #[derive(Clone, Debug, PartialEq)]
 pub enum CT_AbsSizeAnchor_Choice {
@@ -1290,6 +1524,18 @@ impl CT_AbsSizeAnchor_Choice {
             Self::CxnSp(v) => v.write_xml(w, Ns::CDR, "cxnSp"),
             Self::Pic(v) => v.write_xml(w, Ns::CDR, "pic"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Sp(x) => v.enter("cdr:sp", index, |v| x.validate(v)),
+            Self::GrpSp(x) => v.enter("cdr:grpSp", index, |v| x.validate(v)),
+            Self::GraphicFrame(x) => v.enter("cdr:graphicFrame", index, |v| x.validate(v)),
+            Self::CxnSp(x) => v.enter("cdr:cxnSp", index, |v| x.validate(v)),
+            Self::Pic(x) => v.enter("cdr:pic", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -1348,6 +1594,18 @@ impl CT_GroupShape_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Sp(x) => v.enter("cdr:sp", index, |v| x.validate(v)),
+            Self::GrpSp(x) => v.enter("cdr:grpSp", index, |v| x.validate(v)),
+            Self::GraphicFrame(x) => v.enter("cdr:graphicFrame", index, |v| x.validate(v)),
+            Self::CxnSp(x) => v.enter("cdr:cxnSp", index, |v| x.validate(v)),
+            Self::Pic(x) => v.enter("cdr:pic", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -1403,6 +1661,18 @@ impl CT_RelSizeAnchor_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Sp(x) => v.enter("cdr:sp", index, |v| x.validate(v)),
+            Self::GrpSp(x) => v.enter("cdr:grpSp", index, |v| x.validate(v)),
+            Self::GraphicFrame(x) => v.enter("cdr:graphicFrame", index, |v| x.validate(v)),
+            Self::CxnSp(x) => v.enter("cdr:cxnSp", index, |v| x.validate(v)),
+            Self::Pic(x) => v.enter("cdr:pic", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -1443,6 +1713,15 @@ impl EG_Anchor {
             Self::RelSizeAnchor(v) => v.write_xml(w, Ns::CDR, "relSizeAnchor"),
             Self::AbsSizeAnchor(v) => v.write_xml(w, Ns::CDR, "absSizeAnchor"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::RelSizeAnchor(x) => v.enter("cdr:relSizeAnchor", index, |v| x.validate(v)),
+            Self::AbsSizeAnchor(x) => v.enter("cdr:absSizeAnchor", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 

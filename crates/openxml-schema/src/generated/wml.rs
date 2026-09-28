@@ -6966,6 +6966,35 @@ impl XmlWrite for CT_AbstractNum {
     }
 }
 
+impl Validate for CT_AbstractNum {
+    fn validate(&self, v: &mut Validator) {
+        if self.abstract_num_id.is_none() {
+            v.required_attribute(Ns::W, "abstractNumId", &self.extra_attrs);
+        }
+        if let Some(x) = &self.nsid {
+            v.enter("w:nsid", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.multi_level_type {
+            v.enter("w:multiLevelType", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tmpl {
+            v.enter("w:tmpl", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.name {
+            v.enter("w:name", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.style_link {
+            v.enter("w:styleLink", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_style_link {
+            v.enter("w:numStyleLink", None, |v| x.validate(v));
+        }
+        for (i, x) in self.lvl.iter().enumerate() {
+            v.enter("w:lvl", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Anchor for Imported External Content (ECMA-376 Part 1 §17.17.2.1).
 ///
 /// This element specifies a location within a document for the insertion of the contents of a specified file containing external content to be imported into the main WordprocessingML document. The specified file's contents should appear at the specified location within the document, and can henceforth be emitted as regular WordprocessingML without distinction to its origin. The location of the external content to be imported shall be specified by the relationship whose Id attribute matches the id attribute on this element.
@@ -7036,6 +7065,14 @@ impl XmlWrite for CT_AltChunk {
     }
 }
 
+impl Validate for CT_AltChunk {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.alt_chunk_pr {
+            v.enter("w:altChunkPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// External Content Import Properties (ECMA-376 Part 1 §17.17.2.2).
 ///
 /// This element specifies the set of properties which shall be applied to the import of the external content specified by the parent altChunk element. Within ECMA-376, only one property is specified.
@@ -7091,6 +7128,14 @@ impl XmlWrite for CT_AltChunkPr {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_AltChunkPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.match_src {
+            v.enter("w:matchSrc", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -7165,6 +7210,17 @@ impl XmlWrite for CT_Attr {
     }
 }
 
+impl Validate for CT_Attr {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::W, "name", &self.extra_attrs);
+        }
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Single Automatic Captioning Setting (ECMA-376 Part 1 §17.15.1.7).
 ///
 /// This element specifies what type(s) of objects shall automatically labelled with captions (§17.15.1.17), and with which captions the specified objects shall be labelled as defined in the caption element (§17.15.1.16).
@@ -7226,6 +7282,17 @@ impl XmlWrite for CT_AutoCaption {
     }
 }
 
+impl Validate for CT_AutoCaption {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::W, "name", &self.extra_attrs);
+        }
+        if self.caption.is_none() {
+            v.required_attribute(Ns::W, "caption", &self.extra_attrs);
+        }
+    }
+}
+
 /// Automatic Captioning Settings (ECMA-376 Part 1 §17.15.1.8).
 ///
 /// This element specifies that one or more types of objects, when inserted into a WordprocessingML document, are automatically be labeled with a specific caption defined using the caption element (§17.15.1.16).
@@ -7284,6 +7351,17 @@ impl XmlWrite for CT_AutoCaptions {
         rt::write_extras_after(w, &self.extra_children, 0, self.auto_caption.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_AutoCaptions {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.auto_caption.iter().enumerate() {
+            v.enter("w:autoCaption", Some(i), |v| x.validate(v));
+        }
+        if self.auto_caption.is_empty() {
+            v.required_element(Ns::W, "autoCaption", &self.extra_children);
+        }
     }
 }
 
@@ -7395,6 +7473,14 @@ impl XmlWrite for CT_Background {
     }
 }
 
+impl Validate for CT_Background {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.drawing {
+            v.enter("w:drawing", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_Base64Binary`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Base64Binary {
@@ -7438,6 +7524,14 @@ impl XmlWrite for CT_Base64Binary {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Base64Binary {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -7543,6 +7637,14 @@ impl XmlWrite for CT_BdoContentRun {
     }
 }
 
+impl Validate for CT_BdoContentRun {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.p_content.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Document Body (ECMA-376 Part 1 §17.2.2).
 ///
 /// This element specifies the contents of the body of the document - the main document editing surface. The document body contains what is referred to as block-level markup - markup which can exist as a sibling element to paragraphs in a WordprocessingML document.
@@ -7645,6 +7747,17 @@ impl XmlWrite for CT_Body {
     }
 }
 
+impl Validate for CT_Body {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.block_level_elts.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if let Some(x) = &self.sect_pr {
+            v.enter("w:sectPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Bookmark Start (ECMA-376 Part 1 §17.13.6.2).
 ///
 /// This element specifies the start of a bookmark within a WordprocessingML document. This start marker is matched with the appropriately paired end marker by matching the value of the id attribute from the associated bookmarkEnd element. If no bookmarkEnd element exists subsequent to this element in document order with a matching id attribute value, then the document is non-conformant.
@@ -7733,6 +7846,17 @@ impl XmlWrite for CT_Bookmark {
     }
 }
 
+impl Validate for CT_Bookmark {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if self.name.is_none() {
+            v.required_attribute(Ns::W, "name", &self.extra_attrs);
+        }
+    }
+}
+
 /// Schema complex type `CT_BookmarkRange`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_BookmarkRange {
@@ -7803,6 +7927,14 @@ impl XmlWrite for CT_BookmarkRange {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_BookmarkRange {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -7951,6 +8083,14 @@ impl XmlWrite for CT_Border {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Border {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -8105,6 +8245,14 @@ impl XmlWrite for CT_BottomPageBorder {
     }
 }
 
+impl Validate for CT_BottomPageBorder {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Break (ECMA-376 Part 1 §17.3.3.1).
 ///
 /// This element specifies that a break shall be placed at the current location in the run content. A break is a special character which is used to override the normal line breaking that would be performed based on the normal layout of the document’s contents. \[Example: Normal breaking for English would occur only after a breaking space or optional hyphen character. end example\] The behavior of this break character (the location where text shall be restarted after this break) shall be determined by its type and clear attribute values, described below.
@@ -8166,6 +8314,10 @@ impl XmlWrite for CT_Br {
     }
 }
 
+impl Validate for CT_Br {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Date Picker Calendar Type (ECMA-376 Part 1 §17.5.2.3).
 ///
 /// This element specifies the calendar which shall be displayed for the current date picker structured document tag, if a user interface is present for the structured document tag. The calendar information is stored on this element's val attribute. If this element is omitted, then the calendar shall be gregorian.
@@ -8216,6 +8368,10 @@ impl XmlWrite for CT_CalendarType {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_CalendarType {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Single Caption Type Definition (ECMA-376 Part 1 §17.15.1.16).
@@ -8324,6 +8480,14 @@ impl XmlWrite for CT_Caption {
     }
 }
 
+impl Validate for CT_Caption {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::W, "name", &self.extra_attrs);
+        }
+    }
+}
+
 /// Caption Settings (ECMA-376 Part 1 §17.15.1.17).
 ///
 /// This element specifies the presence of information about captions in a given WordprocessingML document. This information is divided into two components:  The child element caption defines the format for a single type of caption to be automatically added to the document.
@@ -8396,6 +8560,20 @@ impl XmlWrite for CT_Captions {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_Captions {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.caption.iter().enumerate() {
+            v.enter("w:caption", Some(i), |v| x.validate(v));
+        }
+        if self.caption.is_empty() {
+            v.required_element(Ns::W, "caption", &self.extra_children);
+        }
+        if let Some(x) = &self.auto_captions {
+            v.enter("w:autoCaptions", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -8487,6 +8665,17 @@ impl XmlWrite for CT_CellMergeTrackChange {
     }
 }
 
+impl Validate for CT_CellMergeTrackChange {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if self.author.is_none() {
+            v.required_attribute(Ns::W, "author", &self.extra_attrs);
+        }
+    }
+}
+
 /// Character-Level Whitespace Compression (ECMA-376 Part 1 §17.15.1.18).
 ///
 /// This element specifies how full-width characters in the current WordprocessingML document should be compressed to remove additional whitespace when the contents of this document are displayed, specifically by specifying the set(s) of characters which can be compressed to remove additional whitespace. \[Note: The behavior of this element is functionally identical to the CSS text-justify-trim property. end note\] If this element is omitted, then the default value shall be dontCompress.
@@ -8536,6 +8725,14 @@ impl XmlWrite for CT_CharacterSpacing {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_CharacterSpacing {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -8598,6 +8795,10 @@ impl XmlWrite for CT_Charset {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Charset {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Paragraph Conditional Formatting (ECMA-376 Part 1 §17.3.1.8).
@@ -8762,6 +8963,10 @@ impl XmlWrite for CT_Cnf {
     }
 }
 
+impl Validate for CT_Cnf {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Run Content Color (ECMA-376 Part 1 §17.3.2.6).
 ///
 /// This element specifies the color which shall be used to display the contents of this run in the document. This color can be explicitly specified, or set to allow the consumer to automatically choose an appropriate color based on the background color behind the run's content. If this element is not present, the default value is to leave the formatting applied at previous level in the style hierarchy.
@@ -8839,6 +9044,14 @@ impl XmlWrite for CT_Color {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Color {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -8993,6 +9206,10 @@ impl XmlWrite for CT_ColorSchemeMapping {
     }
 }
 
+impl Validate for CT_ColorSchemeMapping {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Single Column Definition (ECMA-376 Part 1 §17.6.3).
 ///
 /// This element specifies the properties for a single column of text within this section.
@@ -9052,6 +9269,10 @@ impl XmlWrite for CT_Column {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Column {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Column Definitions (ECMA-376 Part 1 §17.6.4).
@@ -9151,6 +9372,14 @@ impl XmlWrite for CT_Columns {
         rt::write_extras_after(w, &self.extra_children, 0, self.col.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Columns {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.col.iter().enumerate() {
+            v.enter("w:col", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -9280,6 +9509,20 @@ impl XmlWrite for CT_Comment {
     }
 }
 
+impl Validate for CT_Comment {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if self.author.is_none() {
+            v.required_attribute(Ns::W, "author", &self.extra_attrs);
+        }
+        for (i, x) in self.block_level_elts.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Comments Collection (ECMA-376 Part 1 §17.13.4.6).
 ///
 /// This element specifies all of the comments defined in the current document. It is the root element of the Comments part of a WordprocessingML document.
@@ -9338,6 +9581,14 @@ impl XmlWrite for CT_Comments {
         rt::write_extras_after(w, &self.extra_children, 0, self.comment.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Comments {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.comment.iter().enumerate() {
+            v.enter("w:comment", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -10329,6 +10580,209 @@ impl XmlWrite for CT_Compat {
     }
 }
 
+impl Validate for CT_Compat {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.use_single_borderfor_contiguous_cells {
+            v.enter("w:useSingleBorderforContiguousCells", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.wp_justification {
+            v.enter("w:wpJustification", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.no_tab_hang_ind {
+            v.enter("w:noTabHangInd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.no_leading {
+            v.enter("w:noLeading", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.space_for_ul {
+            v.enter("w:spaceForUL", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.no_column_balance {
+            v.enter("w:noColumnBalance", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.balance_single_byte_double_byte_width {
+            v.enter("w:balanceSingleByteDoubleByteWidth", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.no_extra_line_spacing {
+            v.enter("w:noExtraLineSpacing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_leave_backslash_alone {
+            v.enter("w:doNotLeaveBackslashAlone", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ul_trail_space {
+            v.enter("w:ulTrailSpace", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_expand_shift_return {
+            v.enter("w:doNotExpandShiftReturn", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.spacing_in_whole_points {
+            v.enter("w:spacingInWholePoints", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.line_wrap_like_word6 {
+            v.enter("w:lineWrapLikeWord6", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.print_body_text_before_header {
+            v.enter("w:printBodyTextBeforeHeader", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.print_col_black {
+            v.enter("w:printColBlack", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.wp_space_width {
+            v.enter("w:wpSpaceWidth", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.show_breaks_in_frames {
+            v.enter("w:showBreaksInFrames", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sub_font_by_size {
+            v.enter("w:subFontBySize", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.suppress_bottom_spacing {
+            v.enter("w:suppressBottomSpacing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.suppress_top_spacing {
+            v.enter("w:suppressTopSpacing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.suppress_spacing_at_top_of_page {
+            v.enter("w:suppressSpacingAtTopOfPage", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.suppress_top_spacing_wp {
+            v.enter("w:suppressTopSpacingWP", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.suppress_sp_bf_after_pg_brk {
+            v.enter("w:suppressSpBfAfterPgBrk", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.swap_borders_facing_pages {
+            v.enter("w:swapBordersFacingPages", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.conv_mail_merge_esc {
+            v.enter("w:convMailMergeEsc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.truncate_font_heights_like_wp6 {
+            v.enter("w:truncateFontHeightsLikeWP6", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.mw_small_caps {
+            v.enter("w:mwSmallCaps", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.use_printer_metrics {
+            v.enter("w:usePrinterMetrics", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_suppress_paragraph_borders {
+            v.enter("w:doNotSuppressParagraphBorders", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.wrap_trail_spaces {
+            v.enter("w:wrapTrailSpaces", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.footnote_layout_like_ww8 {
+            v.enter("w:footnoteLayoutLikeWW8", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.shape_layout_like_ww8 {
+            v.enter("w:shapeLayoutLikeWW8", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.align_tables_row_by_row {
+            v.enter("w:alignTablesRowByRow", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.forget_last_tab_alignment {
+            v.enter("w:forgetLastTabAlignment", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.adjust_line_height_in_table {
+            v.enter("w:adjustLineHeightInTable", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.auto_space_like_word95 {
+            v.enter("w:autoSpaceLikeWord95", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.no_space_raise_lower {
+            v.enter("w:noSpaceRaiseLower", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_use_html_paragraph_auto_spacing {
+            v.enter("w:doNotUseHTMLParagraphAutoSpacing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.layout_raw_table_width {
+            v.enter("w:layoutRawTableWidth", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.layout_table_rows_apart {
+            v.enter("w:layoutTableRowsApart", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.use_word97_line_break_rules {
+            v.enter("w:useWord97LineBreakRules", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_break_wrapped_tables {
+            v.enter("w:doNotBreakWrappedTables", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_snap_to_grid_in_cell {
+            v.enter("w:doNotSnapToGridInCell", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.select_fld_with_first_or_last_char {
+            v.enter("w:selectFldWithFirstOrLastChar", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.apply_breaking_rules {
+            v.enter("w:applyBreakingRules", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_wrap_text_with_punct {
+            v.enter("w:doNotWrapTextWithPunct", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_use_east_asian_break_rules {
+            v.enter("w:doNotUseEastAsianBreakRules", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.use_word2002_table_style_rules {
+            v.enter("w:useWord2002TableStyleRules", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.grow_autofit {
+            v.enter("w:growAutofit", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.use_fe_layout {
+            v.enter("w:useFELayout", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.use_normal_style_for_list {
+            v.enter("w:useNormalStyleForList", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_use_indent_as_numbering_tab_stop {
+            v.enter("w:doNotUseIndentAsNumberingTabStop", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.use_alt_kinsoku_line_break_rules {
+            v.enter("w:useAltKinsokuLineBreakRules", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.allow_space_of_same_style_in_table {
+            v.enter("w:allowSpaceOfSameStyleInTable", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_suppress_indentation {
+            v.enter("w:doNotSuppressIndentation", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_autofit_constrained_tables {
+            v.enter("w:doNotAutofitConstrainedTables", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.autofit_to_first_fixed_width_cell {
+            v.enter("w:autofitToFirstFixedWidthCell", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.underline_tab_in_num_list {
+            v.enter("w:underlineTabInNumList", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.display_hangul_fixed_width {
+            v.enter("w:displayHangulFixedWidth", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.split_pg_break_and_para_mark {
+            v.enter("w:splitPgBreakAndParaMark", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_vert_align_cell_with_sp {
+            v.enter("w:doNotVertAlignCellWithSp", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_break_constrained_forced_table {
+            v.enter("w:doNotBreakConstrainedForcedTable", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_vert_align_in_txbx {
+            v.enter("w:doNotVertAlignInTxbx", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.use_ansi_kerning_pairs {
+            v.enter("w:useAnsiKerningPairs", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cached_col_balance {
+            v.enter("w:cachedColBalance", None, |v| x.validate(v));
+        }
+        for (i, x) in self.compat_setting.iter().enumerate() {
+            v.enter("w:compatSetting", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Custom Compatibility Setting (ECMA-376 Part 1 §17.15.3.4).
 ///
 /// This element specifies a custom compatibility setting. The semantics for this element are implementation- defined. \[Note: This element can be used to store the transitional compatibility settings specified in Part 4 of ECMA-376. end note\]
@@ -10399,6 +10853,10 @@ impl XmlWrite for CT_CompatSetting {
     }
 }
 
+impl Validate for CT_CompatSetting {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Embedded Control (ECMA-376 Part 1 §17.3.3.3).
 ///
 /// This element specifies that the parent embedded object is a representation of an embedded control. This element shall be used to associate the appropriate embedded control settings and properties when the document is displayed. If the embedded control is not present, cannot be loaded due to application settings, or is not supported, then a suitable placeholder image shall be used to provide a representation of the presence of an embedded control at the appropriate location in the document.
@@ -10467,6 +10925,10 @@ impl XmlWrite for CT_Control {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Control {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Block-Level Custom XML Element (ECMA-376 Part 1 §17.5.1.6).
@@ -10590,6 +11052,20 @@ impl XmlWrite for CT_CustomXmlBlock {
     }
 }
 
+impl Validate for CT_CustomXmlBlock {
+    fn validate(&self, v: &mut Validator) {
+        if self.element.is_none() {
+            v.required_attribute(Ns::W, "element", &self.extra_attrs);
+        }
+        if let Some(x) = &self.custom_xml_pr {
+            v.enter("w:customXmlPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.content_block_content.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Cell-Level Custom XML Element (ECMA-376 Part 1 §17.5.1.4).
 ///
 /// This element specifies the presence of a custom XML element around a single table cell. The attributes on this element shall be used to specify the name and namespace URI of the current custom XML element.
@@ -10710,6 +11186,20 @@ impl XmlWrite for CT_CustomXmlCell {
     }
 }
 
+impl Validate for CT_CustomXmlCell {
+    fn validate(&self, v: &mut Validator) {
+        if self.element.is_none() {
+            v.required_attribute(Ns::W, "element", &self.extra_attrs);
+        }
+        if let Some(x) = &self.custom_xml_pr {
+            v.enter("w:customXmlPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.content_cell_content.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Custom XML Element Properties (ECMA-376 Part 1 §17.5.1.7).
 ///
 /// This element specifies the set of properties which shall be applied to the parent custom XML element.
@@ -10782,6 +11272,17 @@ impl XmlWrite for CT_CustomXmlPr {
         rt::write_extras_after(w, &self.extra_children, 1, self.attr.len());
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_CustomXmlPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.placeholder {
+            v.enter("w:placeholder", None, |v| x.validate(v));
+        }
+        for (i, x) in self.attr.iter().enumerate() {
+            v.enter("w:attr", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -10902,6 +11403,20 @@ impl XmlWrite for CT_CustomXmlRow {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_CustomXmlRow {
+    fn validate(&self, v: &mut Validator) {
+        if self.element.is_none() {
+            v.required_attribute(Ns::W, "element", &self.extra_attrs);
+        }
+        if let Some(x) = &self.custom_xml_pr {
+            v.enter("w:customXmlPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.content_row_content.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -11030,6 +11545,20 @@ impl XmlWrite for CT_CustomXmlRun {
     }
 }
 
+impl Validate for CT_CustomXmlRun {
+    fn validate(&self, v: &mut Validator) {
+        if self.element.is_none() {
+            v.required_attribute(Ns::W, "element", &self.extra_attrs);
+        }
+        if let Some(x) = &self.custom_xml_pr {
+            v.enter("w:customXmlPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.p_content.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// XML Mapping (ECMA-376 Part 1 §17.5.2.6).
 ///
 /// This element specifies the information that shall be used to establish a mapping between the nearest ancestor structured document tag and an XML element stored within a Custom XML Data part in the current WordprocessingML document. If this element is omitted, then no XML mapping shall be associated with the current structured document tag. If the nearest ancestor structured document tag is of type rich text or document part gallery, then this property shall be ignored.
@@ -11097,6 +11626,17 @@ impl XmlWrite for CT_DataBinding {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_DataBinding {
+    fn validate(&self, v: &mut Validator) {
+        if self.xpath.is_none() {
+            v.required_attribute(Ns::W, "xpath", &self.extra_attrs);
+        }
+        if self.store_item_id.is_none() {
+            v.required_attribute(Ns::W, "storeItemID", &self.extra_attrs);
+        }
     }
 }
 
@@ -11185,6 +11725,14 @@ impl XmlWrite for CT_DecimalNumber {
     }
 }
 
+impl Validate for CT_DecimalNumber {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Percentage of Document to Use When Generating Summary (ECMA-376 Part 1 §17.15.1.87).
 ///
 /// This element specifies the size for automatic document summaries performed on the content of a WordprocessingML document. An automatic document summary is a subset of text contained in a document deemed by the hosting application to summarize the content of the WordprocessingML document. The val attribute of this element specifies the size of an automatic document summary to be performed on a given WordprocessingML document as a percentage of the total size of the given WordprocessingML document.
@@ -11234,6 +11782,14 @@ impl XmlWrite for CT_DecimalNumberOrPrecent {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_DecimalNumberOrPrecent {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -11336,6 +11892,14 @@ impl XmlWrite for CT_DirContentRun {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_DirContentRun {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.p_content.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -11510,6 +12074,46 @@ impl XmlWrite for CT_Div {
     }
 }
 
+impl Validate for CT_Div {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if let Some(x) = &self.block_quote {
+            v.enter("w:blockQuote", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.body_div {
+            v.enter("w:bodyDiv", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.mar_left {
+            v.enter("w:marLeft", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "marLeft", &self.extra_children);
+        }
+        if let Some(x) = &self.mar_right {
+            v.enter("w:marRight", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "marRight", &self.extra_children);
+        }
+        if let Some(x) = &self.mar_top {
+            v.enter("w:marTop", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "marTop", &self.extra_children);
+        }
+        if let Some(x) = &self.mar_bottom {
+            v.enter("w:marBottom", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "marBottom", &self.extra_children);
+        }
+        if let Some(x) = &self.div_bdr {
+            v.enter("w:divBdr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.divs_child.iter().enumerate() {
+            v.enter("w:divsChild", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Set of Borders for HTML div (ECMA-376 Part 1 §17.15.2.7).
 ///
 /// This element specifies the set of borders for the boundaries of the current HTML div, body, or blockquote element, using the four border types defined by its child elements. If this element is omitted, then there shall be no borders associated with the current HTML v, body, or blockquote element.
@@ -11610,6 +12214,23 @@ impl XmlWrite for CT_DivBdr {
     }
 }
 
+impl Validate for CT_DivBdr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.top {
+            v.enter("w:top", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.left {
+            v.enter("w:left", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bottom {
+            v.enter("w:bottom", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.right {
+            v.enter("w:right", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Information about HTML div Elements (ECMA-376 Part 1 §17.15.2.8).
 ///
 /// This element specifies all information about the set of HTML div elements (as well as the body and blockquote elements) which were included in this document, so that that information (which is stored on a logical structure with no direct analog in WordprocessingML) can be maintained when an HTML document is stored in the WordprocessingML format. The divs element stores the following information about these structures:  The parent/child structure of HTML div, blockquote, and body elements  The borders for each of these elements  The margins for each of these elements
@@ -11669,6 +12290,17 @@ impl XmlWrite for CT_Divs {
         rt::write_extras_after(w, &self.extra_children, 0, self.div.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Divs {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.div.iter().enumerate() {
+            v.enter("w:div", Some(i), |v| x.validate(v));
+        }
+        if self.div.is_empty() {
+            v.required_element(Ns::W, "div", &self.extra_children);
+        }
     }
 }
 
@@ -11744,6 +12376,17 @@ impl XmlWrite for CT_DocDefaults {
     }
 }
 
+impl Validate for CT_DocDefaults {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.r_pr_default {
+            v.enter("w:rPrDefault", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.p_pr_default {
+            v.enter("w:pPrDefault", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Document Grid (ECMA-376 Part 1 §17.6.5).
 ///
 /// This element specifies the settings for the document grid, which enables precise layout of full-width East Asian language characters within a document by specifying the desired number of characters per line and lines per page for all East Asian text content in this section.
@@ -11812,6 +12455,10 @@ impl XmlWrite for CT_DocGrid {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_DocGrid {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Glossary Document Entry (ECMA-376 Part 1 §17.12.5).
@@ -11886,6 +12533,17 @@ impl XmlWrite for CT_DocPart {
     }
 }
 
+impl Validate for CT_DocPart {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.doc_part_pr {
+            v.enter("w:docPartPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.doc_part_body {
+            v.enter("w:docPartBody", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Entry Insertion Behavior (ECMA-376 Part 1 §17.12.1).
 ///
 /// This element specifies a single behavior which shall be applied to the contents of the parent glossary document entry (§17.12.5) when it is added to the main document story of a WordprocessingML document. These behaviors shall be used to format the surrounding WordprocessingML around insertion, and do not require the presence of a user interface (i.e. applications without a user interface shall also utilize these settings).
@@ -11935,6 +12593,14 @@ impl XmlWrite for CT_DocPartBehavior {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_DocPartBehavior {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -11996,6 +12662,17 @@ impl XmlWrite for CT_DocPartBehaviors {
         rt::write_extras_after(w, &self.extra_children, 0, self.behavior.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_DocPartBehaviors {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.behavior.iter().enumerate() {
+            v.enter("w:behavior", Some(i), |v| x.validate(v));
+        }
+        if self.behavior.is_empty() {
+            v.required_element(Ns::W, "behavior", &self.extra_children);
+        }
     }
 }
 
@@ -12071,6 +12748,21 @@ impl XmlWrite for CT_DocPartCategory {
     }
 }
 
+impl Validate for CT_DocPartCategory {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.name {
+            v.enter("w:name", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "name", &self.extra_children);
+        }
+        if let Some(x) = &self.gallery {
+            v.enter("w:gallery", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "gallery", &self.extra_children);
+        }
+    }
+}
+
 /// Gallery Associated With Entry (ECMA-376 Part 1 §17.12.9).
 ///
 /// This element specifies the predefined gallery into which the current glossary document part shall be classified. This classification, although its enumeration values can be interpreted to imply semantics around the contents of the parent glossary document entry, shall only be used to classify and sort this entry (via an application or a user interface).
@@ -12120,6 +12812,14 @@ impl XmlWrite for CT_DocPartGallery {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_DocPartGallery {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -12181,6 +12881,14 @@ impl XmlWrite for CT_DocPartName {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_DocPartName {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -12326,6 +13034,34 @@ impl XmlWrite for CT_DocPartPr {
     }
 }
 
+impl Validate for CT_DocPartPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.name {
+            v.enter("w:name", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "name", &self.extra_children);
+        }
+        if let Some(x) = &self.style {
+            v.enter("w:style", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.category {
+            v.enter("w:category", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.types {
+            v.enter("w:types", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.behaviors {
+            v.enter("w:behaviors", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.description {
+            v.enter("w:description", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.guid {
+            v.enter("w:guid", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Entry Type (ECMA-376 Part 1 §17.12.15).
 ///
 /// This element specifies an entry type which shall be applied to the properties of the parent glossary document entry (§17.12.5). Each of these entry types can, based on their values, influence the visibility and behavior of the parent glossary document entry as defined by the associated simple type information.
@@ -12375,6 +13111,14 @@ impl XmlWrite for CT_DocPartType {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_DocPartType {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -12451,6 +13195,17 @@ impl XmlWrite for CT_DocPartTypes {
     }
 }
 
+impl Validate for CT_DocPartTypes {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.type_.iter().enumerate() {
+            v.enter("w:type", Some(i), |v| x.validate(v));
+        }
+        if self.type_.is_empty() {
+            v.required_element(Ns::W, "type", &self.extra_children);
+        }
+    }
+}
+
 /// List of Glossary Document Entries (ECMA-376 Part 1 §17.12.8).
 ///
 /// This element specifies the collection of glossary document entries which are stored in the current Glossary Document part.
@@ -12509,6 +13264,17 @@ impl XmlWrite for CT_DocParts {
         rt::write_extras_after(w, &self.extra_children, 0, self.doc_part.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_DocParts {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.doc_part.iter().enumerate() {
+            v.enter("w:docPart", Some(i), |v| x.validate(v));
+        }
+        if self.doc_part.is_empty() {
+            v.required_element(Ns::W, "docPart", &self.extra_children);
+        }
     }
 }
 
@@ -12731,6 +13497,10 @@ impl XmlWrite for CT_DocProtect {
     }
 }
 
+impl Validate for CT_DocProtect {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Listing of All Revision Save ID Values (ECMA-376 Part 1 §17.15.1.72).
 ///
 /// This element specifies the set of revision save ID values for the current document. Revision save ID values refer to four digit hexadecimal values which uniquely identify an editing session in the life of the current document. An editing session is the period of time between two subsequent save operations by an application. \[Guidance: The set of revision save IDs stored with a document only supplies information about the editing session in which document components were last saved, which can be used by applications in any manner desired. end guidance\] If this element is omitted, then no information is available about the set of revision save ID values for this
@@ -12806,6 +13576,17 @@ impl XmlWrite for CT_DocRsids {
     }
 }
 
+impl Validate for CT_DocRsids {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.rsid_root {
+            v.enter("w:rsidRoot", None, |v| x.validate(v));
+        }
+        for (i, x) in self.rsid.iter().enumerate() {
+            v.enter("w:rsid", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Document Classification (ECMA-376 Part 1 §17.15.1.30).
 ///
 /// This element specifies the classification of a given WordprocessingML document.
@@ -12855,6 +13636,14 @@ impl XmlWrite for CT_DocType {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_DocType {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -12919,6 +13708,17 @@ impl XmlWrite for CT_DocVar {
     }
 }
 
+impl Validate for CT_DocVar {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::W, "name", &self.extra_attrs);
+        }
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Document Variables (ECMA-376 Part 1 §17.15.1.32).
 ///
 /// This element specifies the presence of document variables in a WordprocessingML. A document variable is a storage location for arbitrary customer data in name/value pairs that is persisted in a given WordprocessingML document.
@@ -12977,6 +13777,14 @@ impl XmlWrite for CT_DocVars {
         rt::write_extras_after(w, &self.extra_children, 0, self.doc_var.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_DocVars {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.doc_var.iter().enumerate() {
+            v.enter("w:docVar", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -13064,6 +13872,17 @@ impl XmlWrite for CT_Document {
     }
 }
 
+impl Validate for CT_Document {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.background {
+            v.enter("w:background", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.body {
+            v.enter("w:body", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_DocumentBase`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_DocumentBase {
@@ -13113,6 +13932,14 @@ impl XmlWrite for CT_DocumentBase {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_DocumentBase {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.background {
+            v.enter("w:background", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -13170,6 +13997,14 @@ impl XmlWrite for CT_Drawing {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Drawing {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -13259,6 +14094,10 @@ impl XmlWrite for CT_EastAsianLayout {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_EastAsianLayout {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Document-Wide Endnote Properties (ECMA-376 Part 1 §17.11.4).
@@ -13378,6 +14217,26 @@ impl XmlWrite for CT_EdnDocProps {
     }
 }
 
+impl Validate for CT_EdnDocProps {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pos {
+            v.enter("w:pos", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_fmt {
+            v.enter("w:numFmt", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_start {
+            v.enter("w:numStart", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_restart {
+            v.enter("w:numRestart", None, |v| x.validate(v));
+        }
+        for (i, x) in self.endnote.iter().enumerate() {
+            v.enter("w:endnote", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Endnote Placement (ECMA-376 Part 1 §17.11.22).
 ///
 /// This element specifies where endnotes shall be placed on the page when they are referenced by text in the current document. If this element is present at the section level, then it shall be ignored. If this element is omitted at the document level, then endnotes shall be located at the end of the document.
@@ -13427,6 +14286,14 @@ impl XmlWrite for CT_EdnPos {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_EdnPos {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -13530,6 +14397,23 @@ impl XmlWrite for CT_EdnProps {
     }
 }
 
+impl Validate for CT_EdnProps {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pos {
+            v.enter("w:pos", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_fmt {
+            v.enter("w:numFmt", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_start {
+            v.enter("w:numStart", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_restart {
+            v.enter("w:numRestart", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Emphasis Mark (ECMA-376 Part 1 §17.3.2.12).
 ///
 /// This element specifies the emphasis mark that shall be applied to each non-space character in this run. An emphasis mark is an additional character whose display position relative to the character to which it is applied is language- and writing-direction-dependent. The emphasis mark is specified by the contents of the val attribute.
@@ -13579,6 +14463,14 @@ impl XmlWrite for CT_Em {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Em {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -13645,6 +14537,10 @@ impl XmlWrite for CT_Empty {
     }
 }
 
+impl Validate for CT_Empty {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Document Endnotes (ECMA-376 Part 1 §17.11.8).
 ///
 /// This element specifies the set of all endnotes in the document, including endnote separators and continuation notices. This element is the root node for the Endnotes part.
@@ -13703,6 +14599,14 @@ impl XmlWrite for CT_Endnotes {
         rt::write_extras_after(w, &self.extra_children, 0, self.endnote.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Endnotes {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.endnote.iter().enumerate() {
+            v.enter("w:endnote", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -13789,6 +14693,22 @@ impl XmlWrite for CT_FFCheckBox {
         }
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_FFCheckBox {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of w:size, w:sizeAuto");
+        }
+        if let Some(x) = &self.default {
+            v.enter("w:default", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.checked {
+            v.enter("w:checked", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -13881,6 +14801,20 @@ impl XmlWrite for CT_FFDDList {
     }
 }
 
+impl Validate for CT_FFDDList {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.result {
+            v.enter("w:result", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.default {
+            v.enter("w:default", None, |v| x.validate(v));
+        }
+        for (i, x) in self.list_entry.iter().enumerate() {
+            v.enter("w:listEntry", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Form Field Properties (ECMA-376 Part 1 §17.16.17).
 ///
 /// This element specifies a set of properties which shall be associated with the parent form field within the document. This form field can be of any of the following types (with the associated field codes in parentheses):  Checkbox (FORMCHECKBOX)  Drop-down List (FORMDROPDOWN)  Text box (FORMTEXT) If this element is present and the field codes for the document do not specify a form field of one of these types, then the document shall be considered non-conformant. If this element is omitted, then the properties associated with the parent form field shall be determined based on their default values.
@@ -13949,6 +14883,14 @@ impl XmlWrite for CT_FFData {
     }
 }
 
+impl Validate for CT_FFData {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Associated Help Text (ECMA-376 Part 1 §17.16.21).
 ///
 /// This element specifies optional help text which shall be associated with the parent form field. The method or user interface by which this help text can be surfaced is not defined by ECMA-376. If this element is omitted, then no help text shall be associated with the current form field.
@@ -14010,6 +14952,10 @@ impl XmlWrite for CT_FFHelpText {
     }
 }
 
+impl Validate for CT_FFHelpText {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Form Field Name (ECMA-376 Part 1 §17.16.27).
 ///
 /// This element specifies the name of the current form field.
@@ -14060,6 +15006,10 @@ impl XmlWrite for CT_FFName {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_FFName {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Associated Status Text (ECMA-376 Part 1 §17.16.31).
@@ -14121,6 +15071,10 @@ impl XmlWrite for CT_FFStatusText {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_FFStatusText {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Text Box Form Field Properties (ECMA-376 Part 1 §17.16.33).
@@ -14223,6 +15177,23 @@ impl XmlWrite for CT_FFTextInput {
     }
 }
 
+impl Validate for CT_FFTextInput {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.type_ {
+            v.enter("w:type", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.default {
+            v.enter("w:default", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.max_length {
+            v.enter("w:maxLength", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.format {
+            v.enter("w:format", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Text Box Form Field Type (ECMA-376 Part 1 §17.16.34).
 ///
 /// This element specifies the type of the contents of the current text box form field. This element shall not be used to prevent the successful loading of any contents in the field, but shall be used to parse the formatting specified in the format element (§17.16.20) and should be used to prevent the addition of illegal content when its contents are edited by an application.
@@ -14272,6 +15243,14 @@ impl XmlWrite for CT_FFTextType {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_FFTextType {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -14333,6 +15312,14 @@ impl XmlWrite for CT_FitText {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_FitText {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -14421,6 +15408,17 @@ impl XmlWrite for CT_FldChar {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_FldChar {
+    fn validate(&self, v: &mut Validator) {
+        if self.fld_char_type.is_none() {
+            v.required_attribute(Ns::W, "fldCharType", &self.extra_attrs);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
     }
 }
 
@@ -14634,6 +15632,47 @@ impl XmlWrite for CT_Font {
     }
 }
 
+impl Validate for CT_Font {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::W, "name", &self.extra_attrs);
+        }
+        if let Some(x) = &self.alt_name {
+            v.enter("w:altName", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.panose1 {
+            v.enter("w:panose1", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.charset {
+            v.enter("w:charset", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.family {
+            v.enter("w:family", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.not_true_type {
+            v.enter("w:notTrueType", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.pitch {
+            v.enter("w:pitch", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sig {
+            v.enter("w:sig", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.embed_regular {
+            v.enter("w:embedRegular", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.embed_bold {
+            v.enter("w:embedBold", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.embed_italic {
+            v.enter("w:embedItalic", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.embed_bold_italic {
+            v.enter("w:embedBoldItalic", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Font Family (ECMA-376 Part 1 §17.8.3.9).
 ///
 /// This element specifies the font family of the current font. This information can be used as defined in font substitution logic to locate an appropriate substitute font when this font is not available. This information is determined by querying the font when present and shall not be modified when the font is not available.
@@ -14683,6 +15722,14 @@ impl XmlWrite for CT_FontFamily {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_FontFamily {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -14756,6 +15803,14 @@ impl XmlWrite for CT_FontRel {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_FontRel {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -14853,6 +15908,29 @@ impl XmlWrite for CT_FontSig {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_FontSig {
+    fn validate(&self, v: &mut Validator) {
+        if self.usb0.is_none() {
+            v.required_attribute(Ns::W, "usb0", &self.extra_attrs);
+        }
+        if self.usb1.is_none() {
+            v.required_attribute(Ns::W, "usb1", &self.extra_attrs);
+        }
+        if self.usb2.is_none() {
+            v.required_attribute(Ns::W, "usb2", &self.extra_attrs);
+        }
+        if self.usb3.is_none() {
+            v.required_attribute(Ns::W, "usb3", &self.extra_attrs);
+        }
+        if self.csb0.is_none() {
+            v.required_attribute(Ns::W, "csb0", &self.extra_attrs);
+        }
+        if self.csb1.is_none() {
+            v.required_attribute(Ns::W, "csb1", &self.extra_attrs);
+        }
     }
 }
 
@@ -14980,6 +16058,10 @@ impl XmlWrite for CT_Fonts {
     }
 }
 
+impl Validate for CT_Fonts {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Font Table Root Element (ECMA-376 Part 1 §17.8.3.11).
 ///
 /// This element specifies the root element for a font table part within a WordprocessingML document, and specifies information about the fonts used in this document, each contained within a child font element.
@@ -15041,6 +16123,14 @@ impl XmlWrite for CT_FontsList {
     }
 }
 
+impl Validate for CT_FontsList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.font.iter().enumerate() {
+            v.enter("w:font", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Document Footnotes (ECMA-376 Part 1 §17.11.15).
 ///
 /// This element specifies the set of all footnotes in the document, including footnote separators and continuation notices. This element is the root node for the Footnotes part.
@@ -15099,6 +16189,14 @@ impl XmlWrite for CT_Footnotes {
         rt::write_extras_after(w, &self.extra_children, 0, self.footnote.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Footnotes {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.footnote.iter().enumerate() {
+            v.enter("w:footnote", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -15286,6 +16384,41 @@ impl XmlWrite for CT_Frame {
     }
 }
 
+impl Validate for CT_Frame {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.sz {
+            v.enter("w:sz", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.name {
+            v.enter("w:name", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.title {
+            v.enter("w:title", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.long_desc {
+            v.enter("w:longDesc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.source_file_name {
+            v.enter("w:sourceFileName", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.mar_w {
+            v.enter("w:marW", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.mar_h {
+            v.enter("w:marH", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.scrollbar {
+            v.enter("w:scrollbar", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.no_resize_allowed {
+            v.enter("w:noResizeAllowed", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.linked_to_file {
+            v.enter("w:linkedToFile", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Frameset Layout (ECMA-376 Part 1 §17.15.2.17).
 ///
 /// This element specifies the order in which the frames (and nested framesets) in a frameset shall be displayed. When a frameset is created, it can only contain frames which are stacked in one direction:  Vertically (one on top of another)  Horizontally (one next to another) This element specifies how the frames in this frameset are stacked, which shall also be used to interpret the sizes defined by the sz element (§17.15.2.39) for each frame. In order to determine the ordering of the constituent frames within this frameset, the ordering of the child frame and frameset elements shall be used.
@@ -15335,6 +16468,14 @@ impl XmlWrite for CT_FrameLayout {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_FrameLayout {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -15516,6 +16657,10 @@ impl XmlWrite for CT_FramePr {
     }
 }
 
+impl Validate for CT_FramePr {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Scrollbar Display Option (ECMA-376 Part 1 §17.15.2.37).
 ///
 /// This element specifies when a scrollbar shall be visible for the contents of the current frame. When this element is set, the val attribute determines exactly when the scrollbar shall be visible. This property is analogous to the scrolling attribute on the frame element in HTML.
@@ -15565,6 +16710,14 @@ impl XmlWrite for CT_FrameScrollbar {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_FrameScrollbar {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -15682,6 +16835,26 @@ impl XmlWrite for CT_Frameset {
     }
 }
 
+impl Validate for CT_Frameset {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.sz {
+            v.enter("w:sz", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.frameset_splitbar {
+            v.enter("w:framesetSplitbar", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.frame_layout {
+            v.enter("w:frameLayout", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.title {
+            v.enter("w:title", None, |v| x.validate(v));
+        }
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Frameset Splitter Properties (ECMA-376 Part 1 §17.15.2.20).
 ///
 /// This element specifies the properties for the splitters associated with this frameset. A splitter is a horizontal or vertical line which visually separates the contents of one frame from another within a frameset. If this element is omitted, then the default parameters for each of the child frameset properties shall be used for all splitters in this frameset.
@@ -15779,6 +16952,23 @@ impl XmlWrite for CT_FramesetSplitbar {
         }
         rt::write_extras(w, &self.extra_children, 4);
         w.end();
+    }
+}
+
+impl Validate for CT_FramesetSplitbar {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.w {
+            v.enter("w:w", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.color {
+            v.enter("w:color", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.no_border {
+            v.enter("w:noBorder", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.flat_borders {
+            v.enter("w:flatBorders", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -15899,6 +17089,26 @@ impl XmlWrite for CT_FtnDocProps {
     }
 }
 
+impl Validate for CT_FtnDocProps {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pos {
+            v.enter("w:pos", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_fmt {
+            v.enter("w:numFmt", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_start {
+            v.enter("w:numStart", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_restart {
+            v.enter("w:numRestart", None, |v| x.validate(v));
+        }
+        for (i, x) in self.footnote.iter().enumerate() {
+            v.enter("w:footnote", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Endnote Content (ECMA-376 Part 1 §17.11.2).
 ///
 /// This element specifies the content of a single endnote within a WordprocessingML document. Each endnote shall be represented by a single endnote element, which can contain any block-level content.
@@ -16008,6 +17218,17 @@ impl XmlWrite for CT_FtnEdn {
     }
 }
 
+impl Validate for CT_FtnEdn {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        for (i, x) in self.block_level_elts.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Endnote Reference (ECMA-376 Part 1 §17.11.7).
 ///
 /// This element specifies the presence of an endnote reference. An endnote reference is a run of automatically numbered text which references a particular endnote within the parent document, and inherits the endnote reference mark's numbering. If an endnote reference is specified within a footnote or endnote, then the document shall be considered non- conformant.
@@ -16070,6 +17291,14 @@ impl XmlWrite for CT_FtnEdnRef {
     }
 }
 
+impl Validate for CT_FtnEdnRef {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+    }
+}
+
 /// Special Endnote List (ECMA-376 Part 1 §17.11.3).
 ///
 /// This element specifies the ID for all endnotes which are located in the current document that are not of style normal. Each other type of endnote shall be referenced in this list, or it shall not be loaded. If an endnote is not listed beneath this element, and it is required by the document content, then the document shall be considered non-conformant.
@@ -16123,6 +17352,14 @@ impl XmlWrite for CT_FtnEdnSepRef {
     }
 }
 
+impl Validate for CT_FtnEdnSepRef {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+    }
+}
+
 /// Footnote Placement (ECMA-376 Part 1 §17.11.21).
 ///
 /// This element specifies where footnotes shall be placed on the page when they are referenced by text in the current document. If this element is present at the section level, then it shall be ignored. If this element is omitted at the document level, then footnotes shall be located at the bottom of the current page.
@@ -16172,6 +17409,14 @@ impl XmlWrite for CT_FtnPos {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_FtnPos {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -16275,6 +17520,23 @@ impl XmlWrite for CT_FtnProps {
     }
 }
 
+impl Validate for CT_FtnProps {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pos {
+            v.enter("w:pos", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_fmt {
+            v.enter("w:numFmt", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_start {
+            v.enter("w:numStart", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_restart {
+            v.enter("w:numRestart", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Glossary Document Root Element (ECMA-376 Part 1 §17.12.10).
 ///
 /// This element specifies the root element for a glossary document part within a WordprocessingML document. A glossary document is an supplementary document story in a WordprocessingML that shall be afforded all of the relationships of the Main Document part, such as:  Style definitions  Numbering definitions  Comments  Headers/footers  Etc. The entries stored in this part shall have all of its implicit relationships target these parts, rather than their analogues stored off of the main document part.
@@ -16347,6 +17609,17 @@ impl XmlWrite for CT_GlossaryDocument {
     }
 }
 
+impl Validate for CT_GlossaryDocument {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.background {
+            v.enter("w:background", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.doc_parts {
+            v.enter("w:docParts", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Entry ID (ECMA-376 Part 1 §17.12.11).
 ///
 /// This element specifies a unique identifier (specified using a 128-bit GUID stored on the val attribute) that uniquely identifies this document building block.\[Note: This unique identifier can be used by an application to uniquely reference a single document building block regardless of different naming, for example when the same part has different names for localization purposes. end note\]
@@ -16399,6 +17672,10 @@ impl XmlWrite for CT_Guid {
     }
 }
 
+impl Validate for CT_Guid {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Schema complex type `CT_HMerge`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_HMerge {
@@ -16443,6 +17720,10 @@ impl XmlWrite for CT_HMerge {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_HMerge {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Footer (ECMA-376 Part 1 §17.10.3).
@@ -16533,6 +17814,14 @@ impl XmlWrite for CT_HdrFtr {
     }
 }
 
+impl Validate for CT_HdrFtr {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.block_level_elts.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Footer Reference (ECMA-376 Part 1 §17.10.2).
 ///
 /// This element specifies a single footer which shall be associated with the current section in the document. This footer shall be referenced via the id attribute, which specifies an explicit relationship to the appropriate Footer part in the WordprocessingML package. If the relationship type of the relationship specified by this element is not <http://purl.oclc.org/ooxml/officeDocument/relationships/footer>, is not present, or does not have a TargetMode attribute value of Internal, then the document shall be considered non-conformant.
@@ -16592,6 +17881,17 @@ impl XmlWrite for CT_HdrFtrRef {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_HdrFtrRef {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
+        if self.type_.is_none() {
+            v.required_attribute(Ns::W, "type", &self.extra_attrs);
+        }
     }
 }
 
@@ -16656,6 +17956,14 @@ impl XmlWrite for CT_Headers {
     }
 }
 
+impl Validate for CT_Headers {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.header.iter().enumerate() {
+            v.enter("w:header", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Table Row Height (ECMA-376 Part 1 §17.4.80).
 ///
 /// This element specifies the height of the current table row within the current table. This height shall be used to determine the resulting height of the table row, which can be absolute or relative (depending on its attribute values). If omitted, then the table row shall automatically resize its height to the height required by its contents (the equivalent of an hRule value of auto).
@@ -16717,6 +18025,10 @@ impl XmlWrite for CT_Height {
     }
 }
 
+impl Validate for CT_Height {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Text Highlighting (ECMA-376 Part 1 §17.3.2.15).
 ///
 /// This element specifies a highlighting color which is applied as a background behind the contents of this run. If this run has any background shading specified using the shd element (§17.3.2.32), then the background shading shall be superseded by the highlighting color when the contents of this run are displayed. If this element is not present, the default value is to leave the formatting applied at previous level in the style hierarchy.
@@ -16766,6 +18078,14 @@ impl XmlWrite for CT_Highlight {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Highlight {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -16824,6 +18144,14 @@ impl XmlWrite for CT_HpsMeasure {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_HpsMeasure {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -16971,6 +18299,14 @@ impl XmlWrite for CT_Hyperlink {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Hyperlink {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.p_content.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -17125,6 +18461,10 @@ impl XmlWrite for CT_Ind {
     }
 }
 
+impl Validate for CT_Ind {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Paragraph Alignment (ECMA-376 Part 1 §17.3.1.13).
 ///
 /// This element specifies the paragraph alignment which shall be applied to text in this paragraph. If this element is omitted on a given paragraph, its value is determined by the setting previously set at any level of the style hierarchy (i.e. that previous setting remains unchanged). If this setting is never specified in the style hierarchy, then no alignment is applied to the paragraph.
@@ -17175,6 +18515,14 @@ impl XmlWrite for CT_Jc {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Jc {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -17229,6 +18577,14 @@ impl XmlWrite for CT_JcTable {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_JcTable {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -17294,6 +18650,17 @@ impl XmlWrite for CT_Kinsoku {
     }
 }
 
+impl Validate for CT_Kinsoku {
+    fn validate(&self, v: &mut Validator) {
+        if self.lang.is_none() {
+            v.required_attribute(Ns::W, "lang", &self.extra_attrs);
+        }
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Language ID for Phonetic Guide (ECMA-376 Part 1 §17.3.3.14).
 ///
 /// This element specifies the language which shall be used for this phonetic guide.
@@ -17345,6 +18712,14 @@ impl XmlWrite for CT_Lang {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Lang {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -17417,6 +18792,10 @@ impl XmlWrite for CT_Language {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Language {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Latent Style Information (ECMA-376 Part 1 §17.7.4.5).
@@ -17537,6 +18916,14 @@ impl XmlWrite for CT_LatentStyles {
     }
 }
 
+impl Validate for CT_LatentStyles {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.lsd_exception.iter().enumerate() {
+            v.enter("w:lsdException", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Content Between Numbering Symbol and Paragraph Text (ECMA-376 Part 1 §17.9.28).
 ///
 /// This element specifies the content which shall be added between a given numbering level's text and the text of every numbered paragraph which references that numbering level. If this element is omitted, then its value shall be assumed to be tab.
@@ -17586,6 +18973,14 @@ impl XmlWrite for CT_LevelSuffix {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_LevelSuffix {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -17648,6 +19043,10 @@ impl XmlWrite for CT_LevelText {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_LevelText {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Line Numbering Settings (ECMA-376 Part 1 §17.6.8).
@@ -17729,6 +19128,10 @@ impl XmlWrite for CT_LineNumber {
     }
 }
 
+impl Validate for CT_LineNumber {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Locking Setting (ECMA-376 Part 1 §17.5.2.23).
 ///
 /// This element specifies the set of behaviors that shall be applied to the contents of the nearest ancestor structured document tag when the contents of this document are edited by an application (whether through a user interface or directly). The type of locking applied to the structured document tag is specified via the value of the associated val attribute. If this element is omitted, then the locking settings implied for the structured document tag shall be as follows:
@@ -17779,6 +19182,10 @@ impl XmlWrite for CT_Lock {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Lock {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Revision Identifier for Style Definition (ECMA-376 Part 1 §17.7.4.15).
@@ -17834,6 +19241,14 @@ impl XmlWrite for CT_LongHexNumber {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_LongHexNumber {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -17931,6 +19346,14 @@ impl XmlWrite for CT_LsdException {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_LsdException {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::W, "name", &self.extra_attrs);
+        }
     }
 }
 
@@ -18177,6 +19600,50 @@ impl XmlWrite for CT_Lvl {
     }
 }
 
+impl Validate for CT_Lvl {
+    fn validate(&self, v: &mut Validator) {
+        if self.ilvl.is_none() {
+            v.required_attribute(Ns::W, "ilvl", &self.extra_attrs);
+        }
+        if let Some(x) = &self.start {
+            v.enter("w:start", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_fmt {
+            v.enter("w:numFmt", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lvl_restart {
+            v.enter("w:lvlRestart", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.p_style {
+            v.enter("w:pStyle", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.is_lgl {
+            v.enter("w:isLgl", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.suff {
+            v.enter("w:suff", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lvl_text {
+            v.enter("w:lvlText", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lvl_pic_bullet_id {
+            v.enter("w:lvlPicBulletId", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.legacy {
+            v.enter("w:legacy", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lvl_jc {
+            v.enter("w:lvlJc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.p_pr {
+            v.enter("w:pPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.r_pr {
+            v.enter("w:rPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_LvlLegacy`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_LvlLegacy {
@@ -18241,6 +19708,10 @@ impl XmlWrite for CT_LvlLegacy {
     }
 }
 
+impl Validate for CT_LvlLegacy {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Script Function to Execute on Form Field Entry (ECMA-376 Part 1 §17.16.15).
 ///
 /// This element specifies a subroutine in a scripting language which should be executed when the when the run contents of the parent form field are entered. The language and location of this subroutine can be determined using any method desired by an application. \[Note: It is at the discretion of an application to determine the scope and timing of "entering" a form field, for example, when the user moves the insertion point in a user interface or upon each operation by an application without a user interface, etc. end note\] If this element is omitted, then no subroutine shall be associated with entering the run contents of the parent
@@ -18291,6 +19762,14 @@ impl XmlWrite for CT_MacroName {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_MacroName {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -18562,6 +20041,63 @@ impl XmlWrite for CT_MailMerge {
     }
 }
 
+impl Validate for CT_MailMerge {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.main_document_type {
+            v.enter("w:mainDocumentType", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "mainDocumentType", &self.extra_children);
+        }
+        if let Some(x) = &self.link_to_query {
+            v.enter("w:linkToQuery", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.data_type {
+            v.enter("w:dataType", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "dataType", &self.extra_children);
+        }
+        if let Some(x) = &self.connect_string {
+            v.enter("w:connectString", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.query {
+            v.enter("w:query", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.data_source {
+            v.enter("w:dataSource", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.header_source {
+            v.enter("w:headerSource", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_suppress_blank_lines {
+            v.enter("w:doNotSuppressBlankLines", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.destination {
+            v.enter("w:destination", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.address_field_name {
+            v.enter("w:addressFieldName", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.mail_subject {
+            v.enter("w:mailSubject", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.mail_as_attachment {
+            v.enter("w:mailAsAttachment", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.view_merged_data {
+            v.enter("w:viewMergedData", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.active_record {
+            v.enter("w:activeRecord", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.check_errors {
+            v.enter("w:checkErrors", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.odso {
+            v.enter("w:odso", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Data Source Type (ECMA-376 Part 1 §17.14.10).
 ///
 /// This element specifies the type of external data source to be connected to via the Dynamic Data Exchange (DDE) system (such as a spreadsheet or database), or the alternative method of data access if the Dynamic Data Exchange system is not used. This setting is purely a suggestion of the data source access mechanism which shall be used, and can be ignored in favor of an alternative mechanism if one is present.
@@ -18611,6 +20147,14 @@ impl XmlWrite for CT_MailMergeDataType {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_MailMergeDataType {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -18666,6 +20210,14 @@ impl XmlWrite for CT_MailMergeDest {
     }
 }
 
+impl Validate for CT_MailMergeDest {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Source Document Type (ECMA-376 Part 1 §17.14.22).
 ///
 /// This element specifies the document type of a given WordprocessingML source document. If this element is omitted, then its value shall be assumed to be formLetters.
@@ -18715,6 +20267,14 @@ impl XmlWrite for CT_MailMergeDocType {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_MailMergeDocType {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -18770,6 +20330,14 @@ impl XmlWrite for CT_MailMergeOdsoFMDFieldType {
     }
 }
 
+impl Validate for CT_MailMergeOdsoFMDFieldType {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// ODSO Data Source Type (ECMA-376 Part 1 §17.14.32).
 ///
 /// This element specifies the type of external data source to be connected to via as part of the ODSO connection information for this mail merge. This setting is purely a suggestion of the data source type which is being used for this mail merge, and can be ignored in favor of an alternative mechanism if one is present.
@@ -18819,6 +20387,14 @@ impl XmlWrite for CT_MailMergeSourceType {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_MailMergeSourceType {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -18875,6 +20451,14 @@ impl XmlWrite for CT_Markup {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Markup {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -18940,6 +20524,14 @@ impl XmlWrite for CT_MarkupRange {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_MarkupRange {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -19031,6 +20623,20 @@ impl XmlWrite for CT_MathCtrlDel {
     }
 }
 
+impl Validate for CT_MathCtrlDel {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if self.author.is_none() {
+            v.required_attribute(Ns::W, "author", &self.extra_attrs);
+        }
+        if let Some(x) = &self.r_pr {
+            v.enter("w:rPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Inserted Math Control Character (ECMA-376 Part 1 §17.13.5.16).
 ///
 /// This element specifies that the Office Open XML Math control character which contains this element was inserted and tracked as a revision. \[Example: The insertion of a fraction bar. end example\]
@@ -19116,6 +20722,20 @@ impl XmlWrite for CT_MathCtrlIns {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_MathCtrlIns {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if self.author.is_none() {
+            v.required_attribute(Ns::W, "author", &self.extra_attrs);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
     }
 }
 
@@ -19226,6 +20846,23 @@ impl XmlWrite for CT_MoveBookmark {
     }
 }
 
+impl Validate for CT_MoveBookmark {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if self.name.is_none() {
+            v.required_attribute(Ns::W, "name", &self.extra_attrs);
+        }
+        if self.author.is_none() {
+            v.required_attribute(Ns::W, "author", &self.extra_attrs);
+        }
+        if self.date.is_none() {
+            v.required_attribute(Ns::W, "date", &self.extra_attrs);
+        }
+    }
+}
+
 /// Abstract Numbering Definition Type (ECMA-376 Part 1 §17.9.12).
 ///
 /// This element specifies the type of numbering defined by a given abstract numbering type. This information shall only be used by a consumer to determine user interface behaviors for this numbering definition, and shall not be used to limit the behavior of the list (i.e. a list with multiple levels marked as singleLevel shall not be prevented from using levels 2 through 9). If this element is omitted, then the list shall be assumed to be of any numbering type desired by the consumer.
@@ -19275,6 +20912,14 @@ impl XmlWrite for CT_MultiLevelType {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_MultiLevelType {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -19365,6 +21010,22 @@ impl XmlWrite for CT_Num {
     }
 }
 
+impl Validate for CT_Num {
+    fn validate(&self, v: &mut Validator) {
+        if self.num_id.is_none() {
+            v.required_attribute(Ns::W, "numId", &self.extra_attrs);
+        }
+        if let Some(x) = &self.abstract_num_id {
+            v.enter("w:abstractNumId", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "abstractNumId", &self.extra_children);
+        }
+        for (i, x) in self.lvl_override.iter().enumerate() {
+            v.enter("w:lvlOverride", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Numbering Format (ECMA-376 Part 1 §17.9.17).
 ///
 /// This element specifies the number format that shall be used to display all numbering at this level in the numbering definition. This information is used to replace the level text string %x, where x is a particular one- based level index, with the appropriate value unless the numFmt value is bullet, in which case the literal text of the level text string is used. This value shall be calculated by counting the number of paragraphs at this level since the last restart using the numbering system defined in the val attribute.
@@ -19425,6 +21086,14 @@ impl XmlWrite for CT_NumFmt {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_NumFmt {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -19512,6 +21181,20 @@ impl XmlWrite for CT_NumLvl {
     }
 }
 
+impl Validate for CT_NumLvl {
+    fn validate(&self, v: &mut Validator) {
+        if self.ilvl.is_none() {
+            v.required_attribute(Ns::W, "ilvl", &self.extra_attrs);
+        }
+        if let Some(x) = &self.start_override {
+            v.enter("w:startOverride", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lvl {
+            v.enter("w:lvl", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Picture Numbering Symbol Definition (ECMA-376 Part 1 §17.9.20).
 ///
 /// This element specifies the appearance and behavior of a specific picture to be used as the numbering symbol within a numbering level definition in a document, and is the basis for all picture numbering symbol information in a WordprocessingML document. This element is not used directly within abstract numbering definitions but rather is referenced through its numPicBulletId attribute by the lvlPicBulletId element (§17.9.9) used within numbering level definitions.
@@ -19579,6 +21262,19 @@ impl XmlWrite for CT_NumPicBullet {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_NumPicBullet {
+    fn validate(&self, v: &mut Validator) {
+        if self.num_pic_bullet_id.is_none() {
+            v.required_attribute(Ns::W, "numPicBulletId", &self.extra_attrs);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of w:pict, w:drawing");
+        }
     }
 }
 
@@ -19682,6 +21378,23 @@ impl XmlWrite for CT_NumPr {
     }
 }
 
+impl Validate for CT_NumPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ilvl {
+            v.enter("w:ilvl", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_id {
+            v.enter("w:numId", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.numbering_change {
+            v.enter("w:numberingChange", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ins {
+            v.enter("w:ins", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Footnote and Endnote Numbering Restart Location (ECMA-376 Part 1 §17.11.19).
 ///
 /// This element specifies when all automatic numbering for the footnote or endnote reference marks shall be restarted. When restarted, the next automatically numbered footnote or endnote in the document (each footnote/endnote type is handled independently) shall restart to the specified numStart value (§17.11.20). If this element is omitted, then automatic numbering shall not be restarted between each page or section (a vlaue of continuous).
@@ -19731,6 +21444,14 @@ impl XmlWrite for CT_NumRestart {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_NumRestart {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -19843,6 +21564,23 @@ impl XmlWrite for CT_Numbering {
     }
 }
 
+impl Validate for CT_Numbering {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.num_pic_bullet.iter().enumerate() {
+            v.enter("w:numPicBullet", Some(i), |v| x.validate(v));
+        }
+        for (i, x) in self.abstract_num.iter().enumerate() {
+            v.enter("w:abstractNum", Some(i), |v| x.validate(v));
+        }
+        for (i, x) in self.num.iter().enumerate() {
+            v.enter("w:num", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_id_mac_at_cleanup {
+            v.enter("w:numIdMacAtCleanup", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Embedded Object (ECMA-376 Part 1 §17.3.3.19).
 ///
 /// This element specifies that an embedded object is located at this position in the run’s contents. The layout properties of this embedded object, as well as an optional static representation, are specified using the drawing element (§17.3.3.9).
@@ -19950,6 +21688,17 @@ impl XmlWrite for CT_Object {
     }
 }
 
+impl Validate for CT_Object {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.drawing {
+            v.enter("w:drawing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
+    }
+}
+
 /// Embedded Object Properties (ECMA-376 Part 1 §17.3.3.20).
 ///
 /// This element specifies the visual properties and associated server application of an embedded object.
@@ -20035,6 +21784,14 @@ impl XmlWrite for CT_ObjectEmbed {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_ObjectEmbed {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -20141,6 +21898,17 @@ impl XmlWrite for CT_ObjectLink {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_ObjectLink {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
+        if self.update_mode.is_none() {
+            v.required_attribute(Ns::W, "updateMode", &self.extra_attrs);
+        }
     }
 }
 
@@ -20306,6 +22074,35 @@ impl XmlWrite for CT_Odso {
     }
 }
 
+impl Validate for CT_Odso {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.udl {
+            v.enter("w:udl", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.table {
+            v.enter("w:table", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.src {
+            v.enter("w:src", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.col_delim {
+            v.enter("w:colDelim", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.type_ {
+            v.enter("w:type", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.f_hdr {
+            v.enter("w:fHdr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.field_map_data.iter().enumerate() {
+            v.enter("w:fieldMapData", Some(i), |v| x.validate(v));
+        }
+        for (i, x) in self.recipient_data.iter().enumerate() {
+            v.enter("w:recipientData", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// External Data Source to Merge Field Mapping (ECMA-376 Part 1 §17.14.15).
 ///
 /// This element specifies how a column specified in the external data source that has been connected to a WordprocessingML document shall be mapped to the pre-defined MERGEFIELD fields (§17.16.5.35) within the given merged document's contents. Each instance of a fieldMapData element contains the information needed to map one column in the external data source to a single type of pre-defined MERGEFIELD field for the purposes of the mail merge in the current document.
@@ -20431,6 +22228,29 @@ impl XmlWrite for CT_OdsoFieldMapData {
         }
         rt::write_extras(w, &self.extra_children, 6);
         w.end();
+    }
+}
+
+impl Validate for CT_OdsoFieldMapData {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.type_ {
+            v.enter("w:type", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.name {
+            v.enter("w:name", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.mapped_name {
+            v.enter("w:mappedName", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.column {
+            v.enter("w:column", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lid {
+            v.enter("w:lid", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.dynamic_address {
+            v.enter("w:dynamicAddress", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -20633,6 +22453,10 @@ impl XmlWrite for CT_OnOff {
     }
 }
 
+impl Validate for CT_OnOff {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Disable Features Not Supported by Target Web Profile (ECMA-376 Part 1 §17.15.2.33).
 ///
 /// This element specifies whether applications should attempt to customize the output for any web page produced from this document, as well as the HTML output to which it should be customized. \[Example: This might involve blocking any output which is not supported by that target output profile. end example\] The target output profile is identified by the contents of the target attribute.
@@ -20692,6 +22516,10 @@ impl XmlWrite for CT_OptimizeForBrowser {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_OptimizeForBrowser {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Paragraph (ECMA-376 Part 1 §17.3.1.22).
@@ -20846,6 +22674,17 @@ impl XmlWrite for CT_P {
     }
 }
 
+impl Validate for CT_P {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.p_pr {
+            v.enter("w:pPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.p_content.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Paragraph Borders (ECMA-376 Part 1 §17.3.1.24).
 ///
 /// This element specifies the borders for the parent paragraph. Each child element shall specify a specific kind of border (left, right, bottom, top, and between). If this element is omitted on a given paragraph, its value is determined by the setting previously set at any level of the style hierarchy (i.e. that previous setting remains unchanged).
@@ -20971,6 +22810,29 @@ impl XmlWrite for CT_PBdr {
         }
         rt::write_extras(w, &self.extra_children, 6);
         w.end();
+    }
+}
+
+impl Validate for CT_PBdr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.top {
+            v.enter("w:top", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.left {
+            v.enter("w:left", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bottom {
+            v.enter("w:bottom", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.right {
+            v.enter("w:right", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.between {
+            v.enter("w:between", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bar {
+            v.enter("w:bar", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -21522,6 +23384,119 @@ impl XmlWrite for CT_PPr {
     }
 }
 
+impl Validate for CT_PPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.p_style {
+            v.enter("w:pStyle", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.keep_next {
+            v.enter("w:keepNext", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.keep_lines {
+            v.enter("w:keepLines", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.page_break_before {
+            v.enter("w:pageBreakBefore", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.frame_pr {
+            v.enter("w:framePr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.widow_control {
+            v.enter("w:widowControl", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_pr {
+            v.enter("w:numPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.suppress_line_numbers {
+            v.enter("w:suppressLineNumbers", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.p_bdr {
+            v.enter("w:pBdr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.shd {
+            v.enter("w:shd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tabs {
+            v.enter("w:tabs", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.suppress_auto_hyphens {
+            v.enter("w:suppressAutoHyphens", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.kinsoku {
+            v.enter("w:kinsoku", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.word_wrap {
+            v.enter("w:wordWrap", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.overflow_punct {
+            v.enter("w:overflowPunct", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.top_line_punct {
+            v.enter("w:topLinePunct", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.auto_space_de {
+            v.enter("w:autoSpaceDE", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.auto_space_dn {
+            v.enter("w:autoSpaceDN", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bidi {
+            v.enter("w:bidi", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.adjust_right_ind {
+            v.enter("w:adjustRightInd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.snap_to_grid {
+            v.enter("w:snapToGrid", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.spacing {
+            v.enter("w:spacing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ind {
+            v.enter("w:ind", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.contextual_spacing {
+            v.enter("w:contextualSpacing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.mirror_indents {
+            v.enter("w:mirrorIndents", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.suppress_overlap {
+            v.enter("w:suppressOverlap", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.jc {
+            v.enter("w:jc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.text_direction {
+            v.enter("w:textDirection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.text_alignment {
+            v.enter("w:textAlignment", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.textbox_tight_wrap {
+            v.enter("w:textboxTightWrap", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.outline_lvl {
+            v.enter("w:outlineLvl", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.div_id {
+            v.enter("w:divId", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cnf_style {
+            v.enter("w:cnfStyle", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.r_pr {
+            v.enter("w:rPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sect_pr {
+            v.enter("w:sectPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.p_pr_change {
+            v.enter("w:pPrChange", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Previous Paragraph Properties (ECMA-376 Part 1 §17.3.1.25).
 ///
 /// This element specifies a set of paragraph properties which shall be attributed to a revision by a particular author and at a particular time. This element contains the set of properties which have been tracked as a specific set of revisions by one author.
@@ -22028,6 +24003,110 @@ impl XmlWrite for CT_PPrBase {
     }
 }
 
+impl Validate for CT_PPrBase {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.p_style {
+            v.enter("w:pStyle", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.keep_next {
+            v.enter("w:keepNext", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.keep_lines {
+            v.enter("w:keepLines", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.page_break_before {
+            v.enter("w:pageBreakBefore", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.frame_pr {
+            v.enter("w:framePr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.widow_control {
+            v.enter("w:widowControl", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_pr {
+            v.enter("w:numPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.suppress_line_numbers {
+            v.enter("w:suppressLineNumbers", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.p_bdr {
+            v.enter("w:pBdr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.shd {
+            v.enter("w:shd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tabs {
+            v.enter("w:tabs", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.suppress_auto_hyphens {
+            v.enter("w:suppressAutoHyphens", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.kinsoku {
+            v.enter("w:kinsoku", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.word_wrap {
+            v.enter("w:wordWrap", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.overflow_punct {
+            v.enter("w:overflowPunct", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.top_line_punct {
+            v.enter("w:topLinePunct", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.auto_space_de {
+            v.enter("w:autoSpaceDE", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.auto_space_dn {
+            v.enter("w:autoSpaceDN", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bidi {
+            v.enter("w:bidi", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.adjust_right_ind {
+            v.enter("w:adjustRightInd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.snap_to_grid {
+            v.enter("w:snapToGrid", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.spacing {
+            v.enter("w:spacing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ind {
+            v.enter("w:ind", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.contextual_spacing {
+            v.enter("w:contextualSpacing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.mirror_indents {
+            v.enter("w:mirrorIndents", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.suppress_overlap {
+            v.enter("w:suppressOverlap", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.jc {
+            v.enter("w:jc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.text_direction {
+            v.enter("w:textDirection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.text_alignment {
+            v.enter("w:textAlignment", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.textbox_tight_wrap {
+            v.enter("w:textboxTightWrap", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.outline_lvl {
+            v.enter("w:outlineLvl", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.div_id {
+            v.enter("w:divId", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cnf_style {
+            v.enter("w:cnfStyle", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Revision Information for Paragraph Properties (ECMA-376 Part 1 §17.13.5.29).
 ///
 /// This element specifies the details about a single revision to a set of paragraph properties in a WordprocessingML document. This element stores this revision as follows:  The child element of this element contains the complete set of paragraph properties which were applied to this paragraph before this revision  The attributes of this element contain information about when this revision took place (i.e. when these properties became a 'former' set of paragraph properties).
@@ -22116,6 +24195,22 @@ impl XmlWrite for CT_PPrChange {
     }
 }
 
+impl Validate for CT_PPrChange {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if self.author.is_none() {
+            v.required_attribute(Ns::W, "author", &self.extra_attrs);
+        }
+        if let Some(x) = &self.p_pr {
+            v.enter("w:pPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "pPr", &self.extra_children);
+        }
+    }
+}
+
 /// Default Paragraph Properties (ECMA-376 Part 1 §17.7.5.3).
 ///
 /// This element specifies the presence of a set of default paragraph properties for the current document. The actual paragraph properties are stored within the pPr child element of the current element. If this element is omitted, then the default paragraph properties for the current document are non-existent (i.e. there are no default paragraph properties in the document, and the defaults are therefore application-defined).
@@ -22171,6 +24266,14 @@ impl XmlWrite for CT_PPrDefault {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_PPrDefault {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.p_pr {
+            v.enter("w:pPr", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -22697,6 +24800,113 @@ impl XmlWrite for CT_PPrGeneral {
     }
 }
 
+impl Validate for CT_PPrGeneral {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.p_style {
+            v.enter("w:pStyle", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.keep_next {
+            v.enter("w:keepNext", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.keep_lines {
+            v.enter("w:keepLines", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.page_break_before {
+            v.enter("w:pageBreakBefore", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.frame_pr {
+            v.enter("w:framePr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.widow_control {
+            v.enter("w:widowControl", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_pr {
+            v.enter("w:numPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.suppress_line_numbers {
+            v.enter("w:suppressLineNumbers", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.p_bdr {
+            v.enter("w:pBdr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.shd {
+            v.enter("w:shd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tabs {
+            v.enter("w:tabs", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.suppress_auto_hyphens {
+            v.enter("w:suppressAutoHyphens", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.kinsoku {
+            v.enter("w:kinsoku", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.word_wrap {
+            v.enter("w:wordWrap", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.overflow_punct {
+            v.enter("w:overflowPunct", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.top_line_punct {
+            v.enter("w:topLinePunct", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.auto_space_de {
+            v.enter("w:autoSpaceDE", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.auto_space_dn {
+            v.enter("w:autoSpaceDN", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bidi {
+            v.enter("w:bidi", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.adjust_right_ind {
+            v.enter("w:adjustRightInd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.snap_to_grid {
+            v.enter("w:snapToGrid", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.spacing {
+            v.enter("w:spacing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ind {
+            v.enter("w:ind", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.contextual_spacing {
+            v.enter("w:contextualSpacing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.mirror_indents {
+            v.enter("w:mirrorIndents", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.suppress_overlap {
+            v.enter("w:suppressOverlap", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.jc {
+            v.enter("w:jc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.text_direction {
+            v.enter("w:textDirection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.text_alignment {
+            v.enter("w:textAlignment", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.textbox_tight_wrap {
+            v.enter("w:textboxTightWrap", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.outline_lvl {
+            v.enter("w:outlineLvl", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.div_id {
+            v.enter("w:divId", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cnf_style {
+            v.enter("w:cnfStyle", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.p_pr_change {
+            v.enter("w:pPrChange", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Absolute Position Tab Character (ECMA-376 Part 1 §17.3.3.23).
 ///
 /// This element specifies that an absolute position tab character shall be placed at the current location in the run content. An absolute position tab is a character which is used to advance the position on the current line of text when displaying this WordprocessingML content, using the following logic: Regardless of any number of custom tab stops defined using the tabs element (§17.3.1.38) , the absolute position tab character shall advance to the position specified by its alignment and relativeTo attributes. The resulting end position of the tab character shall not be affected by the addition of any custom tab stops or
@@ -22764,6 +24974,20 @@ impl XmlWrite for CT_PTab {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_PTab {
+    fn validate(&self, v: &mut Validator) {
+        if self.alignment.is_none() {
+            v.required_attribute(Ns::W, "alignment", &self.extra_attrs);
+        }
+        if self.relative_to.is_none() {
+            v.required_attribute(Ns::W, "relativeTo", &self.extra_attrs);
+        }
+        if self.leader.is_none() {
+            v.required_attribute(Ns::W, "leader", &self.extra_attrs);
+        }
     }
 }
 
@@ -22901,6 +25125,14 @@ impl XmlWrite for CT_PageBorder {
     }
 }
 
+impl Validate for CT_PageBorder {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Page Borders (ECMA-376 Part 1 §17.6.10).
 ///
 /// This element specifies the page borders for each page in this section. Each child element of the pgBorders element specifies a specific of border (left, right, bottom, or top).
@@ -23031,6 +25263,23 @@ impl XmlWrite for CT_PageBorders {
     }
 }
 
+impl Validate for CT_PageBorders {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.top {
+            v.enter("w:top", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.left {
+            v.enter("w:left", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bottom {
+            v.enter("w:bottom", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.right {
+            v.enter("w:right", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Page Margins (ECMA-376 Part 1 §17.6.11).
 ///
 /// This element specifies the page margins for all pages in this section.
@@ -23137,6 +25386,32 @@ impl XmlWrite for CT_PageMar {
     }
 }
 
+impl Validate for CT_PageMar {
+    fn validate(&self, v: &mut Validator) {
+        if self.top.is_none() {
+            v.required_attribute(Ns::W, "top", &self.extra_attrs);
+        }
+        if self.right.is_none() {
+            v.required_attribute(Ns::W, "right", &self.extra_attrs);
+        }
+        if self.bottom.is_none() {
+            v.required_attribute(Ns::W, "bottom", &self.extra_attrs);
+        }
+        if self.left.is_none() {
+            v.required_attribute(Ns::W, "left", &self.extra_attrs);
+        }
+        if self.header.is_none() {
+            v.required_attribute(Ns::W, "header", &self.extra_attrs);
+        }
+        if self.footer.is_none() {
+            v.required_attribute(Ns::W, "footer", &self.extra_attrs);
+        }
+        if self.gutter.is_none() {
+            v.required_attribute(Ns::W, "gutter", &self.extra_attrs);
+        }
+    }
+}
+
 /// Page Numbering Settings (ECMA-376 Part 1 §17.6.12).
 ///
 /// This element specifies the page numbering settings for all page numbers that appear in the contents of the current section.
@@ -23214,6 +25489,10 @@ impl XmlWrite for CT_PageNumber {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_PageNumber {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Page Size (ECMA-376 Part 1 §17.6.13).
@@ -23295,6 +25574,10 @@ impl XmlWrite for CT_PageSz {
     }
 }
 
+impl Validate for CT_PageSz {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Panose-1 Typeface Classification Number (ECMA-376 Part 1 §17.8.3.13).
 ///
 /// This element specifies the Panose-1 classification number shown in §5.2.7.17 of ISO/IEC 14496-22. This information can be used as defined in font substitution logic to locate an appropriate substitute font when this font is not available. This information is determined by querying the font when present and shall not be modified when the font is not available.
@@ -23344,6 +25627,14 @@ impl XmlWrite for CT_Panose {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Panose {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -23406,6 +25697,10 @@ impl XmlWrite for CT_PaperSource {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_PaperSource {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Run Properties for the Paragraph Mark (ECMA-376 Part 1 §17.3.1.29).
@@ -23573,6 +25868,29 @@ impl XmlWrite for CT_ParaRPr {
     }
 }
 
+impl Validate for CT_ParaRPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ins {
+            v.enter("w:ins", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.del {
+            v.enter("w:del", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.move_from {
+            v.enter("w:moveFrom", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.move_to {
+            v.enter("w:moveTo", None, |v| x.validate(v));
+        }
+        for (i, x) in self.r_pr_base.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if let Some(x) = &self.r_pr_change {
+            v.enter("w:rPrChange", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Revision Information for Run Properties on the Paragraph Mark (ECMA-376 Part 1 §17.13.5.30).
 ///
 /// This element specifies the details about a single revision to a set of run properties applied to a paragraph mark within a WordprocessingML document. This element stores this revision as follows:  The child element of this element contains the complete set of run properties which were applied to this paragraph mark before this revision  The attributes of this element contain information about when this revision took place (i.e. when these properties became a 'former' set of run properties).
@@ -23658,6 +25976,22 @@ impl XmlWrite for CT_ParaRPrChange {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ParaRPrChange {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if self.author.is_none() {
+            v.required_attribute(Ns::W, "author", &self.extra_attrs);
+        }
+        if let Some(x) = &self.r_pr {
+            v.enter("w:rPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "rPr", &self.extra_children);
+        }
     }
 }
 
@@ -23812,6 +26146,26 @@ impl XmlWrite for CT_ParaRPrOriginal {
     }
 }
 
+impl Validate for CT_ParaRPrOriginal {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ins {
+            v.enter("w:ins", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.del {
+            v.enter("w:del", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.move_from {
+            v.enter("w:moveFrom", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.move_to {
+            v.enter("w:moveTo", None, |v| x.validate(v));
+        }
+        for (i, x) in self.r_pr_base.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Range Permission End (ECMA-376 Part 1 §17.13.7.1).
 ///
 /// This element specifies the end of a single range permission within a WordprocessingML document. This end marker is matched with the appropriately paired start marker by matching the value of the id attribute from the associated permStart element. If no permStart element exists prior to this element in document order with a matching id attribute value, then the document is non-conformant.
@@ -23870,6 +26224,14 @@ impl XmlWrite for CT_Perm {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Perm {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -23970,6 +26332,14 @@ impl XmlWrite for CT_PermStart {
     }
 }
 
+impl Validate for CT_PermStart {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+    }
+}
+
 /// Schema complex type `CT_Picture`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Picture {
@@ -24047,6 +26417,17 @@ impl XmlWrite for CT_Picture {
     }
 }
 
+impl Validate for CT_Picture {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.movie {
+            v.enter("w:movie", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.control {
+            v.enter("w:control", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Font Pitch (ECMA-376 Part 1 §17.8.3.14).
 ///
 /// This element specifies the font pitch of the current font. This information can be used as defined in font substitution logic to locate an appropriate substitute font when this font is not available. This information is determined by querying the font when present and shall not be modified when the font is not available.
@@ -24096,6 +26477,14 @@ impl XmlWrite for CT_Pitch {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Pitch {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -24149,6 +26538,14 @@ impl XmlWrite for CT_PixelsMeasure {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_PixelsMeasure {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -24207,6 +26604,16 @@ impl XmlWrite for CT_Placeholder {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Placeholder {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.doc_part {
+            v.enter("w:docPart", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "docPart", &self.extra_children);
+        }
     }
 }
 
@@ -24271,6 +26678,10 @@ impl XmlWrite for CT_Proof {
     }
 }
 
+impl Validate for CT_Proof {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Proofing Error Anchor (ECMA-376 Part 1 §17.13.8.1).
 ///
 /// This element specifies the presence of a start or end anchor for a single proofing error within a WordprocessingML document. When proofing errors are stored in a document, their semantics shall be interpreted as follows:  Each proofing error with a type attribute value of spellStart shall be linked with the next error with a type attribute of spellEnd. If one does not exist, then this error should be ignored.  Each proofing error with a type attribute value of spellEnd which was not preceded by an error with a type attribute value of spellStart (that was not previously matched to an end) should be ignored.
@@ -24320,6 +26731,14 @@ impl XmlWrite for CT_ProofErr {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_ProofErr {
+    fn validate(&self, v: &mut Validator) {
+        if self.type_.is_none() {
+            v.required_attribute(Ns::W, "type", &self.extra_attrs);
+        }
     }
 }
 
@@ -24457,6 +26876,17 @@ impl XmlWrite for CT_R {
     }
 }
 
+impl Validate for CT_R {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.r_pr {
+            v.enter("w:rPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.run_inner_content.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Run Properties (ECMA-376 Part 1 §17.3.2.28).
 ///
 /// This element specifies a set of run properties which shall be applied to the contents of the parent run after all style formatting has been applied to the text. These properties are defined as direct formatting, since they are directly applied to the run and supersede any formatting from styles. This formatting is applied at the following location in the style hierarchy:  Document defaults  Table styles  Numbering styles  Paragraph styles  Character styles  Direct formatting (this element)
@@ -24572,6 +27002,17 @@ impl XmlWrite for CT_RPr {
     }
 }
 
+impl Validate for CT_RPr {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.r_pr_base.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if let Some(x) = &self.r_pr_change {
+            v.enter("w:rPrChange", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Revision Information for Run Properties (ECMA-376 Part 1 §17.13.5.31).
 ///
 /// This element specifies the details about a single revision to a set of run properties in a WordprocessingML document. This element stores this revision as follows:  The child element of this element contains the complete set of run properties which were applied to this run before this revision  The attributes of this element contain information about when this revision took place (i.e. when these properties became a 'former' set of run properties).
@@ -24660,6 +27101,22 @@ impl XmlWrite for CT_RPrChange {
     }
 }
 
+impl Validate for CT_RPrChange {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if self.author.is_none() {
+            v.required_attribute(Ns::W, "author", &self.extra_attrs);
+        }
+        if let Some(x) = &self.r_pr {
+            v.enter("w:rPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "rPr", &self.extra_children);
+        }
+    }
+}
+
 /// Default Run Properties (ECMA-376 Part 1 §17.7.5.5).
 ///
 /// This element specifies the presence of a set of default run properties for the current document. The actual run properties are stored within the rPr child element of the current element. If this element is omitted, then the default run properties for the current document are non-existent (i.e. there are no default run properties in the document, and the defaults are therefore application-defined).
@@ -24715,6 +27172,14 @@ impl XmlWrite for CT_RPrDefault {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_RPrDefault {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.r_pr {
+            v.enter("w:rPr", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -24813,6 +27278,14 @@ impl XmlWrite for CT_RPrOriginal {
     }
 }
 
+impl Validate for CT_RPrOriginal {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.r_pr_base.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Freeze Document Layout (ECMA-376 Part 1 §17.15.1.66).
 ///
 /// This element specifies the exact set of page and text sizing parameters which shall be used to display the contents of a WordprocessingML document. \[Rationale: This setting is typically used for documents that have been annotated using ink. This setting freezes the document's presentation such that the ink annotations must exist at the same position of the WordprocessingML document irrespective of the monitor on which the WordprocessingML document is rendered. end rationale\] This element shall only affect the display of WordprocessingML documents as follows:  When the actualPage attribute is specified with a value of true, the given WordprocessingML
@@ -24889,6 +27362,23 @@ impl XmlWrite for CT_ReadingModeInkLockDown {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_ReadingModeInkLockDown {
+    fn validate(&self, v: &mut Validator) {
+        if self.actual_pg.is_none() {
+            v.required_attribute(Ns::W, "actualPg", &self.extra_attrs);
+        }
+        if self.w.is_none() {
+            v.required_attribute(Ns::W, "w", &self.extra_attrs);
+        }
+        if self.h.is_none() {
+            v.required_attribute(Ns::W, "h", &self.extra_attrs);
+        }
+        if self.font_sz.is_none() {
+            v.required_attribute(Ns::W, "fontSz", &self.extra_attrs);
+        }
     }
 }
 
@@ -24978,6 +27468,24 @@ impl XmlWrite for CT_RecipientData {
     }
 }
 
+impl Validate for CT_RecipientData {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.active {
+            v.enter("w:active", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.column {
+            v.enter("w:column", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "column", &self.extra_children);
+        }
+        if let Some(x) = &self.unique_tag {
+            v.enter("w:uniqueTag", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "uniqueTag", &self.extra_children);
+        }
+    }
+}
+
 /// Inclusion/Exclusion Data for Data Source (ECMA-376 Part 1 §17.14.29).
 ///
 /// This element specifies all of the inclusion/exclusion data for the contents of the specified mail merge data source. It is the root element for the Mail Merge Recipient Data part.
@@ -25036,6 +27544,17 @@ impl XmlWrite for CT_Recipients {
         rt::write_extras_after(w, &self.extra_children, 0, self.recipient_data.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Recipients {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.recipient_data.iter().enumerate() {
+            v.enter("w:recipientData", Some(i), |v| x.validate(v));
+        }
+        if self.recipient_data.is_empty() {
+            v.required_element(Ns::W, "recipientData", &self.extra_children);
+        }
     }
 }
 
@@ -25098,6 +27617,14 @@ impl XmlWrite for CT_Rel {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Rel {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -25253,6 +27780,20 @@ impl XmlWrite for CT_Row {
     }
 }
 
+impl Validate for CT_Row {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.tbl_pr_ex {
+            v.enter("w:tblPrEx", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tr_pr {
+            v.enter("w:trPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.content_cell_content.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Phonetic Guide (ECMA-376 Part 1 §17.3.3.25).
 ///
 /// This element specifies the presence of a phonetic guide at the current location in the document. A phonetic guide (often called ruby text) is a run of content with base text which appears at the normal baseline location for text in this run, with phonetic guide text displayed above it in the document. The resulting construct is called a phonetic guide as it is typically used to map words in one language to another phonetically.
@@ -25339,6 +27880,26 @@ impl XmlWrite for CT_Ruby {
     }
 }
 
+impl Validate for CT_Ruby {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ruby_pr {
+            v.enter("w:rubyPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "rubyPr", &self.extra_children);
+        }
+        if let Some(x) = &self.rt {
+            v.enter("w:rt", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "rt", &self.extra_children);
+        }
+        if let Some(x) = &self.ruby_base {
+            v.enter("w:rubyBase", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "rubyBase", &self.extra_children);
+        }
+    }
+}
+
 /// Phonetic Guide Text Alignment (ECMA-376 Part 1 §17.3.3.26).
 ///
 /// This element specifies the alignment setting which shall be used to determine the placement of phonetic guide text with respect to the base text when this phonetic guide is displayed.
@@ -25388,6 +27949,14 @@ impl XmlWrite for CT_RubyAlign {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_RubyAlign {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -25471,6 +28040,14 @@ impl XmlWrite for CT_RubyContent {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_RubyContent {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.ruby_content.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -25599,6 +28176,39 @@ impl XmlWrite for CT_RubyPr {
         }
         rt::write_extras(w, &self.extra_children, 6);
         w.end();
+    }
+}
+
+impl Validate for CT_RubyPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ruby_align {
+            v.enter("w:rubyAlign", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "rubyAlign", &self.extra_children);
+        }
+        if let Some(x) = &self.hps {
+            v.enter("w:hps", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "hps", &self.extra_children);
+        }
+        if let Some(x) = &self.hps_raise {
+            v.enter("w:hpsRaise", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "hpsRaise", &self.extra_children);
+        }
+        if let Some(x) = &self.hps_base_text {
+            v.enter("w:hpsBaseText", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "hpsBaseText", &self.extra_children);
+        }
+        if let Some(x) = &self.lid {
+            v.enter("w:lid", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "lid", &self.extra_children);
+        }
+        if let Some(x) = &self.dirty {
+            v.enter("w:dirty", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -25743,6 +28353,20 @@ impl XmlWrite for CT_RunTrackChange {
     }
 }
 
+impl Validate for CT_RunTrackChange {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if self.author.is_none() {
+            v.required_attribute(Ns::W, "author", &self.extra_attrs);
+        }
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Custom XSL Transform To Use When Saving As XML File (ECMA-376 Part 1 §17.15.1.76).
 ///
 /// This element specifies the location of a custom XSL transform that shall be used when this document is saved as a single XML file (in an application-defined format). \[Guidance: Because this setting specifies behavior when saving to an alternative file format not defined by ECMA-376, this behavior is optional. end guidance\] If this element is omitted, then no custom XSL transform shall be used when saving this file as a single XML file. If the useXSLTWhenSaving element (§17.15.1.91) is omitted or set to false, then this transform shall not be applied when the document is saved as a single XML file.
@@ -25802,6 +28426,10 @@ impl XmlWrite for CT_SaveThroughXslt {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_SaveThroughXslt {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Block-Level Structured Document Tag (ECMA-376 Part 1 §17.5.2.29).
@@ -25887,6 +28515,20 @@ impl XmlWrite for CT_SdtBlock {
         }
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_SdtBlock {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.sdt_pr {
+            v.enter("w:sdtPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sdt_end_pr {
+            v.enter("w:sdtEndPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sdt_content {
+            v.enter("w:sdtContent", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -25976,6 +28618,20 @@ impl XmlWrite for CT_SdtCell {
     }
 }
 
+impl Validate for CT_SdtCell {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.sdt_pr {
+            v.enter("w:sdtPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sdt_end_pr {
+            v.enter("w:sdtEndPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sdt_content {
+            v.enter("w:sdtContent", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Combo Box Structured Document Tag (ECMA-376 Part 1 §17.5.2.5).
 ///
 /// This element specifies that the nearest ancestor structured document tag shall be a combo box when displayed in the document.
@@ -26046,6 +28702,14 @@ impl XmlWrite for CT_SdtComboBox {
         rt::write_extras_after(w, &self.extra_children, 0, self.list_item.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SdtComboBox {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.list_item.iter().enumerate() {
+            v.enter("w:listItem", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -26135,6 +28799,14 @@ impl XmlWrite for CT_SdtContentBlock {
     }
 }
 
+impl Validate for CT_SdtContentBlock {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.content_block_content.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Cell-Level Structured Document Tag Content (ECMA-376 Part 1 §17.5.2.33).
 ///
 /// This element specifies the last known contents of a structured document tag around a single table cell. This element's contents shall be treated as a cache of the contents to be displayed in the structured document tag for the following reasons:  If the structured document tag specifies an XML mapping via the dataBinding element (§17.5.2.6), changes to the custom XML data part shall be reflected in the structured document tag as needed  If the contents of the structured document tag are placeholder text via the showingPlcHdr element (§17.5.2.39), then this content can be updated with the placeholder text stored in the Glossary
@@ -26220,6 +28892,14 @@ impl XmlWrite for CT_SdtContentCell {
     }
 }
 
+impl Validate for CT_SdtContentCell {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.content_cell_content.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Row-Level Structured Document Tag Content (ECMA-376 Part 1 §17.5.2.35).
 ///
 /// This element specifies the last known contents of a structured document tag around a single table row.
@@ -26302,6 +28982,14 @@ impl XmlWrite for CT_SdtContentRow {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SdtContentRow {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.content_row_content.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -26392,6 +29080,14 @@ impl XmlWrite for CT_SdtContentRun {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SdtContentRun {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.p_content.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -26507,6 +29203,23 @@ impl XmlWrite for CT_SdtDate {
     }
 }
 
+impl Validate for CT_SdtDate {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.date_format {
+            v.enter("w:dateFormat", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lid {
+            v.enter("w:lid", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.store_mapped_data_as {
+            v.enter("w:storeMappedDataAs", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.calendar {
+            v.enter("w:calendar", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Custom XML Data Date Storage Format (ECMA-376 Part 1 §17.5.2.40).
 ///
 /// This element specifies the translation which shall be performed on the displayed date in a date picker structured document tag when the current contents are saved into the associated custom XML data via the dataBinding element (§17.5.2.6). If this element is omitted, then the value of the associated custom XML element shall be placed into the custom XML data part with no translation.
@@ -26557,6 +29270,10 @@ impl XmlWrite for CT_SdtDateMappingType {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_SdtDateMappingType {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Document Part Gallery Structured Document Tag (ECMA-376 Part 1 §17.5.2.12).
@@ -26646,6 +29363,20 @@ impl XmlWrite for CT_SdtDocPart {
     }
 }
 
+impl Validate for CT_SdtDocPart {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.doc_part_gallery {
+            v.enter("w:docPartGallery", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.doc_part_category {
+            v.enter("w:docPartCategory", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.doc_part_unique {
+            v.enter("w:docPartUnique", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Drop-Down List Structured Document Tag (ECMA-376 Part 1 §17.5.2.15).
 ///
 /// This element specifies that the nearest ancestor structured document tag shall be a drop-down list when displayed in the document. This setting specifies that the behavior for this structured document tag shall be as follows:
@@ -26719,6 +29450,14 @@ impl XmlWrite for CT_SdtDropDownList {
     }
 }
 
+impl Validate for CT_SdtDropDownList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.list_item.iter().enumerate() {
+            v.enter("w:listItem", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Structured Document Tag End Character Properties (ECMA-376 Part 1 §17.5.2.37).
 ///
 /// This element specifies the properties which shall be applied to the physical character which delimits the end of a structured document tag.
@@ -26777,6 +29516,14 @@ impl XmlWrite for CT_SdtEndPr {
         rt::write_extras_after(w, &self.extra_children, 0, self.r_pr.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SdtEndPr {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.r_pr.iter().enumerate() {
+            v.enter("w:rPr", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -26840,6 +29587,10 @@ impl XmlWrite for CT_SdtListItem {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_SdtListItem {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Structured Document Tag Properties (ECMA-376 Part 1 §17.5.2.38).
@@ -27065,6 +29816,47 @@ impl XmlWrite for CT_SdtPr {
     }
 }
 
+impl Validate for CT_SdtPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.r_pr {
+            v.enter("w:rPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.alias {
+            v.enter("w:alias", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tag {
+            v.enter("w:tag", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.id {
+            v.enter("w:id", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lock {
+            v.enter("w:lock", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.placeholder {
+            v.enter("w:placeholder", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.temporary {
+            v.enter("w:temporary", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.showing_plc_hdr {
+            v.enter("w:showingPlcHdr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.data_binding {
+            v.enter("w:dataBinding", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.label {
+            v.enter("w:label", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tab_index {
+            v.enter("w:tabIndex", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
+    }
+}
+
 /// Row-Level Structured Document Tag (ECMA-376 Part 1 §17.5.2.30).
 ///
 /// This element specifies the presence of a structured document tag around a single table row. The two child elements of this element shall be used to specify the properties and content of the current structured document tag via the sdtPr and sdtContent elements, respectively.
@@ -27148,6 +29940,20 @@ impl XmlWrite for CT_SdtRow {
         }
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_SdtRow {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.sdt_pr {
+            v.enter("w:sdtPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sdt_end_pr {
+            v.enter("w:sdtEndPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sdt_content {
+            v.enter("w:sdtContent", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -27237,6 +30043,20 @@ impl XmlWrite for CT_SdtRun {
     }
 }
 
+impl Validate for CT_SdtRun {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.sdt_pr {
+            v.enter("w:sdtPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sdt_end_pr {
+            v.enter("w:sdtEndPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sdt_content {
+            v.enter("w:sdtContent", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Plain Text Structured Document Tag (ECMA-376 Part 1 §17.5.2.44).
 ///
 /// This element specifies that the nearest ancestor structured document tag shall be a plain text box when displayed in the document. This setting specifies that the behavior for this structured document tag shall be as follows:  Formatting applied to any part of this structured document tag's contents shall apply to its entire contents As well, the structured document tag shall satisfy the following restraints or the document shall be considered non-conformant:  The contents shall only be contain a single run (one set of formatting properties) with exceptions for soft carriage returns via the multiLine attribute on this element
@@ -27287,6 +30107,10 @@ impl XmlWrite for CT_SdtText {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_SdtText {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Document Final Section Properties (ECMA-376 Part 1 §17.6.17).
@@ -27667,6 +30491,74 @@ impl XmlWrite for CT_SectPr {
     }
 }
 
+impl Validate for CT_SectPr {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.hdr_ftr_references.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if let Some(x) = &self.footnote_pr {
+            v.enter("w:footnotePr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.endnote_pr {
+            v.enter("w:endnotePr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.type_ {
+            v.enter("w:type", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.pg_sz {
+            v.enter("w:pgSz", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.pg_mar {
+            v.enter("w:pgMar", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.paper_src {
+            v.enter("w:paperSrc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.pg_borders {
+            v.enter("w:pgBorders", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ln_num_type {
+            v.enter("w:lnNumType", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.pg_num_type {
+            v.enter("w:pgNumType", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cols {
+            v.enter("w:cols", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.form_prot {
+            v.enter("w:formProt", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.v_align {
+            v.enter("w:vAlign", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.no_endnote {
+            v.enter("w:noEndnote", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.title_pg {
+            v.enter("w:titlePg", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.text_direction {
+            v.enter("w:textDirection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bidi {
+            v.enter("w:bidi", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.rtl_gutter {
+            v.enter("w:rtlGutter", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.doc_grid {
+            v.enter("w:docGrid", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.printer_settings {
+            v.enter("w:printerSettings", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sect_pr_change {
+            v.enter("w:sectPrChange", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Previous Section Properties (ECMA-376 Part 1 §17.6.19).
 ///
 /// When specified as a child element of sectPrChange, the sectPr element specifies a set of section properties that were modified when the document was set to track all revisions.
@@ -28016,6 +30908,68 @@ impl XmlWrite for CT_SectPrBase {
     }
 }
 
+impl Validate for CT_SectPrBase {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.footnote_pr {
+            v.enter("w:footnotePr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.endnote_pr {
+            v.enter("w:endnotePr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.type_ {
+            v.enter("w:type", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.pg_sz {
+            v.enter("w:pgSz", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.pg_mar {
+            v.enter("w:pgMar", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.paper_src {
+            v.enter("w:paperSrc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.pg_borders {
+            v.enter("w:pgBorders", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ln_num_type {
+            v.enter("w:lnNumType", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.pg_num_type {
+            v.enter("w:pgNumType", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cols {
+            v.enter("w:cols", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.form_prot {
+            v.enter("w:formProt", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.v_align {
+            v.enter("w:vAlign", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.no_endnote {
+            v.enter("w:noEndnote", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.title_pg {
+            v.enter("w:titlePg", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.text_direction {
+            v.enter("w:textDirection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bidi {
+            v.enter("w:bidi", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.rtl_gutter {
+            v.enter("w:rtlGutter", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.doc_grid {
+            v.enter("w:docGrid", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.printer_settings {
+            v.enter("w:printerSettings", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Revision Information for Section Properties (ECMA-376 Part 1 §17.13.5.32).
 ///
 /// This element specifies the details about a single revision to a set of section properties in a WordprocessingML document. This element stores this revision as follows:  The child element of this element contains the complete set of section properties which were applied to the parent section before this revision  The attributes of this element contain information about when this revision took place (i.e. when these properties became a 'former' set of section properties).
@@ -28104,6 +31058,20 @@ impl XmlWrite for CT_SectPrChange {
     }
 }
 
+impl Validate for CT_SectPrChange {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if self.author.is_none() {
+            v.required_attribute(Ns::W, "author", &self.extra_attrs);
+        }
+        if let Some(x) = &self.sect_pr {
+            v.enter("w:sectPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Section Type (ECMA-376 Part 1 §17.6.22).
 ///
 /// This element specifies the section type of the current section. The section type specifies how the contents of the current section shall be placed relative to the previous section. WordprocessingML supports five distinct types of section breaks:  Next page section breaks (the default if type is not specified), which begin the new section on the following page.  Odd page section breaks, which begin the new section on the next odd-numbered page.  Even page section breaks, which begin the new section on the next even-numbered page.  Continuous section breaks, which begin the new section on the following paragraph.
@@ -28154,6 +31122,10 @@ impl XmlWrite for CT_SectType {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_SectType {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Document Settings (ECMA-376 Part 1 §17.15.1.78).
@@ -29594,6 +32566,305 @@ impl XmlWrite for CT_Settings {
     }
 }
 
+impl Validate for CT_Settings {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.write_protection {
+            v.enter("w:writeProtection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.view {
+            v.enter("w:view", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.zoom {
+            v.enter("w:zoom", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.remove_personal_information {
+            v.enter("w:removePersonalInformation", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.remove_date_and_time {
+            v.enter("w:removeDateAndTime", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_display_page_boundaries {
+            v.enter("w:doNotDisplayPageBoundaries", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.display_background_shape {
+            v.enter("w:displayBackgroundShape", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.print_post_script_over_text {
+            v.enter("w:printPostScriptOverText", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.print_fractional_character_width {
+            v.enter("w:printFractionalCharacterWidth", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.print_forms_data {
+            v.enter("w:printFormsData", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.embed_true_type_fonts {
+            v.enter("w:embedTrueTypeFonts", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.embed_system_fonts {
+            v.enter("w:embedSystemFonts", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.save_subset_fonts {
+            v.enter("w:saveSubsetFonts", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.save_forms_data {
+            v.enter("w:saveFormsData", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.mirror_margins {
+            v.enter("w:mirrorMargins", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.align_borders_and_edges {
+            v.enter("w:alignBordersAndEdges", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.borders_do_not_surround_header {
+            v.enter("w:bordersDoNotSurroundHeader", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.borders_do_not_surround_footer {
+            v.enter("w:bordersDoNotSurroundFooter", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.gutter_at_top {
+            v.enter("w:gutterAtTop", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hide_spelling_errors {
+            v.enter("w:hideSpellingErrors", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hide_grammatical_errors {
+            v.enter("w:hideGrammaticalErrors", None, |v| x.validate(v));
+        }
+        for (i, x) in self.active_writing_style.iter().enumerate() {
+            v.enter("w:activeWritingStyle", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.proof_state {
+            v.enter("w:proofState", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.forms_design {
+            v.enter("w:formsDesign", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.attached_template {
+            v.enter("w:attachedTemplate", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.link_styles {
+            v.enter("w:linkStyles", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.style_pane_format_filter {
+            v.enter("w:stylePaneFormatFilter", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.style_pane_sort_method {
+            v.enter("w:stylePaneSortMethod", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.document_type {
+            v.enter("w:documentType", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.mail_merge {
+            v.enter("w:mailMerge", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.revision_view {
+            v.enter("w:revisionView", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.track_revisions {
+            v.enter("w:trackRevisions", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_track_moves {
+            v.enter("w:doNotTrackMoves", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_track_formatting {
+            v.enter("w:doNotTrackFormatting", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.document_protection {
+            v.enter("w:documentProtection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.auto_format_override {
+            v.enter("w:autoFormatOverride", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.style_lock_theme {
+            v.enter("w:styleLockTheme", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.style_lock_qf_set {
+            v.enter("w:styleLockQFSet", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.default_tab_stop {
+            v.enter("w:defaultTabStop", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.auto_hyphenation {
+            v.enter("w:autoHyphenation", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.consecutive_hyphen_limit {
+            v.enter("w:consecutiveHyphenLimit", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hyphenation_zone {
+            v.enter("w:hyphenationZone", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_hyphenate_caps {
+            v.enter("w:doNotHyphenateCaps", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.show_envelope {
+            v.enter("w:showEnvelope", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.summary_length {
+            v.enter("w:summaryLength", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.click_and_type_style {
+            v.enter("w:clickAndTypeStyle", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.default_table_style {
+            v.enter("w:defaultTableStyle", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.even_and_odd_headers {
+            v.enter("w:evenAndOddHeaders", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.book_fold_rev_printing {
+            v.enter("w:bookFoldRevPrinting", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.book_fold_printing {
+            v.enter("w:bookFoldPrinting", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.book_fold_printing_sheets {
+            v.enter("w:bookFoldPrintingSheets", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.drawing_grid_horizontal_spacing {
+            v.enter("w:drawingGridHorizontalSpacing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.drawing_grid_vertical_spacing {
+            v.enter("w:drawingGridVerticalSpacing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.display_horizontal_drawing_grid_every {
+            v.enter("w:displayHorizontalDrawingGridEvery", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.display_vertical_drawing_grid_every {
+            v.enter("w:displayVerticalDrawingGridEvery", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_use_margins_for_drawing_grid_origin {
+            v.enter("w:doNotUseMarginsForDrawingGridOrigin", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.drawing_grid_horizontal_origin {
+            v.enter("w:drawingGridHorizontalOrigin", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.drawing_grid_vertical_origin {
+            v.enter("w:drawingGridVerticalOrigin", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_shade_form_data {
+            v.enter("w:doNotShadeFormData", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.no_punctuation_kerning {
+            v.enter("w:noPunctuationKerning", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.character_spacing_control {
+            v.enter("w:characterSpacingControl", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.print_two_on_one {
+            v.enter("w:printTwoOnOne", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.strict_first_and_last_chars {
+            v.enter("w:strictFirstAndLastChars", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.no_line_breaks_after {
+            v.enter("w:noLineBreaksAfter", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.no_line_breaks_before {
+            v.enter("w:noLineBreaksBefore", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.save_preview_picture {
+            v.enter("w:savePreviewPicture", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_validate_against_schema {
+            v.enter("w:doNotValidateAgainstSchema", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.save_invalid_xml {
+            v.enter("w:saveInvalidXml", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ignore_mixed_content {
+            v.enter("w:ignoreMixedContent", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.always_show_placeholder_text {
+            v.enter("w:alwaysShowPlaceholderText", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_demarcate_invalid_xml {
+            v.enter("w:doNotDemarcateInvalidXml", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.save_xml_data_only {
+            v.enter("w:saveXmlDataOnly", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.use_xslt_when_saving {
+            v.enter("w:useXSLTWhenSaving", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.save_through_xslt {
+            v.enter("w:saveThroughXslt", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.show_xml_tags {
+            v.enter("w:showXMLTags", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.always_merge_empty_namespace {
+            v.enter("w:alwaysMergeEmptyNamespace", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.update_fields {
+            v.enter("w:updateFields", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hdr_shape_defaults {
+            v.enter("w:hdrShapeDefaults", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.footnote_pr {
+            v.enter("w:footnotePr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.endnote_pr {
+            v.enter("w:endnotePr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.compat {
+            v.enter("w:compat", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.doc_vars {
+            v.enter("w:docVars", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.rsids {
+            v.enter("w:rsids", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.math_pr {
+            v.enter("m:mathPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.attached_schema.iter().enumerate() {
+            v.enter("w:attachedSchema", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.theme_font_lang {
+            v.enter("w:themeFontLang", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.clr_scheme_mapping {
+            v.enter("w:clrSchemeMapping", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_include_subdocs_in_stats {
+            v.enter("w:doNotIncludeSubdocsInStats", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_auto_compress_pictures {
+            v.enter("w:doNotAutoCompressPictures", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.force_upgrade {
+            v.enter("w:forceUpgrade", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.captions {
+            v.enter("w:captions", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.read_mode_ink_lock_down {
+            v.enter("w:readModeInkLockDown", None, |v| x.validate(v));
+        }
+        for (i, x) in self.smart_tag_type.iter().enumerate() {
+            v.enter("w:smartTagType", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.schema_library {
+            v.enter("sl:schemaLibrary", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.shape_defaults {
+            v.enter("w:shapeDefaults", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_embed_smart_tags {
+            v.enter("w:doNotEmbedSmartTags", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.decimal_symbol {
+            v.enter("w:decimalSymbol", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.list_separator {
+            v.enter("w:listSeparator", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_ShapeDefaults`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_ShapeDefaults {
@@ -29641,6 +32912,10 @@ impl XmlWrite for CT_ShapeDefaults {
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
     }
+}
+
+impl Validate for CT_ShapeDefaults {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Paragraph Shading (ECMA-376 Part 1 §17.3.1.31).
@@ -29771,6 +33046,14 @@ impl XmlWrite for CT_Shd {
     }
 }
 
+impl Validate for CT_Shd {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Vertically Raised or Lowered Text (ECMA-376 Part 1 §17.3.2.24).
 ///
 /// This element specifies the amount by which text shall be raised or lowered for this run in relation to the default baseline of the surrounding non-positioned text. This allows the text to be repositioned without altering the font size of the contents. If the val attribute is positive, then the parent run shall be raised above the baseline of the surrounding text by the specified number of half-points.
@@ -29820,6 +33103,14 @@ impl XmlWrite for CT_SignedHpsMeasure {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_SignedHpsMeasure {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -29876,6 +33167,14 @@ impl XmlWrite for CT_SignedTwipsMeasure {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_SignedTwipsMeasure {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -30013,6 +33312,20 @@ impl XmlWrite for CT_SimpleField {
     }
 }
 
+impl Validate for CT_SimpleField {
+    fn validate(&self, v: &mut Validator) {
+        if self.instr.is_none() {
+            v.required_attribute(Ns::W, "instr", &self.extra_attrs);
+        }
+        if let Some(x) = &self.fld_data {
+            v.enter("w:fldData", None, |v| x.validate(v));
+        }
+        for (i, x) in self.p_content.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Smart Tag Properties (ECMA-376 Part 1 §17.5.1.10).
 ///
 /// This element specifies the set of properties which shall be applied to the parent smart tag.
@@ -30071,6 +33384,14 @@ impl XmlWrite for CT_SmartTagPr {
         rt::write_extras_after(w, &self.extra_children, 0, self.attr.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SmartTagPr {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.attr.iter().enumerate() {
+            v.enter("w:attr", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -30199,6 +33520,20 @@ impl XmlWrite for CT_SmartTagRun {
     }
 }
 
+impl Validate for CT_SmartTagRun {
+    fn validate(&self, v: &mut Validator) {
+        if self.element.is_none() {
+            v.required_attribute(Ns::W, "element", &self.extra_attrs);
+        }
+        if let Some(x) = &self.smart_tag_pr {
+            v.enter("w:smartTagPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.p_content.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Supplementary Smart Tag Information (ECMA-376 Part 1 §17.15.1.81).
 ///
 /// This element specifies optional supplementary information about one or more smart tags (§17.5.1.9) used in the current WordprocessingML document. This supplementary data is linked to the smart tag to which it applies via its name and namespaceuri attributes.
@@ -30267,6 +33602,10 @@ impl XmlWrite for CT_SmartTagType {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_SmartTagType {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Spacing Between Lines and Above/Below Paragraph (ECMA-376 Part 1 §17.3.1.33).
@@ -30384,6 +33723,10 @@ impl XmlWrite for CT_Spacing {
     }
 }
 
+impl Validate for CT_Spacing {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Referenced Paragraph Style (ECMA-376 Part 1 §17.3.1.27).
 ///
 /// This element specifies the style ID of the paragraph style which shall be used to format the contents of this paragraph. This formatting is applied at the following location in the style hierarchy:  Document defaults
@@ -30479,6 +33822,14 @@ impl XmlWrite for CT_String {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_String {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -30876,6 +34227,77 @@ impl XmlWrite for CT_Style {
     }
 }
 
+impl Validate for CT_Style {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.name {
+            v.enter("w:name", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.aliases {
+            v.enter("w:aliases", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.based_on {
+            v.enter("w:basedOn", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.next {
+            v.enter("w:next", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.link {
+            v.enter("w:link", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.auto_redefine {
+            v.enter("w:autoRedefine", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hidden {
+            v.enter("w:hidden", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ui_priority {
+            v.enter("w:uiPriority", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.semi_hidden {
+            v.enter("w:semiHidden", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.unhide_when_used {
+            v.enter("w:unhideWhenUsed", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.q_format {
+            v.enter("w:qFormat", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.locked {
+            v.enter("w:locked", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.personal {
+            v.enter("w:personal", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.personal_compose {
+            v.enter("w:personalCompose", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.personal_reply {
+            v.enter("w:personalReply", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.rsid {
+            v.enter("w:rsid", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.p_pr {
+            v.enter("w:pPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.r_pr {
+            v.enter("w:rPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_pr {
+            v.enter("w:tblPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tr_pr {
+            v.enter("w:trPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tc_pr {
+            v.enter("w:tcPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.tbl_style_pr.iter().enumerate() {
+            v.enter("w:tblStylePr", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Suggested Filtering for List of Document Styles (ECMA-376 Part 1 §17.15.1.85).
 ///
 /// This element specifies a set of suggested filters which should be applied to the list of document styles in this application if the styles are displayed in a user interface. If this element is omitted, then all settings defined by this element are turned off.
@@ -31083,6 +34505,10 @@ impl XmlWrite for CT_StylePaneFilter {
     }
 }
 
+impl Validate for CT_StylePaneFilter {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Suggested Sorting for List of Document Styles (ECMA-376 Part 1 §17.15.1.86).
 ///
 /// This element specifies a sorting which should be applied to the list of styles in this document if the styles are displayed in a user interface. If this element is omitted, then styles which are visible should be sorted by the default sorting of the host application.
@@ -31132,6 +34558,14 @@ impl XmlWrite for CT_StyleSort {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_StyleSort {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -31224,6 +34658,20 @@ impl XmlWrite for CT_Styles {
     }
 }
 
+impl Validate for CT_Styles {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.doc_defaults {
+            v.enter("w:docDefaults", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.latent_styles {
+            v.enter("w:latentStyles", None, |v| x.validate(v));
+        }
+        for (i, x) in self.style.iter().enumerate() {
+            v.enter("w:style", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Symbol Character (ECMA-376 Part 1 §17.3.3.30).
 ///
 /// This element specifies the presence of a symbol character at the current location in the run’s content. A symbol character is a special character within a run’s content which does not use any of the run fonts specified in the rFonts element (§17.3.2.26) (or by the style hierarchy). Instead, this character shall be determined by pulling the character with the hexadecimal value specified in the char attribute from the font specified in the font attribute.
@@ -31283,6 +34731,10 @@ impl XmlWrite for CT_Sym {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Sym {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Custom Tab Stop (ECMA-376 Part 1 §17.3.1.37).
@@ -31355,6 +34807,17 @@ impl XmlWrite for CT_TabStop {
     }
 }
 
+impl Validate for CT_TabStop {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
+        if self.pos.is_none() {
+            v.required_attribute(Ns::W, "pos", &self.extra_attrs);
+        }
+    }
+}
+
 /// Set of Custom Tab Stops (ECMA-376 Part 1 §17.3.1.38).
 ///
 /// This element specifies a sequence of custom tab stops which shall be used for any tab characters in the current paragraph. If this element is omitted on a given paragraph, its value is determined by the setting previously set at any level of the style hierarchy (i.e. that previous setting remains unchanged). If this setting is never specified in the style hierarchy, then no custom tab stops shall be used for this paragraph.
@@ -31416,6 +34879,17 @@ impl XmlWrite for CT_Tabs {
     }
 }
 
+impl Validate for CT_Tabs {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.tab.iter().enumerate() {
+            v.enter("w:tab", Some(i), |v| x.validate(v));
+        }
+        if self.tab.is_empty() {
+            v.required_element(Ns::W, "tab", &self.extra_children);
+        }
+    }
+}
+
 /// Target Screen Size for Web Page (ECMA-376 Part 1 §17.15.2.41).
 ///
 /// This element specifies the ideal minimum target screen size (width by height, specified in pixels) on which web pages generated when saving this document is displayed. This setting can be used to optimize the output of web pages produced from this document. If this element is omitted, then the target screen size for web pages produced from this document shall be assumed to be 800x600.
@@ -31465,6 +34939,14 @@ impl XmlWrite for CT_TargetScreenSz {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TargetScreenSz {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -31750,6 +35232,27 @@ impl XmlWrite for CT_Tbl {
     }
 }
 
+impl Validate for CT_Tbl {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.range_markup_elements.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if let Some(x) = &self.tbl_pr {
+            v.enter("w:tblPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "tblPr", &self.extra_children);
+        }
+        if let Some(x) = &self.tbl_grid {
+            v.enter("w:tblGrid", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "tblGrid", &self.extra_children);
+        }
+        for (i, x) in self.content_row_content.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Table Borders (ECMA-376 Part 1 §17.4.38).
 ///
 /// This element specifies the set of borders for the edges of the current table, using the six border types defined by its child elements. If the cell spacing for any row is non-zero as specified using the tblCellSpacing element (§17.4.44; §17.4.43; §17.4.45), then there is no border conflict and the table border (or table-level exception border, if one is specified) shall be displayed. If the cell spacing is zero, then there is a conflict \[Example: Between the left border of all cells in the first column and the left border of the table. end example\], which shall be resolved as follows:  If there is a cell border, then the cell border shall be displayed
@@ -31907,6 +35410,35 @@ impl XmlWrite for CT_TblBorders {
     }
 }
 
+impl Validate for CT_TblBorders {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.top {
+            v.enter("w:top", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.start {
+            v.enter("w:start", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.left {
+            v.enter("w:left", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bottom {
+            v.enter("w:bottom", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.end {
+            v.enter("w:end", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.right {
+            v.enter("w:right", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.inside_h {
+            v.enter("w:insideH", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.inside_v {
+            v.enter("w:insideV", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Table Cell Margin Exceptions (ECMA-376 Part 1 §17.4.41).
 ///
 /// This element specifies a set of cell margins for all cells in the parent table row via a set of table-level property exceptions. These settings can be overridden by the table cell margin definition specified by the tcMar element contained within the table cell's properties (§17.4.41). If this element is omitted, then it shall inherit the table cell margins from the table-level cell margins (§17.4.42).
@@ -32036,6 +35568,29 @@ impl XmlWrite for CT_TblCellMar {
     }
 }
 
+impl Validate for CT_TblCellMar {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.top {
+            v.enter("w:top", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.start {
+            v.enter("w:start", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.left {
+            v.enter("w:left", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bottom {
+            v.enter("w:bottom", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.end {
+            v.enter("w:end", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.right {
+            v.enter("w:right", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Table Grid (ECMA-376 Part 1 §17.4.48).
 ///
 /// This element specifies the table grid for the current table. The table grid is a definition of the set of grid columns which define all of the shared vertical edges of the table, as well as default widths for each of these grid columns. These grid column widths are then used to determine the size of the table based on the table layout algorithm used (§17.4.52;§17.4.53).
@@ -32111,6 +35666,17 @@ impl XmlWrite for CT_TblGrid {
     }
 }
 
+impl Validate for CT_TblGrid {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.grid_col.iter().enumerate() {
+            v.enter("w:gridCol", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_grid_change {
+            v.enter("w:tblGridChange", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Previous Table Grid (ECMA-376 Part 1 §17.4.47).
 ///
 /// This element specifies a previous table grid state, the modifications to which shall be attributed to a revision by a particular author and at a particular time. This element contains the table grid settings which were previously in place before a specific set of revisions by one author. The table grid is a definition of the set of grid columns which define all of the shared vertical edges of the table, as well as default widths for each of these grid columns.
@@ -32169,6 +35735,14 @@ impl XmlWrite for CT_TblGridBase {
         rt::write_extras_after(w, &self.extra_children, 0, self.grid_col.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TblGridBase {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.grid_col.iter().enumerate() {
+            v.enter("w:gridCol", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -32242,6 +35816,19 @@ impl XmlWrite for CT_TblGridChange {
     }
 }
 
+impl Validate for CT_TblGridChange {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if let Some(x) = &self.tbl_grid {
+            v.enter("w:tblGrid", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "tblGrid", &self.extra_children);
+        }
+    }
+}
+
 /// Grid Column Definition (ECMA-376 Part 1 §17.4.16).
 ///
 /// This element specifies the presence and details about a single grid column within a table grid. A grid column is a logical column in a table used to specify the presence of a shared vertical edge in the table. When table cells are then added to this table, these shared edges (or grid columns, looking at the column between those shared edges) determine how table cells are placed into the table grid.
@@ -32292,6 +35879,10 @@ impl XmlWrite for CT_TblGridCol {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_TblGridCol {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Table Layout (ECMA-376 Part 1 §17.4.52).
@@ -32345,6 +35936,10 @@ impl XmlWrite for CT_TblLayoutType {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_TblLayoutType {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Table Style Conditional Formatting Settings Exception (ECMA-376 Part 1 §17.4.54).
@@ -32454,6 +36049,10 @@ impl XmlWrite for CT_TblLook {
     }
 }
 
+impl Validate for CT_TblLook {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Floating Table Allows Other Tables to Overlap (ECMA-376 Part 1 §17.4.56).
 ///
 /// This element specifies whether the current table shall allow other floating tables to overlap its extents when the tables are displayed in a document. If specified, then no adjustment shall be made to prevent tables whose properties would normally cause them to overlap from overlapping when displayed. If turned off, then the tables shall be adjusted as needed to prevent them from overlapping when displayed by adjusting the floating table properties as needed.
@@ -32503,6 +36102,14 @@ impl XmlWrite for CT_TblOverlap {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TblOverlap {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -32637,6 +36244,10 @@ impl XmlWrite for CT_TblPPr {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_TblPPr {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Table Properties (ECMA-376 Part 1 §17.4.59).
@@ -32935,6 +36546,65 @@ impl XmlWrite for CT_TblPr {
     }
 }
 
+impl Validate for CT_TblPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.tbl_style {
+            v.enter("w:tblStyle", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tblp_pr {
+            v.enter("w:tblpPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_overlap {
+            v.enter("w:tblOverlap", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bidi_visual {
+            v.enter("w:bidiVisual", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_style_row_band_size {
+            v.enter("w:tblStyleRowBandSize", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_style_col_band_size {
+            v.enter("w:tblStyleColBandSize", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_w {
+            v.enter("w:tblW", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.jc {
+            v.enter("w:jc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_cell_spacing {
+            v.enter("w:tblCellSpacing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_ind {
+            v.enter("w:tblInd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_borders {
+            v.enter("w:tblBorders", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.shd {
+            v.enter("w:shd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_layout {
+            v.enter("w:tblLayout", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_cell_mar {
+            v.enter("w:tblCellMar", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_look {
+            v.enter("w:tblLook", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_caption {
+            v.enter("w:tblCaption", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_description {
+            v.enter("w:tblDescription", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_pr_change {
+            v.enter("w:tblPrChange", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Previous Table Properties (ECMA-376 Part 1 §17.4.58).
 ///
 /// This element specifies a previous set of table properties, the modifications to which shall be attributed to a revision by a particular author and at a particular time. This element contains the table property settings which were previously in place before a specific set of revisions by one author. These properties affect the appearance of all rows and cells within the parent table, but can be overridden by individual table-level exception, row, and cell level properties, as defined by each property.
@@ -33219,6 +36889,62 @@ impl XmlWrite for CT_TblPrBase {
     }
 }
 
+impl Validate for CT_TblPrBase {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.tbl_style {
+            v.enter("w:tblStyle", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tblp_pr {
+            v.enter("w:tblpPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_overlap {
+            v.enter("w:tblOverlap", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bidi_visual {
+            v.enter("w:bidiVisual", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_style_row_band_size {
+            v.enter("w:tblStyleRowBandSize", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_style_col_band_size {
+            v.enter("w:tblStyleColBandSize", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_w {
+            v.enter("w:tblW", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.jc {
+            v.enter("w:jc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_cell_spacing {
+            v.enter("w:tblCellSpacing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_ind {
+            v.enter("w:tblInd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_borders {
+            v.enter("w:tblBorders", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.shd {
+            v.enter("w:shd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_layout {
+            v.enter("w:tblLayout", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_cell_mar {
+            v.enter("w:tblCellMar", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_look {
+            v.enter("w:tblLook", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_caption {
+            v.enter("w:tblCaption", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_description {
+            v.enter("w:tblDescription", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Revision Information for Table Properties (ECMA-376 Part 1 §17.13.5.34).
 ///
 /// This element specifies the details about a single revision to a set of table properties in a WordprocessingML document. This element stores this revision as follows:  The child element of this element contains the complete set of table properties which were applied to the parent table before this revision
@@ -33304,6 +37030,22 @@ impl XmlWrite for CT_TblPrChange {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TblPrChange {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if self.author.is_none() {
+            v.required_attribute(Ns::W, "author", &self.extra_attrs);
+        }
+        if let Some(x) = &self.tbl_pr {
+            v.enter("w:tblPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "tblPr", &self.extra_children);
+        }
     }
 }
 
@@ -33491,6 +37233,41 @@ impl XmlWrite for CT_TblPrEx {
     }
 }
 
+impl Validate for CT_TblPrEx {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.tbl_w {
+            v.enter("w:tblW", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.jc {
+            v.enter("w:jc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_cell_spacing {
+            v.enter("w:tblCellSpacing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_ind {
+            v.enter("w:tblInd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_borders {
+            v.enter("w:tblBorders", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.shd {
+            v.enter("w:shd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_layout {
+            v.enter("w:tblLayout", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_cell_mar {
+            v.enter("w:tblCellMar", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_look {
+            v.enter("w:tblLook", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_pr_ex_change {
+            v.enter("w:tblPrExChange", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Previous Table-Level Property Exceptions (ECMA-376 Part 1 §17.4.61).
 ///
 /// This element specifies a previous set of table-level property exceptions, the modifications to which shall be attributed to a revision by a particular author and at a particular time. This element contains the table-level property exceptions which were previously in place before a specific set of revisions by one author.
@@ -33661,6 +37438,38 @@ impl XmlWrite for CT_TblPrExBase {
     }
 }
 
+impl Validate for CT_TblPrExBase {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.tbl_w {
+            v.enter("w:tblW", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.jc {
+            v.enter("w:jc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_cell_spacing {
+            v.enter("w:tblCellSpacing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_ind {
+            v.enter("w:tblInd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_borders {
+            v.enter("w:tblBorders", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.shd {
+            v.enter("w:shd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_layout {
+            v.enter("w:tblLayout", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_cell_mar {
+            v.enter("w:tblCellMar", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_look {
+            v.enter("w:tblLook", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Revision Information for Table-Level Property Exceptions (ECMA-376 Part 1 §17.13.5.35).
 ///
 /// This element specifies the details about a single revision to a set of table-level property exceptions in a WordprocessingML document. This element stores this revision as follows:
@@ -33746,6 +37555,22 @@ impl XmlWrite for CT_TblPrExChange {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TblPrExChange {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if self.author.is_none() {
+            v.required_attribute(Ns::W, "author", &self.extra_attrs);
+        }
+        if let Some(x) = &self.tbl_pr_ex {
+            v.enter("w:tblPrEx", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "tblPrEx", &self.extra_children);
+        }
     }
 }
 
@@ -33875,6 +37700,29 @@ impl XmlWrite for CT_TblStylePr {
     }
 }
 
+impl Validate for CT_TblStylePr {
+    fn validate(&self, v: &mut Validator) {
+        if self.type_.is_none() {
+            v.required_attribute(Ns::W, "type", &self.extra_attrs);
+        }
+        if let Some(x) = &self.p_pr {
+            v.enter("w:pPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.r_pr {
+            v.enter("w:rPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_pr {
+            v.enter("w:tblPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tr_pr {
+            v.enter("w:trPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tc_pr {
+            v.enter("w:tcPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Table Cell Bottom Margin Exception (ECMA-376 Part 1 §17.4.2).
 ///
 /// This element specifies the amount of space which shall be left between the bottom extent of the cell contents and the border of a specific table cell within a table. This setting shall override the table cell bottom margin definition specified by the bottom element contained within the table properties (§17.4.5). This value is specified in the units applied via its type attribute.
@@ -33951,6 +37799,10 @@ impl XmlWrite for CT_TblWidth {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_TblWidth {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Table Cell (ECMA-376 Part 1 §17.4.65).
@@ -34063,6 +37915,17 @@ impl XmlWrite for CT_Tc {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_Tc {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.tc_pr {
+            v.enter("w:tcPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.block_level_elts.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -34250,6 +38113,41 @@ impl XmlWrite for CT_TcBorders {
     }
 }
 
+impl Validate for CT_TcBorders {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.top {
+            v.enter("w:top", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.start {
+            v.enter("w:start", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.left {
+            v.enter("w:left", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bottom {
+            v.enter("w:bottom", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.end {
+            v.enter("w:end", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.right {
+            v.enter("w:right", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.inside_h {
+            v.enter("w:insideH", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.inside_v {
+            v.enter("w:insideV", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tl2br {
+            v.enter("w:tl2br", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tr2bl {
+            v.enter("w:tr2bl", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Single Table Cell Margins (ECMA-376 Part 1 §17.4.68).
 ///
 /// This element specifies a set of cell margins for a single table cell in the parent table. This setting, if present, shall override the table cell margins from the table-level cell margins (§17.4.42).
@@ -34375,6 +38273,29 @@ impl XmlWrite for CT_TcMar {
         }
         rt::write_extras(w, &self.extra_children, 6);
         w.end();
+    }
+}
+
+impl Validate for CT_TcMar {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.top {
+            v.enter("w:top", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.start {
+            v.enter("w:start", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.left {
+            v.enter("w:left", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bottom {
+            v.enter("w:bottom", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.end {
+            v.enter("w:end", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.right {
+            v.enter("w:right", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -34648,6 +38569,59 @@ impl XmlWrite for CT_TcPr {
     }
 }
 
+impl Validate for CT_TcPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.cnf_style {
+            v.enter("w:cnfStyle", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tc_w {
+            v.enter("w:tcW", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.grid_span {
+            v.enter("w:gridSpan", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.h_merge {
+            v.enter("w:hMerge", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.v_merge {
+            v.enter("w:vMerge", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tc_borders {
+            v.enter("w:tcBorders", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.shd {
+            v.enter("w:shd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.no_wrap {
+            v.enter("w:noWrap", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tc_mar {
+            v.enter("w:tcMar", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.text_direction {
+            v.enter("w:textDirection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tc_fit_text {
+            v.enter("w:tcFitText", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.v_align {
+            v.enter("w:vAlign", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hide_mark {
+            v.enter("w:hideMark", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.headers {
+            v.enter("w:headers", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cell_markup_elements {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.tc_pr_change {
+            v.enter("w:tcPrChange", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_TcPrBase`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TcPrBase {
@@ -34882,6 +38856,53 @@ impl XmlWrite for CT_TcPrBase {
     }
 }
 
+impl Validate for CT_TcPrBase {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.cnf_style {
+            v.enter("w:cnfStyle", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tc_w {
+            v.enter("w:tcW", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.grid_span {
+            v.enter("w:gridSpan", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.h_merge {
+            v.enter("w:hMerge", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.v_merge {
+            v.enter("w:vMerge", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tc_borders {
+            v.enter("w:tcBorders", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.shd {
+            v.enter("w:shd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.no_wrap {
+            v.enter("w:noWrap", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tc_mar {
+            v.enter("w:tcMar", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.text_direction {
+            v.enter("w:textDirection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tc_fit_text {
+            v.enter("w:tcFitText", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.v_align {
+            v.enter("w:vAlign", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hide_mark {
+            v.enter("w:hideMark", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.headers {
+            v.enter("w:headers", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Revision Information for Table Cell Properties (ECMA-376 Part 1 §17.13.5.36).
 ///
 /// This element specifies the details about a single revision to a set of table cell properties in a WordprocessingML document. This element stores this revision as follows:  The child element of this element contains the complete set of table cell properties which were applied to the parent table before this revision
@@ -34967,6 +38988,22 @@ impl XmlWrite for CT_TcPrChange {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TcPrChange {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if self.author.is_none() {
+            v.required_attribute(Ns::W, "author", &self.extra_attrs);
+        }
+        if let Some(x) = &self.tc_pr {
+            v.enter("w:tcPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "tcPr", &self.extra_children);
+        }
     }
 }
 
@@ -35224,6 +39261,56 @@ impl XmlWrite for CT_TcPrInner {
     }
 }
 
+impl Validate for CT_TcPrInner {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.cnf_style {
+            v.enter("w:cnfStyle", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tc_w {
+            v.enter("w:tcW", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.grid_span {
+            v.enter("w:gridSpan", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.h_merge {
+            v.enter("w:hMerge", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.v_merge {
+            v.enter("w:vMerge", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tc_borders {
+            v.enter("w:tcBorders", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.shd {
+            v.enter("w:shd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.no_wrap {
+            v.enter("w:noWrap", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tc_mar {
+            v.enter("w:tcMar", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.text_direction {
+            v.enter("w:textDirection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tc_fit_text {
+            v.enter("w:tcFitText", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.v_align {
+            v.enter("w:vAlign", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hide_mark {
+            v.enter("w:hideMark", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.headers {
+            v.enter("w:headers", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cell_markup_elements {
+            x.validate_at(v, None);
+        }
+    }
+}
+
 /// Deleted Text (ECMA-376 Part 1 §17.3.3.7).
 ///
 /// This element specifies that this run contains literal text which shall be displayed in the document. The delText element shall be used for all text runs which are part of a region of text that is contained in a deleted region using the del element (§17.13.5.14).
@@ -35283,6 +39370,10 @@ impl XmlWrite for CT_Text {
     }
 }
 
+impl Validate for CT_Text {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Vertical Character Alignment on Line (ECMA-376 Part 1 §17.3.1.39).
 ///
 /// This element specifies the vertical alignment of all text on each line displayed within a paragraph. If the line height (before any added spacing) is larger than one or more characters on the line, all characters are aligned to each other as specified by this element. If this element is omitted on a given paragraph, its value is determined by the setting previously set at any level of the style hierarchy (i.e. that previous setting remains unchanged).
@@ -35332,6 +39423,14 @@ impl XmlWrite for CT_TextAlignment {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TextAlignment {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -35389,6 +39488,14 @@ impl XmlWrite for CT_TextDirection {
     }
 }
 
+impl Validate for CT_TextDirection {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Animated Text Effect (ECMA-376 Part 1 §17.3.2.11).
 ///
 /// This element specifies an animated text effect which should be displayed when rendering the contents of this run. This effect is rendered around the extents of the text in the run in the same location as a run border with zero pixels of padding would be rendered (if such a run border was present). If this element is not present, the default value is to leave the formatting applied at previous level in the style hierarchy.
@@ -35438,6 +39545,14 @@ impl XmlWrite for CT_TextEffect {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TextEffect {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -35493,6 +39608,10 @@ impl XmlWrite for CT_TextScale {
     }
 }
 
+impl Validate for CT_TextScale {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Allow Surrounding Paragraphs to Tight Wrap to Text Box Contents (ECMA-376 Part 1 §17.3.1.40).
 ///
 /// Contents) This element specifies whether, for paragraphs in a text box, the surrounding text shall be allowed to overlap with the empty text box boundaries and tight wrap to the extents of the text within the text box. This element shall only be read for paragraphs which are contained within a text box (have a txbxContent ancestor), ignored otherwise. If the parent text box does not meet the following three criteria, then this property has no effect:  The text box wrapping shall be set to tight  The text box border shall not be set  The text box shading shall not be set If this element is omitted on a given paragraph, its value is determined by the setting previously set at any level
@@ -35542,6 +39661,14 @@ impl XmlWrite for CT_TextboxTightWrap {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TextboxTightWrap {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -35696,6 +39823,14 @@ impl XmlWrite for CT_TopPageBorder {
     }
 }
 
+impl Validate for CT_TopPageBorder {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Table Row Properties (ECMA-376 Part 1 §17.4.81).
 ///
 /// This element specifies the set of row-level properties applied to the current table row. Each unique property is specified by a child element of this element. These properties affect the appearance of all cells in the current row within the parent table, but can be overridden by individual cell-level properties, as defined by each property.
@@ -35808,6 +39943,23 @@ impl XmlWrite for CT_TrPr {
     }
 }
 
+impl Validate for CT_TrPr {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if let Some(x) = &self.ins {
+            v.enter("w:ins", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.del {
+            v.enter("w:del", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tr_pr_change {
+            v.enter("w:trPrChange", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Previous Table Row Properties (ECMA-376 Part 1 §17.4.82).
 ///
 /// This element specifies a previous set of table cell properties, the modifications to which shall be attributed to a revision by a particular author and at a particular time. This element contains the table cell property settings which were previously in place before a specific set of revisions by one author. Each unique property is specified by a child element of this element.
@@ -35873,6 +40025,14 @@ impl XmlWrite for CT_TrPrBase {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TrPrBase {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -35964,6 +40124,22 @@ impl XmlWrite for CT_TrPrChange {
     }
 }
 
+impl Validate for CT_TrPrChange {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if self.author.is_none() {
+            v.required_attribute(Ns::W, "author", &self.extra_attrs);
+        }
+        if let Some(x) = &self.tr_pr {
+            v.enter("w:trPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::W, "trPr", &self.extra_children);
+        }
+    }
+}
+
 /// Table Cell Deletion (ECMA-376 Part 1 §17.13.5.1).
 ///
 /// This element specifies that the parent table cell shall be treated as though it was deleted from the document while revisions were being recorded. This means that although the table cell element exists in the structure of the table, the table cell technically no longer exists in the document.
@@ -36046,6 +40222,17 @@ impl XmlWrite for CT_TrackChange {
     }
 }
 
+impl Validate for CT_TrackChange {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if self.author.is_none() {
+            v.required_attribute(Ns::W, "author", &self.extra_attrs);
+        }
+    }
+}
+
 /// Schema complex type `CT_TrackChangeNumbering`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TrackChangeNumbering {
@@ -36119,6 +40306,17 @@ impl XmlWrite for CT_TrackChangeNumbering {
     }
 }
 
+impl Validate for CT_TrackChangeNumbering {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if self.author.is_none() {
+            v.required_attribute(Ns::W, "author", &self.extra_attrs);
+        }
+    }
+}
+
 /// Schema complex type `CT_TrackChangeRange`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TrackChangeRange {
@@ -36189,6 +40387,17 @@ impl XmlWrite for CT_TrackChangeRange {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TrackChangeRange {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::W, "id", &self.extra_attrs);
+        }
+        if self.author.is_none() {
+            v.required_attribute(Ns::W, "author", &self.extra_attrs);
+        }
     }
 }
 
@@ -36280,6 +40489,10 @@ impl XmlWrite for CT_TrackChangesView {
     }
 }
 
+impl Validate for CT_TrackChangesView {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Distance Between Automatic Tab Stops (ECMA-376 Part 1 §17.15.1.25).
 ///
 /// This element specifies the value which shall be used as the multiplier to generate automatic tab stops in this document. Automatic tab stops refer to the tab stop locations which occur after all custom tab stops in the current paragraph have been surpassed. If this element is omitted, then automatic tab stops should be generated at 720 twentieths of a point (0.5") intervals across the displayed page.
@@ -36335,6 +40548,14 @@ impl XmlWrite for CT_TwipsMeasure {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TwipsMeasure {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -36416,6 +40637,14 @@ impl XmlWrite for CT_TxbxContent {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TxbxContent {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.block_level_elts.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -36507,6 +40736,10 @@ impl XmlWrite for CT_Underline {
     }
 }
 
+impl Validate for CT_Underline {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Structured Document Tag Navigation Order Index (ECMA-376 Part 1 §17.5.2.41).
 ///
 /// This element specifies the position of the current structured document tag in the navigation (tab) order used in the document. The index shall be stored on this element’s val attribute and is analogous to the tabIndex attribute in HTML. Objects that support tab index shall be navigated by consumers in the following order:  Objects for which the XML specifies a non-zero tabIndex value are navigated first.
@@ -36557,6 +40790,14 @@ impl XmlWrite for CT_UnsignedDecimalNumber {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_UnsignedDecimalNumber {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -36612,6 +40853,10 @@ impl XmlWrite for CT_VMerge {
     }
 }
 
+impl Validate for CT_VMerge {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Subscript/Superscript Text (ECMA-376 Part 1 §17.3.2.42).
 ///
 /// This element specifies the alignment which shall be applied to the contents of this run in relation to the default appearance of the run's text. This allows the text to be repositioned as subscript or superscript without altering the font size of the run properties. If this element is not present, the default value is to leave the formatting applied at previous level in the style hierarchy.
@@ -36661,6 +40906,14 @@ impl XmlWrite for CT_VerticalAlignRun {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_VerticalAlignRun {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -36717,6 +40970,14 @@ impl XmlWrite for CT_VerticalJc {
     }
 }
 
+impl Validate for CT_VerticalJc {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Document View Setting (ECMA-376 Part 1 §17.15.1.92).
 ///
 /// This element specifies the manner in which the contents of this document should be displayed when opened by an application. \[Note: Although this Standard is for a file format, occasionally, guidance is given regarding intent in dealing with things outside that file format, such as the rendering of documents to a screen or printer. end note\] If this element is omitted, then an application can view the document in any desired default state.
@@ -36766,6 +41027,14 @@ impl XmlWrite for CT_View {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_View {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::W, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -36995,6 +41264,50 @@ impl XmlWrite for CT_WebSettings {
     }
 }
 
+impl Validate for CT_WebSettings {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.frameset {
+            v.enter("w:frameset", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.divs {
+            v.enter("w:divs", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.encoding {
+            v.enter("w:encoding", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.optimize_for_browser {
+            v.enter("w:optimizeForBrowser", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.rely_on_vml {
+            v.enter("w:relyOnVML", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.allow_png {
+            v.enter("w:allowPNG", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_rely_on_css {
+            v.enter("w:doNotRelyOnCSS", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_save_as_single_file {
+            v.enter("w:doNotSaveAsSingleFile", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_organize_in_folder {
+            v.enter("w:doNotOrganizeInFolder", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.do_not_use_long_file_names {
+            v.enter("w:doNotUseLongFileNames", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.pixels_per_inch {
+            v.enter("w:pixelsPerInch", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.target_screen_sz {
+            v.enter("w:targetScreenSz", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.save_smart_tags_as_xml {
+            v.enter("w:saveSmartTagsAsXml", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Write Protection (ECMA-376 Part 1 §17.15.1.93).
 ///
 /// This element specifies the write protection settings which have been applied to a WordprocessingML document. Write protection refers to a mode in which the document's contents cannot be edited, and the document cannot be resaved using the same file name. This setting is independent of the documentProtection (§17.15.1.29) element, but like document protection, this setting is not intended as a security feature and can be ignored.
@@ -37196,6 +41509,10 @@ impl XmlWrite for CT_WriteProtection {
     }
 }
 
+impl Validate for CT_WriteProtection {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Grammar Checking Settings (ECMA-376 Part 1 §17.15.1.1).
 ///
 /// This element specifies information about the parameters of the grammar checking which was performed on the contents of the current WordprocessingML document. \[Note: This information can be used as desired by applications; for example, to determine if the current grammar checking state, specified by the proofState element (§17.15.1.65) is sufficient. end note\]
@@ -37293,6 +41610,26 @@ impl XmlWrite for CT_WritingStyle {
     }
 }
 
+impl Validate for CT_WritingStyle {
+    fn validate(&self, v: &mut Validator) {
+        if self.lang.is_none() {
+            v.required_attribute(Ns::W, "lang", &self.extra_attrs);
+        }
+        if self.vendor_id.is_none() {
+            v.required_attribute(Ns::W, "vendorID", &self.extra_attrs);
+        }
+        if self.dll_version.is_none() {
+            v.required_attribute(Ns::W, "dllVersion", &self.extra_attrs);
+        }
+        if self.check_style.is_none() {
+            v.required_attribute(Ns::W, "checkStyle", &self.extra_attrs);
+        }
+        if self.app_name.is_none() {
+            v.required_attribute(Ns::W, "appName", &self.extra_attrs);
+        }
+    }
+}
+
 /// Magnification Setting (ECMA-376 Part 1 §17.15.1.94).
 ///
 /// This element specifies the magnification level which should be applied to a document when it is displayed by an application. The zoom level is specified with the use of two attributes stored on this element:  val, which stores the type of zoom applied to the document  percent, which stores the zoom percentage to be used when rendering the document If both attributes are present, then the percent attribute shall be treated as a 'cached' value and only used when the value none is specified for the val attribute. If this element is omitted, then applications can display the document in any desired magnification setting.
@@ -37354,6 +41691,14 @@ impl XmlWrite for CT_Zoom {
     }
 }
 
+impl Validate for CT_Zoom {
+    fn validate(&self, v: &mut Validator) {
+        if self.percent.is_none() {
+            v.required_attribute(Ns::W, "percent", &self.extra_attrs);
+        }
+    }
+}
+
 /// A choice among the child elements of `CT_Drawing`.
 #[derive(Clone, Debug, PartialEq)]
 pub enum CT_Drawing_Choice {
@@ -37381,6 +41726,15 @@ impl CT_Drawing_Choice {
             Self::Anchor(v) => v.write_xml(w, Ns::WP, "anchor"),
             Self::Inline(v) => v.write_xml(w, Ns::WP, "inline"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Anchor(x) => v.enter("wp:anchor", index, |v| x.validate(v)),
+            Self::Inline(x) => v.enter("wp:inline", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -37421,6 +41775,15 @@ impl CT_FFCheckBox_Choice {
             Self::Size(v) => v.write_xml(w, Ns::W, "size"),
             Self::SizeAuto(v) => v.write_xml(w, Ns::W, "sizeAuto"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Size(x) => v.enter("w:size", index, |v| x.validate(v)),
+            Self::SizeAuto(x) => v.enter("w:sizeAuto", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -37504,6 +41867,25 @@ impl CT_FFData_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Name(x) => v.enter("w:name", index, |v| x.validate(v)),
+            Self::Label(x) => v.enter("w:label", index, |v| x.validate(v)),
+            Self::TabIndex(x) => v.enter("w:tabIndex", index, |v| x.validate(v)),
+            Self::Enabled(x) => v.enter("w:enabled", index, |v| x.validate(v)),
+            Self::CalcOnExit(x) => v.enter("w:calcOnExit", index, |v| x.validate(v)),
+            Self::EntryMacro(x) => v.enter("w:entryMacro", index, |v| x.validate(v)),
+            Self::ExitMacro(x) => v.enter("w:exitMacro", index, |v| x.validate(v)),
+            Self::HelpText(x) => v.enter("w:helpText", index, |v| x.validate(v)),
+            Self::StatusText(x) => v.enter("w:statusText", index, |v| x.validate(v)),
+            Self::CheckBox(x) => v.enter("w:checkBox", index, |v| x.validate(v)),
+            Self::DdList(x) => v.enter("w:ddList", index, |v| x.validate(v)),
+            Self::TextInput(x) => v.enter("w:textInput", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -37558,6 +41940,16 @@ impl CT_FldChar_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::FldData(x) => v.enter("w:fldData", index, |v| x.validate(v)),
+            Self::FfData(x) => v.enter("w:ffData", index, |v| x.validate(v)),
+            Self::NumberingChange(x) => v.enter("w:numberingChange", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -37596,6 +41988,15 @@ impl CT_Frameset_Choice {
             Self::Frameset(v) => v.write_xml(w, Ns::W, "frameset"),
             Self::Frame(v) => v.write_xml(w, Ns::W, "frame"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Frameset(x) => v.enter("w:frameset", index, |v| x.validate(v)),
+            Self::Frame(x) => v.enter("w:frame", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -37639,6 +42040,15 @@ impl CT_MathCtrlIns_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Del(x) => v.enter("w:del", index, |v| x.validate(v)),
+            Self::RPr(x) => v.enter("w:rPr", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -37676,6 +42086,15 @@ impl CT_NumPicBullet_Choice {
             Self::Pict(v) => v.write_xml(w, Ns::W, "pict"),
             Self::Drawing(v) => v.write_xml(w, Ns::W, "drawing"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Pict(x) => v.enter("w:pict", index, |v| x.validate(v)),
+            Self::Drawing(x) => v.enter("w:drawing", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -37724,6 +42143,17 @@ impl CT_Object_Choice {
             Self::ObjectEmbed(v) => v.write_xml(w, Ns::W, "objectEmbed"),
             Self::Movie(v) => v.write_xml(w, Ns::W, "movie"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Control(x) => v.enter("w:control", index, |v| x.validate(v)),
+            Self::ObjectLink(x) => v.enter("w:objectLink", index, |v| x.validate(v)),
+            Self::ObjectEmbed(x) => v.enter("w:objectEmbed", index, |v| x.validate(v)),
+            Self::Movie(x) => v.enter("w:movie", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -37981,6 +42411,72 @@ impl CT_RunTrackChange_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::CustomXml(x) => v.enter("w:customXml", index, |v| x.validate(v)),
+            Self::SmartTag(x) => v.enter("w:smartTag", index, |v| x.validate(v)),
+            Self::Sdt(x) => v.enter("w:sdt", index, |v| x.validate(v)),
+            Self::Dir(x) => v.enter("w:dir", index, |v| x.validate(v)),
+            Self::Bdo(x) => v.enter("w:bdo", index, |v| x.validate(v)),
+            Self::WR(x) => v.enter("w:r", index, |v| x.validate(v)),
+            Self::ProofErr(x) => v.enter("w:proofErr", index, |v| x.validate(v)),
+            Self::PermStart(x) => v.enter("w:permStart", index, |v| x.validate(v)),
+            Self::PermEnd(x) => v.enter("w:permEnd", index, |v| x.validate(v)),
+            Self::BookmarkStart(x) => v.enter("w:bookmarkStart", index, |v| x.validate(v)),
+            Self::BookmarkEnd(x) => v.enter("w:bookmarkEnd", index, |v| x.validate(v)),
+            Self::MoveFromRangeStart(x) => v.enter("w:moveFromRangeStart", index, |v| x.validate(v)),
+            Self::MoveFromRangeEnd(x) => v.enter("w:moveFromRangeEnd", index, |v| x.validate(v)),
+            Self::MoveToRangeStart(x) => v.enter("w:moveToRangeStart", index, |v| x.validate(v)),
+            Self::MoveToRangeEnd(x) => v.enter("w:moveToRangeEnd", index, |v| x.validate(v)),
+            Self::CommentRangeStart(x) => v.enter("w:commentRangeStart", index, |v| x.validate(v)),
+            Self::CommentRangeEnd(x) => v.enter("w:commentRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlInsRangeStart(x) => v.enter("w:customXmlInsRangeStart", index, |v| x.validate(v)),
+            Self::CustomXmlInsRangeEnd(x) => v.enter("w:customXmlInsRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlDelRangeStart(x) => v.enter("w:customXmlDelRangeStart", index, |v| x.validate(v)),
+            Self::CustomXmlDelRangeEnd(x) => v.enter("w:customXmlDelRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlMoveFromRangeStart(x) => {
+                v.enter("w:customXmlMoveFromRangeStart", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveFromRangeEnd(x) => {
+                v.enter("w:customXmlMoveFromRangeEnd", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveToRangeStart(x) => {
+                v.enter("w:customXmlMoveToRangeStart", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveToRangeEnd(x) => {
+                v.enter("w:customXmlMoveToRangeEnd", index, |v| x.validate(v))
+            }
+            Self::Ins(x) => v.enter("w:ins", index, |v| x.validate(v)),
+            Self::Del(x) => v.enter("w:del", index, |v| x.validate(v)),
+            Self::MoveFrom(x) => v.enter("w:moveFrom", index, |v| x.validate(v)),
+            Self::MoveTo(x) => v.enter("w:moveTo", index, |v| x.validate(v)),
+            Self::OMathPara(x) => v.enter("m:oMathPara", index, |v| x.validate(v)),
+            Self::OMath(x) => v.enter("m:oMath", index, |v| x.validate(v)),
+            Self::Acc(x) => v.enter("m:acc", index, |v| x.validate(v)),
+            Self::Bar(x) => v.enter("m:bar", index, |v| x.validate(v)),
+            Self::Box(x) => v.enter("m:box", index, |v| x.validate(v)),
+            Self::BorderBox(x) => v.enter("m:borderBox", index, |v| x.validate(v)),
+            Self::D(x) => v.enter("m:d", index, |v| x.validate(v)),
+            Self::EqArr(x) => v.enter("m:eqArr", index, |v| x.validate(v)),
+            Self::F(x) => v.enter("m:f", index, |v| x.validate(v)),
+            Self::Func(x) => v.enter("m:func", index, |v| x.validate(v)),
+            Self::GroupChr(x) => v.enter("m:groupChr", index, |v| x.validate(v)),
+            Self::LimLow(x) => v.enter("m:limLow", index, |v| x.validate(v)),
+            Self::LimUpp(x) => v.enter("m:limUpp", index, |v| x.validate(v)),
+            Self::M(x) => v.enter("m:m", index, |v| x.validate(v)),
+            Self::Nary(x) => v.enter("m:nary", index, |v| x.validate(v)),
+            Self::Phant(x) => v.enter("m:phant", index, |v| x.validate(v)),
+            Self::Rad(x) => v.enter("m:rad", index, |v| x.validate(v)),
+            Self::SPre(x) => v.enter("m:sPre", index, |v| x.validate(v)),
+            Self::SSub(x) => v.enter("m:sSub", index, |v| x.validate(v)),
+            Self::SSubSup(x) => v.enter("m:sSubSup", index, |v| x.validate(v)),
+            Self::SSup(x) => v.enter("m:sSup", index, |v| x.validate(v)),
+            Self::MR(x) => v.enter("m:r", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -38110,6 +42606,25 @@ impl CT_SdtPr_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Equation(x) => v.enter("w:equation", index, |v| x.validate(v)),
+            Self::ComboBox(x) => v.enter("w:comboBox", index, |v| x.validate(v)),
+            Self::Date(x) => v.enter("w:date", index, |v| x.validate(v)),
+            Self::DocPartObj(x) => v.enter("w:docPartObj", index, |v| x.validate(v)),
+            Self::DocPartList(x) => v.enter("w:docPartList", index, |v| x.validate(v)),
+            Self::DropDownList(x) => v.enter("w:dropDownList", index, |v| x.validate(v)),
+            Self::Picture(x) => v.enter("w:picture", index, |v| x.validate(v)),
+            Self::RichText(x) => v.enter("w:richText", index, |v| x.validate(v)),
+            Self::Text(x) => v.enter("w:text", index, |v| x.validate(v)),
+            Self::Citation(x) => v.enter("w:citation", index, |v| x.validate(v)),
+            Self::Group(x) => v.enter("w:group", index, |v| x.validate(v)),
+            Self::Bibliography(x) => v.enter("w:bibliography", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -38200,6 +42715,25 @@ impl CT_TrPrBase_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::CnfStyle(x) => v.enter("w:cnfStyle", index, |v| x.validate(v)),
+            Self::DivId(x) => v.enter("w:divId", index, |v| x.validate(v)),
+            Self::GridBefore(x) => v.enter("w:gridBefore", index, |v| x.validate(v)),
+            Self::GridAfter(x) => v.enter("w:gridAfter", index, |v| x.validate(v)),
+            Self::WBefore(x) => v.enter("w:wBefore", index, |v| x.validate(v)),
+            Self::WAfter(x) => v.enter("w:wAfter", index, |v| x.validate(v)),
+            Self::CantSplit(x) => v.enter("w:cantSplit", index, |v| x.validate(v)),
+            Self::TrHeight(x) => v.enter("w:trHeight", index, |v| x.validate(v)),
+            Self::TblHeader(x) => v.enter("w:tblHeader", index, |v| x.validate(v)),
+            Self::TblCellSpacing(x) => v.enter("w:tblCellSpacing", index, |v| x.validate(v)),
+            Self::Jc(x) => v.enter("w:jc", index, |v| x.validate(v)),
+            Self::Hidden(x) => v.enter("w:hidden", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -38287,6 +42821,25 @@ impl CT_TrPr_Choice {
             Self::Jc(v) => v.write_xml(w, Ns::W, "jc"),
             Self::Hidden(v) => v.write_xml(w, Ns::W, "hidden"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::CnfStyle(x) => v.enter("w:cnfStyle", index, |v| x.validate(v)),
+            Self::DivId(x) => v.enter("w:divId", index, |v| x.validate(v)),
+            Self::GridBefore(x) => v.enter("w:gridBefore", index, |v| x.validate(v)),
+            Self::GridAfter(x) => v.enter("w:gridAfter", index, |v| x.validate(v)),
+            Self::WBefore(x) => v.enter("w:wBefore", index, |v| x.validate(v)),
+            Self::WAfter(x) => v.enter("w:wAfter", index, |v| x.validate(v)),
+            Self::CantSplit(x) => v.enter("w:cantSplit", index, |v| x.validate(v)),
+            Self::TrHeight(x) => v.enter("w:trHeight", index, |v| x.validate(v)),
+            Self::TblHeader(x) => v.enter("w:tblHeader", index, |v| x.validate(v)),
+            Self::TblCellSpacing(x) => v.enter("w:tblCellSpacing", index, |v| x.validate(v)),
+            Self::Jc(x) => v.enter("w:jc", index, |v| x.validate(v)),
+            Self::Hidden(x) => v.enter("w:hidden", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -38468,6 +43021,51 @@ impl EG_BlockLevelElts {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::CustomXml(x) => v.enter("w:customXml", index, |v| x.validate(v)),
+            Self::Sdt(x) => v.enter("w:sdt", index, |v| x.validate(v)),
+            Self::P(x) => v.enter("w:p", index, |v| x.validate(v)),
+            Self::Tbl(x) => v.enter("w:tbl", index, |v| x.validate(v)),
+            Self::ProofErr(x) => v.enter("w:proofErr", index, |v| x.validate(v)),
+            Self::PermStart(x) => v.enter("w:permStart", index, |v| x.validate(v)),
+            Self::PermEnd(x) => v.enter("w:permEnd", index, |v| x.validate(v)),
+            Self::BookmarkStart(x) => v.enter("w:bookmarkStart", index, |v| x.validate(v)),
+            Self::BookmarkEnd(x) => v.enter("w:bookmarkEnd", index, |v| x.validate(v)),
+            Self::MoveFromRangeStart(x) => v.enter("w:moveFromRangeStart", index, |v| x.validate(v)),
+            Self::MoveFromRangeEnd(x) => v.enter("w:moveFromRangeEnd", index, |v| x.validate(v)),
+            Self::MoveToRangeStart(x) => v.enter("w:moveToRangeStart", index, |v| x.validate(v)),
+            Self::MoveToRangeEnd(x) => v.enter("w:moveToRangeEnd", index, |v| x.validate(v)),
+            Self::CommentRangeStart(x) => v.enter("w:commentRangeStart", index, |v| x.validate(v)),
+            Self::CommentRangeEnd(x) => v.enter("w:commentRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlInsRangeStart(x) => v.enter("w:customXmlInsRangeStart", index, |v| x.validate(v)),
+            Self::CustomXmlInsRangeEnd(x) => v.enter("w:customXmlInsRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlDelRangeStart(x) => v.enter("w:customXmlDelRangeStart", index, |v| x.validate(v)),
+            Self::CustomXmlDelRangeEnd(x) => v.enter("w:customXmlDelRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlMoveFromRangeStart(x) => {
+                v.enter("w:customXmlMoveFromRangeStart", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveFromRangeEnd(x) => {
+                v.enter("w:customXmlMoveFromRangeEnd", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveToRangeStart(x) => {
+                v.enter("w:customXmlMoveToRangeStart", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveToRangeEnd(x) => {
+                v.enter("w:customXmlMoveToRangeEnd", index, |v| x.validate(v))
+            }
+            Self::Ins(x) => v.enter("w:ins", index, |v| x.validate(v)),
+            Self::Del(x) => v.enter("w:del", index, |v| x.validate(v)),
+            Self::MoveFrom(x) => v.enter("w:moveFrom", index, |v| x.validate(v)),
+            Self::MoveTo(x) => v.enter("w:moveTo", index, |v| x.validate(v)),
+            Self::OMathPara(x) => v.enter("m:oMathPara", index, |v| x.validate(v)),
+            Self::OMath(x) => v.enter("m:oMath", index, |v| x.validate(v)),
+            Self::AltChunk(x) => v.enter("w:altChunk", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -38537,6 +43135,16 @@ impl EG_CellMarkupElements {
             Self::CellDel(v) => v.write_xml(w, Ns::W, "cellDel"),
             Self::CellMerge(v) => v.write_xml(w, Ns::W, "cellMerge"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::CellIns(x) => v.enter("w:cellIns", index, |v| x.validate(v)),
+            Self::CellDel(x) => v.enter("w:cellDel", index, |v| x.validate(v)),
+            Self::CellMerge(x) => v.enter("w:cellMerge", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -38702,6 +43310,50 @@ impl EG_ContentBlockContent {
             Self::OMathPara(v) => v.write_xml(w, Ns::M, "oMathPara"),
             Self::OMath(v) => v.write_xml(w, Ns::M, "oMath"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::CustomXml(x) => v.enter("w:customXml", index, |v| x.validate(v)),
+            Self::Sdt(x) => v.enter("w:sdt", index, |v| x.validate(v)),
+            Self::P(x) => v.enter("w:p", index, |v| x.validate(v)),
+            Self::Tbl(x) => v.enter("w:tbl", index, |v| x.validate(v)),
+            Self::ProofErr(x) => v.enter("w:proofErr", index, |v| x.validate(v)),
+            Self::PermStart(x) => v.enter("w:permStart", index, |v| x.validate(v)),
+            Self::PermEnd(x) => v.enter("w:permEnd", index, |v| x.validate(v)),
+            Self::BookmarkStart(x) => v.enter("w:bookmarkStart", index, |v| x.validate(v)),
+            Self::BookmarkEnd(x) => v.enter("w:bookmarkEnd", index, |v| x.validate(v)),
+            Self::MoveFromRangeStart(x) => v.enter("w:moveFromRangeStart", index, |v| x.validate(v)),
+            Self::MoveFromRangeEnd(x) => v.enter("w:moveFromRangeEnd", index, |v| x.validate(v)),
+            Self::MoveToRangeStart(x) => v.enter("w:moveToRangeStart", index, |v| x.validate(v)),
+            Self::MoveToRangeEnd(x) => v.enter("w:moveToRangeEnd", index, |v| x.validate(v)),
+            Self::CommentRangeStart(x) => v.enter("w:commentRangeStart", index, |v| x.validate(v)),
+            Self::CommentRangeEnd(x) => v.enter("w:commentRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlInsRangeStart(x) => v.enter("w:customXmlInsRangeStart", index, |v| x.validate(v)),
+            Self::CustomXmlInsRangeEnd(x) => v.enter("w:customXmlInsRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlDelRangeStart(x) => v.enter("w:customXmlDelRangeStart", index, |v| x.validate(v)),
+            Self::CustomXmlDelRangeEnd(x) => v.enter("w:customXmlDelRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlMoveFromRangeStart(x) => {
+                v.enter("w:customXmlMoveFromRangeStart", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveFromRangeEnd(x) => {
+                v.enter("w:customXmlMoveFromRangeEnd", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveToRangeStart(x) => {
+                v.enter("w:customXmlMoveToRangeStart", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveToRangeEnd(x) => {
+                v.enter("w:customXmlMoveToRangeEnd", index, |v| x.validate(v))
+            }
+            Self::Ins(x) => v.enter("w:ins", index, |v| x.validate(v)),
+            Self::Del(x) => v.enter("w:del", index, |v| x.validate(v)),
+            Self::MoveFrom(x) => v.enter("w:moveFrom", index, |v| x.validate(v)),
+            Self::MoveTo(x) => v.enter("w:moveTo", index, |v| x.validate(v)),
+            Self::OMathPara(x) => v.enter("m:oMathPara", index, |v| x.validate(v)),
+            Self::OMath(x) => v.enter("m:oMath", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -38892,6 +43544,49 @@ impl EG_ContentCellContent {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Tc(x) => v.enter("w:tc", index, |v| x.validate(v)),
+            Self::CustomXml(x) => v.enter("w:customXml", index, |v| x.validate(v)),
+            Self::Sdt(x) => v.enter("w:sdt", index, |v| x.validate(v)),
+            Self::ProofErr(x) => v.enter("w:proofErr", index, |v| x.validate(v)),
+            Self::PermStart(x) => v.enter("w:permStart", index, |v| x.validate(v)),
+            Self::PermEnd(x) => v.enter("w:permEnd", index, |v| x.validate(v)),
+            Self::BookmarkStart(x) => v.enter("w:bookmarkStart", index, |v| x.validate(v)),
+            Self::BookmarkEnd(x) => v.enter("w:bookmarkEnd", index, |v| x.validate(v)),
+            Self::MoveFromRangeStart(x) => v.enter("w:moveFromRangeStart", index, |v| x.validate(v)),
+            Self::MoveFromRangeEnd(x) => v.enter("w:moveFromRangeEnd", index, |v| x.validate(v)),
+            Self::MoveToRangeStart(x) => v.enter("w:moveToRangeStart", index, |v| x.validate(v)),
+            Self::MoveToRangeEnd(x) => v.enter("w:moveToRangeEnd", index, |v| x.validate(v)),
+            Self::CommentRangeStart(x) => v.enter("w:commentRangeStart", index, |v| x.validate(v)),
+            Self::CommentRangeEnd(x) => v.enter("w:commentRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlInsRangeStart(x) => v.enter("w:customXmlInsRangeStart", index, |v| x.validate(v)),
+            Self::CustomXmlInsRangeEnd(x) => v.enter("w:customXmlInsRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlDelRangeStart(x) => v.enter("w:customXmlDelRangeStart", index, |v| x.validate(v)),
+            Self::CustomXmlDelRangeEnd(x) => v.enter("w:customXmlDelRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlMoveFromRangeStart(x) => {
+                v.enter("w:customXmlMoveFromRangeStart", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveFromRangeEnd(x) => {
+                v.enter("w:customXmlMoveFromRangeEnd", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveToRangeStart(x) => {
+                v.enter("w:customXmlMoveToRangeStart", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveToRangeEnd(x) => {
+                v.enter("w:customXmlMoveToRangeEnd", index, |v| x.validate(v))
+            }
+            Self::Ins(x) => v.enter("w:ins", index, |v| x.validate(v)),
+            Self::Del(x) => v.enter("w:del", index, |v| x.validate(v)),
+            Self::MoveFrom(x) => v.enter("w:moveFrom", index, |v| x.validate(v)),
+            Self::MoveTo(x) => v.enter("w:moveTo", index, |v| x.validate(v)),
+            Self::OMathPara(x) => v.enter("m:oMathPara", index, |v| x.validate(v)),
+            Self::OMath(x) => v.enter("m:oMath", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -39078,6 +43773,49 @@ impl EG_ContentRowContent {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Tr(x) => v.enter("w:tr", index, |v| x.validate(v)),
+            Self::CustomXml(x) => v.enter("w:customXml", index, |v| x.validate(v)),
+            Self::Sdt(x) => v.enter("w:sdt", index, |v| x.validate(v)),
+            Self::ProofErr(x) => v.enter("w:proofErr", index, |v| x.validate(v)),
+            Self::PermStart(x) => v.enter("w:permStart", index, |v| x.validate(v)),
+            Self::PermEnd(x) => v.enter("w:permEnd", index, |v| x.validate(v)),
+            Self::BookmarkStart(x) => v.enter("w:bookmarkStart", index, |v| x.validate(v)),
+            Self::BookmarkEnd(x) => v.enter("w:bookmarkEnd", index, |v| x.validate(v)),
+            Self::MoveFromRangeStart(x) => v.enter("w:moveFromRangeStart", index, |v| x.validate(v)),
+            Self::MoveFromRangeEnd(x) => v.enter("w:moveFromRangeEnd", index, |v| x.validate(v)),
+            Self::MoveToRangeStart(x) => v.enter("w:moveToRangeStart", index, |v| x.validate(v)),
+            Self::MoveToRangeEnd(x) => v.enter("w:moveToRangeEnd", index, |v| x.validate(v)),
+            Self::CommentRangeStart(x) => v.enter("w:commentRangeStart", index, |v| x.validate(v)),
+            Self::CommentRangeEnd(x) => v.enter("w:commentRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlInsRangeStart(x) => v.enter("w:customXmlInsRangeStart", index, |v| x.validate(v)),
+            Self::CustomXmlInsRangeEnd(x) => v.enter("w:customXmlInsRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlDelRangeStart(x) => v.enter("w:customXmlDelRangeStart", index, |v| x.validate(v)),
+            Self::CustomXmlDelRangeEnd(x) => v.enter("w:customXmlDelRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlMoveFromRangeStart(x) => {
+                v.enter("w:customXmlMoveFromRangeStart", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveFromRangeEnd(x) => {
+                v.enter("w:customXmlMoveFromRangeEnd", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveToRangeStart(x) => {
+                v.enter("w:customXmlMoveToRangeStart", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveToRangeEnd(x) => {
+                v.enter("w:customXmlMoveToRangeEnd", index, |v| x.validate(v))
+            }
+            Self::Ins(x) => v.enter("w:ins", index, |v| x.validate(v)),
+            Self::Del(x) => v.enter("w:del", index, |v| x.validate(v)),
+            Self::MoveFrom(x) => v.enter("w:moveFrom", index, |v| x.validate(v)),
+            Self::MoveTo(x) => v.enter("w:moveTo", index, |v| x.validate(v)),
+            Self::OMathPara(x) => v.enter("m:oMathPara", index, |v| x.validate(v)),
+            Self::OMath(x) => v.enter("m:oMath", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -39141,6 +43879,15 @@ impl EG_HdrFtrReferences {
             Self::HeaderReference(v) => v.write_xml(w, Ns::W, "headerReference"),
             Self::FooterReference(v) => v.write_xml(w, Ns::W, "footerReference"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::HeaderReference(x) => v.enter("w:headerReference", index, |v| x.validate(v)),
+            Self::FooterReference(x) => v.enter("w:footerReference", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -39325,6 +44072,55 @@ impl EG_PContent {
             Self::Hyperlink(v) => v.write_xml(w, Ns::W, "hyperlink"),
             Self::SubDoc(v) => v.write_xml(w, Ns::W, "subDoc"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::CustomXml(x) => v.enter("w:customXml", index, |v| x.validate(v)),
+            Self::SmartTag(x) => v.enter("w:smartTag", index, |v| x.validate(v)),
+            Self::Sdt(x) => v.enter("w:sdt", index, |v| x.validate(v)),
+            Self::Dir(x) => v.enter("w:dir", index, |v| x.validate(v)),
+            Self::Bdo(x) => v.enter("w:bdo", index, |v| x.validate(v)),
+            Self::R(x) => v.enter("w:r", index, |v| x.validate(v)),
+            Self::ProofErr(x) => v.enter("w:proofErr", index, |v| x.validate(v)),
+            Self::PermStart(x) => v.enter("w:permStart", index, |v| x.validate(v)),
+            Self::PermEnd(x) => v.enter("w:permEnd", index, |v| x.validate(v)),
+            Self::BookmarkStart(x) => v.enter("w:bookmarkStart", index, |v| x.validate(v)),
+            Self::BookmarkEnd(x) => v.enter("w:bookmarkEnd", index, |v| x.validate(v)),
+            Self::MoveFromRangeStart(x) => v.enter("w:moveFromRangeStart", index, |v| x.validate(v)),
+            Self::MoveFromRangeEnd(x) => v.enter("w:moveFromRangeEnd", index, |v| x.validate(v)),
+            Self::MoveToRangeStart(x) => v.enter("w:moveToRangeStart", index, |v| x.validate(v)),
+            Self::MoveToRangeEnd(x) => v.enter("w:moveToRangeEnd", index, |v| x.validate(v)),
+            Self::CommentRangeStart(x) => v.enter("w:commentRangeStart", index, |v| x.validate(v)),
+            Self::CommentRangeEnd(x) => v.enter("w:commentRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlInsRangeStart(x) => v.enter("w:customXmlInsRangeStart", index, |v| x.validate(v)),
+            Self::CustomXmlInsRangeEnd(x) => v.enter("w:customXmlInsRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlDelRangeStart(x) => v.enter("w:customXmlDelRangeStart", index, |v| x.validate(v)),
+            Self::CustomXmlDelRangeEnd(x) => v.enter("w:customXmlDelRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlMoveFromRangeStart(x) => {
+                v.enter("w:customXmlMoveFromRangeStart", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveFromRangeEnd(x) => {
+                v.enter("w:customXmlMoveFromRangeEnd", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveToRangeStart(x) => {
+                v.enter("w:customXmlMoveToRangeStart", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveToRangeEnd(x) => {
+                v.enter("w:customXmlMoveToRangeEnd", index, |v| x.validate(v))
+            }
+            Self::Ins(x) => v.enter("w:ins", index, |v| x.validate(v)),
+            Self::Del(x) => v.enter("w:del", index, |v| x.validate(v)),
+            Self::MoveFrom(x) => v.enter("w:moveFrom", index, |v| x.validate(v)),
+            Self::MoveTo(x) => v.enter("w:moveTo", index, |v| x.validate(v)),
+            Self::OMathPara(x) => v.enter("m:oMathPara", index, |v| x.validate(v)),
+            Self::OMath(x) => v.enter("m:oMath", index, |v| x.validate(v)),
+            Self::FldSimple(x) => v.enter("w:fldSimple", index, |v| x.validate(v)),
+            Self::Hyperlink(x) => v.enter("w:hyperlink", index, |v| x.validate(v)),
+            Self::SubDoc(x) => v.enter("w:subDoc", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -39548,6 +44344,52 @@ impl EG_RPrBase {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::RStyle(x) => v.enter("w:rStyle", index, |v| x.validate(v)),
+            Self::RFonts(x) => v.enter("w:rFonts", index, |v| x.validate(v)),
+            Self::B(x) => v.enter("w:b", index, |v| x.validate(v)),
+            Self::BCs(x) => v.enter("w:bCs", index, |v| x.validate(v)),
+            Self::I(x) => v.enter("w:i", index, |v| x.validate(v)),
+            Self::ICs(x) => v.enter("w:iCs", index, |v| x.validate(v)),
+            Self::Caps(x) => v.enter("w:caps", index, |v| x.validate(v)),
+            Self::SmallCaps(x) => v.enter("w:smallCaps", index, |v| x.validate(v)),
+            Self::Strike(x) => v.enter("w:strike", index, |v| x.validate(v)),
+            Self::Dstrike(x) => v.enter("w:dstrike", index, |v| x.validate(v)),
+            Self::Outline(x) => v.enter("w:outline", index, |v| x.validate(v)),
+            Self::Shadow(x) => v.enter("w:shadow", index, |v| x.validate(v)),
+            Self::Emboss(x) => v.enter("w:emboss", index, |v| x.validate(v)),
+            Self::Imprint(x) => v.enter("w:imprint", index, |v| x.validate(v)),
+            Self::NoProof(x) => v.enter("w:noProof", index, |v| x.validate(v)),
+            Self::SnapToGrid(x) => v.enter("w:snapToGrid", index, |v| x.validate(v)),
+            Self::Vanish(x) => v.enter("w:vanish", index, |v| x.validate(v)),
+            Self::WebHidden(x) => v.enter("w:webHidden", index, |v| x.validate(v)),
+            Self::Color(x) => v.enter("w:color", index, |v| x.validate(v)),
+            Self::Spacing(x) => v.enter("w:spacing", index, |v| x.validate(v)),
+            Self::W(x) => v.enter("w:w", index, |v| x.validate(v)),
+            Self::Kern(x) => v.enter("w:kern", index, |v| x.validate(v)),
+            Self::Position(x) => v.enter("w:position", index, |v| x.validate(v)),
+            Self::Sz(x) => v.enter("w:sz", index, |v| x.validate(v)),
+            Self::SzCs(x) => v.enter("w:szCs", index, |v| x.validate(v)),
+            Self::Highlight(x) => v.enter("w:highlight", index, |v| x.validate(v)),
+            Self::U(x) => v.enter("w:u", index, |v| x.validate(v)),
+            Self::Effect(x) => v.enter("w:effect", index, |v| x.validate(v)),
+            Self::Bdr(x) => v.enter("w:bdr", index, |v| x.validate(v)),
+            Self::Shd(x) => v.enter("w:shd", index, |v| x.validate(v)),
+            Self::FitText(x) => v.enter("w:fitText", index, |v| x.validate(v)),
+            Self::VertAlign(x) => v.enter("w:vertAlign", index, |v| x.validate(v)),
+            Self::Rtl(x) => v.enter("w:rtl", index, |v| x.validate(v)),
+            Self::Cs(x) => v.enter("w:cs", index, |v| x.validate(v)),
+            Self::Em(x) => v.enter("w:em", index, |v| x.validate(v)),
+            Self::Lang(x) => v.enter("w:lang", index, |v| x.validate(v)),
+            Self::EastAsianLayout(x) => v.enter("w:eastAsianLayout", index, |v| x.validate(v)),
+            Self::SpecVanish(x) => v.enter("w:specVanish", index, |v| x.validate(v)),
+            Self::OMath(x) => v.enter("w:oMath", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -39626,6 +44468,16 @@ impl EG_RPrMath {
             Self::Ins(v) => v.write_xml(w, Ns::W, "ins"),
             Self::Del(v) => v.write_xml(w, Ns::W, "del"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::RPr(x) => v.enter("w:rPr", index, |v| x.validate(v)),
+            Self::Ins(x) => v.enter("w:ins", index, |v| x.validate(v)),
+            Self::Del(x) => v.enter("w:del", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -39739,6 +44591,37 @@ impl EG_RangeMarkupElements {
             Self::CustomXmlMoveToRangeStart(v) => v.write_xml(w, Ns::W, "customXmlMoveToRangeStart"),
             Self::CustomXmlMoveToRangeEnd(v) => v.write_xml(w, Ns::W, "customXmlMoveToRangeEnd"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::BookmarkStart(x) => v.enter("w:bookmarkStart", index, |v| x.validate(v)),
+            Self::BookmarkEnd(x) => v.enter("w:bookmarkEnd", index, |v| x.validate(v)),
+            Self::MoveFromRangeStart(x) => v.enter("w:moveFromRangeStart", index, |v| x.validate(v)),
+            Self::MoveFromRangeEnd(x) => v.enter("w:moveFromRangeEnd", index, |v| x.validate(v)),
+            Self::MoveToRangeStart(x) => v.enter("w:moveToRangeStart", index, |v| x.validate(v)),
+            Self::MoveToRangeEnd(x) => v.enter("w:moveToRangeEnd", index, |v| x.validate(v)),
+            Self::CommentRangeStart(x) => v.enter("w:commentRangeStart", index, |v| x.validate(v)),
+            Self::CommentRangeEnd(x) => v.enter("w:commentRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlInsRangeStart(x) => v.enter("w:customXmlInsRangeStart", index, |v| x.validate(v)),
+            Self::CustomXmlInsRangeEnd(x) => v.enter("w:customXmlInsRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlDelRangeStart(x) => v.enter("w:customXmlDelRangeStart", index, |v| x.validate(v)),
+            Self::CustomXmlDelRangeEnd(x) => v.enter("w:customXmlDelRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlMoveFromRangeStart(x) => {
+                v.enter("w:customXmlMoveFromRangeStart", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveFromRangeEnd(x) => {
+                v.enter("w:customXmlMoveFromRangeEnd", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveToRangeStart(x) => {
+                v.enter("w:customXmlMoveToRangeStart", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveToRangeEnd(x) => {
+                v.enter("w:customXmlMoveToRangeEnd", index, |v| x.validate(v))
+            }
+            _ => {}
         }
     }
 
@@ -39905,6 +44788,47 @@ impl EG_RubyContent {
             Self::OMathPara(v) => v.write_xml(w, Ns::M, "oMathPara"),
             Self::OMath(v) => v.write_xml(w, Ns::M, "oMath"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::R(x) => v.enter("w:r", index, |v| x.validate(v)),
+            Self::ProofErr(x) => v.enter("w:proofErr", index, |v| x.validate(v)),
+            Self::PermStart(x) => v.enter("w:permStart", index, |v| x.validate(v)),
+            Self::PermEnd(x) => v.enter("w:permEnd", index, |v| x.validate(v)),
+            Self::BookmarkStart(x) => v.enter("w:bookmarkStart", index, |v| x.validate(v)),
+            Self::BookmarkEnd(x) => v.enter("w:bookmarkEnd", index, |v| x.validate(v)),
+            Self::MoveFromRangeStart(x) => v.enter("w:moveFromRangeStart", index, |v| x.validate(v)),
+            Self::MoveFromRangeEnd(x) => v.enter("w:moveFromRangeEnd", index, |v| x.validate(v)),
+            Self::MoveToRangeStart(x) => v.enter("w:moveToRangeStart", index, |v| x.validate(v)),
+            Self::MoveToRangeEnd(x) => v.enter("w:moveToRangeEnd", index, |v| x.validate(v)),
+            Self::CommentRangeStart(x) => v.enter("w:commentRangeStart", index, |v| x.validate(v)),
+            Self::CommentRangeEnd(x) => v.enter("w:commentRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlInsRangeStart(x) => v.enter("w:customXmlInsRangeStart", index, |v| x.validate(v)),
+            Self::CustomXmlInsRangeEnd(x) => v.enter("w:customXmlInsRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlDelRangeStart(x) => v.enter("w:customXmlDelRangeStart", index, |v| x.validate(v)),
+            Self::CustomXmlDelRangeEnd(x) => v.enter("w:customXmlDelRangeEnd", index, |v| x.validate(v)),
+            Self::CustomXmlMoveFromRangeStart(x) => {
+                v.enter("w:customXmlMoveFromRangeStart", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveFromRangeEnd(x) => {
+                v.enter("w:customXmlMoveFromRangeEnd", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveToRangeStart(x) => {
+                v.enter("w:customXmlMoveToRangeStart", index, |v| x.validate(v))
+            }
+            Self::CustomXmlMoveToRangeEnd(x) => {
+                v.enter("w:customXmlMoveToRangeEnd", index, |v| x.validate(v))
+            }
+            Self::Ins(x) => v.enter("w:ins", index, |v| x.validate(v)),
+            Self::Del(x) => v.enter("w:del", index, |v| x.validate(v)),
+            Self::MoveFrom(x) => v.enter("w:moveFrom", index, |v| x.validate(v)),
+            Self::MoveTo(x) => v.enter("w:moveTo", index, |v| x.validate(v)),
+            Self::OMathPara(x) => v.enter("m:oMathPara", index, |v| x.validate(v)),
+            Self::OMath(x) => v.enter("m:oMath", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -40097,6 +45021,46 @@ impl EG_RunInnerContent {
             Self::Ptab(v) => v.write_xml(w, Ns::W, "ptab"),
             Self::LastRenderedPageBreak(v) => v.write_xml(w, Ns::W, "lastRenderedPageBreak"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Br(x) => v.enter("w:br", index, |v| x.validate(v)),
+            Self::T(x) => v.enter("w:t", index, |v| x.validate(v)),
+            Self::ContentPart(x) => v.enter("w:contentPart", index, |v| x.validate(v)),
+            Self::DelText(x) => v.enter("w:delText", index, |v| x.validate(v)),
+            Self::InstrText(x) => v.enter("w:instrText", index, |v| x.validate(v)),
+            Self::DelInstrText(x) => v.enter("w:delInstrText", index, |v| x.validate(v)),
+            Self::NoBreakHyphen(x) => v.enter("w:noBreakHyphen", index, |v| x.validate(v)),
+            Self::SoftHyphen(x) => v.enter("w:softHyphen", index, |v| x.validate(v)),
+            Self::DayShort(x) => v.enter("w:dayShort", index, |v| x.validate(v)),
+            Self::MonthShort(x) => v.enter("w:monthShort", index, |v| x.validate(v)),
+            Self::YearShort(x) => v.enter("w:yearShort", index, |v| x.validate(v)),
+            Self::DayLong(x) => v.enter("w:dayLong", index, |v| x.validate(v)),
+            Self::MonthLong(x) => v.enter("w:monthLong", index, |v| x.validate(v)),
+            Self::YearLong(x) => v.enter("w:yearLong", index, |v| x.validate(v)),
+            Self::AnnotationRef(x) => v.enter("w:annotationRef", index, |v| x.validate(v)),
+            Self::FootnoteRef(x) => v.enter("w:footnoteRef", index, |v| x.validate(v)),
+            Self::EndnoteRef(x) => v.enter("w:endnoteRef", index, |v| x.validate(v)),
+            Self::Separator(x) => v.enter("w:separator", index, |v| x.validate(v)),
+            Self::ContinuationSeparator(x) => v.enter("w:continuationSeparator", index, |v| x.validate(v)),
+            Self::Sym(x) => v.enter("w:sym", index, |v| x.validate(v)),
+            Self::PgNum(x) => v.enter("w:pgNum", index, |v| x.validate(v)),
+            Self::Cr(x) => v.enter("w:cr", index, |v| x.validate(v)),
+            Self::Tab(x) => v.enter("w:tab", index, |v| x.validate(v)),
+            Self::Object(x) => v.enter("w:object", index, |v| x.validate(v)),
+            Self::Pict(x) => v.enter("w:pict", index, |v| x.validate(v)),
+            Self::FldChar(x) => v.enter("w:fldChar", index, |v| x.validate(v)),
+            Self::Ruby(x) => v.enter("w:ruby", index, |v| x.validate(v)),
+            Self::FootnoteReference(x) => v.enter("w:footnoteReference", index, |v| x.validate(v)),
+            Self::EndnoteReference(x) => v.enter("w:endnoteReference", index, |v| x.validate(v)),
+            Self::CommentReference(x) => v.enter("w:commentReference", index, |v| x.validate(v)),
+            Self::Drawing(x) => v.enter("w:drawing", index, |v| x.validate(v)),
+            Self::Ptab(x) => v.enter("w:ptab", index, |v| x.validate(v)),
+            Self::LastRenderedPageBreak(x) => v.enter("w:lastRenderedPageBreak", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 

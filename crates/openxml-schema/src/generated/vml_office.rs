@@ -1115,6 +1115,10 @@ impl XmlWrite for CT_Callout {
     }
 }
 
+impl Validate for CT_Callout {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Schema complex type `CT_ClipPath`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_ClipPath {
@@ -1158,6 +1162,14 @@ impl XmlWrite for CT_ClipPath {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_ClipPath {
+    fn validate(&self, v: &mut Validator) {
+        if self.v.is_none() {
+            v.required_attribute(Ns::O, "v", &self.extra_attrs);
+        }
     }
 }
 
@@ -1243,6 +1255,10 @@ impl XmlWrite for CT_ColorMenu {
     }
 }
 
+impl Validate for CT_ColorMenu {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Schema complex type `CT_ColorMru`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_ColorMru {
@@ -1298,6 +1314,10 @@ impl XmlWrite for CT_ColorMru {
     }
 }
 
+impl Validate for CT_ColorMru {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Schema complex type `CT_Complex`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Complex {
@@ -1342,6 +1362,10 @@ impl XmlWrite for CT_Complex {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Complex {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Schema complex type `CT_Diagram`.
@@ -1489,6 +1513,14 @@ impl XmlWrite for CT_Diagram {
     }
 }
 
+impl Validate for CT_Diagram {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.relationtable {
+            v.enter("o:relationtable", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_Entry`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Entry {
@@ -1542,6 +1574,10 @@ impl XmlWrite for CT_Entry {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Entry {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Schema complex type `CT_EquationXml`.
@@ -1602,6 +1638,14 @@ impl XmlWrite for CT_EquationXml {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_EquationXml {
+    fn validate(&self, v: &mut Validator) {
+        if self.any.is_none() {
+            v.missing_content("an element (wildcard)");
+        }
     }
 }
 
@@ -1939,6 +1983,10 @@ impl XmlWrite for CT_Extrusion {
     }
 }
 
+impl Validate for CT_Extrusion {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Schema complex type `CT_Fill`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Fill {
@@ -1994,6 +2042,10 @@ impl XmlWrite for CT_Fill {
     }
 }
 
+impl Validate for CT_Fill {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Schema complex type `CT_IdMap`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_IdMap {
@@ -2047,6 +2099,10 @@ impl XmlWrite for CT_IdMap {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_IdMap {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Schema complex type `CT_Ink`.
@@ -2115,6 +2171,10 @@ impl XmlWrite for CT_Ink {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Ink {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Schema complex type `CT_Lock`.
@@ -2260,6 +2320,10 @@ impl XmlWrite for CT_Lock {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Lock {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Schema complex type `CT_OLEObject`.
@@ -2417,6 +2481,10 @@ impl XmlWrite for CT_OLEObject {
     }
 }
 
+impl Validate for CT_OLEObject {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Schema complex type `CT_Proxy`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Proxy {
@@ -2488,6 +2556,10 @@ impl XmlWrite for CT_Proxy {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Proxy {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Schema complex type `CT_R`.
@@ -2584,6 +2656,17 @@ impl XmlWrite for CT_R {
     }
 }
 
+impl Validate for CT_R {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "id", &self.extra_attrs);
+        }
+        for (i, x) in self.proxy.iter().enumerate() {
+            v.enter("o:proxy", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_RegroupTable`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_RegroupTable {
@@ -2648,6 +2731,14 @@ impl XmlWrite for CT_RegroupTable {
         rt::write_extras_after(w, &self.extra_children, 0, self.entry.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_RegroupTable {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.entry.iter().enumerate() {
+            v.enter("o:entry", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -2724,6 +2815,10 @@ impl XmlWrite for CT_Relation {
     }
 }
 
+impl Validate for CT_Relation {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Schema complex type `CT_RelationTable`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_RelationTable {
@@ -2791,6 +2886,14 @@ impl XmlWrite for CT_RelationTable {
     }
 }
 
+impl Validate for CT_RelationTable {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.rel.iter().enumerate() {
+            v.enter("o:rel", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_Rules`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Rules {
@@ -2855,6 +2958,14 @@ impl XmlWrite for CT_Rules {
         rt::write_extras_after(w, &self.extra_children, 0, self.r.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Rules {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.r.iter().enumerate() {
+            v.enter("o:r", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -3111,6 +3222,41 @@ impl XmlWrite for CT_ShapeDefaults {
     }
 }
 
+impl Validate for CT_ShapeDefaults {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.fill {
+            v.enter("v:fill", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.stroke {
+            v.enter("v:stroke", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.textbox {
+            v.enter("v:textbox", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.shadow {
+            v.enter("v:shadow", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.skew {
+            v.enter("o:skew", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.extrusion {
+            v.enter("o:extrusion", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.callout {
+            v.enter("o:callout", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lock {
+            v.enter("o:lock", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.colormru {
+            v.enter("o:colormru", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.colormenu {
+            v.enter("o:colormenu", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_ShapeLayout`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_ShapeLayout {
@@ -3200,6 +3346,20 @@ impl XmlWrite for CT_ShapeLayout {
         }
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_ShapeLayout {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.idmap {
+            v.enter("o:idmap", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.regrouptable {
+            v.enter("o:regrouptable", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.rules {
+            v.enter("o:rules", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -3362,6 +3522,10 @@ impl XmlWrite for CT_SignatureLine {
     }
 }
 
+impl Validate for CT_SignatureLine {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Schema complex type `CT_Skew`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Skew {
@@ -3451,6 +3615,10 @@ impl XmlWrite for CT_Skew {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Skew {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Schema complex type `CT_StrokeChild`.
@@ -3731,6 +3899,10 @@ impl XmlWrite for CT_StrokeChild {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_StrokeChild {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Global elements of this schema. Each can be the root of a document part.

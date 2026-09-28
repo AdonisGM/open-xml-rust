@@ -168,3 +168,41 @@ fn external_corpus_round_trips() {
     print(&report);
     assert!(report.failures.is_empty() && report.diffs.is_empty());
 }
+
+/// Validates the typed model of every fixture part; documents written by
+/// Office applications must not report missing required content.
+#[test]
+fn committed_fixtures_have_required_content() {
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures");
+    let mut files = Vec::new();
+    office_files(&dir, &mut files);
+    let mut checked = 0;
+    let mut issues = Vec::new();
+    for f in &files {
+        let pkg = Package::open_path(f).unwrap();
+        for (name, part) in pkg.parts() {
+            let Ok(text) = decode_xml_bytes(part.data()) else {
+                continue;
+            };
+            if let Some(result) = openxml_schema::validate_xml(&text) {
+                checked += 1;
+                for i in result.unwrap() {
+                    issues.push(format!("{}{name}: {i}", f.file_name().unwrap().to_string_lossy()));
+                }
+            }
+        }
+    }
+    println!("{checked} parts validated, {} issues", issues.len());
+    for i in issues.iter().take(50) {
+        println!("  {i}");
+    }
+    assert!(checked > 500);
+    // The only documents with problems are known to be invalid: bar-chart.pptx
+    // (written by Apache POI) stores negative axis ids in xsd:unsignedInt attributes.
+    let unexpected: Vec<_> = issues
+        .iter()
+        .filter(|i| !i.starts_with("bar-chart.pptx/ppt/charts/chart1.xml"))
+        .collect();
+    assert!(unexpected.is_empty(), "{unexpected:#?}");
+    assert!(issues.iter().all(|i| i.contains("invalid value \"-18")));
+}

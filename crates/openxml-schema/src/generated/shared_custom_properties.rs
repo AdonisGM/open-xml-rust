@@ -74,6 +74,14 @@ impl XmlWrite for CT_Properties {
     }
 }
 
+impl Validate for CT_Properties {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.property.iter().enumerate() {
+            v.enter("op:property", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_Property`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Property {
@@ -194,6 +202,22 @@ impl XmlWrite for CT_Property {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Property {
+    fn validate(&self, v: &mut Validator) {
+        if self.fmtid.is_none() {
+            v.required_attribute(Ns::NONE, "fmtid", &self.extra_attrs);
+        }
+        if self.pid.is_none() {
+            v.required_attribute(Ns::NONE, "pid", &self.extra_attrs);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of vt:vector, vt:array, vt:blob, vt:oblob, vt:empty, vt:null, …");
+        }
     }
 }
 
@@ -432,6 +456,18 @@ impl CT_Property_Choice {
             Self::Vstream(v) => v.write_xml(w, Ns::VT, "vstream"),
             Self::Clsid(v) => rt::write_simple(w, Ns::VT, "clsid", v),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Vector(x) => v.enter("vt:vector", index, |v| x.validate(v)),
+            Self::Array(x) => v.enter("vt:array", index, |v| x.validate(v)),
+            Self::Empty(x) => v.enter("vt:empty", index, |v| x.validate(v)),
+            Self::Null(x) => v.enter("vt:null", index, |v| x.validate(v)),
+            Self::Vstream(x) => v.enter("vt:vstream", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 

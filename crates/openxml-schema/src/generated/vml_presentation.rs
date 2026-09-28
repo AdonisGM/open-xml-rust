@@ -47,6 +47,10 @@ impl XmlWrite for CT_Empty {
     }
 }
 
+impl Validate for CT_Empty {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Schema complex type `CT_Rel`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Rel {
@@ -91,6 +95,10 @@ impl XmlWrite for CT_Rel {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Rel {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Global elements of this schema. Each can be the root of a document part.

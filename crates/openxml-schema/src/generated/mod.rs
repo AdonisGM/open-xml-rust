@@ -2310,6 +2310,603 @@ pub fn round_trip_fragment(module: &str, type_name: &str, xml: &str) -> Option<o
     })
 }
 
+/// Parses a document whose root is any global element of the schemas and checks its
+/// required attributes and elements. Returns `None` for an unknown root element.
+pub fn validate_xml(xml: &str) -> Option<openxml_xml::Result<Vec<openxml_xml::Issue>>> {
+    use openxml_xml::Ns;
+    let (ns, local) = match openxml_xml::root_name(xml) {
+        Ok(n) => n,
+        Err(e) => return Some(Err(e)),
+    };
+    Some(match (ns, local.as_str()) {
+        (Ns::C, "chartSpace") => {
+            let d = dml_chart::elements::CHART_SPACE;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::C, "userShapes") => {
+            let d = dml_chart::elements::USER_SHAPES;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::C, "chart") => {
+            let d = dml_chart::elements::CHART;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::DGM, "colorsDef") => {
+            let d = dml_diagram::elements::COLORS_DEF;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::DGM, "colorsDefHdr") => {
+            let d = dml_diagram::elements::COLORS_DEF_HDR;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::DGM, "colorsDefHdrLst") => {
+            let d = dml_diagram::elements::COLORS_DEF_HDR_LST;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::DGM, "dataModel") => {
+            let d = dml_diagram::elements::DATA_MODEL;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::DGM, "layoutDef") => {
+            let d = dml_diagram::elements::LAYOUT_DEF;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::DGM, "layoutDefHdr") => {
+            let d = dml_diagram::elements::LAYOUT_DEF_HDR;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::DGM, "layoutDefHdrLst") => {
+            let d = dml_diagram::elements::LAYOUT_DEF_HDR_LST;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::DGM, "relIds") => {
+            let d = dml_diagram::elements::REL_IDS;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::DGM, "styleDef") => {
+            let d = dml_diagram::elements::STYLE_DEF;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::DGM, "styleDefHdr") => {
+            let d = dml_diagram::elements::STYLE_DEF_HDR;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::DGM, "styleDefHdrLst") => {
+            let d = dml_diagram::elements::STYLE_DEF_HDR_LST;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::LC, "lockedCanvas") => {
+            let d = dml_locked_canvas::elements::LOCKED_CANVAS;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::A, "videoFile") => {
+            let d = dml::elements::VIDEO_FILE;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::A, "graphic") => {
+            let d = dml::elements::GRAPHIC;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::A, "blip") => {
+            let d = dml::elements::BLIP;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::A, "theme") => {
+            let d = dml::elements::THEME;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::A, "themeOverride") => {
+            let d = dml::elements::THEME_OVERRIDE;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::A, "themeManager") => {
+            let d = dml::elements::THEME_MANAGER;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::A, "tbl") => {
+            let d = dml::elements::TBL;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::A, "tblStyleLst") => {
+            let d = dml::elements::TBL_STYLE_LST;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::PIC, "pic") => {
+            let d = dml_picture::elements::PIC;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::XDR, "from") => {
+            let d = dml_spreadsheet_drawing::elements::FROM;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::XDR, "to") => {
+            let d = dml_spreadsheet_drawing::elements::TO;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::XDR, "wsDr") => {
+            let d = dml_spreadsheet_drawing::elements::WS_DR;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::WP, "wpc") => {
+            let d = dml_wordprocessing_drawing::elements::WPC;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::WP, "wgp") => {
+            let d = dml_wordprocessing_drawing::elements::WGP;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::WP, "wsp") => {
+            let d = dml_wordprocessing_drawing::elements::WSP;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::WP, "inline") => {
+            let d = dml_wordprocessing_drawing::elements::INLINE;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::WP, "anchor") => {
+            let d = dml_wordprocessing_drawing::elements::ANCHOR;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::P, "cmAuthorLst") => {
+            let d = pml::elements::CM_AUTHOR_LST;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::P, "cmLst") => {
+            let d = pml::elements::CM_LST;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::P, "oleObj") => {
+            let d = pml::elements::OLE_OBJ;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::P, "presentation") => {
+            let d = pml::elements::PRESENTATION;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::P, "presentationPr") => {
+            let d = pml::elements::PRESENTATION_PR;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::P, "sld") => {
+            let d = pml::elements::SLD;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::P, "sldLayout") => {
+            let d = pml::elements::SLD_LAYOUT;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::P, "sldMaster") => {
+            let d = pml::elements::SLD_MASTER;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::P, "handoutMaster") => {
+            let d = pml::elements::HANDOUT_MASTER;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::P, "notesMaster") => {
+            let d = pml::elements::NOTES_MASTER;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::P, "notes") => {
+            let d = pml::elements::NOTES;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::P, "sldSyncPr") => {
+            let d = pml::elements::SLD_SYNC_PR;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::P, "tagLst") => {
+            let d = pml::elements::TAG_LST;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::P, "viewPr") => {
+            let d = pml::elements::VIEW_PR;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::AC, "additionalCharacteristics") => {
+            let d = shared_additional_characteristics::elements::ADDITIONAL_CHARACTERISTICS;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::B, "Sources") => {
+            let d = shared_bibliography::elements::SOURCES;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::DS, "datastoreItem") => {
+            let d = shared_custom_xml_data_properties::elements::DATASTORE_ITEM;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::SL, "schemaLibrary") => {
+            let d = shared_custom_xml_schema_properties::elements::SCHEMA_LIBRARY;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::OP, "Properties") => {
+            let d = shared_custom_properties::elements::PROPERTIES;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::EP, "Properties") => {
+            let d = shared_extended_properties::elements::PROPERTIES;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::VT, "variant") => {
+            let d = shared_variant_types::elements::VARIANT;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::VT, "vector") => {
+            let d = shared_variant_types::elements::VECTOR;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::VT, "array") => {
+            let d = shared_variant_types::elements::ARRAY;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::VT, "empty") => {
+            let d = shared_variant_types::elements::EMPTY;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::VT, "null") => {
+            let d = shared_variant_types::elements::NULL;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::VT, "vstream") => {
+            let d = shared_variant_types::elements::VSTREAM;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::M, "mathPr") => {
+            let d = shared_math::elements::MATH_PR;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::M, "oMathPara") => {
+            let d = shared_math::elements::O_MATH_PARA;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::M, "oMath") => {
+            let d = shared_math::elements::O_MATH;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "calcChain") => {
+            let d = sml::elements::CALC_CHAIN;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "comments") => {
+            let d = sml::elements::COMMENTS;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "MapInfo") => {
+            let d = sml::elements::MAP_INFO;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "connections") => {
+            let d = sml::elements::CONNECTIONS;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "pivotCacheDefinition") => {
+            let d = sml::elements::PIVOT_CACHE_DEFINITION;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "pivotCacheRecords") => {
+            let d = sml::elements::PIVOT_CACHE_RECORDS;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "pivotTableDefinition") => {
+            let d = sml::elements::PIVOT_TABLE_DEFINITION;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "queryTable") => {
+            let d = sml::elements::QUERY_TABLE;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "sst") => {
+            let d = sml::elements::SST;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "headers") => {
+            let d = sml::elements::HEADERS;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "revisions") => {
+            let d = sml::elements::REVISIONS;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "users") => {
+            let d = sml::elements::USERS;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "worksheet") => {
+            let d = sml::elements::WORKSHEET;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "chartsheet") => {
+            let d = sml::elements::CHARTSHEET;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "dialogsheet") => {
+            let d = sml::elements::DIALOGSHEET;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "metadata") => {
+            let d = sml::elements::METADATA;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "singleXmlCells") => {
+            let d = sml::elements::SINGLE_XML_CELLS;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "styleSheet") => {
+            let d = sml::elements::STYLE_SHEET;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "externalLink") => {
+            let d = sml::elements::EXTERNAL_LINK;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "table") => {
+            let d = sml::elements::TABLE;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "volTypes") => {
+            let d = sml::elements::VOL_TYPES;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::X, "workbook") => {
+            let d = sml::elements::WORKBOOK;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "shape") => {
+            let d = vml::elements::SHAPE;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "shapetype") => {
+            let d = vml::elements::SHAPETYPE;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "group") => {
+            let d = vml::elements::GROUP;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "background") => {
+            let d = vml::elements::BACKGROUND;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "fill") => {
+            let d = vml::elements::FILL;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "formulas") => {
+            let d = vml::elements::FORMULAS;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "handles") => {
+            let d = vml::elements::HANDLES;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "imagedata") => {
+            let d = vml::elements::IMAGEDATA;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "path") => {
+            let d = vml::elements::PATH;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "textbox") => {
+            let d = vml::elements::TEXTBOX;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "shadow") => {
+            let d = vml::elements::SHADOW;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "stroke") => {
+            let d = vml::elements::STROKE;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "textpath") => {
+            let d = vml::elements::TEXTPATH;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "arc") => {
+            let d = vml::elements::ARC;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "curve") => {
+            let d = vml::elements::CURVE;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "image") => {
+            let d = vml::elements::IMAGE;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "line") => {
+            let d = vml::elements::LINE;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "oval") => {
+            let d = vml::elements::OVAL;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "polyline") => {
+            let d = vml::elements::POLYLINE;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "rect") => {
+            let d = vml::elements::RECT;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::V, "roundrect") => {
+            let d = vml::elements::ROUNDRECT;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::O, "shapedefaults") => {
+            let d = vml_office::elements::SHAPEDEFAULTS;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::O, "shapelayout") => {
+            let d = vml_office::elements::SHAPELAYOUT;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::O, "signatureline") => {
+            let d = vml_office::elements::SIGNATURELINE;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::O, "ink") => {
+            let d = vml_office::elements::INK;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::O, "diagram") => {
+            let d = vml_office::elements::DIAGRAM;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::O, "equationxml") => {
+            let d = vml_office::elements::EQUATIONXML;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::O, "skew") => {
+            let d = vml_office::elements::SKEW;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::O, "extrusion") => {
+            let d = vml_office::elements::EXTRUSION;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::O, "callout") => {
+            let d = vml_office::elements::CALLOUT;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::O, "lock") => {
+            let d = vml_office::elements::LOCK;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::O, "OLEObject") => {
+            let d = vml_office::elements::OLE_OBJECT;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::O, "complex") => {
+            let d = vml_office::elements::COMPLEX;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::O, "left") => {
+            let d = vml_office::elements::LEFT;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::O, "top") => {
+            let d = vml_office::elements::TOP;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::O, "right") => {
+            let d = vml_office::elements::RIGHT;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::O, "bottom") => {
+            let d = vml_office::elements::BOTTOM;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::O, "column") => {
+            let d = vml_office::elements::COLUMN;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::O, "clippath") => {
+            let d = vml_office::elements::CLIPPATH;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::O, "fill") => {
+            let d = vml_office::elements::FILL;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::PVML, "iscomment") => {
+            let d = vml_presentation::elements::ISCOMMENT;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::PVML, "textdata") => {
+            let d = vml_presentation::elements::TEXTDATA;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::XVML, "ClientData") => {
+            let d = vml_spreadsheet::elements::CLIENT_DATA;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W10, "bordertop") => {
+            let d = vml_wordprocessing::elements::BORDERTOP;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W10, "borderleft") => {
+            let d = vml_wordprocessing::elements::BORDERLEFT;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W10, "borderright") => {
+            let d = vml_wordprocessing::elements::BORDERRIGHT;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W10, "borderbottom") => {
+            let d = vml_wordprocessing::elements::BORDERBOTTOM;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W10, "wrap") => {
+            let d = vml_wordprocessing::elements::WRAP;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W10, "anchorlock") => {
+            let d = vml_wordprocessing::elements::ANCHORLOCK;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W, "recipients") => {
+            let d = wml::elements::RECIPIENTS;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W, "txbxContent") => {
+            let d = wml::elements::TXBX_CONTENT;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W, "comments") => {
+            let d = wml::elements::COMMENTS;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W, "footnotes") => {
+            let d = wml::elements::FOOTNOTES;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W, "endnotes") => {
+            let d = wml::elements::ENDNOTES;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W, "hdr") => {
+            let d = wml::elements::HDR;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W, "ftr") => {
+            let d = wml::elements::FTR;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W, "settings") => {
+            let d = wml::elements::SETTINGS;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W, "webSettings") => {
+            let d = wml::elements::WEB_SETTINGS;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W, "fonts") => {
+            let d = wml::elements::FONTS;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W, "numbering") => {
+            let d = wml::elements::NUMBERING;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W, "styles") => {
+            let d = wml::elements::STYLES;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W, "document") => {
+            let d = wml::elements::DOCUMENT;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        (Ns::W, "glossaryDocument") => {
+            let d = wml::elements::GLOSSARY_DOCUMENT;
+            d.parse(xml).map(|v| d.validate(&v))
+        }
+        _ => return None,
+    })
+}
+
 /// Every global element of the schemas as `(namespace, local name)`.
 pub const GLOBAL_ELEMENTS: &[(openxml_xml::Ns, &str)] = &[
     (openxml_xml::Ns::C, "chartSpace"),

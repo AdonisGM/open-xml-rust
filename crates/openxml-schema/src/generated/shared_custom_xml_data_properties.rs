@@ -83,6 +83,17 @@ impl XmlWrite for CT_DatastoreItem {
     }
 }
 
+impl Validate for CT_DatastoreItem {
+    fn validate(&self, v: &mut Validator) {
+        if self.item_id.is_none() {
+            v.required_attribute(Ns::DS, "itemID", &self.extra_attrs);
+        }
+        if let Some(x) = &self.schema_refs {
+            v.enter("ds:schemaRefs", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Associated XML Schema (ECMA-376 Part 1 §22.5.2.2).
 ///
 /// This element specifies a single XML schema that is associated with the custom XML data part. This XML schema is identified using its target namespace, and can be located via any means available to an application processing the contents of this file. If the custom XML part cannot be validated using the specified XML schema when it is opened, then this reference can be omitted when the file is subsequently saved.
@@ -132,6 +143,14 @@ impl XmlWrite for CT_DatastoreSchemaRef {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_DatastoreSchemaRef {
+    fn validate(&self, v: &mut Validator) {
+        if self.uri.is_none() {
+            v.required_attribute(Ns::DS, "uri", &self.extra_attrs);
+        }
     }
 }
 
@@ -193,6 +212,14 @@ impl XmlWrite for CT_DatastoreSchemaRefs {
         rt::write_extras_after(w, &self.extra_children, 0, self.schema_ref.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_DatastoreSchemaRefs {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.schema_ref.iter().enumerate() {
+            v.enter("ds:schemaRef", Some(i), |v| x.validate(v));
+        }
     }
 }
 

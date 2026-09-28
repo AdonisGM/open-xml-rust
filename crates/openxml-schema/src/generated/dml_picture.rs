@@ -99,6 +99,26 @@ impl XmlWrite for CT_Picture {
     }
 }
 
+impl Validate for CT_Picture {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.nv_pic_pr {
+            v.enter("pic:nvPicPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::PIC, "nvPicPr", &self.extra_children);
+        }
+        if let Some(x) = &self.blip_fill {
+            v.enter("pic:blipFill", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::PIC, "blipFill", &self.extra_children);
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("pic:spPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::PIC, "spPr", &self.extra_children);
+        }
+    }
+}
+
 /// Non-Visual Picture Properties (ECMA-376 Part 1 §20.2.2.4).
 ///
 /// This element specifies the non visual properties for a picture. This allows for additional information that does not affect the appearance of the picture to be stored.
@@ -168,6 +188,21 @@ impl XmlWrite for CT_PictureNonVisual {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_PictureNonVisual {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("pic:cNvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::PIC, "cNvPr", &self.extra_children);
+        }
+        if let Some(x) = &self.c_nv_pic_pr {
+            v.enter("pic:cNvPicPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::PIC, "cNvPicPr", &self.extra_children);
+        }
     }
 }
 

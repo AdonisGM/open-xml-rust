@@ -3058,6 +3058,23 @@ impl XmlWrite for CT_ApplicationNonVisualDrawingProps {
     }
 }
 
+impl Validate for CT_ApplicationNonVisualDrawingProps {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ph {
+            v.enter("p:ph", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.media {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.cust_data_lst {
+            v.enter("p:custDataLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Slide Background (ECMA-376 Part 1 §19.3.1.1).
 ///
 /// This element specifies the background appearance information for a slide. The slide background covers the entire slide and is visible where no objects exist and as the background for transparent objects.
@@ -3125,6 +3142,16 @@ impl XmlWrite for CT_Background {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Background {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.background {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of p:bgPr, p:bgRef");
+        }
     }
 }
 
@@ -3233,6 +3260,22 @@ impl XmlWrite for CT_BackgroundProperties {
     }
 }
 
+impl Validate for CT_BackgroundProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.fill_properties {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:noFill, a:solidFill, a:gradFill, a:blipFill, a:pattFill, a:grpFill");
+        }
+        if let Some(x) = &self.effect_properties {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Build List (ECMA-376 Part 1 §19.5.14).
 ///
 /// This element specifies the list of graphic elements to build. This refers to how the different sub-shapes or sub- components of a object are displayed. The different objects that can have build properties are text, diagrams, and charts.
@@ -3287,6 +3330,17 @@ impl XmlWrite for CT_BuildList {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_BuildList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if self.choice.is_empty() {
+            v.missing_content("one of p:bldP, p:bldDgm, p:bldOleChart, p:bldGraphic");
+        }
     }
 }
 
@@ -3409,6 +3463,28 @@ impl XmlWrite for CT_Comment {
     }
 }
 
+impl Validate for CT_Comment {
+    fn validate(&self, v: &mut Validator) {
+        if self.author_id.is_none() {
+            v.required_attribute(Ns::NONE, "authorId", &self.extra_attrs);
+        }
+        if self.idx.is_none() {
+            v.required_attribute(Ns::NONE, "idx", &self.extra_attrs);
+        }
+        if let Some(x) = &self.pos {
+            v.enter("p:pos", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "pos", &self.extra_children);
+        }
+        if self.text.is_none() {
+            v.required_element(Ns::P, "text", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Comment Author (ECMA-376 Part 1 §19.4.2).
 ///
 /// This element specifies a single author with comments in the document. It contains a unique author ID, the author's name and initials, the index of the author's last comment, and the index of a color associated with the author.
@@ -3515,6 +3591,29 @@ impl XmlWrite for CT_CommentAuthor {
     }
 }
 
+impl Validate for CT_CommentAuthor {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "id", &self.extra_attrs);
+        }
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if self.initials.is_none() {
+            v.required_attribute(Ns::NONE, "initials", &self.extra_attrs);
+        }
+        if self.last_idx.is_none() {
+            v.required_attribute(Ns::NONE, "lastIdx", &self.extra_attrs);
+        }
+        if self.clr_idx.is_none() {
+            v.required_attribute(Ns::NONE, "clrIdx", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// List of Comment Authors (ECMA-376 Part 1 §19.4.3).
 ///
 /// This element specifies a list of authors with comments in the current document. Each comment in a document shall refer to an author in this list. No cmAuthor element in a cmAuthorLst shall have both the same name attribute value and the same initials attribute value as any other cmAuthor element in the same cmAuthorLst.
@@ -3576,6 +3675,14 @@ impl XmlWrite for CT_CommentAuthorList {
     }
 }
 
+impl Validate for CT_CommentAuthorList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cm_author.iter().enumerate() {
+            v.enter("p:cmAuthor", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Comment List (ECMA-376 Part 1 §19.4.4).
 ///
 /// This element specifies a list of comments for a particular slide.
@@ -3634,6 +3741,14 @@ impl XmlWrite for CT_CommentList {
         rt::write_extras_after(w, &self.extra_children, 0, self.cm.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_CommentList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cm.iter().enumerate() {
+            v.enter("p:cm", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -3763,6 +3878,28 @@ impl XmlWrite for CT_CommonSlideData {
     }
 }
 
+impl Validate for CT_CommonSlideData {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.bg {
+            v.enter("p:bg", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_tree {
+            v.enter("p:spTree", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "spTree", &self.extra_children);
+        }
+        if let Some(x) = &self.cust_data_lst {
+            v.enter("p:custDataLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.controls {
+            v.enter("p:controls", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Common Slide View Properties (ECMA-376 Part 1 §19.2.2.1).
 ///
 /// This element functions as a container for slide view properties that are common across multiple view property elements. The specific properties and associated values for these view properties reside within the child elements and attributes.
@@ -3865,6 +4002,19 @@ impl XmlWrite for CT_CommonSlideViewProperties {
     }
 }
 
+impl Validate for CT_CommonSlideViewProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_view_pr {
+            v.enter("p:cViewPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cViewPr", &self.extra_children);
+        }
+        if let Some(x) = &self.guide_lst {
+            v.enter("p:guideLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Common View Properties (ECMA-376 Part 1 §19.2.2.2).
 ///
 /// This element specifies the view properties that are common across multiple view property elements.
@@ -3946,6 +4096,21 @@ impl XmlWrite for CT_CommonViewProperties {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_CommonViewProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.scale {
+            v.enter("p:scale", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "scale", &self.extra_children);
+        }
+        if let Some(x) = &self.origin {
+            v.enter("p:origin", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "origin", &self.extra_children);
+        }
     }
 }
 
@@ -4049,6 +4214,27 @@ impl XmlWrite for CT_Connector {
     }
 }
 
+impl Validate for CT_Connector {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.nv_cxn_sp_pr {
+            v.enter("p:nvCxnSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "nvCxnSpPr", &self.extra_children);
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("p:spPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "spPr", &self.extra_children);
+        }
+        if let Some(x) = &self.style {
+            v.enter("p:style", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Non-Visual Properties for a Connection Shape (ECMA-376 Part 1 §19.3.1.29).
 ///
 /// This element specifies all non-visual properties for a connection shape. This element is a container for the non- visual identification properties, shape properties and application properties that are to be associated with a connection shape. This allows for additional information that does not affect the appearance of the connection shape to be stored.
@@ -4132,6 +4318,26 @@ impl XmlWrite for CT_ConnectorNonVisual {
         }
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_ConnectorNonVisual {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("p:cNvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cNvPr", &self.extra_children);
+        }
+        if let Some(x) = &self.c_nv_cxn_sp_pr {
+            v.enter("p:cNvCxnSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cNvCxnSpPr", &self.extra_children);
+        }
+        if let Some(x) = &self.nv_pr {
+            v.enter("p:nvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "nvPr", &self.extra_children);
+        }
     }
 }
 
@@ -4264,6 +4470,17 @@ impl XmlWrite for CT_Control {
     }
 }
 
+impl Validate for CT_Control {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.pic {
+            v.enter("p:pic", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// List of controls (ECMA-376 Part 1 §19.3.1.15).
 ///
 /// This element specifies a list of embedded controls for the corresponding slide. Custom embedded controls can be embedded on slides.
@@ -4325,6 +4542,14 @@ impl XmlWrite for CT_ControlList {
     }
 }
 
+impl Validate for CT_ControlList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.control.iter().enumerate() {
+            v.enter("p:control", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Strips Slide Transition (ECMA-376 Part 1 §19.5.74).
 ///
 /// This element describes the strips slide transition effect, which uses a set of bars that are arranged in a staggered fashion and wipes them across the screen until the new slide is fully shown. The rendering of this transition depends upon the attributes specified which have been shown below.
@@ -4375,6 +4600,10 @@ impl XmlWrite for CT_CornerDirectionTransition {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_CornerDirectionTransition {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Custom Show (ECMA-376 Part 1 §19.2.1.6).
@@ -4470,6 +4699,25 @@ impl XmlWrite for CT_CustomShow {
     }
 }
 
+impl Validate for CT_CustomShow {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "id", &self.extra_attrs);
+        }
+        if let Some(x) = &self.sld_lst {
+            v.enter("p:sldLst", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "sldLst", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Custom Show (ECMA-376 Part 1 §19.2.1.5).
 ///
 /// This element specifies a custom show which is an ordered list of a group of slides that are contained within the presentation. The custom show element allows for the specification of a presentation order that is different from the order in which the slides themselves are stored.
@@ -4519,6 +4767,14 @@ impl XmlWrite for CT_CustomShowId {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_CustomShowId {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -4583,6 +4839,14 @@ impl XmlWrite for CT_CustomShowList {
     }
 }
 
+impl Validate for CT_CustomShowList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cust_show.iter().enumerate() {
+            v.enter("p:custShow", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Customer Data (ECMA-376 Part 1 §19.3.1.17).
 ///
 /// This element specifies customer data which allows for the specifying and persistence of customer specific data within the presentation.
@@ -4632,6 +4896,14 @@ impl XmlWrite for CT_CustomerData {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_CustomerData {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -4710,6 +4982,17 @@ impl XmlWrite for CT_CustomerDataList {
     }
 }
 
+impl Validate for CT_CustomerDataList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cust_data.iter().enumerate() {
+            v.enter("p:custData", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.tags {
+            v.enter("p:tags", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Cover Slide Transition (ECMA-376 Part 1 §19.5.32).
 ///
 /// This element describes the cover slide transition effect, which moves the new slide in from an off-screen location, continually covering more of the previous slide until the new slide is fully shown. The rendering of this transition depends upon the attributes specified which have been shown below.
@@ -4761,6 +5044,10 @@ impl XmlWrite for CT_EightDirectionTransition {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_EightDirectionTransition {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Bold Embedded Font (ECMA-376 Part 1 §19.2.1.1).
@@ -4815,6 +5102,14 @@ impl XmlWrite for CT_EmbeddedFontDataId {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_EmbeddedFontDataId {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -4876,6 +5171,14 @@ impl XmlWrite for CT_EmbeddedFontList {
         rt::write_extras_after(w, &self.extra_children, 0, self.embedded_font.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_EmbeddedFontList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.embedded_font.iter().enumerate() {
+            v.enter("p:embeddedFont", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -4993,6 +5296,28 @@ impl XmlWrite for CT_EmbeddedFontListEntry {
     }
 }
 
+impl Validate for CT_EmbeddedFontListEntry {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.font {
+            v.enter("p:font", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "font", &self.extra_children);
+        }
+        if let Some(x) = &self.regular {
+            v.enter("p:regular", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bold {
+            v.enter("p:bold", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.italic {
+            v.enter("p:italic", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bold_italic {
+            v.enter("p:boldItalic", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Presenter Slide Show Mode (ECMA-376 Part 1 §19.2.1.25).
 ///
 /// This element specifies that the presentation slide show should be viewed in a full-screen presenter mode. In this mode, the presentation is displayed on one monitor while a different monitor displays notes and provides navigation controls intended to be viewed only by the presenter.
@@ -5043,6 +5368,10 @@ impl XmlWrite for CT_Empty {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Empty {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Extension (ECMA-376 Part 1 §19.2.1.11).
@@ -5112,6 +5441,14 @@ impl XmlWrite for CT_Extension {
     }
 }
 
+impl Validate for CT_Extension {
+    fn validate(&self, v: &mut Validator) {
+        if self.uri.is_none() {
+            v.required_attribute(Ns::NONE, "uri", &self.extra_attrs);
+        }
+    }
+}
+
 /// Extension List (ECMA-376 Part 1 §19.2.1.12).
 ///
 /// This element specifies the extension list within which all future extensions of element type ext are defined. The extension list along with corresponding future extensions is used to extend the storage capabilities of the PresentationML framework. This allows for various new kinds of data to be stored natively within the framework.
@@ -5170,6 +5507,14 @@ impl XmlWrite for CT_ExtensionList {
         rt::write_extras_after(w, &self.extra_children, 0, self.ext.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ExtensionList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.ext.iter().enumerate() {
+            v.enter("p:ext", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -5243,6 +5588,14 @@ impl XmlWrite for CT_ExtensionListModify {
         rt::write_extras_after(w, &self.extra_children, 0, self.ext.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ExtensionListModify {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.ext.iter().enumerate() {
+            v.enter("p:ext", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -5358,6 +5711,29 @@ impl XmlWrite for CT_GraphicalObjectFrame {
     }
 }
 
+impl Validate for CT_GraphicalObjectFrame {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.nv_graphic_frame_pr {
+            v.enter("p:nvGraphicFramePr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "nvGraphicFramePr", &self.extra_children);
+        }
+        if let Some(x) = &self.xfrm {
+            v.enter("p:xfrm", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "xfrm", &self.extra_children);
+        }
+        if let Some(x) = &self.graphic {
+            v.enter("a:graphic", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "graphic", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Non-Visual Properties for a Graphic Frame (ECMA-376 Part 1 §19.3.1.30).
 ///
 /// This element specifies all non-visual properties for a graphic frame. This element is a container for the non-visual identification properties, shape properties and application properties that are to be associated with a graphic frame. This allows for additional information that does not affect the appearance of the graphic frame to be stored.
@@ -5441,6 +5817,26 @@ impl XmlWrite for CT_GraphicalObjectFrameNonVisual {
         }
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_GraphicalObjectFrameNonVisual {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("p:cNvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cNvPr", &self.extra_children);
+        }
+        if let Some(x) = &self.c_nv_graphic_frame_pr {
+            v.enter("p:cNvGraphicFramePr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cNvGraphicFramePr", &self.extra_children);
+        }
+        if let Some(x) = &self.nv_pr {
+            v.enter("p:nvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "nvPr", &self.extra_children);
+        }
     }
 }
 
@@ -5549,6 +5945,27 @@ impl XmlWrite for CT_GroupShape {
     }
 }
 
+impl Validate for CT_GroupShape {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.nv_grp_sp_pr {
+            v.enter("p:nvGrpSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "nvGrpSpPr", &self.extra_children);
+        }
+        if let Some(x) = &self.grp_sp_pr {
+            v.enter("p:grpSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "grpSpPr", &self.extra_children);
+        }
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Non-Visual Properties for a Group Shape (ECMA-376 Part 1 §19.3.1.31).
 ///
 /// This element specifies all non-visual properties for a group shape. This element is a container for the non-visual identification properties, shape properties and application properties that are to be associated with a group shape. This allows for additional information that does not affect the appearance of the group shape to be stored.
@@ -5635,6 +6052,26 @@ impl XmlWrite for CT_GroupShapeNonVisual {
     }
 }
 
+impl Validate for CT_GroupShapeNonVisual {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("p:cNvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cNvPr", &self.extra_children);
+        }
+        if let Some(x) = &self.c_nv_grp_sp_pr {
+            v.enter("p:cNvGrpSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cNvGrpSpPr", &self.extra_children);
+        }
+        if let Some(x) = &self.nv_pr {
+            v.enter("p:nvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "nvPr", &self.extra_children);
+        }
+    }
+}
+
 /// A Guide (ECMA-376 Part 1 §19.2.2.4).
 ///
 /// This element specifies a guide within the presentation. Guides are lines used for arranging layouts and content and never appear except as an aid in editing slides.
@@ -5696,6 +6133,10 @@ impl XmlWrite for CT_Guide {
     }
 }
 
+impl Validate for CT_Guide {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// List of Guides (ECMA-376 Part 1 §19.2.2.5).
 ///
 /// This element specifies a list of guides for a particular view of the presentation.
@@ -5754,6 +6195,14 @@ impl XmlWrite for CT_GuideList {
         rt::write_extras_after(w, &self.extra_children, 0, self.guide.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_GuideList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.guide.iter().enumerate() {
+            v.enter("p:guide", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -5857,6 +6306,27 @@ impl XmlWrite for CT_HandoutMaster {
     }
 }
 
+impl Validate for CT_HandoutMaster {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_sld {
+            v.enter("p:cSld", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cSld", &self.extra_children);
+        }
+        if let Some(x) = &self.clr_map {
+            v.enter("p:clrMap", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "clrMap", &self.extra_children);
+        }
+        if let Some(x) = &self.hf {
+            v.enter("p:hf", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// List of Handout Master IDs (ECMA-376 Part 1 §19.2.1.15).
 ///
 /// This element specifies a list of identification information for the handout master slides that are available within the corresponding presentation. A handout master is a slide that is specifically designed for printing as a handout.
@@ -5912,6 +6382,14 @@ impl XmlWrite for CT_HandoutMasterIdList {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_HandoutMasterIdList {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.handout_master_id {
+            v.enter("p:handoutMasterId", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -5982,6 +6460,17 @@ impl XmlWrite for CT_HandoutMasterIdListEntry {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_HandoutMasterIdListEntry {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -6079,6 +6568,14 @@ impl XmlWrite for CT_HeaderFooter {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_HeaderFooter {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -6187,6 +6684,22 @@ impl XmlWrite for CT_HtmlPublishProperties {
     }
 }
 
+impl Validate for CT_HtmlPublishProperties {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
+        if let Some(x) = &self.slide_list_choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of p:sldAll, p:sldRg, p:custShow");
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Zoom Slide Transition (ECMA-376 Part 1 §19.5.97).
 ///
 /// This element describes the zoom slide transition effect, which uses a box pattern centered on the slide that increases in size until the new slide is fully shown. The rendering of this transition depends upon the attributes specified which have been shown below.
@@ -6237,6 +6750,10 @@ impl XmlWrite for CT_InOutTransition {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_InOutTransition {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Slide Range (ECMA-376 Part 1 §19.2.1.38).
@@ -6299,6 +6816,17 @@ impl XmlWrite for CT_IndexRange {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_IndexRange {
+    fn validate(&self, v: &mut Validator) {
+        if self.st.is_none() {
+            v.required_attribute(Ns::NONE, "st", &self.extra_attrs);
+        }
+        if self.end.is_none() {
+            v.required_attribute(Ns::NONE, "end", &self.extra_attrs);
+        }
     }
 }
 
@@ -6369,6 +6897,17 @@ impl XmlWrite for CT_Kinsoku {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Kinsoku {
+    fn validate(&self, v: &mut Validator) {
+        if self.inval_st_chars.is_none() {
+            v.required_attribute(Ns::NONE, "invalStChars", &self.extra_attrs);
+        }
+        if self.inval_end_chars.is_none() {
+            v.required_attribute(Ns::NONE, "invalEndChars", &self.extra_attrs);
+        }
     }
 }
 
@@ -6564,6 +7103,10 @@ impl XmlWrite for CT_ModifyVerifier {
     }
 }
 
+impl Validate for CT_ModifyVerifier {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Normal View Restored Left Properties (ECMA-376 Part 1 §19.2.2.11).
 ///
 /// This element specifies the sizing of the side content region of the normal slide view (§19.7.55), when the region is of a variable restored size (neither minimized nor maximized).
@@ -6623,6 +7166,14 @@ impl XmlWrite for CT_NormalViewPortion {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_NormalViewPortion {
+    fn validate(&self, v: &mut Validator) {
+        if self.sz.is_none() {
+            v.required_attribute(Ns::NONE, "sz", &self.extra_attrs);
+        }
     }
 }
 
@@ -6760,6 +7311,24 @@ impl XmlWrite for CT_NormalViewProperties {
     }
 }
 
+impl Validate for CT_NormalViewProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.restored_left {
+            v.enter("p:restoredLeft", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "restoredLeft", &self.extra_children);
+        }
+        if let Some(x) = &self.restored_top {
+            v.enter("p:restoredTop", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "restoredTop", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Notes Master (ECMA-376 Part 1 §19.3.1.27).
 ///
 /// This element specifies an instance of a notes master slide. Within a notes master slide are contained all elements that describe the objects and their corresponding formatting for within a notes slide. Within a notes master slide the cSld element specifies the common slide elements such as shapes and their attached text bodies.
@@ -6874,6 +7443,30 @@ impl XmlWrite for CT_NotesMaster {
     }
 }
 
+impl Validate for CT_NotesMaster {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_sld {
+            v.enter("p:cSld", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cSld", &self.extra_children);
+        }
+        if let Some(x) = &self.clr_map {
+            v.enter("p:clrMap", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "clrMap", &self.extra_children);
+        }
+        if let Some(x) = &self.hf {
+            v.enter("p:hf", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.notes_style {
+            v.enter("p:notesStyle", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// List of Notes Master IDs (ECMA-376 Part 1 §19.2.1.21).
 ///
 /// This element specifies a list of identification information for the notes master slides that are available within the corresponding presentation. A notes master is a slide that is specifically designed for the printing of the slide along with any attached notes.
@@ -6929,6 +7522,14 @@ impl XmlWrite for CT_NotesMasterIdList {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_NotesMasterIdList {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.notes_master_id {
+            v.enter("p:notesMasterId", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -6999,6 +7600,17 @@ impl XmlWrite for CT_NotesMasterIdListEntry {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_NotesMasterIdListEntry {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -7109,6 +7721,22 @@ impl XmlWrite for CT_NotesSlide {
     }
 }
 
+impl Validate for CT_NotesSlide {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_sld {
+            v.enter("p:cSld", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cSld", &self.extra_children);
+        }
+        if let Some(x) = &self.clr_map_ovr {
+            v.enter("p:clrMapOvr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Notes Text View Properties (ECMA-376 Part 1 §19.2.2.7).
 ///
 /// This element functions as a parent element within which all properties associated with the notes text view are contained. All properties are defined within the child elements.
@@ -7181,6 +7809,19 @@ impl XmlWrite for CT_NotesTextViewProperties {
     }
 }
 
+impl Validate for CT_NotesTextViewProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_view_pr {
+            v.enter("p:cViewPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cViewPr", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Notes View Properties (ECMA-376 Part 1 §19.2.2.8).
 ///
 /// This element functions as a parent element within which all view properties associated with notes are contained. All properties are defined within the child elements.
@@ -7250,6 +7891,19 @@ impl XmlWrite for CT_NotesViewProperties {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_NotesViewProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_sld_view_pr {
+            v.enter("p:cSldViewPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cSldViewPr", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -7391,6 +8045,19 @@ impl XmlWrite for CT_OleObject {
     }
 }
 
+impl Validate for CT_OleObject {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of p:embed, p:link");
+        }
+        if let Some(x) = &self.pic {
+            v.enter("p:pic", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Embedded Object or Control (ECMA-376 Part 1 §19.3.2.2).
 ///
 /// This element specifies an Embedded object or Control that is embedded within the presentation.
@@ -7458,6 +8125,14 @@ impl XmlWrite for CT_OleObjectEmbed {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_OleObjectEmbed {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -7531,6 +8206,14 @@ impl XmlWrite for CT_OleObjectLink {
     }
 }
 
+impl Validate for CT_OleObjectLink {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Cut Slide Transition (ECMA-376 Part 1 §19.5.34).
 ///
 /// This element describes the cut slide transition effect, which simply replaces the previous slide with the new slide instantaneously. No animation is used, but an option exists to cut to a black screen before showing the new slide. The rendering of this transition depends upon the attributes specified which have been shown below.
@@ -7582,6 +8265,10 @@ impl XmlWrite for CT_OptionalBlackTransition {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_OptionalBlackTransition {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Blinds Slide Transition (ECMA-376 Part 1 §19.5.18).
@@ -7637,6 +8324,10 @@ impl XmlWrite for CT_OrientationTransition {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_OrientationTransition {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Outline View Properties (ECMA-376 Part 1 §19.2.2.10).
@@ -7725,6 +8416,22 @@ impl XmlWrite for CT_OutlineViewProperties {
     }
 }
 
+impl Validate for CT_OutlineViewProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_view_pr {
+            v.enter("p:cViewPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cViewPr", &self.extra_children);
+        }
+        if let Some(x) = &self.sld_lst {
+            v.enter("p:sldLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Presentation Slide (ECMA-376 Part 1 §19.2.2.14).
 ///
 /// This element specifies a presentation slide and properties specific to the slide's appearance in outline view (§19.7.55).
@@ -7786,6 +8493,14 @@ impl XmlWrite for CT_OutlineViewSlideEntry {
     }
 }
 
+impl Validate for CT_OutlineViewSlideEntry {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
+    }
+}
+
 /// List of Presentation Slides (ECMA-376 Part 1 §19.2.2.15).
 ///
 /// This element specifies a list of presentation slides. A presentation slide contains the information that is specific to a single slide such as slide-specific shape and text information.
@@ -7844,6 +8559,14 @@ impl XmlWrite for CT_OutlineViewSlideList {
         rt::write_extras_after(w, &self.extra_children, 0, self.sld.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_OutlineViewSlideList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.sld.iter().enumerate() {
+            v.enter("p:sld", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -7941,6 +8664,14 @@ impl XmlWrite for CT_PhotoAlbum {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_PhotoAlbum {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -8058,6 +8789,32 @@ impl XmlWrite for CT_Picture {
     }
 }
 
+impl Validate for CT_Picture {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.nv_pic_pr {
+            v.enter("p:nvPicPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "nvPicPr", &self.extra_children);
+        }
+        if let Some(x) = &self.blip_fill {
+            v.enter("p:blipFill", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "blipFill", &self.extra_children);
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("p:spPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "spPr", &self.extra_children);
+        }
+        if let Some(x) = &self.style {
+            v.enter("p:style", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Non-Visual Properties for a Picture (ECMA-376 Part 1 §19.3.1.32).
 ///
 /// This element specifies all non-visual properties for a picture. This element is a container for the non-visual identification properties, shape properties and application properties that are to be associated with a picture. This allows for additional information that does not affect the appearance of the picture to be stored.
@@ -8141,6 +8898,26 @@ impl XmlWrite for CT_PictureNonVisual {
         }
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_PictureNonVisual {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("p:cNvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cNvPr", &self.extra_children);
+        }
+        if let Some(x) = &self.c_nv_pic_pr {
+            v.enter("p:cNvPicPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cNvPicPr", &self.extra_children);
+        }
+        if let Some(x) = &self.nv_pr {
+            v.enter("p:nvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "nvPr", &self.extra_children);
+        }
     }
 }
 
@@ -8247,6 +9024,14 @@ impl XmlWrite for CT_Placeholder {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Placeholder {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -8630,6 +9415,58 @@ impl XmlWrite for CT_Presentation {
     }
 }
 
+impl Validate for CT_Presentation {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.sld_master_id_lst {
+            v.enter("p:sldMasterIdLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.notes_master_id_lst {
+            v.enter("p:notesMasterIdLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.handout_master_id_lst {
+            v.enter("p:handoutMasterIdLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sld_id_lst {
+            v.enter("p:sldIdLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sld_sz {
+            v.enter("p:sldSz", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.notes_sz {
+            v.enter("p:notesSz", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "notesSz", &self.extra_children);
+        }
+        if let Some(x) = &self.smart_tags {
+            v.enter("p:smartTags", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.embedded_font_lst {
+            v.enter("p:embeddedFontLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cust_show_lst {
+            v.enter("p:custShowLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.photo_album {
+            v.enter("p:photoAlbum", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cust_data_lst {
+            v.enter("p:custDataLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.kinsoku {
+            v.enter("p:kinsoku", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.default_text_style {
+            v.enter("p:defaultTextStyle", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.modify_verifier {
+            v.enter("p:modifyVerifier", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Presentation-wide Properties (ECMA-376 Part 1 §19.2.1.27).
 ///
 /// This element functions as a parent element within which additional presentation-wide document properties are contained. All properties and their corresponding settings are defined within the child elements.
@@ -8758,6 +9595,29 @@ impl XmlWrite for CT_PresentationProperties {
     }
 }
 
+impl Validate for CT_PresentationProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.html_pub_pr {
+            v.enter("p:htmlPubPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.web_pr {
+            v.enter("p:webPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.prn_pr {
+            v.enter("p:prnPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.show_pr {
+            v.enter("p:showPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.clr_mru {
+            v.enter("p:clrMru", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Printing Properties (ECMA-376 Part 1 §19.2.1.28).
 ///
 /// This element specifies the default printing properties associated with this presentation document.
@@ -8864,6 +9724,14 @@ impl XmlWrite for CT_PrintProperties {
     }
 }
 
+impl Validate for CT_PrintProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Content Part (ECMA-376 Part 1 §19.3.1.14).
 ///
 /// This element specifies a reference to XML content in a format not defined by ECMA-376. \[Note: This part allows the native use of other commonly used interchange formats, such as:  MathML (<http://www.w3.org/TR/MathML2/>)  SMIL (<http://www.w3.org/TR/REC-smil/>)  SVG (<http://www.w3.org/TR/SVG11/>) end note\] The relationship type of the explicit relationship specified by this element shall be <http://purl.oclc.org/ooxml/officeDocument/relationships/customXml> and have a TargetMode attribute value of Internal. If an application cannot process content of the content type specified by the targeted part, then it
@@ -8913,6 +9781,14 @@ impl XmlWrite for CT_Rel {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Rel {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -9042,6 +9918,30 @@ impl XmlWrite for CT_Shape {
     }
 }
 
+impl Validate for CT_Shape {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.nv_sp_pr {
+            v.enter("p:nvSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "nvSpPr", &self.extra_children);
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("p:spPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "spPr", &self.extra_children);
+        }
+        if let Some(x) = &self.style {
+            v.enter("p:style", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx_body {
+            v.enter("p:txBody", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Non-Visual Properties for a Shape (ECMA-376 Part 1 §19.3.1.34).
 ///
 /// This element specifies all non-visual properties for a shape. This element is a container for the non-visual identification properties, shape properties and application properties that are to be associated with a shape. This allows for additional information that does not affect the appearance of the shape to be stored.
@@ -9128,6 +10028,26 @@ impl XmlWrite for CT_ShapeNonVisual {
     }
 }
 
+impl Validate for CT_ShapeNonVisual {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("p:cNvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cNvPr", &self.extra_children);
+        }
+        if let Some(x) = &self.c_nv_sp_pr {
+            v.enter("p:cNvSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cNvSpPr", &self.extra_children);
+        }
+        if let Some(x) = &self.nv_pr {
+            v.enter("p:nvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "nvPr", &self.extra_children);
+        }
+    }
+}
+
 /// Browse Slide Show Mode (ECMA-376 Part 1 §19.2.1.3).
 ///
 /// This element specifies that the presentation slide show should be viewed in a single window or browse mode, instead of full screen.
@@ -9180,6 +10100,10 @@ impl XmlWrite for CT_ShowInfoBrowse {
     }
 }
 
+impl Validate for CT_ShowInfoBrowse {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Kiosk Slide Show Mode (ECMA-376 Part 1 §19.2.1.18).
 ///
 /// This element specifies that the presentation slide show should be viewed in a full-screen kiosk mode. A presentation viewed in kiosk mode should have user input disabled and restarts after a specified interval.
@@ -9230,6 +10154,10 @@ impl XmlWrite for CT_ShowInfoKiosk {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_ShowInfoKiosk {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Presentation-wide Show Properties (ECMA-376 Part 1 §19.2.1.30).
@@ -9371,6 +10299,23 @@ impl XmlWrite for CT_ShowProperties {
     }
 }
 
+impl Validate for CT_ShowProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.show_type {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.slide_list_choice {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.pen_clr {
+            v.enter("p:penClr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Push Slide Transition (ECMA-376 Part 1 §19.5.59).
 ///
 /// This element describes the push slide transition effect, which moves the new slide in from an off-screen location, continually pushing the previous slide to an opposite off-screen location until the new slide is fully shown. The rendering of this transition depends upon the attributes specified which have been shown below.
@@ -9422,6 +10367,10 @@ impl XmlWrite for CT_SideDirectionTransition {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_SideDirectionTransition {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Schema complex type `CT_Slide`.
@@ -9562,6 +10511,28 @@ impl XmlWrite for CT_Slide {
     }
 }
 
+impl Validate for CT_Slide {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_sld {
+            v.enter("p:cSld", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cSld", &self.extra_children);
+        }
+        if let Some(x) = &self.clr_map_ovr {
+            v.enter("p:clrMapOvr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.transition {
+            v.enter("p:transition", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.timing {
+            v.enter("p:timing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// List of Slide IDs (ECMA-376 Part 1 §19.2.1.34).
 ///
 /// This element specifies a list of identification information for the slides that are available within the corresponding presentation. A slide contains the information that is specific to a single slide such as slide- specific shape and text information.
@@ -9620,6 +10591,14 @@ impl XmlWrite for CT_SlideIdList {
         rt::write_extras_after(w, &self.extra_children, 0, self.sld_id.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SlideIdList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.sld_id.iter().enumerate() {
+            v.enter("p:sldId", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -9699,6 +10678,20 @@ impl XmlWrite for CT_SlideIdListEntry {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SlideIdListEntry {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "id", &self.extra_attrs);
+        }
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -9887,6 +10880,31 @@ impl XmlWrite for CT_SlideLayout {
     }
 }
 
+impl Validate for CT_SlideLayout {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_sld {
+            v.enter("p:cSld", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cSld", &self.extra_children);
+        }
+        if let Some(x) = &self.clr_map_ovr {
+            v.enter("p:clrMapOvr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.transition {
+            v.enter("p:transition", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.timing {
+            v.enter("p:timing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hf {
+            v.enter("p:hf", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// List of Slide Layouts (ECMA-376 Part 1 §19.3.1.41).
 ///
 /// This element specifies the existence of the slide layout identification list. This list is contained within the slide master and is used to determine which layouts are being used within the slide master file. Each layout within the list of slide layouts has its own identification number and relationship identifier that uniquely identifies it within both the presentation document and the particular master slide within which it is used.
@@ -9945,6 +10963,14 @@ impl XmlWrite for CT_SlideLayoutIdList {
         rt::write_extras_after(w, &self.extra_children, 0, self.sld_layout_id.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SlideLayoutIdList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.sld_layout_id.iter().enumerate() {
+            v.enter("p:sldLayoutId", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -10024,6 +11050,17 @@ impl XmlWrite for CT_SlideLayoutIdListEntry {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SlideLayoutIdListEntry {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -10195,6 +11232,39 @@ impl XmlWrite for CT_SlideMaster {
     }
 }
 
+impl Validate for CT_SlideMaster {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_sld {
+            v.enter("p:cSld", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cSld", &self.extra_children);
+        }
+        if let Some(x) = &self.clr_map {
+            v.enter("p:clrMap", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "clrMap", &self.extra_children);
+        }
+        if let Some(x) = &self.sld_layout_id_lst {
+            v.enter("p:sldLayoutIdLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.transition {
+            v.enter("p:transition", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.timing {
+            v.enter("p:timing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hf {
+            v.enter("p:hf", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx_styles {
+            v.enter("p:txStyles", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// List of Slide Master IDs (ECMA-376 Part 1 §19.2.1.37).
 ///
 /// This element specifies a list of identification information for the slide master slides that are available within the corresponding presentation. A slide master is a slide that is specifically designed to be a template for all related child layout slides.
@@ -10253,6 +11323,14 @@ impl XmlWrite for CT_SlideMasterIdList {
         rt::write_extras_after(w, &self.extra_children, 0, self.sld_master_id.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SlideMasterIdList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.sld_master_id.iter().enumerate() {
+            v.enter("p:sldMasterId", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -10332,6 +11410,17 @@ impl XmlWrite for CT_SlideMasterIdListEntry {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SlideMasterIdListEntry {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -10435,6 +11524,23 @@ impl XmlWrite for CT_SlideMasterTextStyles {
     }
 }
 
+impl Validate for CT_SlideMasterTextStyles {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.title_style {
+            v.enter("p:titleStyle", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.body_style {
+            v.enter("p:bodyStyle", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.other_style {
+            v.enter("p:otherStyle", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// List of Presentation Slides (ECMA-376 Part 1 §19.2.1.35).
 ///
 /// This element specifies a list of presentation slides. A presentation slide contains the information that is specific to a single slide such as slide-specific shape and text information.
@@ -10496,6 +11602,14 @@ impl XmlWrite for CT_SlideRelationshipList {
     }
 }
 
+impl Validate for CT_SlideRelationshipList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.sld.iter().enumerate() {
+            v.enter("p:sld", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Presentation Slide (ECMA-376 Part 1 §19.2.1.31).
 ///
 /// This element specifies a slide within a slide list. The slide list is used to specify an ordering of slides.
@@ -10545,6 +11659,14 @@ impl XmlWrite for CT_SlideRelationshipListEntry {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_SlideRelationshipListEntry {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -10615,6 +11737,17 @@ impl XmlWrite for CT_SlideSize {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_SlideSize {
+    fn validate(&self, v: &mut Validator) {
+        if self.cx.is_none() {
+            v.required_attribute(Ns::NONE, "cx", &self.extra_attrs);
+        }
+        if self.cy.is_none() {
+            v.required_attribute(Ns::NONE, "cy", &self.extra_attrs);
+        }
     }
 }
 
@@ -10699,6 +11832,19 @@ impl XmlWrite for CT_SlideSorterViewProperties {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_SlideSorterViewProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_view_pr {
+            v.enter("p:cViewPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cViewPr", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -10795,6 +11941,23 @@ impl XmlWrite for CT_SlideSyncProperties {
     }
 }
 
+impl Validate for CT_SlideSyncProperties {
+    fn validate(&self, v: &mut Validator) {
+        if self.server_sld_id.is_none() {
+            v.required_attribute(Ns::NONE, "serverSldId", &self.extra_attrs);
+        }
+        if self.server_sld_modified_time.is_none() {
+            v.required_attribute(Ns::NONE, "serverSldModifiedTime", &self.extra_attrs);
+        }
+        if self.client_inserted_time.is_none() {
+            v.required_attribute(Ns::NONE, "clientInsertedTime", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Slide Timing Information for a Slide Layout (ECMA-376 Part 1 §19.3.1.48).
 ///
 /// This element specifies the timing information for handling all animations and timed events within the corresponding slide. This information is tracked via time nodes within the timing element. More information on
@@ -10878,6 +12041,20 @@ impl XmlWrite for CT_SlideTiming {
         }
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_SlideTiming {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.tn_lst {
+            v.enter("p:tnLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bld_lst {
+            v.enter("p:bldLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -11017,6 +12194,20 @@ impl XmlWrite for CT_SlideTransition {
     }
 }
 
+impl Validate for CT_SlideTransition {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.snd_ac {
+            v.enter("p:sndAc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Slide View Properties (ECMA-376 Part 1 §19.2.2.16).
 ///
 /// This element functions as a parent element within which all view properties associated with the slide view mode are contained. All properties are defined within the child elements.
@@ -11089,6 +12280,19 @@ impl XmlWrite for CT_SlideViewProperties {
     }
 }
 
+impl Validate for CT_SlideViewProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_sld_view_pr {
+            v.enter("p:cSldViewPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cSldViewPr", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Smart Tags (ECMA-376 Part 1 §19.2.1.40).
 ///
 /// This element specifies that references to smart tags exist within this document. \[Note: For a complete definition of smart tags, which are semantically identical throughout Office Open XML, see §17.5.1. end note\] To denote the location of smart tags on individual runs of text, there smart tag identifier attributes are specified for each run to which a smart tag applies. These are further specified in the run property attributes within DrawingML.
@@ -11138,6 +12342,14 @@ impl XmlWrite for CT_SmartTags {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_SmartTags {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -11202,6 +12414,10 @@ impl XmlWrite for CT_SplitTransition {
     }
 }
 
+impl Validate for CT_SplitTransition {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Programmable Extensibility Tag (ECMA-376 Part 1 §19.3.3.1).
 ///
 /// This element specifies a programmable extensibility tag to be used for storage of legacy variables.
@@ -11260,6 +12476,17 @@ impl XmlWrite for CT_StringTag {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_StringTag {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -11327,6 +12554,16 @@ impl XmlWrite for CT_TLAnimVariant {
     }
 }
 
+impl Validate for CT_TLAnimVariant {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of p:boolVal, p:intVal, p:fltVal, p:strVal, p:clrVal");
+        }
+    }
+}
+
 /// Boolean Variant (ECMA-376 Part 1 §19.5.19).
 ///
 /// This element specifies a boolean value to be used for evaluation by a parent element. The exact meaning of the value contained within this element is not defined here but is dependent on the usage of this element in conjunction with one of the listed parent elements.
@@ -11376,6 +12613,14 @@ impl XmlWrite for CT_TLAnimVariantBooleanVal {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TLAnimVariantBooleanVal {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -11431,6 +12676,14 @@ impl XmlWrite for CT_TLAnimVariantFloatVal {
     }
 }
 
+impl Validate for CT_TLAnimVariantFloatVal {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Integer (ECMA-376 Part 1 §19.5.48).
 ///
 /// This element specifies an integer value to be used for evaluation by a parent element. The exact meaning of the value contained within this element is not defined here but is dependent on the usage of this element in conjunction with one of the listed parent elements.
@@ -11483,6 +12736,14 @@ impl XmlWrite for CT_TLAnimVariantIntegerVal {
     }
 }
 
+impl Validate for CT_TLAnimVariantIntegerVal {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// String Value (ECMA-376 Part 1 §19.5.75).
 ///
 /// This element specifies a string value to be used for evaluation by a parent element. The exact meaning of the value contained within this element is not defined here but is dependent on the usage of this element in conjunction with one of the listed parent elements.
@@ -11532,6 +12793,14 @@ impl XmlWrite for CT_TLAnimVariantStringVal {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TLAnimVariantStringVal {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -11652,6 +12921,19 @@ impl XmlWrite for CT_TLAnimateBehavior {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_TLAnimateBehavior {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_bhvr {
+            v.enter("p:cBhvr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cBhvr", &self.extra_children);
+        }
+        if let Some(x) = &self.tav_lst {
+            v.enter("p:tavLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -11776,6 +13058,25 @@ impl XmlWrite for CT_TLAnimateColorBehavior {
     }
 }
 
+impl Validate for CT_TLAnimateColorBehavior {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_bhvr {
+            v.enter("p:cBhvr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cBhvr", &self.extra_children);
+        }
+        if let Some(x) = &self.by {
+            v.enter("p:by", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.from {
+            v.enter("p:from", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.to {
+            v.enter("p:to", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Animate Effect (ECMA-376 Part 1 §19.5.3).
 ///
 /// This animation behavior provides the ability to do image transform/filter effects on elements. Some visual effects are dynamic in nature and have a progress that animates from 0 to 1 over a period of time to do visual transitions between hidden and visible states. Other filters are static and apply a effects like a blur or drop- shadow which aren't inherently time-based.
@@ -11875,6 +13176,19 @@ impl XmlWrite for CT_TLAnimateEffectBehavior {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_TLAnimateEffectBehavior {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_bhvr {
+            v.enter("p:cBhvr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cBhvr", &self.extra_children);
+        }
+        if let Some(x) = &self.progress {
+            v.enter("p:progress", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -12040,6 +13354,28 @@ impl XmlWrite for CT_TLAnimateMotionBehavior {
     }
 }
 
+impl Validate for CT_TLAnimateMotionBehavior {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_bhvr {
+            v.enter("p:cBhvr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cBhvr", &self.extra_children);
+        }
+        if let Some(x) = &self.by {
+            v.enter("p:by", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.from {
+            v.enter("p:from", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.to {
+            v.enter("p:to", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.r_ctr {
+            v.enter("p:rCtr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Animate Rotation (ECMA-376 Part 1 §19.5.5).
 ///
 /// This animation element is responsible for animating the rotation of an object. Rotation values set in the "by" , "to, and "from" attributes are specified in degrees measured to a 60,000th, i.e 1 degree is 60,000. Rotation values can be larger than 360°.
@@ -12125,6 +13461,16 @@ impl XmlWrite for CT_TLAnimateRotationBehavior {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TLAnimateRotationBehavior {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_bhvr {
+            v.enter("p:cBhvr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cBhvr", &self.extra_children);
+        }
     }
 }
 
@@ -12240,6 +13586,25 @@ impl XmlWrite for CT_TLAnimateScaleBehavior {
     }
 }
 
+impl Validate for CT_TLAnimateScaleBehavior {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_bhvr {
+            v.enter("p:cBhvr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cBhvr", &self.extra_children);
+        }
+        if let Some(x) = &self.by {
+            v.enter("p:by", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.from {
+            v.enter("p:from", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.to {
+            v.enter("p:to", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Attribute Name List (ECMA-376 Part 1 §19.5.8).
 ///
 /// This element is used to describe a list of attributes in which to apply an animation to.
@@ -12303,6 +13668,14 @@ impl XmlWrite for CT_TLBehaviorAttributeNameList {
         rt::write_extras_after(w, &self.extra_children, 0, self.attr_name.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TLBehaviorAttributeNameList {
+    fn validate(&self, v: &mut Validator) {
+        if self.attr_name.is_empty() {
+            v.required_element(Ns::P, "attrName", &self.extra_children);
+        }
     }
 }
 
@@ -12382,6 +13755,17 @@ impl XmlWrite for CT_TLBuildDiagram {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TLBuildDiagram {
+    fn validate(&self, v: &mut Validator) {
+        if self.spid.is_none() {
+            v.required_attribute(Ns::NONE, "spid", &self.extra_attrs);
+        }
+        if self.grp_id.is_none() {
+            v.required_attribute(Ns::NONE, "grpId", &self.extra_attrs);
+        }
     }
 }
 
@@ -12527,6 +13911,20 @@ impl XmlWrite for CT_TLBuildParagraph {
     }
 }
 
+impl Validate for CT_TLBuildParagraph {
+    fn validate(&self, v: &mut Validator) {
+        if self.spid.is_none() {
+            v.required_attribute(Ns::NONE, "spid", &self.extra_attrs);
+        }
+        if self.grp_id.is_none() {
+            v.required_attribute(Ns::NONE, "grpId", &self.extra_attrs);
+        }
+        if let Some(x) = &self.tmpl_lst {
+            v.enter("p:tmplLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// By (ECMA-376 Part 1 §19.5.20).
 ///
 /// This element describes the relative offset value for the color animation.
@@ -12582,6 +13980,16 @@ impl XmlWrite for CT_TLByAnimateColorTransform {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TLByAnimateColorTransform {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of p:rgb, p:hsl");
+        }
     }
 }
 
@@ -12655,6 +14063,20 @@ impl XmlWrite for CT_TLByHslColorTransform {
     }
 }
 
+impl Validate for CT_TLByHslColorTransform {
+    fn validate(&self, v: &mut Validator) {
+        if self.h.is_none() {
+            v.required_attribute(Ns::NONE, "h", &self.extra_attrs);
+        }
+        if self.s.is_none() {
+            v.required_attribute(Ns::NONE, "s", &self.extra_attrs);
+        }
+        if self.l.is_none() {
+            v.required_attribute(Ns::NONE, "l", &self.extra_attrs);
+        }
+    }
+}
+
 /// RGB (ECMA-376 Part 1 §19.5.63).
 ///
 /// The element specifies an incremental RGB value to add to the color property.
@@ -12722,6 +14144,20 @@ impl XmlWrite for CT_TLByRgbColorTransform {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TLByRgbColorTransform {
+    fn validate(&self, v: &mut Validator) {
+        if self.r.is_none() {
+            v.required_attribute(Ns::NONE, "r", &self.extra_attrs);
+        }
+        if self.g.is_none() {
+            v.required_attribute(Ns::NONE, "g", &self.extra_attrs);
+        }
+        if self.b.is_none() {
+            v.required_attribute(Ns::NONE, "b", &self.extra_attrs);
+        }
     }
 }
 
@@ -12801,6 +14237,16 @@ impl XmlWrite for CT_TLCommandBehavior {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TLCommandBehavior {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_bhvr {
+            v.enter("p:cBhvr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cBhvr", &self.extra_children);
+        }
     }
 }
 
@@ -12965,6 +14411,24 @@ impl XmlWrite for CT_TLCommonBehaviorData {
     }
 }
 
+impl Validate for CT_TLCommonBehaviorData {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_tn {
+            v.enter("p:cTn", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cTn", &self.extra_children);
+        }
+        if let Some(x) = &self.tgt_el {
+            v.enter("p:tgtEl", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "tgtEl", &self.extra_children);
+        }
+        if let Some(x) = &self.attr_name_lst {
+            v.enter("p:attrNameLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Common Media Node Properties (ECMA-376 Part 1 §19.5.29).
 ///
 /// This element is used to describe behavior of media elements, such as sound or movies, in an animation.
@@ -13073,6 +14537,21 @@ impl XmlWrite for CT_TLCommonMediaNodeData {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_TLCommonMediaNodeData {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_tn {
+            v.enter("p:cTn", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cTn", &self.extra_children);
+        }
+        if let Some(x) = &self.tgt_el {
+            v.enter("p:tgtEl", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "tgtEl", &self.extra_children);
+        }
     }
 }
 
@@ -13414,6 +14893,29 @@ impl XmlWrite for CT_TLCommonTimeNodeData {
     }
 }
 
+impl Validate for CT_TLCommonTimeNodeData {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.st_cond_lst {
+            v.enter("p:stCondLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.end_cond_lst {
+            v.enter("p:endCondLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.end_sync {
+            v.enter("p:endSync", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.iterate {
+            v.enter("p:iterate", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.child_tn_lst {
+            v.enter("p:childTnLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sub_tn_lst {
+            v.enter("p:subTnLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Build Graphics (ECMA-376 Part 1 §19.5.13).
 ///
 /// This element specifies how to build a graphical element.
@@ -13502,6 +15004,22 @@ impl XmlWrite for CT_TLGraphicalObjectBuild {
     }
 }
 
+impl Validate for CT_TLGraphicalObjectBuild {
+    fn validate(&self, v: &mut Validator) {
+        if self.spid.is_none() {
+            v.required_attribute(Ns::NONE, "spid", &self.extra_attrs);
+        }
+        if self.grp_id.is_none() {
+            v.required_attribute(Ns::NONE, "grpId", &self.extra_attrs);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of p:bldAsOne, p:bldSub");
+        }
+    }
+}
+
 /// Iterate (ECMA-376 Part 1 §19.5.49).
 ///
 /// This element specifies how the animation should be successively applied to sub elements of the target element for a repeated effect. It can be applied to contained timing and animation structures over the letters, words, or shapes within a target element.
@@ -13581,6 +15099,16 @@ impl XmlWrite for CT_TLIterateData {
     }
 }
 
+impl Validate for CT_TLIterateData {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of p:tmAbs, p:tmPct");
+        }
+    }
+}
+
 /// Time Percentage (ECMA-376 Part 1 §19.5.83).
 ///
 /// This element describes the duration of the iteration interval in a percentage of time.
@@ -13633,6 +15161,14 @@ impl XmlWrite for CT_TLIterateIntervalPercentage {
     }
 }
 
+impl Validate for CT_TLIterateIntervalPercentage {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Time Absolute (ECMA-376 Part 1 §19.5.82).
 ///
 /// This element describes the duration of the iteration interval in absolute time.
@@ -13682,6 +15218,14 @@ impl XmlWrite for CT_TLIterateIntervalTime {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TLIterateIntervalTime {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -13755,6 +15299,16 @@ impl XmlWrite for CT_TLMediaNodeAudio {
     }
 }
 
+impl Validate for CT_TLMediaNodeAudio {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_media_node {
+            v.enter("p:cMediaNode", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cMediaNode", &self.extra_children);
+        }
+    }
+}
+
 /// Video (ECMA-376 Part 1 §19.5.93).
 ///
 /// This element specifies video information in an animation sequence. This element specifies that this node within the animation tree triggers the playback of a video file; the actual video file used is specified by the videoFile element (§20.1.3.6).
@@ -13822,6 +15376,16 @@ impl XmlWrite for CT_TLMediaNodeVideo {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TLMediaNodeVideo {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_media_node {
+            v.enter("p:cMediaNode", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cMediaNode", &self.extra_children);
+        }
     }
 }
 
@@ -13913,6 +15477,17 @@ impl XmlWrite for CT_TLOleBuildChart {
     }
 }
 
+impl Validate for CT_TLOleBuildChart {
+    fn validate(&self, v: &mut Validator) {
+        if self.spid.is_none() {
+            v.required_attribute(Ns::NONE, "spid", &self.extra_attrs);
+        }
+        if self.grp_id.is_none() {
+            v.required_attribute(Ns::NONE, "grpId", &self.extra_attrs);
+        }
+    }
+}
+
 /// Embedded Chart Element (ECMA-376 Part 1 §19.5.52).
 ///
 /// This element specifies the subelement of an embedded chart to animate.
@@ -13971,6 +15546,14 @@ impl XmlWrite for CT_TLOleChartTargetElement {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TLOleChartTargetElement {
+    fn validate(&self, v: &mut Validator) {
+        if self.type_.is_none() {
+            v.required_attribute(Ns::NONE, "type", &self.extra_attrs);
+        }
     }
 }
 
@@ -14035,6 +15618,17 @@ impl XmlWrite for CT_TLPoint {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TLPoint {
+    fn validate(&self, v: &mut Validator) {
+        if self.x.is_none() {
+            v.required_attribute(Ns::NONE, "x", &self.extra_attrs);
+        }
+        if self.y.is_none() {
+            v.required_attribute(Ns::NONE, "y", &self.extra_attrs);
+        }
     }
 }
 
@@ -14107,6 +15701,19 @@ impl XmlWrite for CT_TLSetBehavior {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_TLSetBehavior {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_bhvr {
+            v.enter("p:cBhvr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cBhvr", &self.extra_children);
+        }
+        if let Some(x) = &self.to {
+            v.enter("p:to", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -14184,6 +15791,17 @@ impl XmlWrite for CT_TLShapeTargetElement {
     }
 }
 
+impl Validate for CT_TLShapeTargetElement {
+    fn validate(&self, v: &mut Validator) {
+        if self.spid.is_none() {
+            v.required_attribute(Ns::NONE, "spid", &self.extra_attrs);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
+    }
+}
+
 /// Ink Target (ECMA-376 Part 1 §19.5.47).
 ///
 /// This element specifies an animation target element that is represented by a sub-shape in a legacy graphical object.
@@ -14234,6 +15852,14 @@ impl XmlWrite for CT_TLSubShapeId {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TLSubShapeId {
+    fn validate(&self, v: &mut Validator) {
+        if self.spid.is_none() {
+            v.required_attribute(Ns::NONE, "spid", &self.extra_attrs);
+        }
     }
 }
 
@@ -14307,6 +15933,16 @@ impl XmlWrite for CT_TLTemplate {
     }
 }
 
+impl Validate for CT_TLTemplate {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.tn_lst {
+            v.enter("p:tnLst", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "tnLst", &self.extra_children);
+        }
+    }
+}
+
 /// Template effects (ECMA-376 Part 1 §19.5.85).
 ///
 /// This element describes a list of template effects that describe what kind of effects should be applied to a paragraph level properties.
@@ -14368,6 +16004,14 @@ impl XmlWrite for CT_TLTemplateList {
     }
 }
 
+impl Validate for CT_TLTemplateList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.tmpl.iter().enumerate() {
+            v.enter("p:tmpl", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Text Element (ECMA-376 Part 1 §19.5.91).
 ///
 /// This element specifies a text element to animate.
@@ -14423,6 +16067,14 @@ impl XmlWrite for CT_TLTextTargetElement {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TLTextTargetElement {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
     }
 }
 
@@ -14505,6 +16157,14 @@ impl XmlWrite for CT_TLTimeAnimateValue {
     }
 }
 
+impl Validate for CT_TLTimeAnimateValue {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.val {
+            v.enter("p:val", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Time Animated Value List (ECMA-376 Part 1 §19.5.80).
 ///
 /// This element specifies a list of time animated value elements.
@@ -14563,6 +16223,14 @@ impl XmlWrite for CT_TLTimeAnimateValueList {
         rt::write_extras_after(w, &self.extra_children, 0, self.tav.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TLTimeAnimateValueList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.tav.iter().enumerate() {
+            v.enter("p:tav", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -14646,6 +16314,14 @@ impl XmlWrite for CT_TLTimeCondition {
     }
 }
 
+impl Validate for CT_TLTimeCondition {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
+    }
+}
+
 /// End Conditions List (ECMA-376 Part 1 §19.5.37).
 ///
 /// This element describes a list of the end conditions that shall be met in order to stop the time node.
@@ -14710,6 +16386,17 @@ impl XmlWrite for CT_TLTimeConditionList {
     }
 }
 
+impl Validate for CT_TLTimeConditionList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cond.iter().enumerate() {
+            v.enter("p:cond", Some(i), |v| x.validate(v));
+        }
+        if self.cond.is_empty() {
+            v.required_element(Ns::P, "cond", &self.extra_children);
+        }
+    }
+}
+
 /// Exclusive (ECMA-376 Part 1 §19.5.40).
 ///
 /// This element describes the Exclusive time node. This time node is used to pause all other timelines when it is activated. Conceptually it can be though of as follows:
@@ -14768,6 +16455,16 @@ impl XmlWrite for CT_TLTimeNodeExclusive {
     }
 }
 
+impl Validate for CT_TLTimeNodeExclusive {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_tn {
+            v.enter("p:cTn", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cTn", &self.extra_children);
+        }
+    }
+}
+
 /// Parallel Time Node (ECMA-376 Part 1 §19.5.53).
 ///
 /// This element describes the Parallel time node which can be activated along with other parallel time node containers. Conceptually it can be thought of as follows:
@@ -14823,6 +16520,16 @@ impl XmlWrite for CT_TLTimeNodeParallel {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TLTimeNodeParallel {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_tn {
+            v.enter("p:cTn", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cTn", &self.extra_children);
+        }
     }
 }
 
@@ -14942,6 +16649,22 @@ impl XmlWrite for CT_TLTimeNodeSequence {
     }
 }
 
+impl Validate for CT_TLTimeNodeSequence {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_tn {
+            v.enter("p:cTn", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "cTn", &self.extra_children);
+        }
+        if let Some(x) = &self.prev_cond_lst {
+            v.enter("p:prevCondLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.next_cond_lst {
+            v.enter("p:nextCondLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Target Element (ECMA-376 Part 1 §19.5.81).
 ///
 /// This element specifies the target children elements which have the animation effects applied to.
@@ -15000,6 +16723,16 @@ impl XmlWrite for CT_TLTimeTargetElement {
     }
 }
 
+impl Validate for CT_TLTimeTargetElement {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of p:sldTgt, p:sndTgt, p:spTgt, p:inkTgt");
+        }
+    }
+}
+
 /// Runtime Node Trigger Choice (ECMA-376 Part 1 §19.5.64).
 ///
 /// This element specifies the child time node that triggers a time condition. References a child time node or all child nodes. Order is based on the child's end time.
@@ -15052,6 +16785,14 @@ impl XmlWrite for CT_TLTriggerRuntimeNode {
     }
 }
 
+impl Validate for CT_TLTriggerRuntimeNode {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Time Node (ECMA-376 Part 1 §19.5.86).
 ///
 /// This element describes the time node trigger choice.
@@ -15101,6 +16842,14 @@ impl XmlWrite for CT_TLTriggerTimeNodeID {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TLTriggerTimeNodeID {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -15165,6 +16914,14 @@ impl XmlWrite for CT_TagList {
     }
 }
 
+impl Validate for CT_TagList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.tag.iter().enumerate() {
+            v.enter("p:tag", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Customer Data Tags (ECMA-376 Part 1 §19.3.1.47).
 ///
 /// This element specifies the existence of customer data in the form of tags. This allows for the storage of customer data within the PresentationML framework. While this is similar to the ext tag in that it can be used store information, this tag mainly focuses on referencing to other parts of the presentation document.
@@ -15214,6 +16971,14 @@ impl XmlWrite for CT_TagsData {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TagsData {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -15288,6 +17053,17 @@ impl XmlWrite for CT_TimeNodeList {
     }
 }
 
+impl Validate for CT_TimeNodeList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if self.choice.is_empty() {
+            v.missing_content("one of p:par, p:seq, p:excl, p:anim, p:animClr, p:animEffect, …");
+        }
+    }
+}
+
 /// Sound Action (ECMA-376 Part 1 §19.5.69).
 ///
 /// This element describes a sound action for slide transition. This element specifies that the start of the slide transition is accompanied by the playback of an audio file; the actual audio file used is specified by the snd element (§19.5.68).
@@ -15343,6 +17119,16 @@ impl XmlWrite for CT_TransitionSoundAction {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TransitionSoundAction {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of p:stSnd, p:endSnd");
+        }
     }
 }
 
@@ -15413,6 +17199,16 @@ impl XmlWrite for CT_TransitionStartSoundAction {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TransitionStartSoundAction {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.snd {
+            v.enter("p:snd", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::P, "snd", &self.extra_children);
+        }
     }
 }
 
@@ -15593,6 +17389,35 @@ impl XmlWrite for CT_ViewProperties {
     }
 }
 
+impl Validate for CT_ViewProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.normal_view_pr {
+            v.enter("p:normalViewPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.slide_view_pr {
+            v.enter("p:slideViewPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.outline_view_pr {
+            v.enter("p:outlineViewPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.notes_text_view_pr {
+            v.enter("p:notesTextViewPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sorter_view_pr {
+            v.enter("p:sorterViewPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.notes_view_pr {
+            v.enter("p:notesViewPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.grid_spacing {
+            v.enter("p:gridSpacing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_WebProperties`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_WebProperties {
@@ -15729,6 +17554,14 @@ impl XmlWrite for CT_WebProperties {
     }
 }
 
+impl Validate for CT_WebProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ext_lst {
+            v.enter("p:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Wheel Slide Transition (ECMA-376 Part 1 §19.5.95).
 ///
 /// This element describes the wheel slide transition effect, which uses a set of radial edges and wipes them in the clockwise direction until the new slide is fully shown. The rendering of this transition depends upon the attributes specified which have been shown below.
@@ -15781,6 +17614,10 @@ impl XmlWrite for CT_WheelTransition {
     }
 }
 
+impl Validate for CT_WheelTransition {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// A choice among the child elements of `CT_BuildList`.
 #[derive(Clone, Debug, PartialEq)]
 pub enum CT_BuildList_Choice {
@@ -15816,6 +17653,17 @@ impl CT_BuildList_Choice {
             Self::BldOleChart(v) => v.write_xml(w, Ns::P, "bldOleChart"),
             Self::BldGraphic(v) => v.write_xml(w, Ns::P, "bldGraphic"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::BldP(x) => v.enter("p:bldP", index, |v| x.validate(v)),
+            Self::BldDgm(x) => v.enter("p:bldDgm", index, |v| x.validate(v)),
+            Self::BldOleChart(x) => v.enter("p:bldOleChart", index, |v| x.validate(v)),
+            Self::BldGraphic(x) => v.enter("p:bldGraphic", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -15877,6 +17725,19 @@ impl CT_GroupShape_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Sp(x) => v.enter("p:sp", index, |v| x.validate(v)),
+            Self::GrpSp(x) => v.enter("p:grpSp", index, |v| x.validate(v)),
+            Self::GraphicFrame(x) => v.enter("p:graphicFrame", index, |v| x.validate(v)),
+            Self::CxnSp(x) => v.enter("p:cxnSp", index, |v| x.validate(v)),
+            Self::Pic(x) => v.enter("p:pic", index, |v| x.validate(v)),
+            Self::ContentPart(x) => v.enter("p:contentPart", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -15918,6 +17779,15 @@ impl CT_OleObject_Choice {
             Self::Embed(v) => v.write_xml(w, Ns::P, "embed"),
             Self::Link(v) => v.write_xml(w, Ns::P, "link"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Embed(x) => v.enter("p:embed", index, |v| x.validate(v)),
+            Self::Link(x) => v.enter("p:link", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -16037,6 +17907,34 @@ impl CT_SlideTransition_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Blinds(x) => v.enter("p:blinds", index, |v| x.validate(v)),
+            Self::Checker(x) => v.enter("p:checker", index, |v| x.validate(v)),
+            Self::Circle(x) => v.enter("p:circle", index, |v| x.validate(v)),
+            Self::Dissolve(x) => v.enter("p:dissolve", index, |v| x.validate(v)),
+            Self::Comb(x) => v.enter("p:comb", index, |v| x.validate(v)),
+            Self::Cover(x) => v.enter("p:cover", index, |v| x.validate(v)),
+            Self::Cut(x) => v.enter("p:cut", index, |v| x.validate(v)),
+            Self::Diamond(x) => v.enter("p:diamond", index, |v| x.validate(v)),
+            Self::Fade(x) => v.enter("p:fade", index, |v| x.validate(v)),
+            Self::Newsflash(x) => v.enter("p:newsflash", index, |v| x.validate(v)),
+            Self::Plus(x) => v.enter("p:plus", index, |v| x.validate(v)),
+            Self::Pull(x) => v.enter("p:pull", index, |v| x.validate(v)),
+            Self::Push(x) => v.enter("p:push", index, |v| x.validate(v)),
+            Self::Random(x) => v.enter("p:random", index, |v| x.validate(v)),
+            Self::RandomBar(x) => v.enter("p:randomBar", index, |v| x.validate(v)),
+            Self::Split(x) => v.enter("p:split", index, |v| x.validate(v)),
+            Self::Strips(x) => v.enter("p:strips", index, |v| x.validate(v)),
+            Self::Wedge(x) => v.enter("p:wedge", index, |v| x.validate(v)),
+            Self::Wheel(x) => v.enter("p:wheel", index, |v| x.validate(v)),
+            Self::Wipe(x) => v.enter("p:wipe", index, |v| x.validate(v)),
+            Self::Zoom(x) => v.enter("p:zoom", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -16108,6 +18006,18 @@ impl CT_TLAnimVariant_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::BoolVal(x) => v.enter("p:boolVal", index, |v| x.validate(v)),
+            Self::IntVal(x) => v.enter("p:intVal", index, |v| x.validate(v)),
+            Self::FltVal(x) => v.enter("p:fltVal", index, |v| x.validate(v)),
+            Self::StrVal(x) => v.enter("p:strVal", index, |v| x.validate(v)),
+            Self::ClrVal(x) => v.enter("p:clrVal", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -16151,6 +18061,15 @@ impl CT_TLByAnimateColorTransform_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Rgb(x) => v.enter("p:rgb", index, |v| x.validate(v)),
+            Self::Hsl(x) => v.enter("p:hsl", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -16191,6 +18110,15 @@ impl CT_TLGraphicalObjectBuild_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::BldAsOne(x) => v.enter("p:bldAsOne", index, |v| x.validate(v)),
+            Self::BldSub(x) => v.enter("p:bldSub", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -16228,6 +18156,15 @@ impl CT_TLIterateData_Choice {
             Self::TmAbs(v) => v.write_xml(w, Ns::P, "tmAbs"),
             Self::TmPct(v) => v.write_xml(w, Ns::P, "tmPct"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::TmAbs(x) => v.enter("p:tmAbs", index, |v| x.validate(v)),
+            Self::TmPct(x) => v.enter("p:tmPct", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -16283,6 +18220,18 @@ impl CT_TLShapeTargetElement_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Bg(x) => v.enter("p:bg", index, |v| x.validate(v)),
+            Self::SubSp(x) => v.enter("p:subSp", index, |v| x.validate(v)),
+            Self::OleChartEl(x) => v.enter("p:oleChartEl", index, |v| x.validate(v)),
+            Self::TxEl(x) => v.enter("p:txEl", index, |v| x.validate(v)),
+            Self::GraphicEl(x) => v.enter("p:graphicEl", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -16323,6 +18272,15 @@ impl CT_TLTextTargetElement_Choice {
             Self::CharRg(v) => v.write_xml(w, Ns::P, "charRg"),
             Self::PRg(v) => v.write_xml(w, Ns::P, "pRg"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::CharRg(x) => v.enter("p:charRg", index, |v| x.validate(v)),
+            Self::PRg(x) => v.enter("p:pRg", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -16367,6 +18325,16 @@ impl CT_TLTimeCondition_Choice {
             Self::Tn(v) => v.write_xml(w, Ns::P, "tn"),
             Self::Rtn(v) => v.write_xml(w, Ns::P, "rtn"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::TgtEl(x) => v.enter("p:tgtEl", index, |v| x.validate(v)),
+            Self::Tn(x) => v.enter("p:tn", index, |v| x.validate(v)),
+            Self::Rtn(x) => v.enter("p:rtn", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -16416,6 +18384,17 @@ impl CT_TLTimeTargetElement_Choice {
             Self::SpTgt(v) => v.write_xml(w, Ns::P, "spTgt"),
             Self::InkTgt(v) => v.write_xml(w, Ns::P, "inkTgt"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::SldTgt(x) => v.enter("p:sldTgt", index, |v| x.validate(v)),
+            Self::SndTgt(x) => v.enter("p:sndTgt", index, |v| x.validate(v)),
+            Self::SpTgt(x) => v.enter("p:spTgt", index, |v| x.validate(v)),
+            Self::InkTgt(x) => v.enter("p:inkTgt", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -16505,6 +18484,26 @@ impl CT_TimeNodeList_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Par(x) => v.enter("p:par", index, |v| x.validate(v)),
+            Self::Seq(x) => v.enter("p:seq", index, |v| x.validate(v)),
+            Self::Excl(x) => v.enter("p:excl", index, |v| x.validate(v)),
+            Self::Anim(x) => v.enter("p:anim", index, |v| x.validate(v)),
+            Self::AnimClr(x) => v.enter("p:animClr", index, |v| x.validate(v)),
+            Self::AnimEffect(x) => v.enter("p:animEffect", index, |v| x.validate(v)),
+            Self::AnimMotion(x) => v.enter("p:animMotion", index, |v| x.validate(v)),
+            Self::AnimRot(x) => v.enter("p:animRot", index, |v| x.validate(v)),
+            Self::AnimScale(x) => v.enter("p:animScale", index, |v| x.validate(v)),
+            Self::Cmd(x) => v.enter("p:cmd", index, |v| x.validate(v)),
+            Self::Set(x) => v.enter("p:set", index, |v| x.validate(v)),
+            Self::Audio(x) => v.enter("p:audio", index, |v| x.validate(v)),
+            Self::Video(x) => v.enter("p:video", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -16556,6 +18555,15 @@ impl CT_TransitionSoundAction_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::StSnd(x) => v.enter("p:stSnd", index, |v| x.validate(v)),
+            Self::EndSnd(x) => v.enter("p:endSnd", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -16593,6 +18601,15 @@ impl EG_Background {
             Self::BgPr(v) => v.write_xml(w, Ns::P, "bgPr"),
             Self::BgRef(v) => v.write_xml(w, Ns::P, "bgRef"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::BgPr(x) => v.enter("p:bgPr", index, |v| x.validate(v)),
+            Self::BgRef(x) => v.enter("p:bgRef", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -16640,6 +18657,16 @@ impl EG_ShowType {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Present(x) => v.enter("p:present", index, |v| x.validate(v)),
+            Self::Browse(x) => v.enter("p:browse", index, |v| x.validate(v)),
+            Self::Kiosk(x) => v.enter("p:kiosk", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -16682,6 +18709,16 @@ impl EG_SlideListChoice {
             Self::SldRg(v) => v.write_xml(w, Ns::P, "sldRg"),
             Self::CustShow(v) => v.write_xml(w, Ns::P, "custShow"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::SldAll(x) => v.enter("p:sldAll", index, |v| x.validate(v)),
+            Self::SldRg(x) => v.enter("p:sldRg", index, |v| x.validate(v)),
+            Self::CustShow(x) => v.enter("p:custShow", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 

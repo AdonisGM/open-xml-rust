@@ -122,6 +122,36 @@ impl RP {
         }
     }
 
+    /// Minimum number of elements the particle must match.
+    fn min_count(&self) -> u32 {
+        match self {
+            RP::Elem(_, o) | RP::Any(_, o) => o.min,
+            RP::Seq(items, o) | RP::All(items, o) => items
+                .iter()
+                .map(RP::min_count)
+                .fold(0u32, u32::saturating_add)
+                .saturating_mul(o.min),
+            RP::Choice(items, o) => items
+                .iter()
+                .map(RP::min_count)
+                .min()
+                .unwrap_or(0)
+                .saturating_mul(o.min),
+            RP::Group(_, body, o) => body.min_count().saturating_mul(o.min),
+        }
+    }
+
+    fn own_min(&self) -> u32 {
+        match self {
+            RP::Elem(_, o)
+            | RP::Any(_, o)
+            | RP::Seq(_, o)
+            | RP::Choice(_, o)
+            | RP::All(_, o)
+            | RP::Group(_, _, o) => o.min,
+        }
+    }
+
     fn can_repeat(&self) -> bool {
         self.max_count().is_none_or(|m| m > 1)
     }
@@ -683,13 +713,14 @@ impl<'a> Lowerer<'a> {
 
     fn layout(&mut self, si: usize, type_name: &str, rp: RP) -> Vec<Field> {
         let mut fields = Vec::new();
+        let required = rp.own_min() >= 1;
         for item in top_items(rp) {
-            self.layout_item(si, type_name, item, &mut fields);
+            self.layout_item(si, type_name, item, required, &mut fields);
         }
         fields
     }
 
-    fn layout_item(&mut self, si: usize, type_name: &str, item: RP, fields: &mut Vec<Field>) {
+    fn layout_item(&mut self, si: usize, type_name: &str, item: RP, ctx: bool, fields: &mut Vec<Field>) {
         match item {
             RP::Elem(elem, o) => {
                 let name = snake(&elem.local);
@@ -699,6 +730,7 @@ impl<'a> Lowerer<'a> {
                         elem,
                         multi: o.repeats(),
                     },
+                    required: ctx && o.min >= 1,
                     doc: None,
                 });
             }
@@ -708,25 +740,28 @@ impl<'a> Lowerer<'a> {
                     ns,
                     multi: o.repeats(),
                 },
+                required: ctx && o.min >= 1,
                 doc: None,
             }),
             RP::Seq(items, o) | RP::All(items, o) if !o.repeats() => {
                 for i in items {
-                    self.layout_item(si, type_name, i, fields);
+                    self.layout_item(si, type_name, i, ctx && o.min >= 1, fields);
                 }
             }
             RP::Group(_, body, o) if !o.repeats() && is_plain_sequence(&body) => {
+                let inner = ctx && o.min >= 1 && body.own_min() >= 1;
                 for i in top_items(*body) {
-                    self.layout_item(si, type_name, i, fields);
+                    self.layout_item(si, type_name, i, inner, fields);
                 }
             }
             RP::Choice(items, o) | RP::Seq(items, o) | RP::All(items, o) if items.len() == 1 => {
                 let child = items.into_iter().next().expect("one item").with_occurs(o);
-                self.layout_item(si, type_name, child, fields);
+                self.layout_item(si, type_name, child, ctx, fields);
             }
             RP::Group(q, body, o) => {
                 let rp = RP::Group(q.clone(), body, o);
                 let multi = rp.can_repeat();
+                let required = ctx && rp.min_count() >= 1;
                 let RP::Group(_, body, _) = rp else { unreachable!() };
                 let path = self.group_enum(&q, &body);
                 let (elems, any) = flatten(&body);
@@ -739,11 +774,13 @@ impl<'a> Lowerer<'a> {
                         any,
                         multi,
                     },
+                    required,
                     doc: None,
                 });
             }
             other => {
                 let multi = other.can_repeat();
+                let required = ctx && other.min_count() >= 1;
                 let (elems, any) = flatten(&other);
                 if elems.is_empty() {
                     // A group of wildcards only.
@@ -751,6 +788,7 @@ impl<'a> Lowerer<'a> {
                         fields.push(Field {
                             name: "any".into(),
                             kind: FieldKind::Any { ns, multi },
+                            required,
                             doc: None,
                         });
                     }
@@ -772,6 +810,7 @@ impl<'a> Lowerer<'a> {
                         any,
                         multi,
                     },
+                    required,
                     doc: None,
                 });
             }
@@ -914,6 +953,7 @@ impl<'a> Lowerer<'a> {
                     ns: a.ns,
                     local: a.local,
                     ty: a.ty,
+                    required: a.required,
                     doc: Some(doc),
                 }
             })

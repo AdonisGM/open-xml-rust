@@ -327,3 +327,37 @@ fn wrong_root_is_rejected() {
         .parse(r#"<w:body xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"/>"#);
     assert!(matches!(err, Err(openxml_xml::Error::UnexpectedRoot { .. })));
 }
+
+#[test]
+fn validation_reports_missing_required_content() {
+    let xml = doc(r#"<w:p><w:pPr><w:pStyle/></w:pPr></w:p><w:tbl><w:tr><w:tc><w:p/></w:tc></w:tr></w:tbl>"#);
+    let d = wml::elements::DOCUMENT.parse(&xml).unwrap();
+    let issues = wml::elements::DOCUMENT.validate(&d);
+    let text: Vec<String> = issues.iter().map(|i| i.to_string()).collect();
+    assert!(
+        text.contains(
+            &"/w:document/w:body/w:p[1]/w:pPr/w:pStyle: missing required attribute w:val".to_owned()
+        ),
+        "{text:#?}"
+    );
+    assert!(text.contains(&"/w:document/w:body/w:tbl[2]: missing required child element w:tblPr".to_owned()));
+    assert!(
+        text.contains(&"/w:document/w:body/w:tbl[2]: missing required child element w:tblGrid".to_owned())
+    );
+    assert_eq!(issues.len(), 3, "{text:#?}");
+
+    let ws = sml::elements::WORKSHEET
+        .parse(r#"<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"/>"#)
+        .unwrap();
+    let issues = sml::elements::WORKSHEET.validate(&ws);
+    assert_eq!(issues.len(), 1);
+    assert_eq!(issues[0].message, "missing required child element x:sheetData");
+}
+
+#[test]
+fn documents_built_in_code_validate() {
+    let d = wml::elements::DOCUMENT
+        .parse(&doc(r#"<w:p><w:r><w:t>ok</w:t></w:r></w:p><w:sectPr/>"#))
+        .unwrap();
+    assert!(wml::elements::DOCUMENT.validate(&d).is_empty());
+}

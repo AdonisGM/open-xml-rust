@@ -6804,6 +6804,17 @@ impl XmlWrite for CT_AdjPoint2D {
     }
 }
 
+impl Validate for CT_AdjPoint2D {
+    fn validate(&self, v: &mut Validator) {
+        if self.x.is_none() {
+            v.required_attribute(Ns::NONE, "x", &self.extra_attrs);
+        }
+        if self.y.is_none() {
+            v.required_attribute(Ns::NONE, "y", &self.extra_attrs);
+        }
+    }
+}
+
 /// List of Shape Adjust Handles (ECMA-376 Part 1 §20.1.9.1).
 ///
 /// This element specifies the adjust handles that are applied to a custom geometry. These adjust handles specify points within the geometric shape that can be used to perform certain transform operations on the shape.
@@ -6862,6 +6873,14 @@ impl XmlWrite for CT_AdjustHandleList {
     }
 }
 
+impl Validate for CT_AdjustHandleList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Alpha Bi-Level Effect (ECMA-376 Part 1 §20.1.8.1).
 ///
 /// This element represents an Alpha Bi-Level Effect. Alpha (Opacity) values less than the threshold are changed to 0 (fully transparent) and alpha values greater than or equal to the threshold are changed to 100% (fully opaque).
@@ -6914,6 +6933,14 @@ impl XmlWrite for CT_AlphaBiLevelEffect {
     }
 }
 
+impl Validate for CT_AlphaBiLevelEffect {
+    fn validate(&self, v: &mut Validator) {
+        if self.thresh.is_none() {
+            v.required_attribute(Ns::NONE, "thresh", &self.extra_attrs);
+        }
+    }
+}
+
 /// Alpha Ceiling Effect (ECMA-376 Part 1 §20.1.8.2).
 ///
 /// This element represents an alpha ceiling effect. Alpha (opacity) values greater than zero are changed to 100%. In other words, anything partially opaque becomes fully opaque.
@@ -6954,6 +6981,10 @@ impl XmlWrite for CT_AlphaCeilingEffect {
     }
 }
 
+impl Validate for CT_AlphaCeilingEffect {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Alpha Floor Effect (ECMA-376 Part 1 §20.1.8.3).
 ///
 /// This element represents an alpha floor effect. Alpha (opacity) values less than 100% are changed to zero. In other words, anything partially transparent becomes fully transparent.
@@ -6992,6 +7023,10 @@ impl XmlWrite for CT_AlphaFloorEffect {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_AlphaFloorEffect {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Alpha Inverse Effect (ECMA-376 Part 1 §20.1.8.4).
@@ -7057,6 +7092,14 @@ impl XmlWrite for CT_AlphaInverseEffect {
     }
 }
 
+impl Validate for CT_AlphaInverseEffect {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.color_choice {
+            x.validate_at(v, None);
+        }
+    }
+}
+
 /// Alpha Modulate Effect (ECMA-376 Part 1 §20.1.8.5).
 ///
 /// This element represents an alpha modulate effect. Effect alpha (opacity) values are multiplied by a fixed percentage. The effect container specifies an effect containing alpha values to modulate.
@@ -7115,6 +7158,16 @@ impl XmlWrite for CT_AlphaModulateEffect {
     }
 }
 
+impl Validate for CT_AlphaModulateEffect {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.cont {
+            v.enter("a:cont", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "cont", &self.extra_children);
+        }
+    }
+}
+
 /// Alpha Modulate Fixed Effect (ECMA-376 Part 1 §20.1.8.6).
 ///
 /// This element represents an alpha modulate fixed effect. Effect alpha (opacity) values are multiplied by a fixed percentage.
@@ -7165,6 +7218,10 @@ impl XmlWrite for CT_AlphaModulateFixedEffect {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_AlphaModulateFixedEffect {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Alpha Inset/Outset Effect (ECMA-376 Part 1 §20.1.8.7).
@@ -7219,6 +7276,10 @@ impl XmlWrite for CT_AlphaOutsetEffect {
     }
 }
 
+impl Validate for CT_AlphaOutsetEffect {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Alpha Replace Effect (ECMA-376 Part 1 §20.1.8.8).
 ///
 /// This element specifies an alpha replace effect. Effect alpha (opacity) values are replaced by a fixed alpha.
@@ -7271,6 +7332,14 @@ impl XmlWrite for CT_AlphaReplaceEffect {
     }
 }
 
+impl Validate for CT_AlphaReplaceEffect {
+    fn validate(&self, v: &mut Validator) {
+        if self.a.is_none() {
+            v.required_attribute(Ns::NONE, "a", &self.extra_attrs);
+        }
+    }
+}
+
 /// Hue Offset (ECMA-376 Part 1 §20.1.2.3.16).
 ///
 /// This element specifies the input color with its hue shifted, but with its saturation and luminance unchanged.
@@ -7320,6 +7389,14 @@ impl XmlWrite for CT_Angle {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Angle {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -7382,6 +7459,10 @@ impl XmlWrite for CT_AnimationChartBuildProperties {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_AnimationChartBuildProperties {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Chart to Animate (ECMA-376 Part 1 §20.1.2.2.3).
@@ -7454,6 +7535,14 @@ impl XmlWrite for CT_AnimationChartElement {
     }
 }
 
+impl Validate for CT_AnimationChartElement {
+    fn validate(&self, v: &mut Validator) {
+        if self.bld_step.is_none() {
+            v.required_attribute(Ns::NONE, "bldStep", &self.extra_attrs);
+        }
+    }
+}
+
 /// Build Diagram (ECMA-376 Part 1 §20.1.2.2.2).
 ///
 /// This element specifies how to build the animation for a diagram.
@@ -7513,6 +7602,10 @@ impl XmlWrite for CT_AnimationDgmBuildProperties {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_AnimationDgmBuildProperties {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Diagram to Animate (ECMA-376 Part 1 §20.1.2.2.12).
@@ -7576,6 +7669,10 @@ impl XmlWrite for CT_AnimationDgmElement {
     }
 }
 
+impl Validate for CT_AnimationDgmElement {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Schema complex type `CT_AnimationElementChoice`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_AnimationElementChoice {
@@ -7625,6 +7722,16 @@ impl XmlWrite for CT_AnimationElementChoice {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_AnimationElementChoice {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:dgm, a:chart");
+        }
     }
 }
 
@@ -7679,6 +7786,16 @@ impl XmlWrite for CT_AnimationGraphicalObjectBuildProperties {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_AnimationGraphicalObjectBuildProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:bldDgm, a:bldChart");
+        }
     }
 }
 
@@ -7768,6 +7885,24 @@ impl XmlWrite for CT_AudioCD {
     }
 }
 
+impl Validate for CT_AudioCD {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.st {
+            v.enter("a:st", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "st", &self.extra_children);
+        }
+        if let Some(x) = &self.end {
+            v.enter("a:end", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "end", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Audio End Time (ECMA-376 Part 1 §20.1.3.3).
 ///
 /// This element specifies the end point for a CD Audio sound element. Encompassed within this element are the time and track at which the sound should halt its playback. This element is used in conjunction with an Audio Start Time element to specify the time span for an entire audioCD sound element.
@@ -7827,6 +7962,14 @@ impl XmlWrite for CT_AudioCDTime {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_AudioCDTime {
+    fn validate(&self, v: &mut Validator) {
+        if self.track.is_none() {
+            v.required_attribute(Ns::NONE, "track", &self.extra_attrs);
+        }
     }
 }
 
@@ -7906,6 +8049,17 @@ impl XmlWrite for CT_AudioFile {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_AudioFile {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_link.is_none() {
+            v.required_attribute(Ns::R, "link", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -8009,6 +8163,29 @@ impl XmlWrite for CT_Backdrop {
     }
 }
 
+impl Validate for CT_Backdrop {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.anchor {
+            v.enter("a:anchor", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "anchor", &self.extra_children);
+        }
+        if let Some(x) = &self.norm {
+            v.enter("a:norm", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "norm", &self.extra_children);
+        }
+        if let Some(x) = &self.up {
+            v.enter("a:up", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "up", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Background Fill Style List (ECMA-376 Part 1 §20.1.4.1.7).
 ///
 /// This element defines a list of background fills that are used within a theme. The background fills consist of three fills, arranged in order from subtle to moderate to intense.
@@ -8069,6 +8246,17 @@ impl XmlWrite for CT_BackgroundFillStyleList {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_BackgroundFillStyleList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.fill_properties.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if self.fill_properties.is_empty() {
+            v.missing_content("one of a:noFill, a:solidFill, a:gradFill, a:blipFill, a:pattFill, a:grpFill");
+        }
     }
 }
 
@@ -8140,6 +8328,17 @@ impl XmlWrite for CT_BackgroundFormatting {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_BackgroundFormatting {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.fill_properties {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.effect_properties {
+            x.validate_at(v, None);
+        }
     }
 }
 
@@ -8243,6 +8442,29 @@ impl XmlWrite for CT_BaseStyles {
     }
 }
 
+impl Validate for CT_BaseStyles {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.clr_scheme {
+            v.enter("a:clrScheme", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "clrScheme", &self.extra_children);
+        }
+        if let Some(x) = &self.font_scheme {
+            v.enter("a:fontScheme", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "fontScheme", &self.extra_children);
+        }
+        if let Some(x) = &self.fmt_scheme {
+            v.enter("a:fmtScheme", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "fmtScheme", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Theme Override (ECMA-376 Part 1 §20.1.6.12).
 ///
 /// This element allows for an override which changes just the colors, fonts, or effects of a single object, like a table for example. Currently it is used only to control overrides on the non-top-level masters within a presentation.
@@ -8329,6 +8551,20 @@ impl XmlWrite for CT_BaseStylesOverride {
     }
 }
 
+impl Validate for CT_BaseStylesOverride {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.clr_scheme {
+            v.enter("a:clrScheme", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.font_scheme {
+            v.enter("a:fontScheme", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.fmt_scheme {
+            v.enter("a:fmtScheme", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Bevel (ECMA-376 Part 1 §20.1.4.2.5).
 ///
 /// This element defines the properties of the bevel associated with the 3D effect applied to a cell in a table.
@@ -8401,6 +8637,10 @@ impl XmlWrite for CT_Bevel {
     }
 }
 
+impl Validate for CT_Bevel {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Bi-Level (Black/White) Effect (ECMA-376 Part 1 §20.1.8.11).
 ///
 /// This element specifies a bi-level (black/white) effect. Input colors whose luminance is less than the specified threshold value are changed to black. Input colors whose luminance are greater than or equal the specified value are set to white.
@@ -8450,6 +8690,14 @@ impl XmlWrite for CT_BiLevelEffect {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_BiLevelEffect {
+    fn validate(&self, v: &mut Validator) {
+        if self.thresh.is_none() {
+            v.required_attribute(Ns::NONE, "thresh", &self.extra_attrs);
+        }
     }
 }
 
@@ -8520,6 +8768,19 @@ impl XmlWrite for CT_BlendEffect {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_BlendEffect {
+    fn validate(&self, v: &mut Validator) {
+        if self.blend.is_none() {
+            v.required_attribute(Ns::NONE, "blend", &self.extra_attrs);
+        }
+        if let Some(x) = &self.cont {
+            v.enter("a:cont", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "cont", &self.extra_children);
+        }
     }
 }
 
@@ -8640,6 +8901,17 @@ impl XmlWrite for CT_Blip {
     }
 }
 
+impl Validate for CT_Blip {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Picture Fill (ECMA-376 Part 1 §20.1.8.14).
 ///
 /// This element specifies the type of picture fill that the picture object has. Because a picture has a picture fill already by default, it is possible to have two fills specified for a picture object. An example of this is shown below.
@@ -8747,6 +9019,20 @@ impl XmlWrite for CT_BlipFillProperties {
     }
 }
 
+impl Validate for CT_BlipFillProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.blip {
+            v.enter("a:blip", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.src_rect {
+            v.enter("a:srcRect", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.fill_mode_properties {
+            x.validate_at(v, None);
+        }
+    }
+}
+
 /// Blur Effect (ECMA-376 Part 1 §20.1.8.15).
 ///
 /// This element specifies a blur effect that is applied to the entire shape, including its fill. All color channels, including alpha, are affected.
@@ -8808,6 +9094,10 @@ impl XmlWrite for CT_BlurEffect {
     }
 }
 
+impl Validate for CT_BlurEffect {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Right to Left Run (ECMA-376 Part 1 §21.1.2.2.8).
 ///
 /// This element specifies whether the contents of this run shall have right-to-left characteristics. Specifically, the following behaviors are applied when this element’s val attribute is true (or an equivalent):  Formatting – When the contents of this run are displayed, all characters shall be treated as complex script characters. This means that the values of the cs element (§21.1.2.3.1) shall be used to determine the font face.  Character Directionality Override – When the contents of this run are displayed, this property acts as a right-to-left override for characters which are classified as follows (using the Unicode Character
@@ -8858,6 +9148,10 @@ impl XmlWrite for CT_Boolean {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Boolean {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Camera (ECMA-376 Part 1 §20.1.5.5).
@@ -8945,6 +9239,17 @@ impl XmlWrite for CT_Camera {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Camera {
+    fn validate(&self, v: &mut Validator) {
+        if self.prst.is_none() {
+            v.required_attribute(Ns::NONE, "prst", &self.extra_attrs);
+        }
+        if let Some(x) = &self.rot {
+            v.enter("a:rot", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -9046,6 +9351,22 @@ impl XmlWrite for CT_Cell3D {
     }
 }
 
+impl Validate for CT_Cell3D {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.bevel {
+            v.enter("a:bevel", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "bevel", &self.extra_children);
+        }
+        if let Some(x) = &self.light_rig {
+            v.enter("a:lightRig", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_ClipboardStyleSheet`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_ClipboardStyleSheet {
@@ -9109,6 +9430,21 @@ impl XmlWrite for CT_ClipboardStyleSheet {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_ClipboardStyleSheet {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.theme_elements {
+            v.enter("a:themeElements", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "themeElements", &self.extra_children);
+        }
+        if let Some(x) = &self.clr_map {
+            v.enter("a:clrMap", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "clrMap", &self.extra_children);
+        }
     }
 }
 
@@ -9191,6 +9527,16 @@ impl XmlWrite for CT_Color {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Color {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.color_choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:scrgbClr, a:srgbClr, a:hslClr, a:sysClr, a:schemeClr, a:prstClr");
+        }
     }
 }
 
@@ -9278,6 +9624,21 @@ impl XmlWrite for CT_ColorChangeEffect {
     }
 }
 
+impl Validate for CT_ColorChangeEffect {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.clr_from {
+            v.enter("a:clrFrom", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "clrFrom", &self.extra_children);
+        }
+        if let Some(x) = &self.clr_to {
+            v.enter("a:clrTo", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "clrTo", &self.extra_children);
+        }
+    }
+}
+
 /// Schema complex type `CT_ColorMRU`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_ColorMRU {
@@ -9331,6 +9692,14 @@ impl XmlWrite for CT_ColorMRU {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ColorMRU {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.color_choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -9504,6 +9873,50 @@ impl XmlWrite for CT_ColorMapping {
     }
 }
 
+impl Validate for CT_ColorMapping {
+    fn validate(&self, v: &mut Validator) {
+        if self.bg1.is_none() {
+            v.required_attribute(Ns::NONE, "bg1", &self.extra_attrs);
+        }
+        if self.tx1.is_none() {
+            v.required_attribute(Ns::NONE, "tx1", &self.extra_attrs);
+        }
+        if self.bg2.is_none() {
+            v.required_attribute(Ns::NONE, "bg2", &self.extra_attrs);
+        }
+        if self.tx2.is_none() {
+            v.required_attribute(Ns::NONE, "tx2", &self.extra_attrs);
+        }
+        if self.accent1.is_none() {
+            v.required_attribute(Ns::NONE, "accent1", &self.extra_attrs);
+        }
+        if self.accent2.is_none() {
+            v.required_attribute(Ns::NONE, "accent2", &self.extra_attrs);
+        }
+        if self.accent3.is_none() {
+            v.required_attribute(Ns::NONE, "accent3", &self.extra_attrs);
+        }
+        if self.accent4.is_none() {
+            v.required_attribute(Ns::NONE, "accent4", &self.extra_attrs);
+        }
+        if self.accent5.is_none() {
+            v.required_attribute(Ns::NONE, "accent5", &self.extra_attrs);
+        }
+        if self.accent6.is_none() {
+            v.required_attribute(Ns::NONE, "accent6", &self.extra_attrs);
+        }
+        if self.hlink.is_none() {
+            v.required_attribute(Ns::NONE, "hlink", &self.extra_attrs);
+        }
+        if self.fol_hlink.is_none() {
+            v.required_attribute(Ns::NONE, "folHlink", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_ColorMappingOverride`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_ColorMappingOverride {
@@ -9553,6 +9966,16 @@ impl XmlWrite for CT_ColorMappingOverride {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ColorMappingOverride {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:masterClrMapping, a:overrideClrMapping");
+        }
     }
 }
 
@@ -9616,6 +10039,16 @@ impl XmlWrite for CT_ColorReplaceEffect {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ColorReplaceEffect {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.color_choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:scrgbClr, a:srgbClr, a:hslClr, a:sysClr, a:schemeClr, a:prstClr");
+        }
     }
 }
 
@@ -9857,6 +10290,77 @@ impl XmlWrite for CT_ColorScheme {
     }
 }
 
+impl Validate for CT_ColorScheme {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if let Some(x) = &self.dk1 {
+            v.enter("a:dk1", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "dk1", &self.extra_children);
+        }
+        if let Some(x) = &self.lt1 {
+            v.enter("a:lt1", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "lt1", &self.extra_children);
+        }
+        if let Some(x) = &self.dk2 {
+            v.enter("a:dk2", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "dk2", &self.extra_children);
+        }
+        if let Some(x) = &self.lt2 {
+            v.enter("a:lt2", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "lt2", &self.extra_children);
+        }
+        if let Some(x) = &self.accent1 {
+            v.enter("a:accent1", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "accent1", &self.extra_children);
+        }
+        if let Some(x) = &self.accent2 {
+            v.enter("a:accent2", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "accent2", &self.extra_children);
+        }
+        if let Some(x) = &self.accent3 {
+            v.enter("a:accent3", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "accent3", &self.extra_children);
+        }
+        if let Some(x) = &self.accent4 {
+            v.enter("a:accent4", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "accent4", &self.extra_children);
+        }
+        if let Some(x) = &self.accent5 {
+            v.enter("a:accent5", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "accent5", &self.extra_children);
+        }
+        if let Some(x) = &self.accent6 {
+            v.enter("a:accent6", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "accent6", &self.extra_children);
+        }
+        if let Some(x) = &self.hlink {
+            v.enter("a:hlink", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "hlink", &self.extra_children);
+        }
+        if let Some(x) = &self.fol_hlink {
+            v.enter("a:folHlink", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "folHlink", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Extra Color Scheme (ECMA-376 Part 1 §20.1.6.4).
 ///
 /// This element defines an auxiliary color scheme, which includes both a color scheme and color mapping. This is mainly used for backward compatibility concerns and roundtrips information required by earlier versions.
@@ -9929,6 +10433,19 @@ impl XmlWrite for CT_ColorSchemeAndMapping {
     }
 }
 
+impl Validate for CT_ColorSchemeAndMapping {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.clr_scheme {
+            v.enter("a:clrScheme", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "clrScheme", &self.extra_children);
+        }
+        if let Some(x) = &self.clr_map {
+            v.enter("a:clrMap", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Extra Color Scheme List (ECMA-376 Part 1 §20.1.6.5).
 ///
 /// This element is a container for the list of extra color schemes present in a document.
@@ -9990,6 +10507,14 @@ impl XmlWrite for CT_ColorSchemeList {
     }
 }
 
+impl Validate for CT_ColorSchemeList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.extra_clr_scheme.iter().enumerate() {
+            v.enter("a:extraClrScheme", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Complement (ECMA-376 Part 1 §20.1.2.3.7).
 ///
 /// This element specifies that the color rendered should be the complement of its input color with the complement being defined as such. Two colors are called complementary if, when mixed they produce a shade of grey. For instance, the complement of red which is RGB (255, 0, 0) is cyan which is RGB (0, 255, 255).
@@ -10028,6 +10553,10 @@ impl XmlWrite for CT_ComplementTransform {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_ComplementTransform {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Connection End (ECMA-376 Part 1 §20.1.2.2.13).
@@ -10089,6 +10618,17 @@ impl XmlWrite for CT_Connection {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Connection {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "id", &self.extra_attrs);
+        }
+        if self.idx.is_none() {
+            v.required_attribute(Ns::NONE, "idx", &self.extra_attrs);
+        }
     }
 }
 
@@ -10162,6 +10702,19 @@ impl XmlWrite for CT_ConnectionSite {
     }
 }
 
+impl Validate for CT_ConnectionSite {
+    fn validate(&self, v: &mut Validator) {
+        if self.ang.is_none() {
+            v.required_attribute(Ns::NONE, "ang", &self.extra_attrs);
+        }
+        if let Some(x) = &self.pos {
+            v.enter("a:pos", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "pos", &self.extra_children);
+        }
+    }
+}
+
 /// List of Shape Connection Sites (ECMA-376 Part 1 §20.1.9.10).
 ///
 /// This element specifies all the connection sites that are used for this shape. A connection site is specified by defining a point within the shape bounding box that can have a cxnSp element attached to it. These connection sites are specified using the shape coordinate system that is specified within the ext transform element.
@@ -10220,6 +10773,14 @@ impl XmlWrite for CT_ConnectionSiteList {
         rt::write_extras_after(w, &self.extra_children, 0, self.cxn.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ConnectionSiteList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cxn.iter().enumerate() {
+            v.enter("a:cxn", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -10374,6 +10935,14 @@ impl XmlWrite for CT_ConnectorLocking {
     }
 }
 
+impl Validate for CT_ConnectorLocking {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Content Part Locks (ECMA-376 Part 1 §20.1.2.2.43).
 ///
 /// This element specifies all locking properties for a content part. These properties inform the generating application about specific properties that have been previously locked and thus should not be changed.
@@ -10525,6 +11094,14 @@ impl XmlWrite for CT_ContentPartLocking {
     }
 }
 
+impl Validate for CT_ContentPartLocking {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Custom color (ECMA-376 Part 1 §20.1.4.1.8).
 ///
 /// This element defines a custom color. The custom colors are used within a custom color list to define custom colors that are extra colors that can be appended to a theme. This is useful within corporate scenarios where there is a set corporate color palette from which to work.
@@ -10600,6 +11177,16 @@ impl XmlWrite for CT_CustomColor {
     }
 }
 
+impl Validate for CT_CustomColor {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.color_choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:scrgbClr, a:srgbClr, a:hslClr, a:sysClr, a:schemeClr, a:prstClr");
+        }
+    }
+}
+
 /// Custom Color List (ECMA-376 Part 1 §20.1.6.3).
 ///
 /// This element allows for a custom color palette to be created and which shows up alongside other color schemes. This can be very useful, for example, when someone would like to maintain a corporate color palette.
@@ -10658,6 +11245,14 @@ impl XmlWrite for CT_CustomColorList {
         rt::write_extras_after(w, &self.extra_children, 0, self.cust_clr.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_CustomColorList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cust_clr.iter().enumerate() {
+            v.enter("a:custClr", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -10789,6 +11384,31 @@ impl XmlWrite for CT_CustomGeometry2D {
     }
 }
 
+impl Validate for CT_CustomGeometry2D {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.av_lst {
+            v.enter("a:avLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.gd_lst {
+            v.enter("a:gdLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ah_lst {
+            v.enter("a:ahLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cxn_lst {
+            v.enter("a:cxnLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.rect {
+            v.enter("a:rect", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.path_lst {
+            v.enter("a:pathLst", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "pathLst", &self.extra_children);
+        }
+    }
+}
+
 /// Dash Stop (ECMA-376 Part 1 §20.1.8.22).
 ///
 /// This element specifies a dash stop primitive. Dashing schemes are built by specifying an ordered list of dash stop primitive. A dash stop primitive consists of a dash and a space.
@@ -10850,6 +11470,17 @@ impl XmlWrite for CT_DashStop {
     }
 }
 
+impl Validate for CT_DashStop {
+    fn validate(&self, v: &mut Validator) {
+        if self.d.is_none() {
+            v.required_attribute(Ns::NONE, "d", &self.extra_attrs);
+        }
+        if self.sp.is_none() {
+            v.required_attribute(Ns::NONE, "sp", &self.extra_attrs);
+        }
+    }
+}
+
 /// Custom Dash (ECMA-376 Part 1 §20.1.8.21).
 ///
 /// This element specifies a custom dashing scheme. It is a list of dash stop elements which represent building block atoms upon which the custom dashing scheme is built.
@@ -10908,6 +11539,14 @@ impl XmlWrite for CT_DashStopList {
         rt::write_extras_after(w, &self.extra_children, 0, self.ds.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_DashStopList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.ds.iter().enumerate() {
+            v.enter("a:ds", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -11027,6 +11666,32 @@ impl XmlWrite for CT_DefaultShapeDefinition {
     }
 }
 
+impl Validate for CT_DefaultShapeDefinition {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.sp_pr {
+            v.enter("a:spPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "spPr", &self.extra_children);
+        }
+        if let Some(x) = &self.body_pr {
+            v.enter("a:bodyPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "bodyPr", &self.extra_children);
+        }
+        if let Some(x) = &self.lst_style {
+            v.enter("a:lstStyle", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "lstStyle", &self.extra_children);
+        }
+        if let Some(x) = &self.style {
+            v.enter("a:style", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Duotone Effect (ECMA-376 Part 1 §20.1.8.23).
 ///
 /// This element specifies a duotone effect. For each pixel, combines clr1 and clr2 through a linear interpolation to determine the new color for that pixel.
@@ -11086,6 +11751,17 @@ impl XmlWrite for CT_DuotoneEffect {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_DuotoneEffect {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.color_choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if self.color_choice.is_empty() {
+            v.missing_content("one of a:scrgbClr, a:srgbClr, a:hslClr, a:sysClr, a:schemeClr, a:prstClr");
+        }
     }
 }
 
@@ -11192,6 +11868,14 @@ impl XmlWrite for CT_EffectContainer {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_EffectContainer {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.effect.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -11351,6 +12035,35 @@ impl XmlWrite for CT_EffectList {
     }
 }
 
+impl Validate for CT_EffectList {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.blur {
+            v.enter("a:blur", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.fill_overlay {
+            v.enter("a:fillOverlay", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.glow {
+            v.enter("a:glow", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.inner_shdw {
+            v.enter("a:innerShdw", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.outer_shdw {
+            v.enter("a:outerShdw", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.prst_shdw {
+            v.enter("a:prstShdw", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.reflection {
+            v.enter("a:reflection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.soft_edge {
+            v.enter("a:softEdge", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Effect (ECMA-376 Part 1 §20.1.4.2.7).
 ///
 /// This element defines the effect that can be applied to a table as a whole through a table style.
@@ -11409,6 +12122,16 @@ impl XmlWrite for CT_EffectProperties {
     }
 }
 
+impl Validate for CT_EffectProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.effect_properties {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:effectLst, a:effectDag");
+        }
+    }
+}
+
 /// Effect (ECMA-376 Part 1 §20.1.8.24).
 ///
 /// This element specifies a reference to an existing effect container.
@@ -11458,6 +12181,14 @@ impl XmlWrite for CT_EffectReference {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_EffectReference {
+    fn validate(&self, v: &mut Validator) {
+        if self.ref_.is_none() {
+            v.required_attribute(Ns::NONE, "ref", &self.extra_attrs);
+        }
     }
 }
 
@@ -11547,6 +12278,22 @@ impl XmlWrite for CT_EffectStyleItem {
     }
 }
 
+impl Validate for CT_EffectStyleItem {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.effect_properties {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:effectLst, a:effectDag");
+        }
+        if let Some(x) = &self.scene3d {
+            v.enter("a:scene3d", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp3d {
+            v.enter("a:sp3d", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Effect Style List (ECMA-376 Part 1 §20.1.4.1.12).
 ///
 /// This element defines a set of three effect styles that create the effect style list for a theme. The effect styles are arranged in order of subtle to moderate to intense.
@@ -11605,6 +12352,17 @@ impl XmlWrite for CT_EffectStyleList {
         rt::write_extras_after(w, &self.extra_children, 0, self.effect_style.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_EffectStyleList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.effect_style.iter().enumerate() {
+            v.enter("a:effectStyle", Some(i), |v| x.validate(v));
+        }
+        if self.effect_style.is_empty() {
+            v.required_element(Ns::A, "effectStyle", &self.extra_children);
+        }
     }
 }
 
@@ -11670,6 +12428,14 @@ impl XmlWrite for CT_EmbeddedWAVAudioFile {
     }
 }
 
+impl Validate for CT_EmbeddedWAVAudioFile {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_embed.is_none() {
+            v.required_attribute(Ns::R, "embed", &self.extra_attrs);
+        }
+    }
+}
+
 /// Master Color Mapping (ECMA-376 Part 1 §20.1.6.6).
 ///
 /// This element is a part of a choice for which color mapping is used within the document. There is also defined an overrideClrMapping (§20.1.6.8) element which, when specified, the override is used rather than the color mapping defined in the master. If this element is specified, then we specifically use the color mapping defined in the master.
@@ -11709,6 +12475,10 @@ impl XmlWrite for CT_EmptyElement {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_EmptyElement {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Fill (ECMA-376 Part 1 §20.1.8.28).
@@ -11771,6 +12541,16 @@ impl XmlWrite for CT_FillEffect {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_FillEffect {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.fill_properties {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:noFill, a:solidFill, a:gradFill, a:blipFill, a:pattFill, a:grpFill");
+        }
     }
 }
 
@@ -11849,6 +12629,19 @@ impl XmlWrite for CT_FillOverlayEffect {
     }
 }
 
+impl Validate for CT_FillOverlayEffect {
+    fn validate(&self, v: &mut Validator) {
+        if self.blend.is_none() {
+            v.required_attribute(Ns::NONE, "blend", &self.extra_attrs);
+        }
+        if let Some(x) = &self.fill_properties {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:noFill, a:solidFill, a:gradFill, a:blipFill, a:pattFill, a:grpFill");
+        }
+    }
+}
+
 /// Fill (ECMA-376 Part 1 §20.1.4.2.9).
 ///
 /// This element defines the fill that is applied to the table as a whole. The background of the table can contain a single fill that is the entire size of the table. This can allow for gradient fills, or image fills, which span the entire size of the table.
@@ -11909,6 +12702,16 @@ impl XmlWrite for CT_FillProperties {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_FillProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.fill_properties {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:noFill, a:solidFill, a:gradFill, a:blipFill, a:pattFill, a:grpFill");
+        }
     }
 }
 
@@ -11975,6 +12778,17 @@ impl XmlWrite for CT_FillStyleList {
     }
 }
 
+impl Validate for CT_FillStyleList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.fill_properties.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if self.fill_properties.is_empty() {
+            v.missing_content("one of a:noFill, a:solidFill, a:gradFill, a:blipFill, a:pattFill, a:grpFill");
+        }
+    }
+}
+
 /// Alpha Offset (ECMA-376 Part 1 §20.1.2.3.3).
 ///
 /// This element specifies a more or less opaque version of its input color. Increases or decreases the input alpha percentage by the specified percentage offset. A 10% alpha offset increases a 50% opacity to 60%.
@@ -12024,6 +12838,14 @@ impl XmlWrite for CT_FixedPercentage {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_FixedPercentage {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -12077,6 +12899,10 @@ impl XmlWrite for CT_FlatText {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_FlatText {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Major Font (ECMA-376 Part 1 §20.1.4.1.24).
@@ -12198,6 +13024,32 @@ impl XmlWrite for CT_FontCollection {
     }
 }
 
+impl Validate for CT_FontCollection {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.latin {
+            v.enter("a:latin", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "latin", &self.extra_children);
+        }
+        if let Some(x) = &self.ea {
+            v.enter("a:ea", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "ea", &self.extra_children);
+        }
+        if let Some(x) = &self.cs {
+            v.enter("a:cs", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "cs", &self.extra_children);
+        }
+        for (i, x) in self.font.iter().enumerate() {
+            v.enter("a:font", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Font Reference (ECMA-376 Part 1 §20.1.4.1.17).
 ///
 /// This element represents a reference to a themed font. When used it specifies which themed font to use along with a choice of color.
@@ -12270,6 +13122,17 @@ impl XmlWrite for CT_FontReference {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_FontReference {
+    fn validate(&self, v: &mut Validator) {
+        if self.idx.is_none() {
+            v.required_attribute(Ns::NONE, "idx", &self.extra_attrs);
+        }
+        if let Some(x) = &self.color_choice {
+            x.validate_at(v, None);
+        }
     }
 }
 
@@ -12371,6 +13234,27 @@ impl XmlWrite for CT_FontScheme {
     }
 }
 
+impl Validate for CT_FontScheme {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if let Some(x) = &self.major_font {
+            v.enter("a:majorFont", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "majorFont", &self.extra_children);
+        }
+        if let Some(x) = &self.minor_font {
+            v.enter("a:minorFont", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "minorFont", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Gamma (ECMA-376 Part 1 §20.1.2.3.8).
 ///
 /// This element specifies that the output color rendered by the generating application should be the sRGB gamma shift of the input color.
@@ -12409,6 +13293,10 @@ impl XmlWrite for CT_GammaTransform {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_GammaTransform {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Shape Guide (ECMA-376 Part 1 §20.1.9.11).
@@ -12472,6 +13360,17 @@ impl XmlWrite for CT_GeomGuide {
     }
 }
 
+impl Validate for CT_GeomGuide {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if self.fmla.is_none() {
+            v.required_attribute(Ns::NONE, "fmla", &self.extra_attrs);
+        }
+    }
+}
+
 /// List of Shape Adjust Values (ECMA-376 Part 1 §20.1.9.5).
 ///
 /// This element specifies the adjust values that are applied to the specified shape. An adjust value is simply a guide that has a value based formula specified. That is, no calculation takes place for an adjust value guide.
@@ -12531,6 +13430,14 @@ impl XmlWrite for CT_GeomGuideList {
         rt::write_extras_after(w, &self.extra_children, 0, self.gd.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_GeomGuideList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.gd.iter().enumerate() {
+            v.enter("a:gd", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -12613,6 +13520,23 @@ impl XmlWrite for CT_GeomRect {
     }
 }
 
+impl Validate for CT_GeomRect {
+    fn validate(&self, v: &mut Validator) {
+        if self.l.is_none() {
+            v.required_attribute(Ns::NONE, "l", &self.extra_attrs);
+        }
+        if self.t.is_none() {
+            v.required_attribute(Ns::NONE, "t", &self.extra_attrs);
+        }
+        if self.r.is_none() {
+            v.required_attribute(Ns::NONE, "r", &self.extra_attrs);
+        }
+        if self.b.is_none() {
+            v.required_attribute(Ns::NONE, "b", &self.extra_attrs);
+        }
+    }
+}
+
 /// Glow Effect (ECMA-376 Part 1 §20.1.8.32).
 ///
 /// This element specifies a glow effect, in which a color blurred outline is added outside the edges of the object.
@@ -12685,6 +13609,16 @@ impl XmlWrite for CT_GlowEffect {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_GlowEffect {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.color_choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:scrgbClr, a:srgbClr, a:hslClr, a:sysClr, a:schemeClr, a:prstClr");
+        }
     }
 }
 
@@ -12795,6 +13729,20 @@ impl XmlWrite for CT_GradientFillProperties {
     }
 }
 
+impl Validate for CT_GradientFillProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.gs_lst {
+            v.enter("a:gsLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.shade_properties {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.tile_rect {
+            v.enter("a:tileRect", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Gradient stops (ECMA-376 Part 1 §20.1.8.36).
 ///
 /// This element defines a gradient stop. A gradient stop consists of a position where the stop appears in the color band.
@@ -12870,6 +13818,19 @@ impl XmlWrite for CT_GradientStop {
     }
 }
 
+impl Validate for CT_GradientStop {
+    fn validate(&self, v: &mut Validator) {
+        if self.pos.is_none() {
+            v.required_attribute(Ns::NONE, "pos", &self.extra_attrs);
+        }
+        if let Some(x) = &self.color_choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:scrgbClr, a:srgbClr, a:hslClr, a:sysClr, a:schemeClr, a:prstClr");
+        }
+    }
+}
+
 /// Gradient Stop List (ECMA-376 Part 1 §20.1.8.37).
 ///
 /// The list of gradient stops that specifies the gradient colors and their relative positions in the color band.
@@ -12931,6 +13892,17 @@ impl XmlWrite for CT_GradientStopList {
     }
 }
 
+impl Validate for CT_GradientStopList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.gs.iter().enumerate() {
+            v.enter("a:gs", Some(i), |v| x.validate(v));
+        }
+        if self.gs.is_empty() {
+            v.required_element(Ns::A, "gs", &self.extra_children);
+        }
+    }
+}
+
 /// Graphic Object (ECMA-376 Part 1 §20.1.2.2.16).
 ///
 /// This element specifies the existence of a single graphic object. Document authors should refer to this element when they wish to persist a graphical object of some kind. The specification for this graphical object is provided entirely by the document author and referenced within the graphicData child element.
@@ -12986,6 +13958,16 @@ impl XmlWrite for CT_GraphicalObject {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_GraphicalObject {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.graphic_data {
+            v.enter("a:graphicData", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "graphicData", &self.extra_children);
+        }
     }
 }
 
@@ -13053,6 +14035,14 @@ impl XmlWrite for CT_GraphicalObjectData {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_GraphicalObjectData {
+    fn validate(&self, v: &mut Validator) {
+        if self.uri.is_none() {
+            v.required_attribute(Ns::NONE, "uri", &self.extra_attrs);
+        }
     }
 }
 
@@ -13171,6 +14161,14 @@ impl XmlWrite for CT_GraphicalObjectFrameLocking {
     }
 }
 
+impl Validate for CT_GraphicalObjectFrameLocking {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Gray Scale Effect (ECMA-376 Part 1 §20.1.8.34).
 ///
 /// This element specifies a gray scale effect. Converts all effect color values to a shade of gray, corresponding to their luminance. Effect alpha (opacity) values are unaffected.
@@ -13209,6 +14207,10 @@ impl XmlWrite for CT_GrayscaleEffect {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_GrayscaleEffect {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Gray (ECMA-376 Part 1 §20.1.2.3.9).
@@ -13251,6 +14253,10 @@ impl XmlWrite for CT_GrayscaleTransform {
     }
 }
 
+impl Validate for CT_GrayscaleTransform {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Group Fill (ECMA-376 Part 1 §20.1.8.35).
 ///
 /// This element specifies a group fill. When specified, this setting indicates that the parent element is part of a group and should inherit the fill properties of the group.
@@ -13289,6 +14295,10 @@ impl XmlWrite for CT_GroupFillProperties {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_GroupFillProperties {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Group Shape Locks (ECMA-376 Part 1 §20.1.2.2.21).
@@ -13412,6 +14422,14 @@ impl XmlWrite for CT_GroupLocking {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_GroupLocking {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -13546,6 +14564,26 @@ impl XmlWrite for CT_GroupShapeProperties {
     }
 }
 
+impl Validate for CT_GroupShapeProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.xfrm {
+            v.enter("a:xfrm", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.fill_properties {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.effect_properties {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.scene3d {
+            v.enter("a:scene3d", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// 2D Transform for Grouped Objects (ECMA-376 Part 1 §20.1.7.5).
 ///
 /// This element is nearly identical to the representation of 2-D transforms for ordinary shapes (§20.1.7.6). The only addition is a member to represent the Child offset and the Child extents.
@@ -13676,6 +14714,23 @@ impl XmlWrite for CT_GroupTransform2D {
     }
 }
 
+impl Validate for CT_GroupTransform2D {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.off {
+            v.enter("a:off", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext {
+            v.enter("a:ext", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ch_off {
+            v.enter("a:chOff", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ch_ext {
+            v.enter("a:chExt", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Connection Shape (ECMA-376 Part 1 §20.1.2.2.10).
 ///
 /// This element specifies a connection shape that is used to connect two sp elements. Once a connection is specified using a cxnSp, it is left to the generating application to determine the exact path the connector takes. That is the connector routing algorithm is left up to the generating application as the desired path might be different depending on the specific needs of the application.
@@ -13776,6 +14831,27 @@ impl XmlWrite for CT_GvmlConnector {
     }
 }
 
+impl Validate for CT_GvmlConnector {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.nv_cxn_sp_pr {
+            v.enter("a:nvCxnSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "nvCxnSpPr", &self.extra_children);
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("a:spPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "spPr", &self.extra_children);
+        }
+        if let Some(x) = &self.style {
+            v.enter("a:style", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Non-Visual Properties for a Connection Shape (ECMA-376 Part 1 §20.1.2.2.25).
 ///
 /// This element specifies all non-visual properties for a connection shape. This element is a container for the non- visual identification properties, shape properties and application properties that are to be associated with a connection shape. This allows for additional information that does not affect the appearance of the connection shape to be stored.
@@ -13848,6 +14924,21 @@ impl XmlWrite for CT_GvmlConnectorNonVisual {
     }
 }
 
+impl Validate for CT_GvmlConnectorNonVisual {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("a:cNvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "cNvPr", &self.extra_children);
+        }
+        if let Some(x) = &self.c_nv_cxn_sp_pr {
+            v.enter("a:cNvCxnSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "cNvCxnSpPr", &self.extra_children);
+        }
+    }
+}
+
 /// Non-Visual Properties for a Graphic Frame (ECMA-376 Part 1 §20.1.2.2.26).
 ///
 /// This element specifies all non-visual properties for a graphic frame. This element is a container for the non-visual identification properties, shape properties and application properties that are to be associated with a graphic frame. This allows for additional information that does not affect the appearance of the graphic frame to be stored.
@@ -13917,6 +15008,21 @@ impl XmlWrite for CT_GvmlGraphicFrameNonVisual {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_GvmlGraphicFrameNonVisual {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("a:cNvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "cNvPr", &self.extra_children);
+        }
+        if let Some(x) = &self.c_nv_graphic_frame_pr {
+            v.enter("a:cNvGraphicFramePr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "cNvGraphicFramePr", &self.extra_children);
+        }
     }
 }
 
@@ -14017,6 +15123,29 @@ impl XmlWrite for CT_GvmlGraphicalObjectFrame {
         }
         rt::write_extras(w, &self.extra_children, 4);
         w.end();
+    }
+}
+
+impl Validate for CT_GvmlGraphicalObjectFrame {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.nv_graphic_frame_pr {
+            v.enter("a:nvGraphicFramePr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "nvGraphicFramePr", &self.extra_children);
+        }
+        if let Some(x) = &self.graphic {
+            v.enter("a:graphic", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "graphic", &self.extra_children);
+        }
+        if let Some(x) = &self.xfrm {
+            v.enter("a:xfrm", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "xfrm", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -14125,6 +15254,27 @@ impl XmlWrite for CT_GvmlGroupShape {
     }
 }
 
+impl Validate for CT_GvmlGroupShape {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.nv_grp_sp_pr {
+            v.enter("a:nvGrpSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "nvGrpSpPr", &self.extra_children);
+        }
+        if let Some(x) = &self.grp_sp_pr {
+            v.enter("a:grpSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "grpSpPr", &self.extra_children);
+        }
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Non-Visual Properties for a Group Shape (ECMA-376 Part 1 §20.1.2.2.27).
 ///
 /// This element specifies all non-visual properties for a group shape. This element is a container for the non-visual identification properties, shape properties and application properties that are to be associated with a group
@@ -14194,6 +15344,21 @@ impl XmlWrite for CT_GvmlGroupShapeNonVisual {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_GvmlGroupShapeNonVisual {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("a:cNvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "cNvPr", &self.extra_children);
+        }
+        if let Some(x) = &self.c_nv_grp_sp_pr {
+            v.enter("a:cNvGrpSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "cNvGrpSpPr", &self.extra_children);
+        }
     }
 }
 
@@ -14311,6 +15476,32 @@ impl XmlWrite for CT_GvmlPicture {
     }
 }
 
+impl Validate for CT_GvmlPicture {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.nv_pic_pr {
+            v.enter("a:nvPicPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "nvPicPr", &self.extra_children);
+        }
+        if let Some(x) = &self.blip_fill {
+            v.enter("a:blipFill", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "blipFill", &self.extra_children);
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("a:spPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "spPr", &self.extra_children);
+        }
+        if let Some(x) = &self.style {
+            v.enter("a:style", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Non-Visual Properties for a Picture (ECMA-376 Part 1 §20.1.2.2.28).
 ///
 /// This element specifies all non-visual properties for a picture. This element is a container for the non-visual identification properties, shape properties and application properties that are to be associated with a picture. This allows for additional information that does not affect the appearance of the picture to be stored.
@@ -14380,6 +15571,21 @@ impl XmlWrite for CT_GvmlPictureNonVisual {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_GvmlPictureNonVisual {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("a:cNvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "cNvPr", &self.extra_children);
+        }
+        if let Some(x) = &self.c_nv_pic_pr {
+            v.enter("a:cNvPicPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "cNvPicPr", &self.extra_children);
+        }
     }
 }
 
@@ -14497,6 +15703,30 @@ impl XmlWrite for CT_GvmlShape {
     }
 }
 
+impl Validate for CT_GvmlShape {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.nv_sp_pr {
+            v.enter("a:nvSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "nvSpPr", &self.extra_children);
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("a:spPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "spPr", &self.extra_children);
+        }
+        if let Some(x) = &self.tx_sp {
+            v.enter("a:txSp", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.style {
+            v.enter("a:style", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Non-Visual Properties for a Shape (ECMA-376 Part 1 §20.1.2.2.29).
 ///
 /// This element specifies all non-visual properties for a shape. This element is a container for the non-visual identification properties, shape properties and application properties that are to be associated with a shape. This allows for additional information that does not affect the appearance of the shape to be stored.
@@ -14566,6 +15796,21 @@ impl XmlWrite for CT_GvmlShapeNonVisual {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_GvmlShapeNonVisual {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("a:cNvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "cNvPr", &self.extra_children);
+        }
+        if let Some(x) = &self.c_nv_sp_pr {
+            v.enter("a:cNvSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "cNvSpPr", &self.extra_children);
+        }
     }
 }
 
@@ -14655,6 +15900,24 @@ impl XmlWrite for CT_GvmlTextShape {
     }
 }
 
+impl Validate for CT_GvmlTextShape {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.tx_body {
+            v.enter("a:txBody", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "txBody", &self.extra_children);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:useSpRect, a:xfrm");
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Use Shape Text Rectangle (ECMA-376 Part 1 §20.1.2.2.42).
 ///
 /// This element specifies that the text rectangle from the parent shape should be used for this text shape. If this attribute is specified then the text rectangle, or text bounding box as it is also called should have the same dimensions as the text bounding box of the parent shape within which this text shape resides.
@@ -14693,6 +15956,10 @@ impl XmlWrite for CT_GvmlUseShapeRectangle {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_GvmlUseShapeRectangle {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Hue Saturation Luminance Effect (ECMA-376 Part 1 §20.1.8.39).
@@ -14765,6 +16032,10 @@ impl XmlWrite for CT_HSLEffect {
     }
 }
 
+impl Validate for CT_HSLEffect {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Header Cells Associated With Table Cell (ECMA-376 Part 1 §21.1.3.4).
 ///
 /// This element specifies the list of header cells, as specified by children header elements, that provide header information associated with the current table cell. Each header cell shall specify a unique identifier, as specified
@@ -14829,6 +16100,10 @@ impl XmlWrite for CT_Headers {
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
     }
+}
+
+impl Validate for CT_Headers {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Hue, Saturation, Luminance Color Model (ECMA-376 Part 1 §20.1.2.3.13).
@@ -14943,6 +16218,23 @@ impl XmlWrite for CT_HslColor {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_HslColor {
+    fn validate(&self, v: &mut Validator) {
+        if self.hue.is_none() {
+            v.required_attribute(Ns::NONE, "hue", &self.extra_attrs);
+        }
+        if self.sat.is_none() {
+            v.required_attribute(Ns::NONE, "sat", &self.extra_attrs);
+        }
+        if self.lum.is_none() {
+            v.required_attribute(Ns::NONE, "lum", &self.extra_attrs);
+        }
+        for (i, x) in self.color_transform.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -15095,6 +16387,17 @@ impl XmlWrite for CT_Hyperlink {
     }
 }
 
+impl Validate for CT_Hyperlink {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.snd {
+            v.enter("a:snd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Inner Shadow Effect (ECMA-376 Part 1 §20.1.8.40).
 ///
 /// This element specifies an inner shadow effect. A shadow is applied within the edges of the object according to the parameters given by the attributes.
@@ -15188,6 +16491,16 @@ impl XmlWrite for CT_InnerShadowEffect {
     }
 }
 
+impl Validate for CT_InnerShadowEffect {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.color_choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:scrgbClr, a:srgbClr, a:hslClr, a:sysClr, a:schemeClr, a:prstClr");
+        }
+    }
+}
+
 /// Inverse Gamma (ECMA-376 Part 1 §20.1.2.3.18).
 ///
 /// This element specifies that the output color rendered by the generating application should be the inverse sRGB gamma shift of the input color.
@@ -15228,6 +16541,10 @@ impl XmlWrite for CT_InverseGammaTransform {
     }
 }
 
+impl Validate for CT_InverseGammaTransform {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Inverse (ECMA-376 Part 1 §20.1.2.3.17).
 ///
 /// This element specifies the inverse of its input color.
@@ -15266,6 +16583,10 @@ impl XmlWrite for CT_InverseTransform {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_InverseTransform {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Light Rig (ECMA-376 Part 1 §20.1.5.9).
@@ -15347,6 +16668,20 @@ impl XmlWrite for CT_LightRig {
     }
 }
 
+impl Validate for CT_LightRig {
+    fn validate(&self, v: &mut Validator) {
+        if self.rig.is_none() {
+            v.required_attribute(Ns::NONE, "rig", &self.extra_attrs);
+        }
+        if self.dir.is_none() {
+            v.required_attribute(Ns::NONE, "dir", &self.extra_attrs);
+        }
+        if let Some(x) = &self.rot {
+            v.enter("a:rot", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Line Head/End Style (ECMA-376 Part 1 §20.1.8.38).
 ///
 /// This element specifies decorations which can be added to the head of a line.
@@ -15418,6 +16753,10 @@ impl XmlWrite for CT_LineEndProperties {
     }
 }
 
+impl Validate for CT_LineEndProperties {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Line Join Bevel (ECMA-376 Part 1 §20.1.8.9).
 ///
 /// This element specifies a Bevel Line Join. A bevel joint specifies that an angle joint is used to connect lines.
@@ -15456,6 +16795,10 @@ impl XmlWrite for CT_LineJoinBevel {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_LineJoinBevel {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Miter Line Join (ECMA-376 Part 1 §20.1.8.43).
@@ -15510,6 +16853,10 @@ impl XmlWrite for CT_LineJoinMiterProperties {
     }
 }
 
+impl Validate for CT_LineJoinMiterProperties {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Round Line Join (ECMA-376 Part 1 §20.1.8.52).
 ///
 /// This element specifies that lines joined together have a round join.
@@ -15548,6 +16895,10 @@ impl XmlWrite for CT_LineJoinRound {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_LineJoinRound {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Outline (ECMA-376 Part 1 §20.1.2.2.24).
@@ -15724,6 +17075,29 @@ impl XmlWrite for CT_LineProperties {
     }
 }
 
+impl Validate for CT_LineProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.line_fill_properties {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.line_dash_properties {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.line_join_properties {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.head_end {
+            v.enter("a:headEnd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tail_end {
+            v.enter("a:tailEnd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Line Style List (ECMA-376 Part 1 §20.1.4.1.21).
 ///
 /// This element defines a list of three line styles for use within a theme. The three line styles are arranged in order from subtle to moderate to intense versions of lines. This list makes up part of the style matrix.
@@ -15782,6 +17156,17 @@ impl XmlWrite for CT_LineStyleList {
         rt::write_extras_after(w, &self.extra_children, 0, self.ln.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_LineStyleList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.ln.iter().enumerate() {
+            v.enter("a:ln", Some(i), |v| x.validate(v));
+        }
+        if self.ln.is_empty() {
+            v.required_element(Ns::A, "ln", &self.extra_children);
+        }
     }
 }
 
@@ -15846,6 +17231,10 @@ impl XmlWrite for CT_LinearShadeProperties {
     }
 }
 
+impl Validate for CT_LinearShadeProperties {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Luminance Effect (ECMA-376 Part 1 §20.1.8.42).
 ///
 /// This element specifies a luminance effect. Brightness linearly shifts all colors closer to white or black. Contrast scales all colors to be either closer or further apart.
@@ -15907,6 +17296,10 @@ impl XmlWrite for CT_LuminanceEffect {
     }
 }
 
+impl Validate for CT_LuminanceEffect {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// No Fill (ECMA-376 Part 1 §20.1.8.44).
 ///
 /// This element specifies that no fill is applied to the parent element.
@@ -15945,6 +17338,10 @@ impl XmlWrite for CT_NoFillProperties {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_NoFillProperties {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Non-Visual Connector Shape Drawing Properties (ECMA-376 Part 1 §20.1.2.2.4).
@@ -16047,6 +17444,23 @@ impl XmlWrite for CT_NonVisualConnectorProperties {
     }
 }
 
+impl Validate for CT_NonVisualConnectorProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.cxn_sp_locks {
+            v.enter("a:cxnSpLocks", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.st_cxn {
+            v.enter("a:stCxn", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.end_cxn {
+            v.enter("a:endCxn", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_NonVisualContentPartProperties`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_NonVisualContentPartProperties {
@@ -16122,6 +17536,17 @@ impl XmlWrite for CT_NonVisualContentPartProperties {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_NonVisualContentPartProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.cp_locks {
+            v.enter("a:cpLocks", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -16259,6 +17684,26 @@ impl XmlWrite for CT_NonVisualDrawingProps {
     }
 }
 
+impl Validate for CT_NonVisualDrawingProps {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "id", &self.extra_attrs);
+        }
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if let Some(x) = &self.hlink_click {
+            v.enter("a:hlinkClick", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hlink_hover {
+            v.enter("a:hlinkHover", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Non-Visual Shape Drawing Properties (ECMA-376 Part 1 §20.1.2.2.9).
 ///
 /// This element specifies the non-visual drawing properties for a shape. These properties are to be used by the generating application to determine how the shape should be dealt with
@@ -16343,6 +17788,17 @@ impl XmlWrite for CT_NonVisualDrawingShapeProps {
     }
 }
 
+impl Validate for CT_NonVisualDrawingShapeProps {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.sp_locks {
+            v.enter("a:spLocks", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Non-Visual Graphic Frame Drawing Properties (ECMA-376 Part 1 §20.1.2.2.5).
 ///
 /// This element specifies the non-visual drawing properties for a graphic frame. These non-visual properties are properties that the generating application would utilize when rendering the slide surface.
@@ -16415,6 +17871,17 @@ impl XmlWrite for CT_NonVisualGraphicFrameProperties {
     }
 }
 
+impl Validate for CT_NonVisualGraphicFrameProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.graphic_frame_locks {
+            v.enter("a:graphicFrameLocks", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Non-Visual Group Shape Drawing Properties (ECMA-376 Part 1 §20.1.2.2.6).
 ///
 /// This element specifies the non-visual drawing properties for a group shape. These non-visual properties are properties that the generating application would utilize when rendering the slide surface.
@@ -16484,6 +17951,17 @@ impl XmlWrite for CT_NonVisualGroupDrawingShapeProps {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_NonVisualGroupDrawingShapeProps {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.grp_sp_locks {
+            v.enter("a:grpSpLocks", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -16568,6 +18046,17 @@ impl XmlWrite for CT_NonVisualPictureProperties {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_NonVisualPictureProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pic_locks {
+            v.enter("a:picLocks", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -16671,6 +18160,23 @@ impl XmlWrite for CT_ObjectStyleDefaults {
     }
 }
 
+impl Validate for CT_ObjectStyleDefaults {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.sp_def {
+            v.enter("a:spDef", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ln_def {
+            v.enter("a:lnDef", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx_def {
+            v.enter("a:txDef", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Extension (ECMA-376 Part 1 §20.1.2.2.14).
 ///
 /// This element specifies an extension that is used for future extensions to the current version of DrawingML. This allows for the specifying of currently unknown elements in the future that is used for later versions of generating applications.
@@ -16738,6 +18244,14 @@ impl XmlWrite for CT_OfficeArtExtension {
     }
 }
 
+impl Validate for CT_OfficeArtExtension {
+    fn validate(&self, v: &mut Validator) {
+        if self.uri.is_none() {
+            v.required_attribute(Ns::NONE, "uri", &self.extra_attrs);
+        }
+    }
+}
+
 /// Extension List (ECMA-376 Part 1 §20.1.2.2.15).
 ///
 /// This element specifies the extension list within which all future extensions of element type ext is defined. The extension list along with corresponding future extensions is used to extend the storage capabilities of the DrawingML framework. This allows for various new types of data to be stored natively within the framework.
@@ -16796,6 +18310,14 @@ impl XmlWrite for CT_OfficeArtExtensionList {
         rt::write_extras_after(w, &self.extra_children, 0, self.ext.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_OfficeArtExtensionList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.ext.iter().enumerate() {
+            v.enter("a:ext", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -16922,6 +18444,28 @@ impl XmlWrite for CT_OfficeStyleSheet {
         }
         rt::write_extras(w, &self.extra_children, 5);
         w.end();
+    }
+}
+
+impl Validate for CT_OfficeStyleSheet {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.theme_elements {
+            v.enter("a:themeElements", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "themeElements", &self.extra_children);
+        }
+        if let Some(x) = &self.object_defaults {
+            v.enter("a:objectDefaults", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.extra_clr_scheme_lst {
+            v.enter("a:extraClrSchemeLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cust_clr_lst {
+            v.enter("a:custClrLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -17072,6 +18616,16 @@ impl XmlWrite for CT_OuterShadowEffect {
     }
 }
 
+impl Validate for CT_OuterShadowEffect {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.color_choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:scrgbClr, a:srgbClr, a:hslClr, a:sysClr, a:schemeClr, a:prstClr");
+        }
+    }
+}
+
 /// Shape Path (ECMA-376 Part 1 §20.1.9.15).
 ///
 /// This element specifies a creation path consisting of a series of moves, lines and curves that when combined forms a geometric shape. This element is only utilized if a custom geometry is specified.
@@ -17182,6 +18736,14 @@ impl XmlWrite for CT_Path2D {
     }
 }
 
+impl Validate for CT_Path2D {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Draw Arc To (ECMA-376 Part 1 §20.1.9.4).
 ///
 /// This element specifies the existence of an arc within a shape path. It draws an arc with the specified parameters from the current pen position to the new point specified. An arc is a line that is bent based on the shape of a
@@ -17261,6 +18823,23 @@ impl XmlWrite for CT_Path2DArcTo {
     }
 }
 
+impl Validate for CT_Path2DArcTo {
+    fn validate(&self, v: &mut Validator) {
+        if self.w_r.is_none() {
+            v.required_attribute(Ns::NONE, "wR", &self.extra_attrs);
+        }
+        if self.h_r.is_none() {
+            v.required_attribute(Ns::NONE, "hR", &self.extra_attrs);
+        }
+        if self.st_ang.is_none() {
+            v.required_attribute(Ns::NONE, "stAng", &self.extra_attrs);
+        }
+        if self.sw_ang.is_none() {
+            v.required_attribute(Ns::NONE, "swAng", &self.extra_attrs);
+        }
+    }
+}
+
 /// Close Shape Path (ECMA-376 Part 1 §20.1.9.6).
 ///
 /// This element specifies the ending of a series of lines and curves in the creation path of a custom geometric shape. When this element is encountered, the generating application should consider the corresponding path closed. That is, any further lines or curves that follow this element should be ignored.
@@ -17299,6 +18878,10 @@ impl XmlWrite for CT_Path2DClose {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Path2DClose {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Draw Cubic Bezier Curve To (ECMA-376 Part 1 §20.1.9.7).
@@ -17362,6 +18945,17 @@ impl XmlWrite for CT_Path2DCubicBezierTo {
     }
 }
 
+impl Validate for CT_Path2DCubicBezierTo {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.pt.iter().enumerate() {
+            v.enter("a:pt", Some(i), |v| x.validate(v));
+        }
+        if self.pt.is_empty() {
+            v.required_element(Ns::A, "pt", &self.extra_children);
+        }
+    }
+}
+
 /// Draw Line To (ECMA-376 Part 1 §20.1.9.13).
 ///
 /// This element specifies the drawing of a straight line from the current pen position to the new point specified. This line becomes part of the shape geometry, representing a side of the shape. The coordinate system used when specifying this line is the path coordinate system.
@@ -17417,6 +19011,16 @@ impl XmlWrite for CT_Path2DLineTo {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Path2DLineTo {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pt {
+            v.enter("a:pt", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "pt", &self.extra_children);
+        }
     }
 }
 
@@ -17481,6 +19085,14 @@ impl XmlWrite for CT_Path2DList {
     }
 }
 
+impl Validate for CT_Path2DList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.path.iter().enumerate() {
+            v.enter("a:path", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Move Path To (ECMA-376 Part 1 §20.1.9.14).
 ///
 /// This element specifies a set of new coordinates to move the shape cursor to. This element is only used for drawing a custom geometry. When this element is utilized the pt element is used to specify a new set of shape coordinates that the shape cursor should be moved to.
@@ -17536,6 +19148,16 @@ impl XmlWrite for CT_Path2DMoveTo {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Path2DMoveTo {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pt {
+            v.enter("a:pt", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "pt", &self.extra_children);
+        }
     }
 }
 
@@ -17597,6 +19219,17 @@ impl XmlWrite for CT_Path2DQuadBezierTo {
         rt::write_extras_after(w, &self.extra_children, 0, self.pt.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Path2DQuadBezierTo {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.pt.iter().enumerate() {
+            v.enter("a:pt", Some(i), |v| x.validate(v));
+        }
+        if self.pt.is_empty() {
+            v.required_element(Ns::A, "pt", &self.extra_children);
+        }
     }
 }
 
@@ -17667,6 +19300,14 @@ impl XmlWrite for CT_PathShadeProperties {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_PathShadeProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.fill_to_rect {
+            v.enter("a:fillToRect", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -17754,6 +19395,17 @@ impl XmlWrite for CT_PatternFillProperties {
     }
 }
 
+impl Validate for CT_PatternFillProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.fg_clr {
+            v.enter("a:fgClr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bg_clr {
+            v.enter("a:bgClr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Blue (ECMA-376 Part 1 §20.1.2.3.4).
 ///
 /// This element specifies the input color with the specific blue component, but with the red and green color components unchanged.
@@ -17817,6 +19469,14 @@ impl XmlWrite for CT_Percentage {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Percentage {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -17980,6 +19640,14 @@ impl XmlWrite for CT_PictureLocking {
     }
 }
 
+impl Validate for CT_PictureLocking {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Child Offset (ECMA-376 Part 1 §20.1.7.2).
 ///
 /// This element specifies the location of the child extents rectangle and is used for calculations of grouping, scaling, and rotation behavior of shapes placed within a group.
@@ -18039,6 +19707,17 @@ impl XmlWrite for CT_Point2D {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Point2D {
+    fn validate(&self, v: &mut Validator) {
+        if self.x.is_none() {
+            v.required_attribute(Ns::NONE, "x", &self.extra_attrs);
+        }
+        if self.y.is_none() {
+            v.required_attribute(Ns::NONE, "y", &self.extra_attrs);
+        }
     }
 }
 
@@ -18109,6 +19788,20 @@ impl XmlWrite for CT_Point3D {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Point3D {
+    fn validate(&self, v: &mut Validator) {
+        if self.x.is_none() {
+            v.required_attribute(Ns::NONE, "x", &self.extra_attrs);
+        }
+        if self.y.is_none() {
+            v.required_attribute(Ns::NONE, "y", &self.extra_attrs);
+        }
+        if self.z.is_none() {
+            v.required_attribute(Ns::NONE, "z", &self.extra_attrs);
+        }
     }
 }
 
@@ -18227,6 +19920,16 @@ impl XmlWrite for CT_PolarAdjustHandle {
     }
 }
 
+impl Validate for CT_PolarAdjustHandle {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pos {
+            v.enter("a:pos", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "pos", &self.extra_children);
+        }
+    }
+}
+
 /// Hue (ECMA-376 Part 1 §20.1.2.3.14).
 ///
 /// This element specifies the input color with the specified hue, but with its saturation and luminance unchanged.
@@ -18276,6 +19979,14 @@ impl XmlWrite for CT_PositiveFixedAngle {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_PositiveFixedAngle {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -18333,6 +20044,14 @@ impl XmlWrite for CT_PositiveFixedPercentage {
     }
 }
 
+impl Validate for CT_PositiveFixedPercentage {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Alpha Modulation (ECMA-376 Part 1 §20.1.2.3.2).
 ///
 /// This element specifies a more or less opaque version of its input color. An alpha modulate never increases the alpha beyond 100%. A 200% alpha modulate makes an input color twice as opaque as before.
@@ -18383,6 +20102,14 @@ impl XmlWrite for CT_PositivePercentage {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_PositivePercentage {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -18445,6 +20172,17 @@ impl XmlWrite for CT_PositiveSize2D {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_PositiveSize2D {
+    fn validate(&self, v: &mut Validator) {
+        if self.cx.is_none() {
+            v.required_attribute(Ns::NONE, "cx", &self.extra_attrs);
+        }
+        if self.cy.is_none() {
+            v.required_attribute(Ns::NONE, "cy", &self.extra_attrs);
+        }
     }
 }
 
@@ -18545,6 +20283,17 @@ impl XmlWrite for CT_PresetColor {
     }
 }
 
+impl Validate for CT_PresetColor {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+        for (i, x) in self.color_transform.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Preset geometry (ECMA-376 Part 1 §20.1.9.18).
 ///
 /// This element specifies when a preset geometric shape should be used instead of a custom geometric shape. The generating application should be able to render all preset geometries enumerated in the ST_ShapeType list.
@@ -18615,6 +20364,17 @@ impl XmlWrite for CT_PresetGeometry2D {
     }
 }
 
+impl Validate for CT_PresetGeometry2D {
+    fn validate(&self, v: &mut Validator) {
+        if self.prst.is_none() {
+            v.required_attribute(Ns::NONE, "prst", &self.extra_attrs);
+        }
+        if let Some(x) = &self.av_lst {
+            v.enter("a:avLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Preset Dash (ECMA-376 Part 1 §20.1.8.48).
 ///
 /// This element specifies that a preset line dashing scheme should be used.
@@ -18665,6 +20425,10 @@ impl XmlWrite for CT_PresetLineDashProperties {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_PresetLineDashProperties {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Preset Shadow (ECMA-376 Part 1 §20.1.8.49).
@@ -18760,6 +20524,19 @@ impl XmlWrite for CT_PresetShadowEffect {
     }
 }
 
+impl Validate for CT_PresetShadowEffect {
+    fn validate(&self, v: &mut Validator) {
+        if self.prst.is_none() {
+            v.required_attribute(Ns::NONE, "prst", &self.extra_attrs);
+        }
+        if let Some(x) = &self.color_choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:scrgbClr, a:srgbClr, a:hslClr, a:sysClr, a:schemeClr, a:prstClr");
+        }
+    }
+}
+
 /// Preset Text Warp (ECMA-376 Part 1 §20.1.9.19).
 ///
 /// This element specifies when a preset geometric shape should be used to transform a piece of text. This operation is known formally as a text warp. The generating application should be able to render all preset geometries enumerated in the ST_TextShapeType list.
@@ -18827,6 +20604,17 @@ impl XmlWrite for CT_PresetTextShape {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_PresetTextShape {
+    fn validate(&self, v: &mut Validator) {
+        if self.prst.is_none() {
+            v.required_attribute(Ns::NONE, "prst", &self.extra_attrs);
+        }
+        if let Some(x) = &self.av_lst {
+            v.enter("a:avLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -18900,6 +20688,17 @@ impl XmlWrite for CT_QuickTimeFile {
     }
 }
 
+impl Validate for CT_QuickTimeFile {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_link.is_none() {
+            v.required_attribute(Ns::R, "link", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Horizontal Ratio (ECMA-376 Part 1 §20.1.2.2.38).
 ///
 /// This element specifies the horizontal ratio for use within a scaling calculation.
@@ -18959,6 +20758,17 @@ impl XmlWrite for CT_Ratio {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Ratio {
+    fn validate(&self, v: &mut Validator) {
+        if self.n.is_none() {
+            v.required_attribute(Ns::NONE, "n", &self.extra_attrs);
+        }
+        if self.d.is_none() {
+            v.required_attribute(Ns::NONE, "d", &self.extra_attrs);
+        }
     }
 }
 
@@ -19131,6 +20941,10 @@ impl XmlWrite for CT_ReflectionEffect {
     }
 }
 
+impl Validate for CT_ReflectionEffect {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Text Run (ECMA-376 Part 1 §21.1.2.3.8).
 ///
 /// This element specifies the presence of a run of text within the containing text body. The run element is the lowest level text separation mechanism within a text body. A text run can contain text run properties associated with the run.
@@ -19206,6 +21020,17 @@ impl XmlWrite for CT_RegularTextRun {
     }
 }
 
+impl Validate for CT_RegularTextRun {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.r_pr {
+            v.enter("a:rPr", None, |v| x.validate(v));
+        }
+        if self.t.is_none() {
+            v.required_element(Ns::A, "t", &self.extra_children);
+        }
+    }
+}
+
 /// Relative Offset Effect (ECMA-376 Part 1 §20.1.8.51).
 ///
 /// This element specifies a relative offset effect. Sets up a new origin by offsetting relative to the size of the previous effect.
@@ -19265,6 +21090,10 @@ impl XmlWrite for CT_RelativeOffsetEffect {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_RelativeOffsetEffect {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Fill Rectangle (ECMA-376 Part 1 §20.1.8.30).
@@ -19347,6 +21176,10 @@ impl XmlWrite for CT_RelativeRect {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_RelativeRect {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// RGB Color Model - Hex Variant (ECMA-376 Part 1 §20.1.2.3.32).
@@ -19443,6 +21276,17 @@ impl XmlWrite for CT_SRgbColor {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SRgbColor {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+        for (i, x) in self.color_transform.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -19561,6 +21405,23 @@ impl XmlWrite for CT_ScRgbColor {
     }
 }
 
+impl Validate for CT_ScRgbColor {
+    fn validate(&self, v: &mut Validator) {
+        if self.r.is_none() {
+            v.required_attribute(Ns::NONE, "r", &self.extra_attrs);
+        }
+        if self.g.is_none() {
+            v.required_attribute(Ns::NONE, "g", &self.extra_attrs);
+        }
+        if self.b.is_none() {
+            v.required_attribute(Ns::NONE, "b", &self.extra_attrs);
+        }
+        for (i, x) in self.color_transform.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Schema complex type `CT_Scale2D`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Scale2D {
@@ -19624,6 +21485,21 @@ impl XmlWrite for CT_Scale2D {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_Scale2D {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.sx {
+            v.enter("a:sx", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "sx", &self.extra_children);
+        }
+        if let Some(x) = &self.sy {
+            v.enter("a:sy", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "sy", &self.extra_children);
+        }
     }
 }
 
@@ -19727,6 +21603,27 @@ impl XmlWrite for CT_Scene3D {
     }
 }
 
+impl Validate for CT_Scene3D {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.camera {
+            v.enter("a:camera", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "camera", &self.extra_children);
+        }
+        if let Some(x) = &self.light_rig {
+            v.enter("a:lightRig", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "lightRig", &self.extra_children);
+        }
+        if let Some(x) = &self.backdrop {
+            v.enter("a:backdrop", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Scheme Color (ECMA-376 Part 1 §20.1.2.3.29).
 ///
 /// This element specifies a color bound to a user's theme. As with all elements which define a color, it is possible to apply a list of color transforms to the base color defined.
@@ -19821,6 +21718,17 @@ impl XmlWrite for CT_SchemeColor {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SchemeColor {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+        for (i, x) in self.color_transform.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -19974,6 +21882,26 @@ impl XmlWrite for CT_Shape3D {
         }
         rt::write_extras(w, &self.extra_children, 5);
         w.end();
+    }
+}
+
+impl Validate for CT_Shape3D {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.bevel_t {
+            v.enter("a:bevelT", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bevel_b {
+            v.enter("a:bevelB", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.extrusion_clr {
+            v.enter("a:extrusionClr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.contour_clr {
+            v.enter("a:contourClr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -20134,6 +22062,14 @@ impl XmlWrite for CT_ShapeLocking {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ShapeLocking {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -20310,6 +22246,35 @@ impl XmlWrite for CT_ShapeProperties {
     }
 }
 
+impl Validate for CT_ShapeProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.xfrm {
+            v.enter("a:xfrm", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.geometry {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.fill_properties {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.ln {
+            v.enter("a:ln", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.effect_properties {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.scene3d {
+            v.enter("a:scene3d", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp3d {
+            v.enter("a:sp3d", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Shape Style (ECMA-376 Part 1 §20.1.2.2.37).
 ///
 /// This element specifies the style information for a shape.
@@ -20410,6 +22375,31 @@ impl XmlWrite for CT_ShapeStyle {
     }
 }
 
+impl Validate for CT_ShapeStyle {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ln_ref {
+            v.enter("a:lnRef", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "lnRef", &self.extra_children);
+        }
+        if let Some(x) = &self.fill_ref {
+            v.enter("a:fillRef", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "fillRef", &self.extra_children);
+        }
+        if let Some(x) = &self.effect_ref {
+            v.enter("a:effectRef", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "effectRef", &self.extra_children);
+        }
+        if let Some(x) = &self.font_ref {
+            v.enter("a:fontRef", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "fontRef", &self.extra_children);
+        }
+    }
+}
+
 /// Soft Edge Effect (ECMA-376 Part 1 §20.1.8.53).
 ///
 /// This element specifies a soft edge effect. The edges of the shape are blurred, while the fill is not affected.
@@ -20459,6 +22449,14 @@ impl XmlWrite for CT_SoftEdgesEffect {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_SoftEdgesEffect {
+    fn validate(&self, v: &mut Validator) {
+        if self.rad.is_none() {
+            v.required_attribute(Ns::NONE, "rad", &self.extra_attrs);
+        }
     }
 }
 
@@ -20522,6 +22520,14 @@ impl XmlWrite for CT_SolidColorFillProperties {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SolidColorFillProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.color_choice {
+            x.validate_at(v, None);
+        }
     }
 }
 
@@ -20595,6 +22601,20 @@ impl XmlWrite for CT_SphereCoords {
     }
 }
 
+impl Validate for CT_SphereCoords {
+    fn validate(&self, v: &mut Validator) {
+        if self.lat.is_none() {
+            v.required_attribute(Ns::NONE, "lat", &self.extra_attrs);
+        }
+        if self.lon.is_none() {
+            v.required_attribute(Ns::NONE, "lon", &self.extra_attrs);
+        }
+        if self.rev.is_none() {
+            v.required_attribute(Ns::NONE, "rev", &self.extra_attrs);
+        }
+    }
+}
+
 /// Stretch (ECMA-376 Part 1 §20.1.8.56).
 ///
 /// This element specifies that a BLIP should be stretched to fill the target rectangle. The other option is a tile where a BLIP is tiled to fill the available area.
@@ -20650,6 +22670,14 @@ impl XmlWrite for CT_StretchInfoProperties {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_StretchInfoProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.fill_rect {
+            v.enter("a:fillRect", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -20765,6 +22793,31 @@ impl XmlWrite for CT_StyleMatrix {
     }
 }
 
+impl Validate for CT_StyleMatrix {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.fill_style_lst {
+            v.enter("a:fillStyleLst", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "fillStyleLst", &self.extra_children);
+        }
+        if let Some(x) = &self.ln_style_lst {
+            v.enter("a:lnStyleLst", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "lnStyleLst", &self.extra_children);
+        }
+        if let Some(x) = &self.effect_style_lst {
+            v.enter("a:effectStyleLst", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "effectStyleLst", &self.extra_children);
+        }
+        if let Some(x) = &self.bg_fill_style_lst {
+            v.enter("a:bgFillStyleLst", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "bgFillStyleLst", &self.extra_children);
+        }
+    }
+}
+
 /// Effect Reference (ECMA-376 Part 1 §20.1.4.2.8).
 ///
 /// This element defines a reference to an effect style within the style matrix. The idx attribute refers the index of an effect style within the effectStyleLst element.
@@ -20842,6 +22895,17 @@ impl XmlWrite for CT_StyleMatrixReference {
     }
 }
 
+impl Validate for CT_StyleMatrixReference {
+    fn validate(&self, v: &mut Validator) {
+        if self.idx.is_none() {
+            v.required_attribute(Ns::NONE, "idx", &self.extra_attrs);
+        }
+        if let Some(x) = &self.color_choice {
+            x.validate_at(v, None);
+        }
+    }
+}
+
 /// Font (ECMA-376 Part 1 §20.1.4.1.16).
 ///
 /// This element defines a font within the styles area of DrawingML. A font is defined by a script along with a typeface.
@@ -20900,6 +22964,17 @@ impl XmlWrite for CT_SupplementalFont {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_SupplementalFont {
+    fn validate(&self, v: &mut Validator) {
+        if self.script.is_none() {
+            v.required_attribute(Ns::NONE, "script", &self.extra_attrs);
+        }
+        if self.typeface.is_none() {
+            v.required_attribute(Ns::NONE, "typeface", &self.extra_attrs);
+        }
     }
 }
 
@@ -21009,6 +23084,17 @@ impl XmlWrite for CT_SystemColor {
     }
 }
 
+impl Validate for CT_SystemColor {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+        for (i, x) in self.color_transform.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Table (ECMA-376 Part 1 §21.1.3.13).
 ///
 /// This element is the root element for a table. Within this element is contained everything that one would need to define a table within DrawingML.
@@ -21098,6 +23184,22 @@ impl XmlWrite for CT_Table {
     }
 }
 
+impl Validate for CT_Table {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.tbl_pr {
+            v.enter("a:tblPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tbl_grid {
+            v.enter("a:tblGrid", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "tblGrid", &self.extra_children);
+        }
+        for (i, x) in self.tr.iter().enumerate() {
+            v.enter("a:tr", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Table Background (ECMA-376 Part 1 §20.1.4.2.25).
 ///
 /// This element defines the formatting options which can be applied to the table background shape. The background shape is the same size as the entire table and can hold a fill or an effect which spans the entire table.
@@ -21168,6 +23270,17 @@ impl XmlWrite for CT_TableBackgroundStyle {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_TableBackgroundStyle {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.themeable_fill_style {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.themeable_effect_style {
+            x.validate_at(v, None);
+        }
     }
 }
 
@@ -21302,6 +23415,20 @@ impl XmlWrite for CT_TableCell {
         }
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_TableCell {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.tx_body {
+            v.enter("a:txBody", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tc_pr {
+            v.enter("a:tcPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -21472,6 +23599,38 @@ impl XmlWrite for CT_TableCellBorderStyle {
         }
         rt::write_extras(w, &self.extra_children, 9);
         w.end();
+    }
+}
+
+impl Validate for CT_TableCellBorderStyle {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.left {
+            v.enter("a:left", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.right {
+            v.enter("a:right", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.top {
+            v.enter("a:top", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bottom {
+            v.enter("a:bottom", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.inside_h {
+            v.enter("a:insideH", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.inside_v {
+            v.enter("a:insideV", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tl2br {
+            v.enter("a:tl2br", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tr2bl {
+            v.enter("a:tr2bl", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -21739,6 +23898,41 @@ impl XmlWrite for CT_TableCellProperties {
     }
 }
 
+impl Validate for CT_TableCellProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ln_l {
+            v.enter("a:lnL", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ln_r {
+            v.enter("a:lnR", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ln_t {
+            v.enter("a:lnT", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ln_b {
+            v.enter("a:lnB", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ln_tl_to_br {
+            v.enter("a:lnTlToBr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ln_bl_to_tr {
+            v.enter("a:lnBlToTr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cell3_d {
+            v.enter("a:cell3D", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.fill_properties {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.headers {
+            v.enter("a:headers", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Table Grid Column (ECMA-376 Part 1 §21.1.3.2).
 ///
 /// This element specifies the width of a given column within a table. For each column in a table, there is an associated table grid column defining the width of the column.
@@ -21809,6 +24003,17 @@ impl XmlWrite for CT_TableCol {
     }
 }
 
+impl Validate for CT_TableCol {
+    fn validate(&self, v: &mut Validator) {
+        if self.w.is_none() {
+            v.required_attribute(Ns::NONE, "w", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Table Grid (ECMA-376 Part 1 §21.1.3.14).
 ///
 /// This element defines a list of table column (§21.1.3.2) elements. There should be a table column (§21.1.3.2) element for every column held within the table.
@@ -21867,6 +24072,14 @@ impl XmlWrite for CT_TableGrid {
         rt::write_extras_after(w, &self.extra_children, 0, self.grid_col.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TableGrid {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.grid_col.iter().enumerate() {
+            v.enter("a:gridCol", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -21951,6 +24164,17 @@ impl XmlWrite for CT_TablePartStyle {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_TablePartStyle {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.tc_tx_style {
+            v.enter("a:tcTxStyle", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tc_style {
+            v.enter("a:tcStyle", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -22125,6 +24349,23 @@ impl XmlWrite for CT_TableProperties {
     }
 }
 
+impl Validate for CT_TableProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.fill_properties {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.effect_properties {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Table Row (ECMA-376 Part 1 §21.1.3.18).
 ///
 /// This element defines a row in a table. A row as defined in a table is simply a listing of table cells (§21.1.3.16). There is a table row element defined for every row in the table.
@@ -22209,6 +24450,20 @@ impl XmlWrite for CT_TableRow {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_TableRow {
+    fn validate(&self, v: &mut Validator) {
+        if self.h.is_none() {
+            v.required_attribute(Ns::NONE, "h", &self.extra_attrs);
+        }
+        for (i, x) in self.tc.iter().enumerate() {
+            v.enter("a:tc", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -22488,6 +24743,62 @@ impl XmlWrite for CT_TableStyle {
     }
 }
 
+impl Validate for CT_TableStyle {
+    fn validate(&self, v: &mut Validator) {
+        if self.style_id.is_none() {
+            v.required_attribute(Ns::NONE, "styleId", &self.extra_attrs);
+        }
+        if self.style_name.is_none() {
+            v.required_attribute(Ns::NONE, "styleName", &self.extra_attrs);
+        }
+        if let Some(x) = &self.tbl_bg {
+            v.enter("a:tblBg", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.whole_tbl {
+            v.enter("a:wholeTbl", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.band1_h {
+            v.enter("a:band1H", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.band2_h {
+            v.enter("a:band2H", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.band1_v {
+            v.enter("a:band1V", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.band2_v {
+            v.enter("a:band2V", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.last_col {
+            v.enter("a:lastCol", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.first_col {
+            v.enter("a:firstCol", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.last_row {
+            v.enter("a:lastRow", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.se_cell {
+            v.enter("a:seCell", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sw_cell {
+            v.enter("a:swCell", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.first_row {
+            v.enter("a:firstRow", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ne_cell {
+            v.enter("a:neCell", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.nw_cell {
+            v.enter("a:nwCell", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Table Cell Style (ECMA-376 Part 1 §20.1.4.2.29).
 ///
 /// This element defines the style for a give cell in a table.
@@ -22574,6 +24885,20 @@ impl XmlWrite for CT_TableStyleCellStyle {
     }
 }
 
+impl Validate for CT_TableStyleCellStyle {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.tc_bdr {
+            v.enter("a:tcBdr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.themeable_fill_style {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.cell3_d {
+            v.enter("a:cell3D", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Table Style List (ECMA-376 Part 1 §20.1.4.2.27).
 ///
 /// This element is simply a list of table styles which are used within a document.
@@ -22644,6 +24969,17 @@ impl XmlWrite for CT_TableStyleList {
         rt::write_extras_after(w, &self.extra_children, 0, self.tbl_style.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TableStyleList {
+    fn validate(&self, v: &mut Validator) {
+        if self.def.is_none() {
+            v.required_attribute(Ns::NONE, "def", &self.extra_attrs);
+        }
+        for (i, x) in self.tbl_style.iter().enumerate() {
+            v.enter("a:tblStyle", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -22760,6 +25096,20 @@ impl XmlWrite for CT_TableStyleTextStyle {
     }
 }
 
+impl Validate for CT_TableStyleTextStyle {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.themeable_font_styles {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.color_choice {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Auto-Numbered Bullet (ECMA-376 Part 1 §21.1.2.4.1).
 ///
 /// This element specifies that automatic numbered bullet points should be applied to a paragraph. These are not just numbers used as bullet points but instead automatically assigned numbers that are based on both buAutoNum attributes and paragraph level.
@@ -22821,6 +25171,14 @@ impl XmlWrite for CT_TextAutonumberBullet {
     }
 }
 
+impl Validate for CT_TextAutonumberBullet {
+    fn validate(&self, v: &mut Validator) {
+        if self.type_.is_none() {
+            v.required_attribute(Ns::NONE, "type", &self.extra_attrs);
+        }
+    }
+}
+
 /// Picture Bullet (ECMA-376 Part 1 §21.1.2.4.2).
 ///
 /// This element specifies that a picture be applied to a set of bullets. This element allows for any standard picture format graphic to be used instead of the typical bullet characters. This opens up the possibility for bullets to be anything the generating application would seek to apply.
@@ -22876,6 +25234,16 @@ impl XmlWrite for CT_TextBlipBullet {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TextBlipBullet {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.blip {
+            v.enter("a:blip", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "blip", &self.extra_children);
+        }
     }
 }
 
@@ -22965,6 +25333,25 @@ impl XmlWrite for CT_TextBody {
         rt::write_extras_after(w, &self.extra_children, 2, self.p.len());
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_TextBody {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.body_pr {
+            v.enter("a:bodyPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "bodyPr", &self.extra_children);
+        }
+        if let Some(x) = &self.lst_style {
+            v.enter("a:lstStyle", None, |v| x.validate(v));
+        }
+        for (i, x) in self.p.iter().enumerate() {
+            v.enter("a:p", Some(i), |v| x.validate(v));
+        }
+        if self.p.is_empty() {
+            v.required_element(Ns::A, "p", &self.extra_children);
+        }
     }
 }
 
@@ -23256,6 +25643,26 @@ impl XmlWrite for CT_TextBodyProperties {
     }
 }
 
+impl Validate for CT_TextBodyProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.prst_tx_warp {
+            v.enter("a:prstTxWarp", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.text_autofit {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.scene3d {
+            v.enter("a:scene3d", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.text3_d {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Follow Text (ECMA-376 Part 1 §21.1.2.4.5).
 ///
 /// This element specifies that the color of the bullets for a paragraph should be of the same color as the text run within which each bullet is contained.
@@ -23296,6 +25703,10 @@ impl XmlWrite for CT_TextBulletColorFollowText {
     }
 }
 
+impl Validate for CT_TextBulletColorFollowText {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Bullet Size Follows Text (ECMA-376 Part 1 §21.1.2.4.11).
 ///
 /// This element specifies that the size of the bullets for a paragraph should be of the same point size as the text run within which each bullet is contained.
@@ -23334,6 +25745,10 @@ impl XmlWrite for CT_TextBulletSizeFollowText {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_TextBulletSizeFollowText {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Bullet Size Percentage (ECMA-376 Part 1 §21.1.2.4.9).
@@ -23385,6 +25800,14 @@ impl XmlWrite for CT_TextBulletSizePercent {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TextBulletSizePercent {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -23440,6 +25863,14 @@ impl XmlWrite for CT_TextBulletSizePoint {
     }
 }
 
+impl Validate for CT_TextBulletSizePoint {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Follow text (ECMA-376 Part 1 §21.1.2.4.7).
 ///
 /// This element specifies that the font of the bullets for a paragraph should be of the same font as the text run within which each bullet is contained.
@@ -23478,6 +25909,10 @@ impl XmlWrite for CT_TextBulletTypefaceFollowText {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_TextBulletTypefaceFollowText {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Character Bullet (ECMA-376 Part 1 §21.1.2.4.3).
@@ -23529,6 +25964,14 @@ impl XmlWrite for CT_TextCharBullet {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TextCharBullet {
+    fn validate(&self, v: &mut Validator) {
+        if self.char.is_none() {
+            v.required_attribute(Ns::NONE, "char", &self.extra_attrs);
+        }
     }
 }
 
@@ -23953,6 +26396,53 @@ impl XmlWrite for CT_TextCharacterProperties {
     }
 }
 
+impl Validate for CT_TextCharacterProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ln {
+            v.enter("a:ln", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.fill_properties {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.effect_properties {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.highlight {
+            v.enter("a:highlight", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.text_underline_line {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.text_underline_fill {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.latin {
+            v.enter("a:latin", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ea {
+            v.enter("a:ea", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cs {
+            v.enter("a:cs", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sym {
+            v.enter("a:sym", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hlink_click {
+            v.enter("a:hlinkClick", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hlink_mouse_over {
+            v.enter("a:hlinkMouseOver", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.rtl {
+            v.enter("a:rtl", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Text Field (ECMA-376 Part 1 §21.1.2.2.4).
 ///
 /// This element specifies a text field which contains generated text that the application should update periodically. Each piece of text when it is generated is given a unique identification number that is used to refer to a specific field. At the time of creation the text field indicates the kind of text that should be used to update this field.
@@ -24063,6 +26553,20 @@ impl XmlWrite for CT_TextField {
     }
 }
 
+impl Validate for CT_TextField {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "id", &self.extra_attrs);
+        }
+        if let Some(x) = &self.r_pr {
+            v.enter("a:rPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.p_pr {
+            v.enter("a:pPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Complex Script Font (ECMA-376 Part 1 §21.1.2.3.1).
 ///
 /// This element specifies that a complex script font be used for a specific run of text. This font is specified with a typeface attribute much like the others but is specifically classified as a complex script font.
@@ -24146,6 +26650,14 @@ impl XmlWrite for CT_TextFont {
     }
 }
 
+impl Validate for CT_TextFont {
+    fn validate(&self, v: &mut Validator) {
+        if self.typeface.is_none() {
+            v.required_attribute(Ns::NONE, "typeface", &self.extra_attrs);
+        }
+    }
+}
+
 /// Text Line Break (ECMA-376 Part 1 §21.1.2.2.1).
 ///
 /// This element specifies the existence of a vertical line break between two runs of text within a paragraph. In addition to specifying a vertical space between two runs of text, this element can also have run properties specified via the rPr child element. This sets the formatting of text for the line break so that if text is later inserted there that a new run can be generated with the correct formatting.
@@ -24201,6 +26713,14 @@ impl XmlWrite for CT_TextLineBreak {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TextLineBreak {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.r_pr {
+            v.enter("a:rPr", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -24402,6 +26922,44 @@ impl XmlWrite for CT_TextListStyle {
     }
 }
 
+impl Validate for CT_TextListStyle {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.def_p_pr {
+            v.enter("a:defPPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lvl1p_pr {
+            v.enter("a:lvl1pPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lvl2p_pr {
+            v.enter("a:lvl2pPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lvl3p_pr {
+            v.enter("a:lvl3pPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lvl4p_pr {
+            v.enter("a:lvl4pPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lvl5p_pr {
+            v.enter("a:lvl5pPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lvl6p_pr {
+            v.enter("a:lvl6pPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lvl7p_pr {
+            v.enter("a:lvl7pPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lvl8p_pr {
+            v.enter("a:lvl8pPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lvl9p_pr {
+            v.enter("a:lvl9pPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// No AutoFit (ECMA-376 Part 1 §21.1.2.1.2).
 ///
 /// This element specifies that text within the text body should not be auto-fit to the bounding box. Auto-fitting is when text within a text box is scaled in order to remain inside the text box. If this element is omitted, then noAutofit or auto-fit off is implied.
@@ -24442,6 +27000,10 @@ impl XmlWrite for CT_TextNoAutofit {
     }
 }
 
+impl Validate for CT_TextNoAutofit {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// No Bullet (ECMA-376 Part 1 §21.1.2.4.8).
 ///
 /// This element specifies that the paragraph within which it is applied is to have no bullet formatting applied to it. That is to say that there should be no bulleting found within the paragraph where this element is specified.
@@ -24480,6 +27042,10 @@ impl XmlWrite for CT_TextNoBullet {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_TextNoBullet {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Normal AutoFit (ECMA-376 Part 1 §21.1.2.1.3).
@@ -24541,6 +27107,10 @@ impl XmlWrite for CT_TextNormalAutofit {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_TextNormalAutofit {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Text Paragraphs (ECMA-376 Part 1 §21.1.2.2.6).
@@ -24625,6 +27195,20 @@ impl XmlWrite for CT_TextParagraph {
         }
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_TextParagraph {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.p_pr {
+            v.enter("a:pPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.text_run.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if let Some(x) = &self.end_para_r_pr {
+            v.enter("a:endParaRPr", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -24924,6 +27508,41 @@ impl XmlWrite for CT_TextParagraphProperties {
     }
 }
 
+impl Validate for CT_TextParagraphProperties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ln_spc {
+            v.enter("a:lnSpc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.spc_bef {
+            v.enter("a:spcBef", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.spc_aft {
+            v.enter("a:spcAft", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.text_bullet_color {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.text_bullet_size {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.text_bullet_typeface {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.text_bullet {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.tab_lst {
+            v.enter("a:tabLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.def_r_pr {
+            v.enter("a:defRPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Shape AutoFit (ECMA-376 Part 1 §21.1.2.1.4).
 ///
 /// This element specifies that a shape should be auto-fit to fully contain the text described within it. Auto-fitting is when text within a shape is scaled in order to contain all the text inside. If this element is omitted, then noAutofit or auto-fit off is implied.
@@ -24962,6 +27581,10 @@ impl XmlWrite for CT_TextShapeAutofit {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_TextShapeAutofit {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Line Spacing (ECMA-376 Part 1 §21.1.2.2.5).
@@ -25024,6 +27647,16 @@ impl XmlWrite for CT_TextSpacing {
     }
 }
 
+impl Validate for CT_TextSpacing {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:spcPct, a:spcPts");
+        }
+    }
+}
+
 /// Spacing Percent (ECMA-376 Part 1 §21.1.2.2.11).
 ///
 /// This element specifies the amount of white space that is to be used between lines and paragraphs in the form of a percentage of the text size. The text size that is used to calculate the spacing here is the text for each run, with the largest text size having precedence. That is if there is a run of text with 10 point font and within the same paragraph on the same line there is a run of text with a 12 point font size then the 12 point should be used to calculate the spacing to be used.
@@ -25076,6 +27709,14 @@ impl XmlWrite for CT_TextSpacingPercent {
     }
 }
 
+impl Validate for CT_TextSpacingPercent {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Spacing Points (ECMA-376 Part 1 §21.1.2.2.12).
 ///
 /// This element specifies the amount of white space that is to be used between lines and paragraphs in the form of a text point size. The size is specified using points where 100 is equal to 1 point font and 1200 is equal to 12 point.
@@ -25125,6 +27766,14 @@ impl XmlWrite for CT_TextSpacingPoint {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TextSpacingPoint {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -25189,6 +27838,10 @@ impl XmlWrite for CT_TextTabStop {
     }
 }
 
+impl Validate for CT_TextTabStop {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Tab List (ECMA-376 Part 1 §21.1.2.2.14).
 ///
 /// This element specifies the list of all tab stops that are to be used within a paragraph. These tabs should be used when describing any custom tab stops within the document. If these are not specified then the default tab stops of the generating application should be used.
@@ -25250,6 +27903,14 @@ impl XmlWrite for CT_TextTabStopList {
     }
 }
 
+impl Validate for CT_TextTabStopList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.tab.iter().enumerate() {
+            v.enter("a:tab", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Underline Fill Properties Follow Text (ECMA-376 Part 1 §21.1.2.3.13).
 ///
 /// This element specifies that the fill color of an underline for a run of text should be of the same color as the text run within which it is contained.
@@ -25288,6 +27949,10 @@ impl XmlWrite for CT_TextUnderlineFillFollowText {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_TextUnderlineFillFollowText {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Underline Fill (ECMA-376 Part 1 §21.1.2.3.12).
@@ -25353,6 +28018,16 @@ impl XmlWrite for CT_TextUnderlineFillGroupWrapper {
     }
 }
 
+impl Validate for CT_TextUnderlineFillGroupWrapper {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.fill_properties {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:noFill, a:solidFill, a:gradFill, a:blipFill, a:pattFill, a:grpFill");
+        }
+    }
+}
+
 /// Underline Follows Text (ECMA-376 Part 1 §21.1.2.3.15).
 ///
 /// This element specifies that the stroke style of an underline for a run of text should be of the same as the text run within which it is contained.
@@ -25391,6 +28066,10 @@ impl XmlWrite for CT_TextUnderlineLineFollowText {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_TextUnderlineLineFollowText {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Bottom Border (ECMA-376 Part 1 §20.1.4.2.6).
@@ -25455,6 +28134,16 @@ impl XmlWrite for CT_ThemeableLineStyle {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ThemeableLineStyle {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of a:ln, a:lnRef");
+        }
     }
 }
 
@@ -25555,6 +28244,10 @@ impl XmlWrite for CT_TileInfoProperties {
     }
 }
 
+impl Validate for CT_TileInfoProperties {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Tint Effect (ECMA-376 Part 1 §20.1.8.60).
 ///
 /// This element specifies a tint effect. Shifts effect color values towards/away from hue by the specified amount.
@@ -25614,6 +28307,10 @@ impl XmlWrite for CT_TintEffect {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_TintEffect {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// 2D Transform for Individual Objects (ECMA-376 Part 1 §20.1.7.6).
@@ -25718,6 +28415,17 @@ impl XmlWrite for CT_Transform2D {
     }
 }
 
+impl Validate for CT_Transform2D {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.off {
+            v.enter("a:off", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext {
+            v.enter("a:ext", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Transform Effect (ECMA-376 Part 1 §20.1.8.61).
 ///
 /// This element specifies a transform effect. The transform is applied to each point in the shape's geometry using the following matrix: \[ sx tan(kx) tx tan(ky) sy ty 0 0 1 \] ∙ \[ x y \]
@@ -25815,6 +28523,10 @@ impl XmlWrite for CT_TransformEffect {
     }
 }
 
+impl Validate for CT_TransformEffect {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Normal (ECMA-376 Part 1 §20.1.5.10).
 ///
 /// This element defines a normal vector. To be more precise, this attribute defines a vector normal to the face of the backdrop plane.
@@ -25883,6 +28595,20 @@ impl XmlWrite for CT_Vector3D {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Vector3D {
+    fn validate(&self, v: &mut Validator) {
+        if self.dx.is_none() {
+            v.required_attribute(Ns::NONE, "dx", &self.extra_attrs);
+        }
+        if self.dy.is_none() {
+            v.required_attribute(Ns::NONE, "dy", &self.extra_attrs);
+        }
+        if self.dz.is_none() {
+            v.required_attribute(Ns::NONE, "dz", &self.extra_attrs);
+        }
     }
 }
 
@@ -25965,6 +28691,17 @@ impl XmlWrite for CT_VideoFile {
     }
 }
 
+impl Validate for CT_VideoFile {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_link.is_none() {
+            v.required_attribute(Ns::R, "link", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("a:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_WholeE2oFormatting`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_WholeE2oFormatting {
@@ -26028,6 +28765,17 @@ impl XmlWrite for CT_WholeE2oFormatting {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_WholeE2oFormatting {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ln {
+            v.enter("a:ln", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.effect_properties {
+            x.validate_at(v, None);
+        }
     }
 }
 
@@ -26146,6 +28894,16 @@ impl XmlWrite for CT_XYAdjustHandle {
     }
 }
 
+impl Validate for CT_XYAdjustHandle {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pos {
+            v.enter("a:pos", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "pos", &self.extra_children);
+        }
+    }
+}
+
 /// A choice among the child elements of `CT_AdjustHandleList`.
 #[derive(Clone, Debug, PartialEq)]
 pub enum CT_AdjustHandleList_Choice {
@@ -26173,6 +28931,15 @@ impl CT_AdjustHandleList_Choice {
             Self::AhXY(v) => v.write_xml(w, Ns::A, "ahXY"),
             Self::AhPolar(v) => v.write_xml(w, Ns::A, "ahPolar"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::AhXY(x) => v.enter("a:ahXY", index, |v| x.validate(v)),
+            Self::AhPolar(x) => v.enter("a:ahPolar", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -26216,6 +28983,15 @@ impl CT_AnimationElementChoice_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Dgm(x) => v.enter("a:dgm", index, |v| x.validate(v)),
+            Self::Chart(x) => v.enter("a:chart", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -26253,6 +29029,15 @@ impl CT_AnimationGraphicalObjectBuildProperties_Choice {
             Self::BldDgm(v) => v.write_xml(w, Ns::A, "bldDgm"),
             Self::BldChart(v) => v.write_xml(w, Ns::A, "bldChart"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::BldDgm(x) => v.enter("a:bldDgm", index, |v| x.validate(v)),
+            Self::BldChart(x) => v.enter("a:bldChart", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -26356,6 +29141,30 @@ impl CT_Blip_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::AlphaBiLevel(x) => v.enter("a:alphaBiLevel", index, |v| x.validate(v)),
+            Self::AlphaCeiling(x) => v.enter("a:alphaCeiling", index, |v| x.validate(v)),
+            Self::AlphaFloor(x) => v.enter("a:alphaFloor", index, |v| x.validate(v)),
+            Self::AlphaInv(x) => v.enter("a:alphaInv", index, |v| x.validate(v)),
+            Self::AlphaMod(x) => v.enter("a:alphaMod", index, |v| x.validate(v)),
+            Self::AlphaModFix(x) => v.enter("a:alphaModFix", index, |v| x.validate(v)),
+            Self::AlphaRepl(x) => v.enter("a:alphaRepl", index, |v| x.validate(v)),
+            Self::BiLevel(x) => v.enter("a:biLevel", index, |v| x.validate(v)),
+            Self::Blur(x) => v.enter("a:blur", index, |v| x.validate(v)),
+            Self::ClrChange(x) => v.enter("a:clrChange", index, |v| x.validate(v)),
+            Self::ClrRepl(x) => v.enter("a:clrRepl", index, |v| x.validate(v)),
+            Self::Duotone(x) => v.enter("a:duotone", index, |v| x.validate(v)),
+            Self::FillOverlay(x) => v.enter("a:fillOverlay", index, |v| x.validate(v)),
+            Self::Grayscl(x) => v.enter("a:grayscl", index, |v| x.validate(v)),
+            Self::Hsl(x) => v.enter("a:hsl", index, |v| x.validate(v)),
+            Self::Lum(x) => v.enter("a:lum", index, |v| x.validate(v)),
+            Self::Tint(x) => v.enter("a:tint", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -26408,6 +29217,15 @@ impl CT_ColorMappingOverride_Choice {
             Self::MasterClrMapping(v) => v.write_xml(w, Ns::A, "masterClrMapping"),
             Self::OverrideClrMapping(v) => v.write_xml(w, Ns::A, "overrideClrMapping"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::MasterClrMapping(x) => v.enter("a:masterClrMapping", index, |v| x.validate(v)),
+            Self::OverrideClrMapping(x) => v.enter("a:overrideClrMapping", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -26467,6 +29285,19 @@ impl CT_GvmlGroupShape_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::TxSp(x) => v.enter("a:txSp", index, |v| x.validate(v)),
+            Self::Sp(x) => v.enter("a:sp", index, |v| x.validate(v)),
+            Self::CxnSp(x) => v.enter("a:cxnSp", index, |v| x.validate(v)),
+            Self::Pic(x) => v.enter("a:pic", index, |v| x.validate(v)),
+            Self::GraphicFrame(x) => v.enter("a:graphicFrame", index, |v| x.validate(v)),
+            Self::GrpSp(x) => v.enter("a:grpSp", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -26508,6 +29339,15 @@ impl CT_GvmlTextShape_Choice {
             Self::UseSpRect(v) => v.write_xml(w, Ns::A, "useSpRect"),
             Self::Xfrm(v) => v.write_xml(w, Ns::A, "xfrm"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::UseSpRect(x) => v.enter("a:useSpRect", index, |v| x.validate(v)),
+            Self::Xfrm(x) => v.enter("a:xfrm", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -26567,6 +29407,19 @@ impl CT_Path2D_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Close(x) => v.enter("a:close", index, |v| x.validate(v)),
+            Self::MoveTo(x) => v.enter("a:moveTo", index, |v| x.validate(v)),
+            Self::LnTo(x) => v.enter("a:lnTo", index, |v| x.validate(v)),
+            Self::ArcTo(x) => v.enter("a:arcTo", index, |v| x.validate(v)),
+            Self::QuadBezTo(x) => v.enter("a:quadBezTo", index, |v| x.validate(v)),
+            Self::CubicBezTo(x) => v.enter("a:cubicBezTo", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -26614,6 +29467,14 @@ impl CT_TableProperties_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::TableStyle(x) => v.enter("a:tableStyle", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -26654,6 +29515,15 @@ impl CT_TextSpacing_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::SpcPct(x) => v.enter("a:spcPct", index, |v| x.validate(v)),
+            Self::SpcPts(x) => v.enter("a:spcPts", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -26691,6 +29561,15 @@ impl CT_ThemeableLineStyle_Choice {
             Self::Ln(v) => v.write_xml(w, Ns::A, "ln"),
             Self::LnRef(v) => v.write_xml(w, Ns::A, "lnRef"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Ln(x) => v.enter("a:ln", index, |v| x.validate(v)),
+            Self::LnRef(x) => v.enter("a:lnRef", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -26747,6 +29626,19 @@ impl EG_ColorChoice {
             Self::SchemeClr(v) => v.write_xml(w, Ns::A, "schemeClr"),
             Self::PrstClr(v) => v.write_xml(w, Ns::A, "prstClr"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::ScrgbClr(x) => v.enter("a:scrgbClr", index, |v| x.validate(v)),
+            Self::SrgbClr(x) => v.enter("a:srgbClr", index, |v| x.validate(v)),
+            Self::HslClr(x) => v.enter("a:hslClr", index, |v| x.validate(v)),
+            Self::SysClr(x) => v.enter("a:sysClr", index, |v| x.validate(v)),
+            Self::SchemeClr(x) => v.enter("a:schemeClr", index, |v| x.validate(v)),
+            Self::PrstClr(x) => v.enter("a:prstClr", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -26895,6 +29787,41 @@ impl EG_ColorTransform {
             Self::Gamma(v) => v.write_xml(w, Ns::A, "gamma"),
             Self::InvGamma(v) => v.write_xml(w, Ns::A, "invGamma"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Tint(x) => v.enter("a:tint", index, |v| x.validate(v)),
+            Self::Shade(x) => v.enter("a:shade", index, |v| x.validate(v)),
+            Self::Comp(x) => v.enter("a:comp", index, |v| x.validate(v)),
+            Self::Inv(x) => v.enter("a:inv", index, |v| x.validate(v)),
+            Self::Gray(x) => v.enter("a:gray", index, |v| x.validate(v)),
+            Self::Alpha(x) => v.enter("a:alpha", index, |v| x.validate(v)),
+            Self::AlphaOff(x) => v.enter("a:alphaOff", index, |v| x.validate(v)),
+            Self::AlphaMod(x) => v.enter("a:alphaMod", index, |v| x.validate(v)),
+            Self::Hue(x) => v.enter("a:hue", index, |v| x.validate(v)),
+            Self::HueOff(x) => v.enter("a:hueOff", index, |v| x.validate(v)),
+            Self::HueMod(x) => v.enter("a:hueMod", index, |v| x.validate(v)),
+            Self::Sat(x) => v.enter("a:sat", index, |v| x.validate(v)),
+            Self::SatOff(x) => v.enter("a:satOff", index, |v| x.validate(v)),
+            Self::SatMod(x) => v.enter("a:satMod", index, |v| x.validate(v)),
+            Self::Lum(x) => v.enter("a:lum", index, |v| x.validate(v)),
+            Self::LumOff(x) => v.enter("a:lumOff", index, |v| x.validate(v)),
+            Self::LumMod(x) => v.enter("a:lumMod", index, |v| x.validate(v)),
+            Self::Red(x) => v.enter("a:red", index, |v| x.validate(v)),
+            Self::RedOff(x) => v.enter("a:redOff", index, |v| x.validate(v)),
+            Self::RedMod(x) => v.enter("a:redMod", index, |v| x.validate(v)),
+            Self::Green(x) => v.enter("a:green", index, |v| x.validate(v)),
+            Self::GreenOff(x) => v.enter("a:greenOff", index, |v| x.validate(v)),
+            Self::GreenMod(x) => v.enter("a:greenMod", index, |v| x.validate(v)),
+            Self::Blue(x) => v.enter("a:blue", index, |v| x.validate(v)),
+            Self::BlueOff(x) => v.enter("a:blueOff", index, |v| x.validate(v)),
+            Self::BlueMod(x) => v.enter("a:blueMod", index, |v| x.validate(v)),
+            Self::Gamma(x) => v.enter("a:gamma", index, |v| x.validate(v)),
+            Self::InvGamma(x) => v.enter("a:invGamma", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -27076,6 +30003,43 @@ impl EG_Effect {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Cont(x) => v.enter("a:cont", index, |v| x.validate(v)),
+            Self::Effect(x) => v.enter("a:effect", index, |v| x.validate(v)),
+            Self::AlphaBiLevel(x) => v.enter("a:alphaBiLevel", index, |v| x.validate(v)),
+            Self::AlphaCeiling(x) => v.enter("a:alphaCeiling", index, |v| x.validate(v)),
+            Self::AlphaFloor(x) => v.enter("a:alphaFloor", index, |v| x.validate(v)),
+            Self::AlphaInv(x) => v.enter("a:alphaInv", index, |v| x.validate(v)),
+            Self::AlphaMod(x) => v.enter("a:alphaMod", index, |v| x.validate(v)),
+            Self::AlphaModFix(x) => v.enter("a:alphaModFix", index, |v| x.validate(v)),
+            Self::AlphaOutset(x) => v.enter("a:alphaOutset", index, |v| x.validate(v)),
+            Self::AlphaRepl(x) => v.enter("a:alphaRepl", index, |v| x.validate(v)),
+            Self::BiLevel(x) => v.enter("a:biLevel", index, |v| x.validate(v)),
+            Self::Blend(x) => v.enter("a:blend", index, |v| x.validate(v)),
+            Self::Blur(x) => v.enter("a:blur", index, |v| x.validate(v)),
+            Self::ClrChange(x) => v.enter("a:clrChange", index, |v| x.validate(v)),
+            Self::ClrRepl(x) => v.enter("a:clrRepl", index, |v| x.validate(v)),
+            Self::Duotone(x) => v.enter("a:duotone", index, |v| x.validate(v)),
+            Self::Fill(x) => v.enter("a:fill", index, |v| x.validate(v)),
+            Self::FillOverlay(x) => v.enter("a:fillOverlay", index, |v| x.validate(v)),
+            Self::Glow(x) => v.enter("a:glow", index, |v| x.validate(v)),
+            Self::Grayscl(x) => v.enter("a:grayscl", index, |v| x.validate(v)),
+            Self::Hsl(x) => v.enter("a:hsl", index, |v| x.validate(v)),
+            Self::InnerShdw(x) => v.enter("a:innerShdw", index, |v| x.validate(v)),
+            Self::Lum(x) => v.enter("a:lum", index, |v| x.validate(v)),
+            Self::OuterShdw(x) => v.enter("a:outerShdw", index, |v| x.validate(v)),
+            Self::PrstShdw(x) => v.enter("a:prstShdw", index, |v| x.validate(v)),
+            Self::Reflection(x) => v.enter("a:reflection", index, |v| x.validate(v)),
+            Self::RelOff(x) => v.enter("a:relOff", index, |v| x.validate(v)),
+            Self::SoftEdge(x) => v.enter("a:softEdge", index, |v| x.validate(v)),
+            Self::Tint(x) => v.enter("a:tint", index, |v| x.validate(v)),
+            Self::Xfrm(x) => v.enter("a:xfrm", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -27144,6 +30108,15 @@ impl EG_EffectProperties {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::EffectLst(x) => v.enter("a:effectLst", index, |v| x.validate(v)),
+            Self::EffectDag(x) => v.enter("a:effectDag", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -27181,6 +30154,15 @@ impl EG_FillModeProperties {
             Self::Tile(v) => v.write_xml(w, Ns::A, "tile"),
             Self::Stretch(v) => v.write_xml(w, Ns::A, "stretch"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Tile(x) => v.enter("a:tile", index, |v| x.validate(v)),
+            Self::Stretch(x) => v.enter("a:stretch", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -27240,6 +30222,19 @@ impl EG_FillProperties {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::NoFill(x) => v.enter("a:noFill", index, |v| x.validate(v)),
+            Self::SolidFill(x) => v.enter("a:solidFill", index, |v| x.validate(v)),
+            Self::GradFill(x) => v.enter("a:gradFill", index, |v| x.validate(v)),
+            Self::BlipFill(x) => v.enter("a:blipFill", index, |v| x.validate(v)),
+            Self::PattFill(x) => v.enter("a:pattFill", index, |v| x.validate(v)),
+            Self::GrpFill(x) => v.enter("a:grpFill", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -27284,6 +30279,15 @@ impl EG_Geometry {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::CustGeom(x) => v.enter("a:custGeom", index, |v| x.validate(v)),
+            Self::PrstGeom(x) => v.enter("a:prstGeom", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -27321,6 +30325,15 @@ impl EG_LineDashProperties {
             Self::PrstDash(v) => v.write_xml(w, Ns::A, "prstDash"),
             Self::CustDash(v) => v.write_xml(w, Ns::A, "custDash"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::PrstDash(x) => v.enter("a:prstDash", index, |v| x.validate(v)),
+            Self::CustDash(x) => v.enter("a:custDash", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -27372,6 +30385,17 @@ impl EG_LineFillProperties {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::NoFill(x) => v.enter("a:noFill", index, |v| x.validate(v)),
+            Self::SolidFill(x) => v.enter("a:solidFill", index, |v| x.validate(v)),
+            Self::GradFill(x) => v.enter("a:gradFill", index, |v| x.validate(v)),
+            Self::PattFill(x) => v.enter("a:pattFill", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -27415,6 +30439,16 @@ impl EG_LineJoinProperties {
             Self::Bevel(v) => v.write_xml(w, Ns::A, "bevel"),
             Self::Miter(v) => v.write_xml(w, Ns::A, "miter"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Round(x) => v.enter("a:round", index, |v| x.validate(v)),
+            Self::Bevel(x) => v.enter("a:bevel", index, |v| x.validate(v)),
+            Self::Miter(x) => v.enter("a:miter", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -27471,6 +30505,18 @@ impl EG_Media {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::AudioCd(x) => v.enter("a:audioCd", index, |v| x.validate(v)),
+            Self::WavAudioFile(x) => v.enter("a:wavAudioFile", index, |v| x.validate(v)),
+            Self::AudioFile(x) => v.enter("a:audioFile", index, |v| x.validate(v)),
+            Self::VideoFile(x) => v.enter("a:videoFile", index, |v| x.validate(v)),
+            Self::QuickTimeFile(x) => v.enter("a:quickTimeFile", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -27514,6 +30560,15 @@ impl EG_ShadeProperties {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Lin(x) => v.enter("a:lin", index, |v| x.validate(v)),
+            Self::Path(x) => v.enter("a:path", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -27551,6 +30606,15 @@ impl EG_Text3D {
             Self::Sp3d(v) => v.write_xml(w, Ns::A, "sp3d"),
             Self::FlatTx(v) => v.write_xml(w, Ns::A, "flatTx"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Sp3d(x) => v.enter("a:sp3d", index, |v| x.validate(v)),
+            Self::FlatTx(x) => v.enter("a:flatTx", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -27595,6 +30659,16 @@ impl EG_TextAutofit {
             Self::NormAutofit(v) => v.write_xml(w, Ns::A, "normAutofit"),
             Self::SpAutoFit(v) => v.write_xml(w, Ns::A, "spAutoFit"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::NoAutofit(x) => v.enter("a:noAutofit", index, |v| x.validate(v)),
+            Self::NormAutofit(x) => v.enter("a:normAutofit", index, |v| x.validate(v)),
+            Self::SpAutoFit(x) => v.enter("a:spAutoFit", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -27647,6 +30721,17 @@ impl EG_TextBullet {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::BuNone(x) => v.enter("a:buNone", index, |v| x.validate(v)),
+            Self::BuAutoNum(x) => v.enter("a:buAutoNum", index, |v| x.validate(v)),
+            Self::BuChar(x) => v.enter("a:buChar", index, |v| x.validate(v)),
+            Self::BuBlip(x) => v.enter("a:buBlip", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -27686,6 +30771,15 @@ impl EG_TextBulletColor {
             Self::BuClrTx(v) => v.write_xml(w, Ns::A, "buClrTx"),
             Self::BuClr(v) => v.write_xml(w, Ns::A, "buClr"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::BuClrTx(x) => v.enter("a:buClrTx", index, |v| x.validate(v)),
+            Self::BuClr(x) => v.enter("a:buClr", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -27733,6 +30827,16 @@ impl EG_TextBulletSize {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::BuSzTx(x) => v.enter("a:buSzTx", index, |v| x.validate(v)),
+            Self::BuSzPct(x) => v.enter("a:buSzPct", index, |v| x.validate(v)),
+            Self::BuSzPts(x) => v.enter("a:buSzPts", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -27771,6 +30875,15 @@ impl EG_TextBulletTypeface {
             Self::BuFontTx(v) => v.write_xml(w, Ns::A, "buFontTx"),
             Self::BuFont(v) => v.write_xml(w, Ns::A, "buFont"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::BuFontTx(x) => v.enter("a:buFontTx", index, |v| x.validate(v)),
+            Self::BuFont(x) => v.enter("a:buFont", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -27818,6 +30931,16 @@ impl EG_TextRun {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::R(x) => v.enter("a:r", index, |v| x.validate(v)),
+            Self::Br(x) => v.enter("a:br", index, |v| x.validate(v)),
+            Self::Fld(x) => v.enter("a:fld", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -27856,6 +30979,15 @@ impl EG_TextUnderlineFill {
             Self::UFillTx(v) => v.write_xml(w, Ns::A, "uFillTx"),
             Self::UFill(v) => v.write_xml(w, Ns::A, "uFill"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::UFillTx(x) => v.enter("a:uFillTx", index, |v| x.validate(v)),
+            Self::UFill(x) => v.enter("a:uFill", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -27899,6 +31031,15 @@ impl EG_TextUnderlineLine {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::ULnTx(x) => v.enter("a:uLnTx", index, |v| x.validate(v)),
+            Self::ULn(x) => v.enter("a:uLn", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -27936,6 +31077,15 @@ impl EG_ThemeableEffectStyle {
             Self::Effect(v) => v.write_xml(w, Ns::A, "effect"),
             Self::EffectRef(v) => v.write_xml(w, Ns::A, "effectRef"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Effect(x) => v.enter("a:effect", index, |v| x.validate(v)),
+            Self::EffectRef(x) => v.enter("a:effectRef", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -27979,6 +31129,15 @@ impl EG_ThemeableFillStyle {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Fill(x) => v.enter("a:fill", index, |v| x.validate(v)),
+            Self::FillRef(x) => v.enter("a:fillRef", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -28016,6 +31175,15 @@ impl EG_ThemeableFontStyles {
             Self::Font(v) => v.write_xml(w, Ns::A, "font"),
             Self::FontRef(v) => v.write_xml(w, Ns::A, "fontRef"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Font(x) => v.enter("a:font", index, |v| x.validate(v)),
+            Self::FontRef(x) => v.enter("a:fontRef", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 

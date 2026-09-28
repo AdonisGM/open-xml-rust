@@ -92,6 +92,10 @@ impl XmlWrite for CT_Schema {
     }
 }
 
+impl Validate for CT_Schema {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Embedded Custom XML Schema Supplementary Data (ECMA-376 Part 1 §23.2.2).
 ///
 /// This element specifies the set of XML namespaces which have been associated with the contents of the custom XML markup within the current Office Open XML document. Each unique namespace which is referenced within the document can be referenced within this element by a single schema element, regardless of the number of constituent XML schemas which comprise that namespace. 23. Custom XML Schema References
@@ -150,6 +154,14 @@ impl XmlWrite for CT_SchemaLibrary {
         rt::write_extras_after(w, &self.extra_children, 0, self.schema.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SchemaLibrary {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.schema.iter().enumerate() {
+            v.enter("sl:schema", Some(i), |v| x.validate(v));
+        }
     }
 }
 

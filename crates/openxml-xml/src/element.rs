@@ -122,6 +122,20 @@ impl<T: XmlRead> ElementDef<T> {
     }
 }
 
+impl<T: crate::Validate> ElementDef<T> {
+    /// Checks required attributes and elements of a document rooted at this element.
+    pub fn validate(&self, value: &T) -> Vec<crate::Issue> {
+        let root = if self.ns.prefix().is_empty() {
+            self.local.to_owned()
+        } else {
+            format!("{}:{}", self.ns.prefix(), self.local)
+        };
+        let mut v = crate::Validator::new(&root);
+        value.validate(&mut v);
+        v.into_issues()
+    }
+}
+
 impl<T: XmlWrite> ElementDef<T> {
     /// Serializes a value as a complete XML document with this element as root.
     pub fn to_xml(&self, value: &T) -> String {
@@ -148,7 +162,6 @@ pub fn read_document<T: XmlRead>(xml: &str) -> Result<T> {
 #[doc(hidden)]
 pub mod rt {
     use super::*;
-    use crate::raw::RawAttribute;
 
     /// Reads an element whose content is a simple type.
     ///
@@ -159,20 +172,12 @@ pub mod rt {
         r: &mut XmlReader<'_>,
         tag: &StartTag<'_>,
     ) -> Result<Result<T, RawElement>> {
-        let attrs: Vec<RawAttribute> = tag.attributes().map(|a| a.to_raw()).collect();
-        if tag.is_empty() {
-            if attrs.is_empty()
-                && let Some(v) = T::parse_xml("")
-            {
-                return Ok(Ok(v));
-            }
-            return Ok(Err(RawElement {
-                name: tag.raw_name(),
-                attributes: attrs,
-                children: Vec::new(),
-            }));
-        }
-        if !attrs.is_empty() {
+        // `xml:space` and namespace declarations do not change the value; the
+        // writer re-adds `xml:space="preserve"` when the text needs it.
+        let significant = tag
+            .attributes()
+            .any(|a| a.ns != Ns::XMLNS && !(a.ns == Ns::XML && a.local == "space"));
+        if significant {
             return RawElement::read(r, tag).map(Err);
         }
         let text = r.read_text(tag)?;
@@ -180,17 +185,19 @@ pub mod rt {
             Some(v) => Ok(Ok(v)),
             None => Ok(Err(RawElement {
                 name: tag.raw_name(),
-                attributes: attrs,
-                children: vec![RawNode::Text(text.into_owned())],
+                attributes: tag.attributes().map(|a| a.to_raw()).collect(),
+                children: if text.is_empty() {
+                    Vec::new()
+                } else {
+                    vec![RawNode::Text(text.into_owned())]
+                },
             })),
         }
     }
 
     /// Writes an element whose content is a simple type.
     pub fn write_simple<T: XmlValue>(w: &mut XmlWriter, ns: Ns, local: &str, value: &T) {
-        w.start(ns, local);
-        w.text_value(value);
-        w.end();
+        w.simple_element(ns, local, value);
     }
 
     /// Writes an optional attribute.

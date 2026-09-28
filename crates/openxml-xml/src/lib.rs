@@ -19,6 +19,7 @@ mod error;
 mod ns;
 mod raw;
 mod reader;
+pub mod validate;
 mod value;
 mod writer;
 
@@ -27,5 +28,6 @@ pub use error::{Error, Result};
 pub use ns::Ns;
 pub use raw::{ExtraChild, RawAttribute, RawElement, RawName, RawNode};
 pub use reader::{Attr, Event, MAX_DEPTH, StartTag, XmlReader, decode_xml_bytes, root_name};
+pub use validate::{Issue, Validate, Validator};
 pub use value::{Base64Binary, HexBinary, XmlList, XmlValue};
-pub use writer::{XML_DECLARATION, XmlWriter, escape_attr, escape_text};
+pub use writer::{XML_DECLARATION, XmlWriter, escape_attr, escape_text, needs_space_preserve};

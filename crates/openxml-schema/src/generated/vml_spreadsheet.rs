@@ -271,6 +271,17 @@ impl XmlWrite for CT_ClientData {
     }
 }
 
+impl Validate for CT_ClientData {
+    fn validate(&self, v: &mut Validator) {
+        if self.object_type.is_none() {
+            v.required_attribute(Ns::NONE, "ObjectType", &self.extra_attrs);
+        }
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// A choice among the child elements of `CT_ClientData`.
 #[derive(Clone, Debug, PartialEq)]
 pub enum CT_ClientData_Choice {
@@ -759,6 +770,13 @@ impl CT_ClientData_Choice {
             Self::ScriptLocation(v) => rt::write_simple(w, Ns::XVML, "ScriptLocation", v),
             Self::FmlaTxbx(v) => rt::write_simple(w, Ns::XVML, "FmlaTxbx", v),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            _ => {}
         }
     }
 

@@ -109,10 +109,12 @@ fn compare(a: &RawElement, b: &RawElement, path: &str, out: &mut Vec<Difference>
         push(DiffKind::Name, format!("{:?} vs {:?}", key(a), key(b)));
         return;
     }
+    // Namespace declarations and `xml:space` (a whitespace-handling hint whose
+    // effect is covered by comparing the text itself) are not compared.
     let attrs = |e: &RawElement| -> HashMap<(String, String), String> {
         e.attributes
             .iter()
-            .filter(|x| x.name.ns != Ns::XMLNS)
+            .filter(|x| x.name.ns != Ns::XMLNS && !x.name.is(Ns::XML, "space"))
             .map(|x| {
                 (
                     (x.name.uri().to_owned(), x.name.local.to_string()),
@@ -283,6 +285,11 @@ mod tests {
         assert!(d[0].to_string().contains(" at /a"));
         assert_eq!(diff("<a/>", "<b/>")[0].kind, DiffKind::Name);
         assert_eq!(diff("<a><b/></a>", "<a><b/><x/></a>")[0].kind, DiffKind::Children);
+    }
+
+    #[test]
+    fn xml_space_is_not_compared() {
+        assert!(diff(r#"<t xml:space="preserve">a</t>"#, "<t>a</t>").is_empty());
     }
 
     #[test]

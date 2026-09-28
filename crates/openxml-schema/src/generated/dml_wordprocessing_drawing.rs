@@ -611,6 +611,69 @@ impl XmlWrite for CT_Anchor {
     }
 }
 
+impl Validate for CT_Anchor {
+    fn validate(&self, v: &mut Validator) {
+        if self.relative_height.is_none() {
+            v.required_attribute(Ns::NONE, "relativeHeight", &self.extra_attrs);
+        }
+        if self.behind_doc.is_none() {
+            v.required_attribute(Ns::NONE, "behindDoc", &self.extra_attrs);
+        }
+        if self.locked.is_none() {
+            v.required_attribute(Ns::NONE, "locked", &self.extra_attrs);
+        }
+        if self.layout_in_cell.is_none() {
+            v.required_attribute(Ns::NONE, "layoutInCell", &self.extra_attrs);
+        }
+        if self.allow_overlap.is_none() {
+            v.required_attribute(Ns::NONE, "allowOverlap", &self.extra_attrs);
+        }
+        if let Some(x) = &self.simple_pos {
+            v.enter("wp:simplePos", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::WP, "simplePos", &self.extra_children);
+        }
+        if let Some(x) = &self.position_h {
+            v.enter("wp:positionH", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::WP, "positionH", &self.extra_children);
+        }
+        if let Some(x) = &self.position_v {
+            v.enter("wp:positionV", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::WP, "positionV", &self.extra_children);
+        }
+        if let Some(x) = &self.extent {
+            v.enter("wp:extent", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::WP, "extent", &self.extra_children);
+        }
+        if let Some(x) = &self.effect_extent {
+            v.enter("wp:effectExtent", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content(
+                "one of wp:wrapNone, wp:wrapSquare, wp:wrapTight, wp:wrapThrough, wp:wrapTopAndBottom",
+            );
+        }
+        if let Some(x) = &self.doc_pr {
+            v.enter("wp:docPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::WP, "docPr", &self.extra_children);
+        }
+        if let Some(x) = &self.c_nv_graphic_frame_pr {
+            v.enter("wp:cNvGraphicFramePr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.graphic {
+            v.enter("a:graphic", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "graphic", &self.extra_children);
+        }
+    }
+}
+
 /// Object Extents Including Effects (ECMA-376 Part 1 §20.4.2.6).
 ///
 /// This element specifies the additional extent which shall be added to each edge of the image (top, bottom, left, right) in order to compensate for any drawing effects applied to the DrawingML object.
@@ -687,6 +750,23 @@ impl XmlWrite for CT_EffectExtent {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_EffectExtent {
+    fn validate(&self, v: &mut Validator) {
+        if self.l.is_none() {
+            v.required_attribute(Ns::NONE, "l", &self.extra_attrs);
+        }
+        if self.t.is_none() {
+            v.required_attribute(Ns::NONE, "t", &self.extra_attrs);
+        }
+        if self.r.is_none() {
+            v.required_attribute(Ns::NONE, "r", &self.extra_attrs);
+        }
+        if self.b.is_none() {
+            v.required_attribute(Ns::NONE, "b", &self.extra_attrs);
+        }
     }
 }
 
@@ -801,6 +881,34 @@ impl XmlWrite for CT_GraphicFrame {
         }
         rt::write_extras(w, &self.extra_children, 5);
         w.end();
+    }
+}
+
+impl Validate for CT_GraphicFrame {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("wp:cNvPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::WP, "cNvPr", &self.extra_children);
+        }
+        if let Some(x) = &self.c_nv_fr_pr {
+            v.enter("wp:cNvFrPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::WP, "cNvFrPr", &self.extra_children);
+        }
+        if let Some(x) = &self.xfrm {
+            v.enter("wp:xfrm", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::WP, "xfrm", &self.extra_children);
+        }
+        if let Some(x) = &self.graphic {
+            v.enter("a:graphic", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "graphic", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("wp:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -957,6 +1065,32 @@ impl XmlWrite for CT_Inline {
     }
 }
 
+impl Validate for CT_Inline {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.extent {
+            v.enter("wp:extent", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::WP, "extent", &self.extra_children);
+        }
+        if let Some(x) = &self.effect_extent {
+            v.enter("wp:effectExtent", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.doc_pr {
+            v.enter("wp:docPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::WP, "docPr", &self.extra_children);
+        }
+        if let Some(x) = &self.c_nv_graphic_frame_pr {
+            v.enter("wp:cNvGraphicFramePr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.graphic {
+            v.enter("a:graphic", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::A, "graphic", &self.extra_children);
+        }
+    }
+}
+
 /// Schema complex type `CT_LinkedTextboxInformation`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_LinkedTextboxInformation {
@@ -1030,6 +1164,20 @@ impl XmlWrite for CT_LinkedTextboxInformation {
     }
 }
 
+impl Validate for CT_LinkedTextboxInformation {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "id", &self.extra_attrs);
+        }
+        if self.seq.is_none() {
+            v.required_attribute(Ns::NONE, "seq", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("wp:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Horizontal Positioning (ECMA-376 Part 1 §20.4.2.10).
 ///
 /// This element specifies the horizontal positioning of a floating DrawingML object within a WordprocessingML document. This positioning is specified in two parts:  Positioning Base - The relativeFrom attribute on this element specifies the part of the document from which the positioning shall be calculated.  Positioning - The child element of this element (align or posOffset) specifies how the object is positioned relative to that base.
@@ -1100,6 +1248,19 @@ impl XmlWrite for CT_PosH {
     }
 }
 
+impl Validate for CT_PosH {
+    fn validate(&self, v: &mut Validator) {
+        if self.relative_from.is_none() {
+            v.required_attribute(Ns::NONE, "relativeFrom", &self.extra_attrs);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of wp:align, wp:posOffset");
+        }
+    }
+}
+
 /// Vertical Positioning (ECMA-376 Part 1 §20.4.2.11).
 ///
 /// This element specifies the vertical positioning of a floating DrawingML object within a WordprocessingML document. This positioning is specified in two parts:  Positioning Base - The relativeFrom attribute on this element specifies the part of the document from which the positioning shall be calculated.  Positioning - The child element of this element (align or posOffset) specifies how the object is positioned relative to that base.
@@ -1167,6 +1328,19 @@ impl XmlWrite for CT_PosV {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_PosV {
+    fn validate(&self, v: &mut Validator) {
+        if self.relative_from.is_none() {
+            v.required_attribute(Ns::NONE, "relativeFrom", &self.extra_attrs);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of wp:align, wp:posOffset");
+        }
     }
 }
 
@@ -1254,6 +1428,19 @@ impl XmlWrite for CT_TextboxInfo {
     }
 }
 
+impl Validate for CT_TextboxInfo {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.txbx_content {
+            v.enter("wp:txbxContent", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::WP, "txbxContent", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("wp:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_TxbxContent`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TxbxContent {
@@ -1332,6 +1519,14 @@ impl XmlWrite for CT_TxbxContent {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TxbxContent {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.block_level_elts.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -1432,6 +1627,23 @@ impl XmlWrite for CT_WordprocessingCanvas {
         }
         rt::write_extras(w, &self.extra_children, 4);
         w.end();
+    }
+}
+
+impl Validate for CT_WordprocessingCanvas {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.bg {
+            v.enter("wp:bg", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.whole {
+            v.enter("wp:whole", None, |v| x.validate(v));
+        }
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("wp:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -1542,6 +1754,23 @@ impl XmlWrite for CT_WordprocessingContentPart {
     }
 }
 
+impl Validate for CT_WordprocessingContentPart {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
+        if let Some(x) = &self.nv_content_part_pr {
+            v.enter("wp:nvContentPartPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.xfrm {
+            v.enter("wp:xfrm", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("wp:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Schema complex type `CT_WordprocessingContentPartNonVisual`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_WordprocessingContentPartNonVisual {
@@ -1605,6 +1834,17 @@ impl XmlWrite for CT_WordprocessingContentPartNonVisual {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_WordprocessingContentPartNonVisual {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("wp:cNvPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.c_nv_content_part_pr {
+            v.enter("wp:cNvContentPartPr", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -1717,6 +1957,30 @@ impl XmlWrite for CT_WordprocessingGroup {
         }
         rt::write_extras(w, &self.extra_children, 5);
         w.end();
+    }
+}
+
+impl Validate for CT_WordprocessingGroup {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("wp:cNvPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.c_nv_grp_sp_pr {
+            v.enter("wp:cNvGrpSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::WP, "cNvGrpSpPr", &self.extra_children);
+        }
+        if let Some(x) = &self.grp_sp_pr {
+            v.enter("wp:grpSpPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::WP, "grpSpPr", &self.extra_children);
+        }
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("wp:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -1868,6 +2132,38 @@ impl XmlWrite for CT_WordprocessingShape {
     }
 }
 
+impl Validate for CT_WordprocessingShape {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.c_nv_pr {
+            v.enter("wp:cNvPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of wp:cNvSpPr, wp:cNvCnPr");
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("wp:spPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::WP, "spPr", &self.extra_children);
+        }
+        if let Some(x) = &self.style {
+            v.enter("wp:style", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("wp:extLst", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.choice_2 {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.body_pr {
+            v.enter("wp:bodyPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::WP, "bodyPr", &self.extra_children);
+        }
+    }
+}
+
 /// No Text Wrapping (ECMA-376 Part 1 §20.4.2.15).
 ///
 /// This element specifies that the parent DrawingML object shall not cause any text wrapping within the contents of the host WordprocessingML document based on its display location. In effect, this setting shall place the object in one of two locations:
@@ -1906,6 +2202,10 @@ impl XmlWrite for CT_WrapNone {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_WrapNone {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Wrapping Polygon (ECMA-376 Part 1 §20.4.2.16).
@@ -1992,6 +2292,22 @@ impl XmlWrite for CT_WrapPath {
         rt::write_extras_after(w, &self.extra_children, 1, self.line_to.len());
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_WrapPath {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.start {
+            v.enter("wp:start", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::WP, "start", &self.extra_children);
+        }
+        for (i, x) in self.line_to.iter().enumerate() {
+            v.enter("wp:lineTo", Some(i), |v| x.validate(v));
+        }
+        if self.line_to.is_empty() {
+            v.required_element(Ns::WP, "lineTo", &self.extra_children);
+        }
     }
 }
 
@@ -2101,6 +2417,17 @@ impl XmlWrite for CT_WrapSquare {
     }
 }
 
+impl Validate for CT_WrapSquare {
+    fn validate(&self, v: &mut Validator) {
+        if self.wrap_text.is_none() {
+            v.required_attribute(Ns::NONE, "wrapText", &self.extra_attrs);
+        }
+        if let Some(x) = &self.effect_extent {
+            v.enter("wp:effectExtent", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Through Wrapping (ECMA-376 Part 1 §20.4.2.18).
 ///
 /// This element specifies that text shall wrap around the wrapping polygon bounding this object as defined by the child wrapPolygon element. When this element specifies a wrapping polygon, it shall allow text to wrap within the object's maximum left and right extents.
@@ -2186,6 +2513,19 @@ impl XmlWrite for CT_WrapThrough {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_WrapThrough {
+    fn validate(&self, v: &mut Validator) {
+        if self.wrap_text.is_none() {
+            v.required_attribute(Ns::NONE, "wrapText", &self.extra_attrs);
+        }
+        if let Some(x) = &self.wrap_polygon {
+            v.enter("wp:wrapPolygon", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::WP, "wrapPolygon", &self.extra_children);
+        }
     }
 }
 
@@ -2277,6 +2617,19 @@ impl XmlWrite for CT_WrapTight {
     }
 }
 
+impl Validate for CT_WrapTight {
+    fn validate(&self, v: &mut Validator) {
+        if self.wrap_text.is_none() {
+            v.required_attribute(Ns::NONE, "wrapText", &self.extra_attrs);
+        }
+        if let Some(x) = &self.wrap_polygon {
+            v.enter("wp:wrapPolygon", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::WP, "wrapPolygon", &self.extra_children);
+        }
+    }
+}
+
 /// Top and Bottom Wrapping (ECMA-376 Part 1 §20.4.2.20).
 ///
 /// This element specifies that text shall wrap around the top and bottom of this object, but not its left or right edges.
@@ -2356,6 +2709,14 @@ impl XmlWrite for CT_WrapTopBottom {
     }
 }
 
+impl Validate for CT_WrapTopBottom {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.effect_extent {
+            v.enter("wp:effectExtent", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// A choice among the child elements of `CT_Anchor`.
 #[derive(Clone, Debug, PartialEq)]
 pub enum CT_Anchor_Choice {
@@ -2395,6 +2756,18 @@ impl CT_Anchor_Choice {
             Self::WrapThrough(v) => v.write_xml(w, Ns::WP, "wrapThrough"),
             Self::WrapTopAndBottom(v) => v.write_xml(w, Ns::WP, "wrapTopAndBottom"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::WrapNone(x) => v.enter("wp:wrapNone", index, |v| x.validate(v)),
+            Self::WrapSquare(x) => v.enter("wp:wrapSquare", index, |v| x.validate(v)),
+            Self::WrapTight(x) => v.enter("wp:wrapTight", index, |v| x.validate(v)),
+            Self::WrapThrough(x) => v.enter("wp:wrapThrough", index, |v| x.validate(v)),
+            Self::WrapTopAndBottom(x) => v.enter("wp:wrapTopAndBottom", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -2447,6 +2820,13 @@ impl CT_PosH_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -2490,6 +2870,13 @@ impl CT_PosV_Choice {
             Self::Align(v) => rt::write_simple(w, Ns::WP, "align", v),
             Self::PosOffset(v) => rt::write_simple(w, Ns::WP, "posOffset", v),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            _ => {}
         }
     }
 
@@ -2542,6 +2929,18 @@ impl CT_WordprocessingCanvas_Choice {
             Self::Wgp(v) => v.write_xml(w, Ns::WP, "wgp"),
             Self::GraphicFrame(v) => v.write_xml(w, Ns::WP, "graphicFrame"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Wsp(x) => v.enter("wp:wsp", index, |v| x.validate(v)),
+            Self::Pic(x) => v.enter("pic:pic", index, |v| x.validate(v)),
+            Self::ContentPart(x) => v.enter("wp:contentPart", index, |v| x.validate(v)),
+            Self::Wgp(x) => v.enter("wp:wgp", index, |v| x.validate(v)),
+            Self::GraphicFrame(x) => v.enter("wp:graphicFrame", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -2600,6 +2999,18 @@ impl CT_WordprocessingGroup_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Wsp(x) => v.enter("wp:wsp", index, |v| x.validate(v)),
+            Self::GrpSp(x) => v.enter("wp:grpSp", index, |v| x.validate(v)),
+            Self::GraphicFrame(x) => v.enter("wp:graphicFrame", index, |v| x.validate(v)),
+            Self::Pic(x) => v.enter("pic:pic", index, |v| x.validate(v)),
+            Self::ContentPart(x) => v.enter("wp:contentPart", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -2643,6 +3054,15 @@ impl CT_WordprocessingShape_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::CNvSpPr(x) => v.enter("wp:cNvSpPr", index, |v| x.validate(v)),
+            Self::CNvCnPr(x) => v.enter("wp:cNvCnPr", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -2680,6 +3100,15 @@ impl CT_WordprocessingShape_Choice2 {
             Self::Txbx(v) => v.write_xml(w, Ns::WP, "txbx"),
             Self::LinkedTxbx(v) => v.write_xml(w, Ns::WP, "linkedTxbx"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Txbx(x) => v.enter("wp:txbx", index, |v| x.validate(v)),
+            Self::LinkedTxbx(x) => v.enter("wp:linkedTxbx", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 

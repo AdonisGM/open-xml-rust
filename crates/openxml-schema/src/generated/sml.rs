@@ -5585,6 +5585,10 @@ impl XmlWrite for CT_Authors {
     }
 }
 
+impl Validate for CT_Authors {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// AutoFilter Settings (ECMA-376 Part 1 §18.3.1.2).
 ///
 /// AutoFilter temporarily hides rows based on a filter criteria, which is applied column by column to a table of data in the worksheet. This collection expresses AutoFilter settings.
@@ -5686,6 +5690,20 @@ impl XmlWrite for CT_AutoFilter {
     }
 }
 
+impl Validate for CT_AutoFilter {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.filter_column.iter().enumerate() {
+            v.enter("x:filterColumn", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.sort_state {
+            v.enter("x:sortState", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// AutoSort Scope (ECMA-376 Part 1 §18.10.1.1).
 ///
 /// Represents the sorting scope for the PivotTable.
@@ -5741,6 +5759,16 @@ impl XmlWrite for CT_AutoSortScope {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_AutoSortScope {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pivot_area {
+            v.enter("x:pivotArea", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "pivotArea", &self.extra_children);
+        }
     }
 }
 
@@ -5927,6 +5955,14 @@ impl XmlWrite for CT_BookView {
     }
 }
 
+impl Validate for CT_BookView {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Workbook Views (ECMA-376 Part 1 §18.2.1).
 ///
 /// This element specifies the collection of workbook views of the enclosing workbook. Each view can specify a window position, filter options, and other configurations. There is no limit on the number of workbook views that can be defined for a workbook.
@@ -5985,6 +6021,17 @@ impl XmlWrite for CT_BookViews {
         rt::write_extras_after(w, &self.extra_children, 0, self.workbook_view.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_BookViews {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.workbook_view.iter().enumerate() {
+            v.enter("x:workbookView", Some(i), |v| x.validate(v));
+        }
+        if self.workbook_view.is_empty() {
+            v.required_element(Ns::X, "workbookView", &self.extra_children);
+        }
     }
 }
 
@@ -6097,6 +6144,17 @@ impl XmlWrite for CT_Boolean {
     }
 }
 
+impl Validate for CT_Boolean {
+    fn validate(&self, v: &mut Validator) {
+        if self.v.is_none() {
+            v.required_attribute(Ns::NONE, "v", &self.extra_attrs);
+        }
+        for (i, x) in self.x.iter().enumerate() {
+            v.enter("x:x", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Outline (ECMA-376 Part 1 §18.4.2).
 ///
 /// This element displays only the inner and outer borders of each character. This is very similar to Bold in behavior.
@@ -6153,6 +6211,10 @@ impl XmlWrite for CT_BooleanProperty {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_BooleanProperty {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Border (ECMA-376 Part 1 §18.8.4).
@@ -6355,6 +6417,38 @@ impl XmlWrite for CT_Border {
     }
 }
 
+impl Validate for CT_Border {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.start {
+            v.enter("x:start", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.end {
+            v.enter("x:end", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.left {
+            v.enter("x:left", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.right {
+            v.enter("x:right", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.top {
+            v.enter("x:top", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bottom {
+            v.enter("x:bottom", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.diagonal {
+            v.enter("x:diagonal", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.vertical {
+            v.enter("x:vertical", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.horizontal {
+            v.enter("x:horizontal", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Bottom Border (ECMA-376 Part 1 §18.8.6).
 ///
 /// This element specifies the color and line style for the bottom border of a cell.
@@ -6431,6 +6525,14 @@ impl XmlWrite for CT_BorderPr {
     }
 }
 
+impl Validate for CT_BorderPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.color {
+            v.enter("x:color", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Borders (ECMA-376 Part 1 §18.8.5).
 ///
 /// This element contains borders formatting information, specifying all border definitions for all cells in the workbook.
@@ -6501,6 +6603,14 @@ impl XmlWrite for CT_Borders {
         rt::write_extras_after(w, &self.extra_children, 0, self.border.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Borders {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.border.iter().enumerate() {
+            v.enter("x:border", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -6590,6 +6700,10 @@ impl XmlWrite for CT_Break {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Break {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// PivotCache Field (ECMA-376 Part 1 §18.10.1.3).
@@ -6815,6 +6929,26 @@ impl XmlWrite for CT_CacheField {
     }
 }
 
+impl Validate for CT_CacheField {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if let Some(x) = &self.shared_items {
+            v.enter("x:sharedItems", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.field_group {
+            v.enter("x:fieldGroup", None, |v| x.validate(v));
+        }
+        for (i, x) in self.mp_map.iter().enumerate() {
+            v.enter("x:mpMap", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// PivotCache Fields (ECMA-376 Part 1 §18.10.1.4).
 ///
 /// Represents the collection of field definitions in the source data.
@@ -6888,6 +7022,14 @@ impl XmlWrite for CT_CacheFields {
     }
 }
 
+impl Validate for CT_CacheFields {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cache_field.iter().enumerate() {
+            v.enter("x:cacheField", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// PivotCache Hierarchies (ECMA-376 Part 1 §18.10.1.5).
 ///
 /// Represents the collection of OLAP hierarchies in the PivotCache.
@@ -6958,6 +7100,14 @@ impl XmlWrite for CT_CacheHierarchies {
         rt::write_extras_after(w, &self.extra_children, 0, self.cache_hierarchy.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_CacheHierarchies {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cache_hierarchy.iter().enumerate() {
+            v.enter("x:cacheHierarchy", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -7253,6 +7403,26 @@ impl XmlWrite for CT_CacheHierarchy {
     }
 }
 
+impl Validate for CT_CacheHierarchy {
+    fn validate(&self, v: &mut Validator) {
+        if self.unique_name.is_none() {
+            v.required_attribute(Ns::NONE, "uniqueName", &self.extra_attrs);
+        }
+        if self.count.is_none() {
+            v.required_attribute(Ns::NONE, "count", &self.extra_attrs);
+        }
+        if let Some(x) = &self.fields_usage {
+            v.enter("x:fieldsUsage", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.group_levels {
+            v.enter("x:groupLevels", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// PivotCache Source Description (ECMA-376 Part 1 §18.10.1.7).
 ///
 /// Represents the description of data source whose data is stored in the pivot cache. The data source refers to the underlying rows or database records that provide the data for a PivotTable. You can create a PivotTable report from a SpreadsheetML table, an external database (including OLAP cubes), multiple SpreadsheetML worksheets, or another PivotTable.
@@ -7329,6 +7499,17 @@ impl XmlWrite for CT_CacheSource {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_CacheSource {
+    fn validate(&self, v: &mut Validator) {
+        if self.type_.is_none() {
+            v.required_attribute(Ns::NONE, "type", &self.extra_attrs);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
     }
 }
 
@@ -7438,6 +7619,10 @@ impl XmlWrite for CT_CalcCell {
     }
 }
 
+impl Validate for CT_CalcCell {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Calculation Chain Info (ECMA-376 Part 1 §18.6.2).
 ///
 /// This element represents the root of the calculation chain.
@@ -7510,6 +7695,20 @@ impl XmlWrite for CT_CalcChain {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_CalcChain {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.c.iter().enumerate() {
+            v.enter("x:c", Some(i), |v| x.validate(v));
+        }
+        if self.c.is_empty() {
+            v.required_element(Ns::X, "c", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -7678,6 +7877,10 @@ impl XmlWrite for CT_CalcPr {
     }
 }
 
+impl Validate for CT_CalcPr {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Calculated Item (ECMA-376 Part 1 §18.10.1.8).
 ///
 /// Represents an item within a PivotTable field that uses a formula . The formula is specified in the formula attribute. Calculations and options available for a PivotTable depend on whether the source data came from an OLAP database or another type of database.
@@ -7771,6 +7974,19 @@ impl XmlWrite for CT_CalculatedItem {
     }
 }
 
+impl Validate for CT_CalculatedItem {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pivot_area {
+            v.enter("x:pivotArea", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "pivotArea", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Calculated Items (ECMA-376 Part 1 §18.10.1.9).
 ///
 /// Represents the collection of calculated items.
@@ -7841,6 +8057,17 @@ impl XmlWrite for CT_CalculatedItems {
         rt::write_extras_after(w, &self.extra_children, 0, self.calculated_item.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_CalculatedItems {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.calculated_item.iter().enumerate() {
+            v.enter("x:calculatedItem", Some(i), |v| x.validate(v));
+        }
+        if self.calculated_item.is_empty() {
+            v.required_element(Ns::X, "calculatedItem", &self.extra_children);
+        }
     }
 }
 
@@ -7968,6 +8195,20 @@ impl XmlWrite for CT_CalculatedMember {
     }
 }
 
+impl Validate for CT_CalculatedMember {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if self.mdx.is_none() {
+            v.required_attribute(Ns::NONE, "mdx", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Calculated Members (ECMA-376 Part 1 §18.10.1.11).
 ///
 /// Represents the collection of calculated members in an OLAP PivotTable.
@@ -8038,6 +8279,17 @@ impl XmlWrite for CT_CalculatedMembers {
         rt::write_extras_after(w, &self.extra_children, 0, self.calculated_member.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_CalculatedMembers {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.calculated_member.iter().enumerate() {
+            v.enter("x:calculatedMember", Some(i), |v| x.validate(v));
+        }
+        if self.calculated_member.is_empty() {
+            v.required_element(Ns::X, "calculatedMember", &self.extra_children);
+        }
     }
 }
 
@@ -8203,6 +8455,20 @@ impl XmlWrite for CT_Cell {
     }
 }
 
+impl Validate for CT_Cell {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.f {
+            v.enter("x:f", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.is {
+            v.enter("x:is", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Alignment (ECMA-376 Part 1 §18.8.1).
 ///
 /// Formatting information pertaining to text alignment in cells. There are a variety of choices for how text is aligned both horizontally and vertically, as well as indentation settings, and so on.
@@ -8325,6 +8591,10 @@ impl XmlWrite for CT_CellAlignment {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_CellAlignment {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Formula (ECMA-376 Part 1 §18.3.1.40).
@@ -8482,6 +8752,10 @@ impl XmlWrite for CT_CellFormula {
     }
 }
 
+impl Validate for CT_CellFormula {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Protection Properties (ECMA-376 Part 1 §18.8.33).
 ///
 /// Contains protection properties associated with the cell. Each cell has protection properties that can be set. The cell protection properties do not take effect unless the sheet has been protected.
@@ -8541,6 +8815,10 @@ impl XmlWrite for CT_CellProtection {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_CellProtection {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Cell Smart Tag (ECMA-376 Part 1 §18.3.1.5).
@@ -8634,6 +8912,17 @@ impl XmlWrite for CT_CellSmartTag {
     }
 }
 
+impl Validate for CT_CellSmartTag {
+    fn validate(&self, v: &mut Validator) {
+        if self.type_.is_none() {
+            v.required_attribute(Ns::NONE, "type", &self.extra_attrs);
+        }
+        for (i, x) in self.cell_smart_tag_pr.iter().enumerate() {
+            v.enter("x:cellSmartTagPr", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Smart Tag Properties (ECMA-376 Part 1 §18.3.1.6).
 ///
 /// Represents a single property of a smart tag in a cell; contains a key-value pair.
@@ -8692,6 +8981,17 @@ impl XmlWrite for CT_CellSmartTagPr {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_CellSmartTagPr {
+    fn validate(&self, v: &mut Validator) {
+        if self.key.is_none() {
+            v.required_attribute(Ns::NONE, "key", &self.extra_attrs);
+        }
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -8765,6 +9065,20 @@ impl XmlWrite for CT_CellSmartTags {
         rt::write_extras_after(w, &self.extra_children, 0, self.cell_smart_tag.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_CellSmartTags {
+    fn validate(&self, v: &mut Validator) {
+        if self.r.is_none() {
+            v.required_attribute(Ns::NONE, "r", &self.extra_attrs);
+        }
+        for (i, x) in self.cell_smart_tag.iter().enumerate() {
+            v.enter("x:cellSmartTag", Some(i), |v| x.validate(v));
+        }
+        if self.cell_smart_tag.is_empty() {
+            v.required_element(Ns::X, "cellSmartTag", &self.extra_children);
+        }
     }
 }
 
@@ -8883,6 +9197,17 @@ impl XmlWrite for CT_CellStyle {
     }
 }
 
+impl Validate for CT_CellStyle {
+    fn validate(&self, v: &mut Validator) {
+        if self.xf_id.is_none() {
+            v.required_attribute(Ns::NONE, "xfId", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Formatting Records (ECMA-376 Part 1 §18.8.9).
 ///
 /// This element contains the master formatting records (xf's) which define the formatting for all named cell styles in this workbook. Master formatting records reference individual elements of formatting (e.g., number format, font definitions, cell fills, etc) by specifying a zero-based index into those collections. Master formatting records also specify whether to apply or ignore particular aspects of formatting. \[Example: Whether to apply a border or not. end example\] A cell can have both direct formatting (e.g., bold) and a cell style (e.g., Explanatory) applied to it.
@@ -8953,6 +9278,17 @@ impl XmlWrite for CT_CellStyleXfs {
         rt::write_extras_after(w, &self.extra_children, 0, self.xf.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_CellStyleXfs {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.xf.iter().enumerate() {
+            v.enter("x:xf", Some(i), |v| x.validate(v));
+        }
+        if self.xf.is_empty() {
+            v.required_element(Ns::X, "xf", &self.extra_children);
+        }
     }
 }
 
@@ -9029,6 +9365,17 @@ impl XmlWrite for CT_CellStyles {
     }
 }
 
+impl Validate for CT_CellStyles {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cell_style.iter().enumerate() {
+            v.enter("x:cellStyle", Some(i), |v| x.validate(v));
+        }
+        if self.cell_style.is_empty() {
+            v.required_element(Ns::X, "cellStyle", &self.extra_children);
+        }
+    }
+}
+
 /// Cell Watch Item (ECMA-376 Part 1 §18.3.1.8).
 ///
 /// The watch window is a single UI location where the application user can keep track of certain cell formulas & values which they have chosen to be in the set of watched cells. This element expresses the cell address of a cell being watched. It is always a reference to a single cell.
@@ -9078,6 +9425,14 @@ impl XmlWrite for CT_CellWatch {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_CellWatch {
+    fn validate(&self, v: &mut Validator) {
+        if self.r.is_none() {
+            v.required_attribute(Ns::NONE, "r", &self.extra_attrs);
+        }
     }
 }
 
@@ -9139,6 +9494,17 @@ impl XmlWrite for CT_CellWatches {
         rt::write_extras_after(w, &self.extra_children, 0, self.cell_watch.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_CellWatches {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cell_watch.iter().enumerate() {
+            v.enter("x:cellWatch", Some(i), |v| x.validate(v));
+        }
+        if self.cell_watch.is_empty() {
+            v.required_element(Ns::X, "cellWatch", &self.extra_children);
+        }
     }
 }
 
@@ -9212,6 +9578,17 @@ impl XmlWrite for CT_CellXfs {
         rt::write_extras_after(w, &self.extra_children, 0, self.xf.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_CellXfs {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.xf.iter().enumerate() {
+            v.enter("x:xf", Some(i), |v| x.validate(v));
+        }
+        if self.xf.is_empty() {
+            v.required_element(Ns::X, "xf", &self.extra_children);
+        }
     }
 }
 
@@ -9457,6 +9834,26 @@ impl XmlWrite for CT_CfRule {
     }
 }
 
+impl Validate for CT_CfRule {
+    fn validate(&self, v: &mut Validator) {
+        if self.priority.is_none() {
+            v.required_attribute(Ns::NONE, "priority", &self.extra_attrs);
+        }
+        if let Some(x) = &self.color_scale {
+            v.enter("x:colorScale", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.data_bar {
+            v.enter("x:dataBar", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.icon_set {
+            v.enter("x:iconSet", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Conditional Format Value Object (ECMA-376 Part 1 §18.3.1.11).
 ///
 /// Describes the values of the interpolation points in a gradient scale.
@@ -9542,6 +9939,17 @@ impl XmlWrite for CT_Cfvo {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Cfvo {
+    fn validate(&self, v: &mut Validator) {
+        if self.type_.is_none() {
+            v.required_attribute(Ns::NONE, "type", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -9633,6 +10041,22 @@ impl XmlWrite for CT_ChartFormat {
     }
 }
 
+impl Validate for CT_ChartFormat {
+    fn validate(&self, v: &mut Validator) {
+        if self.chart.is_none() {
+            v.required_attribute(Ns::NONE, "chart", &self.extra_attrs);
+        }
+        if self.format.is_none() {
+            v.required_attribute(Ns::NONE, "format", &self.extra_attrs);
+        }
+        if let Some(x) = &self.pivot_area {
+            v.enter("x:pivotArea", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "pivotArea", &self.extra_children);
+        }
+    }
+}
+
 /// PivotChart Formats (ECMA-376 Part 1 §18.10.1.13).
 ///
 /// Represents the collection of formats applied to PivotChart.
@@ -9703,6 +10127,17 @@ impl XmlWrite for CT_ChartFormats {
         rt::write_extras_after(w, &self.extra_children, 0, self.chart_format.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ChartFormats {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.chart_format.iter().enumerate() {
+            v.enter("x:chartFormat", Some(i), |v| x.validate(v));
+        }
+        if self.chart_format.is_empty() {
+            v.required_element(Ns::X, "chartFormat", &self.extra_children);
+        }
     }
 }
 
@@ -9946,6 +10381,57 @@ impl XmlWrite for CT_Chartsheet {
     }
 }
 
+impl Validate for CT_Chartsheet {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.sheet_pr {
+            v.enter("x:sheetPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sheet_views {
+            v.enter("x:sheetViews", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "sheetViews", &self.extra_children);
+        }
+        if let Some(x) = &self.sheet_protection {
+            v.enter("x:sheetProtection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.custom_sheet_views {
+            v.enter("x:customSheetViews", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.page_margins {
+            v.enter("x:pageMargins", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.page_setup {
+            v.enter("x:pageSetup", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.header_footer {
+            v.enter("x:headerFooter", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.drawing {
+            v.enter("x:drawing", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "drawing", &self.extra_children);
+        }
+        if let Some(x) = &self.legacy_drawing {
+            v.enter("x:legacyDrawing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.legacy_drawing_hf {
+            v.enter("x:legacyDrawingHF", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.drawing_hf {
+            v.enter("x:drawingHF", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.picture {
+            v.enter("x:picture", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.web_publish_items {
+            v.enter("x:webPublishItems", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Chart Sheet Properties (ECMA-376 Part 1 §18.3.1.83).
 ///
 /// This element specifies chart sheet properties.
@@ -10022,6 +10508,14 @@ impl XmlWrite for CT_ChartsheetPr {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ChartsheetPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.tab_color {
+            v.enter("x:tabColor", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -10131,6 +10625,10 @@ impl XmlWrite for CT_ChartsheetProtection {
     }
 }
 
+impl Validate for CT_ChartsheetProtection {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Chart Sheet View (ECMA-376 Part 1 §18.3.1.86).
 ///
 /// This element specifies a chart sheet view. \[Note: See sheetView (§18.3.1.87) for an example. end note\]
@@ -10228,6 +10726,17 @@ impl XmlWrite for CT_ChartsheetView {
     }
 }
 
+impl Validate for CT_ChartsheetView {
+    fn validate(&self, v: &mut Validator) {
+        if self.workbook_view_id.is_none() {
+            v.required_attribute(Ns::NONE, "workbookViewId", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Chart Sheet Views (ECMA-376 Part 1 §18.3.1.89).
 ///
 /// This element specifies chart sheet views.
@@ -10300,6 +10809,20 @@ impl XmlWrite for CT_ChartsheetViews {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_ChartsheetViews {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.sheet_view.iter().enumerate() {
+            v.enter("x:sheetView", Some(i), |v| x.validate(v));
+        }
+        if self.sheet_view.is_empty() {
+            v.required_element(Ns::X, "sheetView", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -10436,6 +10959,17 @@ impl XmlWrite for CT_Col {
     }
 }
 
+impl Validate for CT_Col {
+    fn validate(&self, v: &mut Validator) {
+        if self.min.is_none() {
+            v.required_attribute(Ns::NONE, "min", &self.extra_attrs);
+        }
+        if self.max.is_none() {
+            v.required_attribute(Ns::NONE, "max", &self.extra_attrs);
+        }
+    }
+}
+
 /// Column Fields (ECMA-376 Part 1 §18.10.1.14).
 ///
 /// Represents the collection of fields that are on the column axis of the PivotTable.
@@ -10509,6 +11043,17 @@ impl XmlWrite for CT_ColFields {
     }
 }
 
+impl Validate for CT_ColFields {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.field.iter().enumerate() {
+            v.enter("x:field", Some(i), |v| x.validate(v));
+        }
+        if self.field.is_empty() {
+            v.required_element(Ns::X, "field", &self.extra_children);
+        }
+    }
+}
+
 /// Column OLAP Hierarchy References (ECMA-376 Part 1 §18.10.1.15).
 ///
 /// Represents the collection of references to OLAP hierarchies on the column axis of a PivotTable.
@@ -10579,6 +11124,17 @@ impl XmlWrite for CT_ColHierarchiesUsage {
         rt::write_extras_after(w, &self.extra_children, 0, self.col_hierarchy_usage.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ColHierarchiesUsage {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.col_hierarchy_usage.iter().enumerate() {
+            v.enter("x:colHierarchyUsage", Some(i), |v| x.validate(v));
+        }
+        if self.col_hierarchy_usage.is_empty() {
+            v.required_element(Ns::X, "colHierarchyUsage", &self.extra_children);
+        }
     }
 }
 
@@ -10673,6 +11229,10 @@ impl XmlWrite for CT_Color {
     }
 }
 
+impl Validate for CT_Color {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Color Filter Criteria (ECMA-376 Part 1 §18.3.2.1).
 ///
 /// This element specifies the color to filter by and whether to use the cell's fill or font color in the filter criteria. If the cell's font or fill color does not match the color specified in the criteria, the rows corresponding to those cells are hidden from view.
@@ -10732,6 +11292,10 @@ impl XmlWrite for CT_ColorFilter {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_ColorFilter {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Color Scale (ECMA-376 Part 1 §18.3.1.16).
@@ -10812,6 +11376,23 @@ impl XmlWrite for CT_ColorScale {
     }
 }
 
+impl Validate for CT_ColorScale {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cfvo.iter().enumerate() {
+            v.enter("x:cfvo", Some(i), |v| x.validate(v));
+        }
+        if self.cfvo.is_empty() {
+            v.required_element(Ns::X, "cfvo", &self.extra_children);
+        }
+        for (i, x) in self.color.iter().enumerate() {
+            v.enter("x:color", Some(i), |v| x.validate(v));
+        }
+        if self.color.is_empty() {
+            v.required_element(Ns::X, "color", &self.extra_children);
+        }
+    }
+}
+
 /// Colors (ECMA-376 Part 1 §18.8.11).
 ///
 /// Color information associated with this stylesheet. This collection is written whenever the legacy color palette has been modified (backwards compatibility settings) or a custom color has been selected while using this workbook. When the color palette is modified, the indexedColors collection is written.
@@ -10884,6 +11465,17 @@ impl XmlWrite for CT_Colors {
     }
 }
 
+impl Validate for CT_Colors {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.indexed_colors {
+            v.enter("x:indexedColors", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.mru_colors {
+            v.enter("x:mruColors", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Column Information (ECMA-376 Part 1 §18.3.1.17).
 ///
 /// Information about whole columns of the worksheet.
@@ -10942,6 +11534,17 @@ impl XmlWrite for CT_Cols {
         rt::write_extras_after(w, &self.extra_children, 0, self.col.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Cols {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.col.iter().enumerate() {
+            v.enter("x:col", Some(i), |v| x.validate(v));
+        }
+        if self.col.is_empty() {
+            v.required_element(Ns::X, "col", &self.extra_children);
+        }
     }
 }
 
@@ -11056,6 +11659,25 @@ impl XmlWrite for CT_Comment {
     }
 }
 
+impl Validate for CT_Comment {
+    fn validate(&self, v: &mut Validator) {
+        if self.ref_.is_none() {
+            v.required_attribute(Ns::NONE, "ref", &self.extra_attrs);
+        }
+        if self.author_id.is_none() {
+            v.required_attribute(Ns::NONE, "authorId", &self.extra_attrs);
+        }
+        if let Some(x) = &self.text {
+            v.enter("x:text", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "text", &self.extra_children);
+        }
+        if let Some(x) = &self.comment_pr {
+            v.enter("x:commentPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// List of Comments (ECMA-376 Part 1 §18.7.4).
 ///
 /// This element is a container that holds a list of comments for the sheet.
@@ -11114,6 +11736,14 @@ impl XmlWrite for CT_CommentList {
         rt::write_extras_after(w, &self.extra_children, 0, self.comment.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_CommentList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.comment.iter().enumerate() {
+            v.enter("x:comment", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -11286,6 +11916,16 @@ impl XmlWrite for CT_CommentPr {
     }
 }
 
+impl Validate for CT_CommentPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.anchor {
+            v.enter("x:anchor", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "anchor", &self.extra_children);
+        }
+    }
+}
+
 /// Comments (ECMA-376 Part 1 §18.7.6).
 ///
 /// This element is the root container of a set of comments and comment authors for a particular sheet. Each set of comments for a sheet is stored in a separate xml part. The relationship part for a sheet defines a link to the correct comment part for that sheet.
@@ -11369,6 +12009,24 @@ impl XmlWrite for CT_Comments {
         }
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_Comments {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.authors {
+            v.enter("x:authors", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "authors", &self.extra_children);
+        }
+        if let Some(x) = &self.comment_list {
+            v.enter("x:commentList", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "commentList", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -11474,6 +12132,22 @@ impl XmlWrite for CT_ConditionalFormat {
     }
 }
 
+impl Validate for CT_ConditionalFormat {
+    fn validate(&self, v: &mut Validator) {
+        if self.priority.is_none() {
+            v.required_attribute(Ns::NONE, "priority", &self.extra_attrs);
+        }
+        if let Some(x) = &self.pivot_areas {
+            v.enter("x:pivotAreas", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "pivotAreas", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Conditional Formats (ECMA-376 Part 1 §18.10.1.19).
 ///
 /// Represents the collection of conditional formats applied to a PivotTable.
@@ -11544,6 +12218,17 @@ impl XmlWrite for CT_ConditionalFormats {
         rt::write_extras_after(w, &self.extra_children, 0, self.conditional_format.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ConditionalFormats {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.conditional_format.iter().enumerate() {
+            v.enter("x:conditionalFormat", Some(i), |v| x.validate(v));
+        }
+        if self.conditional_format.is_empty() {
+            v.required_element(Ns::X, "conditionalFormat", &self.extra_children);
+        }
     }
 }
 
@@ -11640,6 +12325,20 @@ impl XmlWrite for CT_ConditionalFormatting {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_ConditionalFormatting {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cf_rule.iter().enumerate() {
+            v.enter("x:cfRule", Some(i), |v| x.validate(v));
+        }
+        if self.cf_rule.is_empty() {
+            v.required_element(Ns::X, "cfRule", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -11964,6 +12663,35 @@ impl XmlWrite for CT_Connection {
     }
 }
 
+impl Validate for CT_Connection {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "id", &self.extra_attrs);
+        }
+        if self.refreshed_version.is_none() {
+            v.required_attribute(Ns::NONE, "refreshedVersion", &self.extra_attrs);
+        }
+        if let Some(x) = &self.db_pr {
+            v.enter("x:dbPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.olap_pr {
+            v.enter("x:olapPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.web_pr {
+            v.enter("x:webPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.text_pr {
+            v.enter("x:textPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.parameters {
+            v.enter("x:parameters", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Connections (ECMA-376 Part 1 §18.13.2).
 ///
 /// This element exists when there are one or more connections in the workbook. It is a container for the individual connection objects.
@@ -12022,6 +12750,17 @@ impl XmlWrite for CT_Connections {
         rt::write_extras_after(w, &self.extra_children, 0, self.connection.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Connections {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.connection.iter().enumerate() {
+            v.enter("x:connection", Some(i), |v| x.validate(v));
+        }
+        if self.connection.is_empty() {
+            v.required_element(Ns::X, "connection", &self.extra_children);
+        }
     }
 }
 
@@ -12106,6 +12845,19 @@ impl XmlWrite for CT_Consolidation {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_Consolidation {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pages {
+            v.enter("x:pages", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.range_sets {
+            v.enter("x:rangeSets", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "rangeSets", &self.extra_children);
+        }
     }
 }
 
@@ -12194,6 +12946,20 @@ impl XmlWrite for CT_Control {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Control {
+    fn validate(&self, v: &mut Validator) {
+        if self.shape_id.is_none() {
+            v.required_attribute(Ns::NONE, "shapeId", &self.extra_attrs);
+        }
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
+        if let Some(x) = &self.control_pr {
+            v.enter("x:controlPr", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -12393,6 +13159,16 @@ impl XmlWrite for CT_ControlPr {
     }
 }
 
+impl Validate for CT_ControlPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.anchor {
+            v.enter("x:anchor", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "anchor", &self.extra_children);
+        }
+    }
+}
+
 /// Embedded Controls (ECMA-376 Part 1 §18.3.1.21).
 ///
 /// Worksheets can have embedded controls embedded in them. This collection is a listing of embedded controls in this worksheet. This collection is used to reference individual Embedded Control Data part definitions, enumerate the code name of each control, and reference drawing information used to draw the control.
@@ -12451,6 +13227,17 @@ impl XmlWrite for CT_Controls {
         rt::write_extras_after(w, &self.extra_children, 0, self.control.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Controls {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.control.iter().enumerate() {
+            v.enter("x:control", Some(i), |v| x.validate(v));
+        }
+        if self.control.is_empty() {
+            v.required_element(Ns::X, "control", &self.extra_children);
+        }
     }
 }
 
@@ -12614,6 +13401,10 @@ impl XmlWrite for CT_CsPageSetup {
     }
 }
 
+impl Validate for CT_CsPageSetup {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Custom Chart Sheet View (ECMA-376 Part 1 §18.3.1.24).
 ///
 /// This element defines custom view properties for chart sheets. \[Note: See customSheetView (§18.3.1.25) for an example. end note\]
@@ -12739,6 +13530,23 @@ impl XmlWrite for CT_CustomChartsheetView {
     }
 }
 
+impl Validate for CT_CustomChartsheetView {
+    fn validate(&self, v: &mut Validator) {
+        if self.guid.is_none() {
+            v.required_attribute(Ns::NONE, "guid", &self.extra_attrs);
+        }
+        if let Some(x) = &self.page_margins {
+            v.enter("x:pageMargins", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.page_setup {
+            v.enter("x:pageSetup", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.header_footer {
+            v.enter("x:headerFooter", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Custom Chart Sheet Views (ECMA-376 Part 1 §18.3.1.26).
 ///
 /// Collection of custom Chart Sheet View information.
@@ -12797,6 +13605,14 @@ impl XmlWrite for CT_CustomChartsheetViews {
         rt::write_extras_after(w, &self.extra_children, 0, self.custom_sheet_view.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_CustomChartsheetViews {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.custom_sheet_view.iter().enumerate() {
+            v.enter("x:customSheetView", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -12859,6 +13675,10 @@ impl XmlWrite for CT_CustomFilter {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_CustomFilter {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Custom Filters (ECMA-376 Part 1 §18.3.2.3).
@@ -12934,6 +13754,17 @@ impl XmlWrite for CT_CustomFilters {
     }
 }
 
+impl Validate for CT_CustomFilters {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.custom_filter.iter().enumerate() {
+            v.enter("x:customFilter", Some(i), |v| x.validate(v));
+        }
+        if self.custom_filter.is_empty() {
+            v.required_element(Ns::X, "customFilter", &self.extra_children);
+        }
+    }
+}
+
 /// Custom Properties (ECMA-376 Part 1 §18.3.1.23).
 ///
 /// This collection is used to reference binary parts containing arbitrary user-defined data.
@@ -12995,6 +13826,17 @@ impl XmlWrite for CT_CustomProperties {
     }
 }
 
+impl Validate for CT_CustomProperties {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.custom_pr.iter().enumerate() {
+            v.enter("x:customPr", Some(i), |v| x.validate(v));
+        }
+        if self.custom_pr.is_empty() {
+            v.required_element(Ns::X, "customPr", &self.extra_children);
+        }
+    }
+}
+
 /// Custom Property (ECMA-376 Part 1 §18.3.1.22).
 ///
 /// The custom property element provides a mechanism to store name/value pairs of arbitrary user-defined data. The name is stored in the attribute name, the arbitrary data is stored in the binary part referenced by the relationshipId.
@@ -13053,6 +13895,17 @@ impl XmlWrite for CT_CustomProperty {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_CustomProperty {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -13423,6 +14276,44 @@ impl XmlWrite for CT_CustomSheetView {
     }
 }
 
+impl Validate for CT_CustomSheetView {
+    fn validate(&self, v: &mut Validator) {
+        if self.guid.is_none() {
+            v.required_attribute(Ns::NONE, "guid", &self.extra_attrs);
+        }
+        if let Some(x) = &self.pane {
+            v.enter("x:pane", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.selection {
+            v.enter("x:selection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.row_breaks {
+            v.enter("x:rowBreaks", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.col_breaks {
+            v.enter("x:colBreaks", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.page_margins {
+            v.enter("x:pageMargins", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.print_options {
+            v.enter("x:printOptions", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.page_setup {
+            v.enter("x:pageSetup", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.header_footer {
+            v.enter("x:headerFooter", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.auto_filter {
+            v.enter("x:autoFilter", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Custom Sheet Views (ECMA-376 Part 1 §18.3.1.27).
 ///
 /// This is a collection of custom sheet views.
@@ -13481,6 +14372,17 @@ impl XmlWrite for CT_CustomSheetViews {
         rt::write_extras_after(w, &self.extra_children, 0, self.custom_sheet_view.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_CustomSheetViews {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.custom_sheet_view.iter().enumerate() {
+            v.enter("x:customSheetView", Some(i), |v| x.validate(v));
+        }
+        if self.custom_sheet_view.is_empty() {
+            v.required_element(Ns::X, "customSheetView", &self.extra_children);
+        }
     }
 }
 
@@ -13761,6 +14663,29 @@ impl XmlWrite for CT_CustomWorkbookView {
     }
 }
 
+impl Validate for CT_CustomWorkbookView {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if self.guid.is_none() {
+            v.required_attribute(Ns::NONE, "guid", &self.extra_attrs);
+        }
+        if self.window_width.is_none() {
+            v.required_attribute(Ns::NONE, "windowWidth", &self.extra_attrs);
+        }
+        if self.window_height.is_none() {
+            v.required_attribute(Ns::NONE, "windowHeight", &self.extra_attrs);
+        }
+        if self.active_sheet_id.is_none() {
+            v.required_attribute(Ns::NONE, "activeSheetId", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Custom Workbook Views (ECMA-376 Part 1 §18.2.4).
 ///
 /// This element defines the collection of custom workbook views that are defined for this workbook. A customWorkbookView is similar in concept to a workbookView (§18.2.30) in that its attributes contain settings related to the way that the workbook should be displayed on a screen by a spreadsheet application.
@@ -13819,6 +14744,17 @@ impl XmlWrite for CT_CustomWorkbookViews {
         rt::write_extras_after(w, &self.extra_children, 0, self.custom_workbook_view.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_CustomWorkbookViews {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.custom_workbook_view.iter().enumerate() {
+            v.enter("x:customWorkbookView", Some(i), |v| x.validate(v));
+        }
+        if self.custom_workbook_view.is_empty() {
+            v.required_element(Ns::X, "customWorkbookView", &self.extra_children);
+        }
     }
 }
 
@@ -13927,6 +14863,22 @@ impl XmlWrite for CT_DataBar {
     }
 }
 
+impl Validate for CT_DataBar {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cfvo.iter().enumerate() {
+            v.enter("x:cfvo", Some(i), |v| x.validate(v));
+        }
+        if self.cfvo.is_empty() {
+            v.required_element(Ns::X, "cfvo", &self.extra_children);
+        }
+        if let Some(x) = &self.color {
+            v.enter("x:color", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "color", &self.extra_children);
+        }
+    }
+}
+
 /// XML Mapping (ECMA-376 Part 1 §18.16.1).
 ///
 /// This element contains properties which specify how the XML mapping should work.
@@ -14027,6 +14979,17 @@ impl XmlWrite for CT_DataBinding {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_DataBinding {
+    fn validate(&self, v: &mut Validator) {
+        if self.data_binding_load_mode.is_none() {
+            v.required_attribute(Ns::NONE, "DataBindingLoadMode", &self.extra_attrs);
+        }
+        if self.any.is_none() {
+            v.missing_content("an element (wildcard)");
+        }
     }
 }
 
@@ -14133,6 +15096,14 @@ impl XmlWrite for CT_DataConsolidate {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_DataConsolidate {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.data_refs {
+            v.enter("x:dataRefs", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -14260,6 +15231,17 @@ impl XmlWrite for CT_DataField {
     }
 }
 
+impl Validate for CT_DataField {
+    fn validate(&self, v: &mut Validator) {
+        if self.fld.is_none() {
+            v.required_attribute(Ns::NONE, "fld", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Data Fields (ECMA-376 Part 1 §18.10.1.23).
 ///
 /// Represents the collection of items in the data region of the PivotTable.
@@ -14330,6 +15312,17 @@ impl XmlWrite for CT_DataFields {
         rt::write_extras_after(w, &self.extra_children, 0, self.data_field.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_DataFields {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.data_field.iter().enumerate() {
+            v.enter("x:dataField", Some(i), |v| x.validate(v));
+        }
+        if self.data_field.is_empty() {
+            v.required_element(Ns::X, "dataField", &self.extra_children);
+        }
     }
 }
 
@@ -14412,6 +15405,10 @@ impl XmlWrite for CT_DataRef {
     }
 }
 
+impl Validate for CT_DataRef {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Data Consolidation References (ECMA-376 Part 1 §18.3.1.31).
 ///
 /// Data consolidate reference collection.
@@ -14482,6 +15479,14 @@ impl XmlWrite for CT_DataRefs {
         rt::write_extras_after(w, &self.extra_children, 0, self.data_ref.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_DataRefs {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.data_ref.iter().enumerate() {
+            v.enter("x:dataRef", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -14683,6 +15688,14 @@ impl XmlWrite for CT_DataValidation {
     }
 }
 
+impl Validate for CT_DataValidation {
+    fn validate(&self, v: &mut Validator) {
+        if self.sqref.is_none() {
+            v.required_attribute(Ns::NONE, "sqref", &self.extra_attrs);
+        }
+    }
+}
+
 /// Data Validations (ECMA-376 Part 1 §18.3.1.33).
 ///
 /// This collection expresses all data validation information for cells in a sheet which have data validation features applied. Data validation is used to specify constraints on the data that can be entered into a cell. Additional UI can be provided to help the user select values (e.g., a dropdown control on the cell or hover text when the cell is active), and to help the user understand why a particular entry was disallowed (e.g., alerts and messages).
@@ -14780,6 +15793,17 @@ impl XmlWrite for CT_DataValidations {
         rt::write_extras_after(w, &self.extra_children, 0, self.data_validation.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_DataValidations {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.data_validation.iter().enumerate() {
+            v.enter("x:dataValidation", Some(i), |v| x.validate(v));
+        }
+        if self.data_validation.is_empty() {
+            v.required_element(Ns::X, "dataValidation", &self.extra_children);
+        }
     }
 }
 
@@ -14886,6 +15910,17 @@ impl XmlWrite for CT_DateGroupItem {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_DateGroupItem {
+    fn validate(&self, v: &mut Validator) {
+        if self.year.is_none() {
+            v.required_attribute(Ns::NONE, "year", &self.extra_attrs);
+        }
+        if self.date_time_grouping.is_none() {
+            v.required_attribute(Ns::NONE, "dateTimeGrouping", &self.extra_attrs);
+        }
     }
 }
 
@@ -14998,6 +16033,17 @@ impl XmlWrite for CT_DateTime {
     }
 }
 
+impl Validate for CT_DateTime {
+    fn validate(&self, v: &mut Validator) {
+        if self.v.is_none() {
+            v.required_attribute(Ns::NONE, "v", &self.extra_attrs);
+        }
+        for (i, x) in self.x.iter().enumerate() {
+            v.enter("x:x", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Database Properties (ECMA-376 Part 1 §18.13.3).
 ///
 /// This element stores all properties associated with an ODBC or OLE DB external data connection.
@@ -15074,6 +16120,14 @@ impl XmlWrite for CT_DbPr {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_DbPr {
+    fn validate(&self, v: &mut Validator) {
+        if self.connection.is_none() {
+            v.required_attribute(Ns::NONE, "connection", &self.extra_attrs);
+        }
     }
 }
 
@@ -15174,6 +16228,14 @@ impl XmlWrite for CT_DdeItem {
     }
 }
 
+impl Validate for CT_DdeItem {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.values {
+            v.enter("x:values", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// DDE Items Collection (ECMA-376 Part 1 §18.14.3).
 ///
 /// This element serves as a collection for ddeItem elements.
@@ -15232,6 +16294,14 @@ impl XmlWrite for CT_DdeItems {
         rt::write_extras_after(w, &self.extra_children, 0, self.dde_item.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_DdeItems {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.dde_item.iter().enumerate() {
+            v.enter("x:ddeItem", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -15314,6 +16384,20 @@ impl XmlWrite for CT_DdeLink {
     }
 }
 
+impl Validate for CT_DdeLink {
+    fn validate(&self, v: &mut Validator) {
+        if self.dde_service.is_none() {
+            v.required_attribute(Ns::NONE, "ddeService", &self.extra_attrs);
+        }
+        if self.dde_topic.is_none() {
+            v.required_attribute(Ns::NONE, "ddeTopic", &self.extra_attrs);
+        }
+        if let Some(x) = &self.dde_items {
+            v.enter("x:ddeItems", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Value (ECMA-376 Part 1 §18.14.18).
 ///
 /// This element contains a value associated with a particular DDE item. This serves as a container for the val element.
@@ -15384,6 +16468,14 @@ impl XmlWrite for CT_DdeValue {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_DdeValue {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_element(Ns::X, "val", &self.extra_children);
+        }
     }
 }
 
@@ -15466,6 +16558,17 @@ impl XmlWrite for CT_DdeValues {
         rt::write_extras_after(w, &self.extra_children, 0, self.value_2.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_DdeValues {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.value_2.iter().enumerate() {
+            v.enter("x:value", Some(i), |v| x.validate(v));
+        }
+        if self.value_2.is_empty() {
+            v.required_element(Ns::X, "value", &self.extra_children);
+        }
     }
 }
 
@@ -15651,6 +16754,14 @@ impl XmlWrite for CT_DefinedName {
     }
 }
 
+impl Validate for CT_DefinedName {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+    }
+}
+
 /// Defined Names (ECMA-376 Part 1 §18.2.6).
 ///
 /// This element defines the collection of defined names for this workbook. Defined names are descriptive names to represent cells, ranges of cells, formulas, or constant values. Defined names can be used to represent a range on any worksheet.
@@ -15712,6 +16823,14 @@ impl XmlWrite for CT_DefinedNames {
     }
 }
 
+impl Validate for CT_DefinedNames {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.defined_name.iter().enumerate() {
+            v.enter("x:definedName", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Deleted Field (ECMA-376 Part 1 §18.12.1).
 ///
 /// This element specifies a field that has been deleted from the query table.
@@ -15761,6 +16880,14 @@ impl XmlWrite for CT_DeletedField {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_DeletedField {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
     }
 }
 
@@ -16032,6 +17159,59 @@ impl XmlWrite for CT_Dialogsheet {
     }
 }
 
+impl Validate for CT_Dialogsheet {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.sheet_pr {
+            v.enter("x:sheetPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sheet_views {
+            v.enter("x:sheetViews", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sheet_format_pr {
+            v.enter("x:sheetFormatPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sheet_protection {
+            v.enter("x:sheetProtection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.custom_sheet_views {
+            v.enter("x:customSheetViews", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.print_options {
+            v.enter("x:printOptions", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.page_margins {
+            v.enter("x:pageMargins", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.page_setup {
+            v.enter("x:pageSetup", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.header_footer {
+            v.enter("x:headerFooter", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.drawing {
+            v.enter("x:drawing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.legacy_drawing {
+            v.enter("x:legacyDrawing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.legacy_drawing_hf {
+            v.enter("x:legacyDrawingHF", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.drawing_hf {
+            v.enter("x:drawingHF", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ole_objects {
+            v.enter("x:oleObjects", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.controls {
+            v.enter("x:controls", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// OLAP Dimensions (ECMA-376 Part 1 §18.10.1.25).
 ///
 /// Represents the collection of PivotTable OLAP dimensions.
@@ -16102,6 +17282,14 @@ impl XmlWrite for CT_Dimensions {
         rt::write_extras_after(w, &self.extra_children, 0, self.dimension.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Dimensions {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.dimension.iter().enumerate() {
+            v.enter("x:dimension", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -16178,6 +17366,17 @@ impl XmlWrite for CT_DiscretePr {
     }
 }
 
+impl Validate for CT_DiscretePr {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.x.iter().enumerate() {
+            v.enter("x:x", Some(i), |v| x.validate(v));
+        }
+        if self.x.is_empty() {
+            v.required_element(Ns::X, "x", &self.extra_children);
+        }
+    }
+}
+
 /// Drawing (ECMA-376 Part 1 §18.3.1.36).
 ///
 /// This element indicates that the sheet contains drawing components built on the drawingML platform. The relationship Id references the part containing the drawingML definitions.
@@ -16227,6 +17426,14 @@ impl XmlWrite for CT_Drawing {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Drawing {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -16444,6 +17651,14 @@ impl XmlWrite for CT_DrawingHF {
     }
 }
 
+impl Validate for CT_DrawingHF {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
+    }
+}
+
 /// Formatting (ECMA-376 Part 1 §18.8.14).
 ///
 /// A single dxf record, expressing incremental formatting to be applied.
@@ -16588,6 +17803,32 @@ impl XmlWrite for CT_Dxf {
     }
 }
 
+impl Validate for CT_Dxf {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.font {
+            v.enter("x:font", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_fmt {
+            v.enter("x:numFmt", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.fill {
+            v.enter("x:fill", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.alignment {
+            v.enter("x:alignment", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.border {
+            v.enter("x:border", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.protection {
+            v.enter("x:protection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Formats (ECMA-376 Part 1 §18.8.15).
 ///
 /// This element contains the master differential formatting records (dxf's) which define formatting for all non-cell formatting in this workbook. Whereas xf records fully specify a particular aspect of formatting (e.g., cell borders) by referencing those formatting definitions elsewhere in the Styles part, dxf records specify incremental (or differential) aspects of formatting directly inline within the dxf element. The dxf formatting is to be applied on top of or in addition to any formatting already present on the object using the dxf record.
@@ -16658,6 +17899,14 @@ impl XmlWrite for CT_Dxfs {
         rt::write_extras_after(w, &self.extra_children, 0, self.dxf.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Dxfs {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.dxf.iter().enumerate() {
+            v.enter("x:dxf", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -16746,6 +17995,14 @@ impl XmlWrite for CT_DynamicFilter {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_DynamicFilter {
+    fn validate(&self, v: &mut Validator) {
+        if self.type_.is_none() {
+            v.required_attribute(Ns::NONE, "type", &self.extra_attrs);
+        }
     }
 }
 
@@ -16935,6 +18192,20 @@ impl XmlWrite for CT_Error {
     }
 }
 
+impl Validate for CT_Error {
+    fn validate(&self, v: &mut Validator) {
+        if self.v.is_none() {
+            v.required_attribute(Ns::NONE, "v", &self.extra_attrs);
+        }
+        if let Some(x) = &self.tpls {
+            v.enter("x:tpls", None, |v| x.validate(v));
+        }
+        for (i, x) in self.x.iter().enumerate() {
+            v.enter("x:x", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Extension (ECMA-376 Part 1 §18.2.7).
 ///
 /// Each extension within an extension list shall be contained within an ext element. Extensions shall be versioned by namespace, using the uri attribute, and shall be allowed to appear in any order within the extension list. Any number of extensions shall be allowed within an extension list.
@@ -17002,6 +18273,14 @@ impl XmlWrite for CT_Extension {
     }
 }
 
+impl Validate for CT_Extension {
+    fn validate(&self, v: &mut Validator) {
+        if self.any.is_none() {
+            v.missing_content("an element (wildcard)");
+        }
+    }
+}
+
 /// Future Feature Data Storage Area (ECMA-376 Part 1 §18.2.10).
 ///
 /// This element provides a convention for extending spreadsheetML in predefined locations. The locations shall be denoted with the extLst element, and are called extension lists. Extension list locations within the markup document are specified in the markup specification and can be used to store extensions to the markup specification, whether those are future version extensions of the markup specification or are private extensions implemented independently from the markup specification.
@@ -17060,6 +18339,14 @@ impl XmlWrite for CT_ExtensionList {
         rt::write_extras_after(w, &self.extra_children, 0, self.ext.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ExtensionList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.ext.iter().enumerate() {
+            v.enter("x:ext", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -17161,6 +18448,23 @@ impl XmlWrite for CT_ExternalBook {
     }
 }
 
+impl Validate for CT_ExternalBook {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
+        if let Some(x) = &self.sheet_names {
+            v.enter("x:sheetNames", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.defined_names {
+            v.enter("x:definedNames", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sheet_data_set {
+            v.enter("x:sheetDataSet", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// External Cell Data (ECMA-376 Part 1 §18.14.1).
 ///
 /// This element is used to store cached values from external sources such as other workbooks. Formulas from external cells are not stored in the consuming workbook. Also, for this context, the attribute t cannot have a value of inlineStr.
@@ -17252,6 +18556,10 @@ impl XmlWrite for CT_ExternalCell {
     }
 }
 
+impl Validate for CT_ExternalCell {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Defined Name (ECMA-376 Part 1 §18.14.5).
 ///
 /// This element contains information about a named range in an external workbook.
@@ -17322,6 +18630,14 @@ impl XmlWrite for CT_ExternalDefinedName {
     }
 }
 
+impl Validate for CT_ExternalDefinedName {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+    }
+}
+
 /// Named Links (ECMA-376 Part 1 §18.14.6).
 ///
 /// This element is a collection of the defined names associated with the supporting workbook.
@@ -17380,6 +18696,14 @@ impl XmlWrite for CT_ExternalDefinedNames {
         rt::write_extras_after(w, &self.extra_children, 0, self.defined_name.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ExternalDefinedNames {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.defined_name.iter().enumerate() {
+            v.enter("x:definedName", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -17455,6 +18779,17 @@ impl XmlWrite for CT_ExternalLink {
     }
 }
 
+impl Validate for CT_ExternalLink {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// External Reference (ECMA-376 Part 1 §18.2.8).
 ///
 /// This element defines an external reference that stores data for workbook elements.
@@ -17504,6 +18839,14 @@ impl XmlWrite for CT_ExternalReference {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_ExternalReference {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -17565,6 +18908,17 @@ impl XmlWrite for CT_ExternalReferences {
         rt::write_extras_after(w, &self.extra_children, 0, self.external_reference.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ExternalReferences {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.external_reference.iter().enumerate() {
+            v.enter("x:externalReference", Some(i), |v| x.validate(v));
+        }
+        if self.external_reference.is_empty() {
+            v.required_element(Ns::X, "externalReference", &self.extra_children);
+        }
     }
 }
 
@@ -17638,6 +18992,17 @@ impl XmlWrite for CT_ExternalRow {
         rt::write_extras_after(w, &self.extra_children, 0, self.cell.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ExternalRow {
+    fn validate(&self, v: &mut Validator) {
+        if self.r.is_none() {
+            v.required_attribute(Ns::NONE, "r", &self.extra_attrs);
+        }
+        for (i, x) in self.cell.iter().enumerate() {
+            v.enter("x:cell", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -17723,6 +19088,17 @@ impl XmlWrite for CT_ExternalSheetData {
     }
 }
 
+impl Validate for CT_ExternalSheetData {
+    fn validate(&self, v: &mut Validator) {
+        if self.sheet_id.is_none() {
+            v.required_attribute(Ns::NONE, "sheetId", &self.extra_attrs);
+        }
+        for (i, x) in self.row.iter().enumerate() {
+            v.enter("x:row", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Cached Worksheet Data (ECMA-376 Part 1 §18.14.14).
 ///
 /// This element serves as the collection for 1 or more sheetData elements.
@@ -17784,6 +19160,17 @@ impl XmlWrite for CT_ExternalSheetDataSet {
     }
 }
 
+impl Validate for CT_ExternalSheetDataSet {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.sheet_data.iter().enumerate() {
+            v.enter("x:sheetData", Some(i), |v| x.validate(v));
+        }
+        if self.sheet_data.is_empty() {
+            v.required_element(Ns::X, "sheetData", &self.extra_children);
+        }
+    }
+}
+
 /// Sheet Name (ECMA-376 Part 1 §18.14.15).
 ///
 /// Name of a worksheet in the supporting workbook
@@ -17834,6 +19221,10 @@ impl XmlWrite for CT_ExternalSheetName {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_ExternalSheetName {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Supporting Workbook Sheet Names (ECMA-376 Part 1 §18.14.16).
@@ -17897,6 +19288,17 @@ impl XmlWrite for CT_ExternalSheetNames {
     }
 }
 
+impl Validate for CT_ExternalSheetNames {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.sheet_name.iter().enumerate() {
+            v.enter("x:sheetName", Some(i), |v| x.validate(v));
+        }
+        if self.sheet_name.is_empty() {
+            v.required_element(Ns::X, "sheetName", &self.extra_children);
+        }
+    }
+}
+
 /// Field (ECMA-376 Part 1 §18.10.1.29).
 ///
 /// Represents a generic field that can appear either on the column or the row region of the PivotTable. There areas many &lt;x&gt; elements as there are item values in any particular column or row.
@@ -17946,6 +19348,14 @@ impl XmlWrite for CT_Field {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Field {
+    fn validate(&self, v: &mut Validator) {
+        if self.x.is_none() {
+            v.required_attribute(Ns::NONE, "x", &self.extra_attrs);
+        }
     }
 }
 
@@ -18056,6 +19466,20 @@ impl XmlWrite for CT_FieldGroup {
     }
 }
 
+impl Validate for CT_FieldGroup {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.range_pr {
+            v.enter("x:rangePr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.discrete_pr {
+            v.enter("x:discretePr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.group_items {
+            v.enter("x:groupItems", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// PivotCache Field Id (ECMA-376 Part 1 §18.10.1.32).
 ///
 /// Represents a cache field used in this hierarchy.
@@ -18105,6 +19529,14 @@ impl XmlWrite for CT_FieldUsage {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_FieldUsage {
+    fn validate(&self, v: &mut Validator) {
+        if self.x.is_none() {
+            v.required_attribute(Ns::NONE, "x", &self.extra_attrs);
+        }
     }
 }
 
@@ -18178,6 +19610,14 @@ impl XmlWrite for CT_FieldsUsage {
         rt::write_extras_after(w, &self.extra_children, 0, self.field_usage.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_FieldsUsage {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.field_usage.iter().enumerate() {
+            v.enter("x:fieldUsage", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -18258,6 +19698,10 @@ impl XmlWrite for CT_FileRecoveryPr {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_FileRecoveryPr {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// File Sharing (ECMA-376 Part 1 §18.2.12).
@@ -18366,6 +19810,10 @@ impl XmlWrite for CT_FileSharing {
     }
 }
 
+impl Validate for CT_FileSharing {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// File Version (ECMA-376 Part 1 §18.2.13).
 ///
 /// This element defines properties that track which version of the application accessed the data and source code contained in the file.
@@ -18454,6 +19902,10 @@ impl XmlWrite for CT_FileVersion {
     }
 }
 
+impl Validate for CT_FileVersion {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Fill (ECMA-376 Part 1 §18.8.20).
 ///
 /// This element specifies fill formatting.
@@ -18509,6 +19961,14 @@ impl XmlWrite for CT_Fill {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Fill {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
     }
 }
 
@@ -18585,6 +20045,14 @@ impl XmlWrite for CT_Fills {
     }
 }
 
+impl Validate for CT_Fills {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.fill.iter().enumerate() {
+            v.enter("x:fill", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Filter (ECMA-376 Part 1 §18.3.2.6).
 ///
 /// This element expresses a filter criteria value.
@@ -18635,6 +20103,10 @@ impl XmlWrite for CT_Filter {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Filter {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// AutoFilter Column (ECMA-376 Part 1 §18.3.2.7).
@@ -18728,6 +20200,17 @@ impl XmlWrite for CT_FilterColumn {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_FilterColumn {
+    fn validate(&self, v: &mut Validator) {
+        if self.col_id.is_none() {
+            v.required_attribute(Ns::NONE, "colId", &self.extra_attrs);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
     }
 }
 
@@ -18830,6 +20313,17 @@ impl XmlWrite for CT_Filters {
     }
 }
 
+impl Validate for CT_Filters {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.filter.iter().enumerate() {
+            v.enter("x:filter", Some(i), |v| x.validate(v));
+        }
+        for (i, x) in self.date_group_item.iter().enumerate() {
+            v.enter("x:dateGroupItem", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Font (ECMA-376 Part 1 §18.8.22).
 ///
 /// This element defines the properties for one of the fonts used in this workbook.
@@ -18901,6 +20395,14 @@ impl XmlWrite for CT_Font {
     }
 }
 
+impl Validate for CT_Font {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Schema complex type `CT_FontFamily`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_FontFamily {
@@ -18944,6 +20446,14 @@ impl XmlWrite for CT_FontFamily {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_FontFamily {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -19000,6 +20510,14 @@ impl XmlWrite for CT_FontName {
     }
 }
 
+impl Validate for CT_FontName {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Scheme (ECMA-376 Part 1 §18.8.35).
 ///
 /// Defines the font scheme, if any, to which this font belongs. When a font definition is part of a theme definition, then the font is categorized as either a major or minor font scheme component. When a new theme is chosen, every font that is part of a theme definition is updated to use the new major or minor font definition for that theme.
@@ -19052,6 +20570,14 @@ impl XmlWrite for CT_FontScheme {
     }
 }
 
+impl Validate for CT_FontScheme {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Font Size (ECMA-376 Part 1 §18.4.11).
 ///
 /// This element represents the point size (1/72 of an inch) of the Latin and East Asian text.
@@ -19101,6 +20627,14 @@ impl XmlWrite for CT_FontSize {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_FontSize {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -19174,6 +20708,14 @@ impl XmlWrite for CT_Fonts {
         rt::write_extras_after(w, &self.extra_children, 0, self.font.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Fonts {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.font.iter().enumerate() {
+            v.enter("x:font", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -19270,6 +20812,19 @@ impl XmlWrite for CT_Format {
     }
 }
 
+impl Validate for CT_Format {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pivot_area {
+            v.enter("x:pivotArea", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "pivotArea", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// PivotTable Formats (ECMA-376 Part 1 §18.10.1.36).
 ///
 /// Represents the collection of formats applied to PivotTable.
@@ -19343,6 +20898,17 @@ impl XmlWrite for CT_Formats {
     }
 }
 
+impl Validate for CT_Formats {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.format.iter().enumerate() {
+            v.enter("x:format", Some(i), |v| x.validate(v));
+        }
+        if self.format.is_empty() {
+            v.required_element(Ns::X, "format", &self.extra_children);
+        }
+    }
+}
+
 /// Function Group (ECMA-376 Part 1 §18.2.14).
 ///
 /// This element represents a single function group.
@@ -19393,6 +20959,10 @@ impl XmlWrite for CT_FunctionGroup {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_FunctionGroup {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Function Groups (ECMA-376 Part 1 §18.2.15).
@@ -19465,6 +21035,14 @@ impl XmlWrite for CT_FunctionGroups {
         rt::write_extras_after(w, &self.extra_children, 0, self.function_group.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_FunctionGroups {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.function_group.iter().enumerate() {
+            v.enter("x:functionGroup", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -19564,6 +21142,20 @@ impl XmlWrite for CT_FutureMetadata {
     }
 }
 
+impl Validate for CT_FutureMetadata {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        for (i, x) in self.bk.iter().enumerate() {
+            v.enter("x:bk", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Future Metadata Block (ECMA-376 Part 1 §18.9.2).
 ///
 /// This element represents a block of future metadata information. This is a location for storing feature extension information.
@@ -19619,6 +21211,14 @@ impl XmlWrite for CT_FutureMetadataBlock {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_FutureMetadataBlock {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -19740,6 +21340,14 @@ impl XmlWrite for CT_GradientFill {
     }
 }
 
+impl Validate for CT_GradientFill {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.stop.iter().enumerate() {
+            v.enter("x:stop", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Gradient Stop (ECMA-376 Part 1 §18.8.38).
 ///
 /// One of a sequence of two or more gradient stops, constituting this gradient fill.
@@ -19807,6 +21415,19 @@ impl XmlWrite for CT_GradientStop {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_GradientStop {
+    fn validate(&self, v: &mut Validator) {
+        if self.position.is_none() {
+            v.required_attribute(Ns::NONE, "position", &self.extra_attrs);
+        }
+        if let Some(x) = &self.color {
+            v.enter("x:color", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "color", &self.extra_children);
+        }
     }
 }
 
@@ -19881,6 +21502,17 @@ impl XmlWrite for CT_GroupItems {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_GroupItems {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if self.choice.is_empty() {
+            v.missing_content("one of x:m, x:n, x:b, x:e, x:s, x:d");
+        }
     }
 }
 
@@ -19995,6 +21627,23 @@ impl XmlWrite for CT_GroupLevel {
     }
 }
 
+impl Validate for CT_GroupLevel {
+    fn validate(&self, v: &mut Validator) {
+        if self.unique_name.is_none() {
+            v.required_attribute(Ns::NONE, "uniqueName", &self.extra_attrs);
+        }
+        if self.caption.is_none() {
+            v.required_attribute(Ns::NONE, "caption", &self.extra_attrs);
+        }
+        if let Some(x) = &self.groups {
+            v.enter("x:groups", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// OLAP Grouping Levels (ECMA-376 Part 1 §18.10.1.40).
 ///
 /// Represents the collection of OLAP grouping levels.
@@ -20068,6 +21717,17 @@ impl XmlWrite for CT_GroupLevels {
     }
 }
 
+impl Validate for CT_GroupLevels {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.group_level.iter().enumerate() {
+            v.enter("x:groupLevel", Some(i), |v| x.validate(v));
+        }
+        if self.group_level.is_empty() {
+            v.required_element(Ns::X, "groupLevel", &self.extra_children);
+        }
+    }
+}
+
 /// OLAP Group Member (ECMA-376 Part 1 §18.10.1.41).
 ///
 /// Represents an OLAP group member.
@@ -20126,6 +21786,14 @@ impl XmlWrite for CT_GroupMember {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_GroupMember {
+    fn validate(&self, v: &mut Validator) {
+        if self.unique_name.is_none() {
+            v.required_attribute(Ns::NONE, "uniqueName", &self.extra_attrs);
+        }
     }
 }
 
@@ -20202,6 +21870,17 @@ impl XmlWrite for CT_GroupMembers {
     }
 }
 
+impl Validate for CT_GroupMembers {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.group_member.iter().enumerate() {
+            v.enter("x:groupMember", Some(i), |v| x.validate(v));
+        }
+        if self.group_member.is_empty() {
+            v.required_element(Ns::X, "groupMember", &self.extra_children);
+        }
+    }
+}
+
 /// OLAP Level Groups (ECMA-376 Part 1 §18.10.1.43).
 ///
 /// Represents the collection of OLAP level groups.
@@ -20272,6 +21951,17 @@ impl XmlWrite for CT_Groups {
         rt::write_extras_after(w, &self.extra_children, 0, self.group.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Groups {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.group.iter().enumerate() {
+            v.enter("x:group", Some(i), |v| x.validate(v));
+        }
+        if self.group.is_empty() {
+            v.required_element(Ns::X, "group", &self.extra_children);
+        }
     }
 }
 
@@ -20460,6 +22150,10 @@ impl XmlWrite for CT_HeaderFooter {
     }
 }
 
+impl Validate for CT_HeaderFooter {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Column OLAP Hierarchies (ECMA-376 Part 1 §18.10.1.16).
 ///
 /// Represents the collection of references to OLAP Hierarchies on the column axis of a PivotTable.
@@ -20510,6 +22204,14 @@ impl XmlWrite for CT_HierarchyUsage {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_HierarchyUsage {
+    fn validate(&self, v: &mut Validator) {
+        if self.hierarchy_usage.is_none() {
+            v.required_attribute(Ns::NONE, "hierarchyUsage", &self.extra_attrs);
+        }
     }
 }
 
@@ -20601,6 +22303,14 @@ impl XmlWrite for CT_Hyperlink {
     }
 }
 
+impl Validate for CT_Hyperlink {
+    fn validate(&self, v: &mut Validator) {
+        if self.ref_.is_none() {
+            v.required_attribute(Ns::NONE, "ref", &self.extra_attrs);
+        }
+    }
+}
+
 /// Hyperlinks (ECMA-376 Part 1 §18.3.1.48).
 ///
 /// Collection of hyperlinks.
@@ -20659,6 +22369,17 @@ impl XmlWrite for CT_Hyperlinks {
         rt::write_extras_after(w, &self.extra_children, 0, self.hyperlink.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Hyperlinks {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.hyperlink.iter().enumerate() {
+            v.enter("x:hyperlink", Some(i), |v| x.validate(v));
+        }
+        if self.hyperlink.is_empty() {
+            v.required_element(Ns::X, "hyperlink", &self.extra_children);
+        }
     }
 }
 
@@ -20753,6 +22474,14 @@ impl XmlWrite for CT_I {
     }
 }
 
+impl Validate for CT_I {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.x.iter().enumerate() {
+            v.enter("x:x", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Icon Filter (ECMA-376 Part 1 §18.3.2.9).
 ///
 /// This element specifies the icon set and particular icon within that set to filter by. For any cells whose icon does not match the specified criteria, the corresponding rows shall be hidden from view when the filter is applied.
@@ -20811,6 +22540,14 @@ impl XmlWrite for CT_IconFilter {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_IconFilter {
+    fn validate(&self, v: &mut Validator) {
+        if self.icon_set.is_none() {
+            v.required_attribute(Ns::NONE, "iconSet", &self.extra_attrs);
+        }
     }
 }
 
@@ -20911,6 +22648,17 @@ impl XmlWrite for CT_IconSet {
         rt::write_extras_after(w, &self.extra_children, 0, self.cfvo.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_IconSet {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cfvo.iter().enumerate() {
+            v.enter("x:cfvo", Some(i), |v| x.validate(v));
+        }
+        if self.cfvo.is_empty() {
+            v.required_element(Ns::X, "cfvo", &self.extra_children);
+        }
     }
 }
 
@@ -21047,6 +22795,14 @@ impl XmlWrite for CT_IgnoredError {
     }
 }
 
+impl Validate for CT_IgnoredError {
+    fn validate(&self, v: &mut Validator) {
+        if self.sqref.is_none() {
+            v.required_attribute(Ns::NONE, "sqref", &self.extra_attrs);
+        }
+    }
+}
+
 /// Ignored Errors (ECMA-376 Part 1 §18.3.1.51).
 ///
 /// A collection of ignored errors, by cell range.
@@ -21122,6 +22878,20 @@ impl XmlWrite for CT_IgnoredErrors {
     }
 }
 
+impl Validate for CT_IgnoredErrors {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.ignored_error.iter().enumerate() {
+            v.enter("x:ignoredError", Some(i), |v| x.validate(v));
+        }
+        if self.ignored_error.is_empty() {
+            v.required_element(Ns::X, "ignoredError", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Shared Items Index (ECMA-376 Part 1 §18.10.1.97).
 ///
 /// This element represents an array of indexes to cached shared item values
@@ -21171,6 +22941,14 @@ impl XmlWrite for CT_Index {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Index {
+    fn validate(&self, v: &mut Validator) {
+        if self.v.is_none() {
+            v.required_attribute(Ns::NONE, "v", &self.extra_attrs);
+        }
     }
 }
 
@@ -21232,6 +23010,17 @@ impl XmlWrite for CT_IndexedColors {
         rt::write_extras_after(w, &self.extra_children, 0, self.rgb_color.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_IndexedColors {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.rgb_color.iter().enumerate() {
+            v.enter("x:rgbColor", Some(i), |v| x.validate(v));
+        }
+        if self.rgb_color.is_empty() {
+            v.required_element(Ns::X, "rgbColor", &self.extra_children);
+        }
     }
 }
 
@@ -21323,6 +23112,17 @@ impl XmlWrite for CT_InputCells {
     }
 }
 
+impl Validate for CT_InputCells {
+    fn validate(&self, v: &mut Validator) {
+        if self.r.is_none() {
+            v.required_attribute(Ns::NONE, "r", &self.extra_attrs);
+        }
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Character Set (ECMA-376 Part 1 §18.4.1).
 ///
 /// This element defines the font character set of this font. This field is used in font creation and selection if a font of the given facename is not available on the system. Although it is not required to have around when resolving font facename, the information can be stored for when needed to help resolve which font face to use of all available fonts on a system.
@@ -21372,6 +23172,14 @@ impl XmlWrite for CT_IntProperty {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_IntProperty {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -21517,6 +23325,10 @@ impl XmlWrite for CT_Item {
     }
 }
 
+impl Validate for CT_Item {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Field Items (ECMA-376 Part 1 §18.10.1.46).
 ///
 /// Represents the collection of items in a PivotTable field. The items in the collection are ordered by index. Items represent the unique entries from the field in the source data.
@@ -21590,6 +23402,17 @@ impl XmlWrite for CT_Items {
     }
 }
 
+impl Validate for CT_Items {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.item.iter().enumerate() {
+            v.enter("x:item", Some(i), |v| x.validate(v));
+        }
+        if self.item.is_empty() {
+            v.required_element(Ns::X, "item", &self.extra_children);
+        }
+    }
+}
+
 /// Schema complex type `CT_LegacyDrawing`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_LegacyDrawing {
@@ -21633,6 +23456,14 @@ impl XmlWrite for CT_LegacyDrawing {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_LegacyDrawing {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -21742,6 +23573,25 @@ impl XmlWrite for CT_LevelGroup {
     }
 }
 
+impl Validate for CT_LevelGroup {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if self.unique_name.is_none() {
+            v.required_attribute(Ns::NONE, "uniqueName", &self.extra_attrs);
+        }
+        if self.caption.is_none() {
+            v.required_attribute(Ns::NONE, "caption", &self.extra_attrs);
+        }
+        if let Some(x) = &self.group_members {
+            v.enter("x:groupMembers", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "groupMembers", &self.extra_children);
+        }
+    }
+}
+
 /// PivotTable Location (ECMA-376 Part 1 §18.10.1.49).
 ///
 /// Represents location information for the PivotTable.
@@ -21839,6 +23689,23 @@ impl XmlWrite for CT_Location {
     }
 }
 
+impl Validate for CT_Location {
+    fn validate(&self, v: &mut Validator) {
+        if self.ref_.is_none() {
+            v.required_attribute(Ns::NONE, "ref", &self.extra_attrs);
+        }
+        if self.first_header_row.is_none() {
+            v.required_attribute(Ns::NONE, "firstHeaderRow", &self.extra_attrs);
+        }
+        if self.first_data_row.is_none() {
+            v.required_attribute(Ns::NONE, "firstDataRow", &self.extra_attrs);
+        }
+        if self.first_data_col.is_none() {
+            v.required_attribute(Ns::NONE, "firstDataCol", &self.extra_attrs);
+        }
+    }
+}
+
 /// MRU Colors (ECMA-376 Part 1 §18.8.28).
 ///
 /// This element contains sequence of RGB values that correspond to custom colors selected by the user for this workbook.
@@ -21897,6 +23764,17 @@ impl XmlWrite for CT_MRUColors {
         rt::write_extras_after(w, &self.extra_children, 0, self.color.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_MRUColors {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.color.iter().enumerate() {
+            v.enter("x:color", Some(i), |v| x.validate(v));
+        }
+        if self.color.is_empty() {
+            v.required_element(Ns::X, "color", &self.extra_children);
+        }
     }
 }
 
@@ -22322,6 +24200,94 @@ impl XmlWrite for CT_Macrosheet {
     }
 }
 
+impl Validate for CT_Macrosheet {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.sheet_pr {
+            v.enter("x:sheetPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.dimension {
+            v.enter("x:dimension", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sheet_views {
+            v.enter("x:sheetViews", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sheet_format_pr {
+            v.enter("x:sheetFormatPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.cols.iter().enumerate() {
+            v.enter("x:cols", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.sheet_data {
+            v.enter("x:sheetData", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "sheetData", &self.extra_children);
+        }
+        if let Some(x) = &self.sheet_protection {
+            v.enter("x:sheetProtection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.auto_filter {
+            v.enter("x:autoFilter", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sort_state {
+            v.enter("x:sortState", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.data_consolidate {
+            v.enter("x:dataConsolidate", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.custom_sheet_views {
+            v.enter("x:customSheetViews", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.phonetic_pr {
+            v.enter("x:phoneticPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.conditional_formatting.iter().enumerate() {
+            v.enter("x:conditionalFormatting", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.print_options {
+            v.enter("x:printOptions", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.page_margins {
+            v.enter("x:pageMargins", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.page_setup {
+            v.enter("x:pageSetup", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.header_footer {
+            v.enter("x:headerFooter", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.row_breaks {
+            v.enter("x:rowBreaks", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.col_breaks {
+            v.enter("x:colBreaks", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.custom_properties {
+            v.enter("x:customProperties", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.drawing {
+            v.enter("x:drawing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.legacy_drawing {
+            v.enter("x:legacyDrawing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.legacy_drawing_hf {
+            v.enter("x:legacyDrawingHF", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.drawing_hf {
+            v.enter("x:drawingHF", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.picture {
+            v.enter("x:picture", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ole_objects {
+            v.enter("x:oleObjects", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// XML Mapping Properties (ECMA-376 Part 1 §18.16.2).
 ///
 /// This element contains all of the properties related to the XML map, and the behaviors expected during data refresh operations.
@@ -22469,6 +24435,41 @@ impl XmlWrite for CT_Map {
     }
 }
 
+impl Validate for CT_Map {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "ID", &self.extra_attrs);
+        }
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "Name", &self.extra_attrs);
+        }
+        if self.root_element.is_none() {
+            v.required_attribute(Ns::NONE, "RootElement", &self.extra_attrs);
+        }
+        if self.schema_id.is_none() {
+            v.required_attribute(Ns::NONE, "SchemaID", &self.extra_attrs);
+        }
+        if self.show_import_export_validation_errors.is_none() {
+            v.required_attribute(Ns::NONE, "ShowImportExportValidationErrors", &self.extra_attrs);
+        }
+        if self.auto_fit.is_none() {
+            v.required_attribute(Ns::NONE, "AutoFit", &self.extra_attrs);
+        }
+        if self.append.is_none() {
+            v.required_attribute(Ns::NONE, "Append", &self.extra_attrs);
+        }
+        if self.preserve_sort_af_layout.is_none() {
+            v.required_attribute(Ns::NONE, "PreserveSortAFLayout", &self.extra_attrs);
+        }
+        if self.preserve_format.is_none() {
+            v.required_attribute(Ns::NONE, "PreserveFormat", &self.extra_attrs);
+        }
+        if let Some(x) = &self.data_binding {
+            v.enter("x:DataBinding", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// XML Mapping (ECMA-376 Part 1 §18.16.3).
 ///
 /// This element acts as the container for all of the XML schemas and maps attached to the SpreadsheetML document.
@@ -22559,6 +24560,26 @@ impl XmlWrite for CT_MapInfo {
     }
 }
 
+impl Validate for CT_MapInfo {
+    fn validate(&self, v: &mut Validator) {
+        if self.selection_namespaces.is_none() {
+            v.required_attribute(Ns::NONE, "SelectionNamespaces", &self.extra_attrs);
+        }
+        for (i, x) in self.schema.iter().enumerate() {
+            v.enter("x:Schema", Some(i), |v| x.validate(v));
+        }
+        if self.schema.is_empty() {
+            v.required_element(Ns::X, "Schema", &self.extra_children);
+        }
+        for (i, x) in self.map.iter().enumerate() {
+            v.enter("x:Map", Some(i), |v| x.validate(v));
+        }
+        if self.map.is_empty() {
+            v.required_element(Ns::X, "Map", &self.extra_children);
+        }
+    }
+}
+
 /// MDX Metadata Record (ECMA-376 Part 1 §18.9.6).
 ///
 /// This element represents a single record of MDX metadata information which can express a tuple, KPI, set, or member property.
@@ -22638,6 +24659,22 @@ impl XmlWrite for CT_Mdx {
     }
 }
 
+impl Validate for CT_Mdx {
+    fn validate(&self, v: &mut Validator) {
+        if self.n.is_none() {
+            v.required_attribute(Ns::NONE, "n", &self.extra_attrs);
+        }
+        if self.f.is_none() {
+            v.required_attribute(Ns::NONE, "f", &self.extra_attrs);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of x:t, x:ms, x:p, x:k");
+        }
+    }
+}
+
 /// KPI MDX Metadata (ECMA-376 Part 1 §18.9.5).
 ///
 /// This element represents key performance indicator (KPI) MDX metadata. A KPI is typically an image that represents the state of some specific business measure at a given point in time. For instance, an image of a green traffic light indicating that customer satisfaction is good.
@@ -22708,6 +24745,20 @@ impl XmlWrite for CT_MdxKPI {
     }
 }
 
+impl Validate for CT_MdxKPI {
+    fn validate(&self, v: &mut Validator) {
+        if self.n.is_none() {
+            v.required_attribute(Ns::NONE, "n", &self.extra_attrs);
+        }
+        if self.np.is_none() {
+            v.required_attribute(Ns::NONE, "np", &self.extra_attrs);
+        }
+        if self.p.is_none() {
+            v.required_attribute(Ns::NONE, "p", &self.extra_attrs);
+        }
+    }
+}
+
 /// Member Property MDX Metadata (ECMA-376 Part 1 §18.9.14).
 ///
 /// This element represents an MDX member property.
@@ -22766,6 +24817,17 @@ impl XmlWrite for CT_MdxMemeberProp {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_MdxMemeberProp {
+    fn validate(&self, v: &mut Validator) {
+        if self.n.is_none() {
+            v.required_attribute(Ns::NONE, "n", &self.extra_attrs);
+        }
+        if self.np.is_none() {
+            v.required_attribute(Ns::NONE, "np", &self.extra_attrs);
+        }
     }
 }
 
@@ -22839,6 +24901,17 @@ impl XmlWrite for CT_MdxMetadata {
         rt::write_extras_after(w, &self.extra_children, 0, self.mdx.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_MdxMetadata {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.mdx.iter().enumerate() {
+            v.enter("x:mdx", Some(i), |v| x.validate(v));
+        }
+        if self.mdx.is_empty() {
+            v.required_element(Ns::X, "mdx", &self.extra_children);
+        }
     }
 }
 
@@ -22930,6 +25003,17 @@ impl XmlWrite for CT_MdxSet {
         rt::write_extras_after(w, &self.extra_children, 0, self.n.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_MdxSet {
+    fn validate(&self, v: &mut Validator) {
+        if self.ns.is_none() {
+            v.required_attribute(Ns::NONE, "ns", &self.extra_attrs);
+        }
+        for (i, x) in self.n.iter().enumerate() {
+            v.enter("x:n", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -23087,6 +25171,14 @@ impl XmlWrite for CT_MdxTuple {
     }
 }
 
+impl Validate for CT_MdxTuple {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.n.iter().enumerate() {
+            v.enter("x:n", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// OLAP Measure Group (ECMA-376 Part 1 §18.10.1.51).
 ///
 /// Represents a PivotTable OLAP measure group - Dimension map.
@@ -23146,6 +25238,10 @@ impl XmlWrite for CT_MeasureDimensionMap {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_MeasureDimensionMap {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// OLAP Measure Group (ECMA-376 Part 1 §18.10.1.52).
@@ -23221,6 +25317,14 @@ impl XmlWrite for CT_MeasureDimensionMaps {
     }
 }
 
+impl Validate for CT_MeasureDimensionMaps {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.map.iter().enumerate() {
+            v.enter("x:map", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// OLAP Measure Group (ECMA-376 Part 1 §18.10.1.53).
 ///
 /// Represents a PivotTable OLAP measure group.
@@ -23279,6 +25383,17 @@ impl XmlWrite for CT_MeasureGroup {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_MeasureGroup {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if self.caption.is_none() {
+            v.required_attribute(Ns::NONE, "caption", &self.extra_attrs);
+        }
     }
 }
 
@@ -23355,6 +25470,14 @@ impl XmlWrite for CT_MeasureGroups {
     }
 }
 
+impl Validate for CT_MeasureGroups {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.measure_group.iter().enumerate() {
+            v.enter("x:measureGroup", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Member (ECMA-376 Part 1 §18.10.1.55).
 ///
 /// Represents an item that can be included or excluded.
@@ -23404,6 +25527,14 @@ impl XmlWrite for CT_Member {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Member {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
     }
 }
 
@@ -23477,6 +25608,17 @@ impl XmlWrite for CT_MemberProperties {
         rt::write_extras_after(w, &self.extra_children, 0, self.mp.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_MemberProperties {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.mp.iter().enumerate() {
+            v.enter("x:mp", Some(i), |v| x.validate(v));
+        }
+        if self.mp.is_empty() {
+            v.required_element(Ns::X, "mp", &self.extra_children);
+        }
     }
 }
 
@@ -23604,6 +25746,14 @@ impl XmlWrite for CT_MemberProperty {
     }
 }
 
+impl Validate for CT_MemberProperty {
+    fn validate(&self, v: &mut Validator) {
+        if self.field.is_none() {
+            v.required_attribute(Ns::NONE, "field", &self.extra_attrs);
+        }
+    }
+}
+
 /// Members (ECMA-376 Part 1 §18.10.1.56).
 ///
 /// Represents the collection of items that can be included or excluded.
@@ -23686,6 +25836,17 @@ impl XmlWrite for CT_Members {
     }
 }
 
+impl Validate for CT_Members {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.member.iter().enumerate() {
+            v.enter("x:member", Some(i), |v| x.validate(v));
+        }
+        if self.member.is_empty() {
+            v.required_element(Ns::X, "member", &self.extra_children);
+        }
+    }
+}
+
 /// Merged Cell (ECMA-376 Part 1 §18.3.1.54).
 ///
 /// A single merged cell
@@ -23735,6 +25896,14 @@ impl XmlWrite for CT_MergeCell {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_MergeCell {
+    fn validate(&self, v: &mut Validator) {
+        if self.ref_.is_none() {
+            v.required_attribute(Ns::NONE, "ref", &self.extra_attrs);
+        }
     }
 }
 
@@ -23808,6 +25977,17 @@ impl XmlWrite for CT_MergeCells {
         rt::write_extras_after(w, &self.extra_children, 0, self.merge_cell.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_MergeCells {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.merge_cell.iter().enumerate() {
+            v.enter("x:mergeCell", Some(i), |v| x.validate(v));
+        }
+        if self.merge_cell.is_empty() {
+            v.required_element(Ns::X, "mergeCell", &self.extra_children);
+        }
     }
 }
 
@@ -23956,6 +26136,32 @@ impl XmlWrite for CT_Metadata {
     }
 }
 
+impl Validate for CT_Metadata {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.metadata_types {
+            v.enter("x:metadataTypes", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.metadata_strings {
+            v.enter("x:metadataStrings", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.mdx_metadata {
+            v.enter("x:mdxMetadata", None, |v| x.validate(v));
+        }
+        for (i, x) in self.future_metadata.iter().enumerate() {
+            v.enter("x:futureMetadata", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.cell_metadata {
+            v.enter("x:cellMetadata", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.value_metadata {
+            v.enter("x:valueMetadata", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Metadata Block (ECMA-376 Part 1 §18.9.1).
 ///
 /// This element represents a block of metadata records.
@@ -24014,6 +26220,17 @@ impl XmlWrite for CT_MetadataBlock {
         rt::write_extras_after(w, &self.extra_children, 0, self.rc.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_MetadataBlock {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.rc.iter().enumerate() {
+            v.enter("x:rc", Some(i), |v| x.validate(v));
+        }
+        if self.rc.is_empty() {
+            v.required_element(Ns::X, "rc", &self.extra_children);
+        }
     }
 }
 
@@ -24091,6 +26308,17 @@ impl XmlWrite for CT_MetadataBlocks {
     }
 }
 
+impl Validate for CT_MetadataBlocks {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.bk.iter().enumerate() {
+            v.enter("x:bk", Some(i), |v| x.validate(v));
+        }
+        if self.bk.is_empty() {
+            v.required_element(Ns::X, "bk", &self.extra_children);
+        }
+    }
+}
+
 /// Metadata Record (ECMA-376 Part 1 §18.9.15).
 ///
 /// This element represents a reference to a specific metadata record.
@@ -24152,6 +26380,17 @@ impl XmlWrite for CT_MetadataRecord {
     }
 }
 
+impl Validate for CT_MetadataRecord {
+    fn validate(&self, v: &mut Validator) {
+        if self.t.is_none() {
+            v.required_attribute(Ns::NONE, "t", &self.extra_attrs);
+        }
+        if self.v.is_none() {
+            v.required_attribute(Ns::NONE, "v", &self.extra_attrs);
+        }
+    }
+}
+
 /// Member Unique Name Index (ECMA-376 Part 1 §18.9.13).
 ///
 /// This element represents an index of a member unique name in metadata string store that is used to define the sort-by set.
@@ -24210,6 +26449,14 @@ impl XmlWrite for CT_MetadataStringIndex {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_MetadataStringIndex {
+    fn validate(&self, v: &mut Validator) {
+        if self.x.is_none() {
+            v.required_attribute(Ns::NONE, "x", &self.extra_attrs);
+        }
     }
 }
 
@@ -24283,6 +26530,17 @@ impl XmlWrite for CT_MetadataStrings {
         rt::write_extras_after(w, &self.extra_children, 0, self.s.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_MetadataStrings {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.s.iter().enumerate() {
+            v.enter("x:s", Some(i), |v| x.validate(v));
+        }
+        if self.s.is_empty() {
+            v.required_element(Ns::X, "s", &self.extra_children);
+        }
     }
 }
 
@@ -24581,6 +26839,17 @@ impl XmlWrite for CT_MetadataType {
     }
 }
 
+impl Validate for CT_MetadataType {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if self.min_supported_version.is_none() {
+            v.required_attribute(Ns::NONE, "minSupportedVersion", &self.extra_attrs);
+        }
+    }
+}
+
 /// Metadata Types Collection (ECMA-376 Part 1 §18.9.11).
 ///
 /// This element is a collection of metadata types.
@@ -24651,6 +26920,17 @@ impl XmlWrite for CT_MetadataTypes {
         rt::write_extras_after(w, &self.extra_children, 0, self.metadata_type.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_MetadataTypes {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.metadata_type.iter().enumerate() {
+            v.enter("x:metadataType", Some(i), |v| x.validate(v));
+        }
+        if self.metadata_type.is_empty() {
+            v.required_element(Ns::X, "metadataType", &self.extra_children);
+        }
     }
 }
 
@@ -24834,6 +27114,17 @@ impl XmlWrite for CT_Missing {
     }
 }
 
+impl Validate for CT_Missing {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.tpls.iter().enumerate() {
+            v.enter("x:tpls", Some(i), |v| x.validate(v));
+        }
+        for (i, x) in self.x.iter().enumerate() {
+            v.enter("x:x", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Number Format (ECMA-376 Part 1 §18.8.30).
 ///
 /// This element specifies number format properties which indicate how to format and render the numeric value of a cell. Following is a listing of number formats whose formatCode value is implied rather than explicitly saved in the file. In this case, a numFmtId value is written on the xf record, but no corresponding numFmt element is written.
@@ -24892,6 +27183,17 @@ impl XmlWrite for CT_NumFmt {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_NumFmt {
+    fn validate(&self, v: &mut Validator) {
+        if self.num_fmt_id.is_none() {
+            v.required_attribute(Ns::NONE, "numFmtId", &self.extra_attrs);
+        }
+        if self.format_code.is_none() {
+            v.required_attribute(Ns::NONE, "formatCode", &self.extra_attrs);
+        }
     }
 }
 
@@ -24965,6 +27267,14 @@ impl XmlWrite for CT_NumFmts {
         rt::write_extras_after(w, &self.extra_children, 0, self.num_fmt.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_NumFmts {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.num_fmt.iter().enumerate() {
+            v.enter("x:numFmt", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -25157,6 +27467,20 @@ impl XmlWrite for CT_Number {
     }
 }
 
+impl Validate for CT_Number {
+    fn validate(&self, v: &mut Validator) {
+        if self.v.is_none() {
+            v.required_attribute(Ns::NONE, "v", &self.extra_attrs);
+        }
+        for (i, x) in self.tpls.iter().enumerate() {
+            v.enter("x:tpls", Some(i), |v| x.validate(v));
+        }
+        for (i, x) in self.x.iter().enumerate() {
+            v.enter("x:x", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Object Cell Anchor (ECMA-376 Part 1 §18.3.1.1).
 ///
 /// This element specifies the position of an embedded object or embedded control.
@@ -25247,6 +27571,21 @@ impl XmlWrite for CT_ObjectAnchor {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_ObjectAnchor {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.from {
+            v.enter("xdr:from", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::XDR, "from", &self.extra_children);
+        }
+        if let Some(x) = &self.to {
+            v.enter("xdr:to", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::XDR, "to", &self.extra_children);
+        }
     }
 }
 
@@ -25419,6 +27758,16 @@ impl XmlWrite for CT_ObjectPr {
     }
 }
 
+impl Validate for CT_ObjectPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.anchor {
+            v.enter("x:anchor", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "anchor", &self.extra_children);
+        }
+    }
+}
+
 /// OLAP Properties (ECMA-376 Part 1 §18.13.5).
 ///
 /// This element contains all the properties needed for an OLAP data connection. OLAP connections contain both the dbPr and olapPr child elements.
@@ -25543,6 +27892,10 @@ impl XmlWrite for CT_OlapPr {
     }
 }
 
+impl Validate for CT_OlapPr {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Object Link Item (ECMA-376 Part 1 §18.14.9).
 ///
 /// This element represents a single link within the object referenced by the parent element.
@@ -25622,6 +27975,14 @@ impl XmlWrite for CT_OleItem {
     }
 }
 
+impl Validate for CT_OleItem {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+    }
+}
+
 /// Object Link Items (ECMA-376 Part 1 §18.14.10).
 ///
 /// This element is a collection of items within the link specified by the parent element.
@@ -25680,6 +28041,14 @@ impl XmlWrite for CT_OleItems {
         rt::write_extras_after(w, &self.extra_children, 0, self.ole_item.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_OleItems {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.ole_item.iter().enumerate() {
+            v.enter("x:oleItem", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -25759,6 +28128,20 @@ impl XmlWrite for CT_OleLink {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_OleLink {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
+        if self.prog_id.is_none() {
+            v.required_attribute(Ns::NONE, "progId", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ole_items {
+            v.enter("x:oleItems", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -25886,6 +28269,17 @@ impl XmlWrite for CT_OleObject {
     }
 }
 
+impl Validate for CT_OleObject {
+    fn validate(&self, v: &mut Validator) {
+        if self.shape_id.is_none() {
+            v.required_attribute(Ns::NONE, "shapeId", &self.extra_attrs);
+        }
+        if let Some(x) = &self.object_pr {
+            v.enter("x:objectPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Embedded Objects (ECMA-376 Part 1 §18.3.1.60).
 ///
 /// Embedded objects collection in this worksheet.
@@ -25947,6 +28341,17 @@ impl XmlWrite for CT_OleObjects {
     }
 }
 
+impl Validate for CT_OleObjects {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.ole_object.iter().enumerate() {
+            v.enter("x:oleObject", Some(i), |v| x.validate(v));
+        }
+        if self.ole_object.is_empty() {
+            v.required_element(Ns::X, "oleObject", &self.extra_children);
+        }
+    }
+}
+
 /// Embedded Object Size (ECMA-376 Part 1 §18.2.16).
 ///
 /// This element defines the embedded object server for this workbook.
@@ -25996,6 +28401,14 @@ impl XmlWrite for CT_OleSize {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_OleSize {
+    fn validate(&self, v: &mut Validator) {
+        if self.ref_.is_none() {
+            v.required_attribute(Ns::NONE, "ref", &self.extra_attrs);
+        }
     }
 }
 
@@ -26076,6 +28489,10 @@ impl XmlWrite for CT_OutlinePr {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_OutlinePr {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// OLAP KPI (ECMA-376 Part 1 §18.10.1.47).
@@ -26220,6 +28637,17 @@ impl XmlWrite for CT_PCDKPI {
     }
 }
 
+impl Validate for CT_PCDKPI {
+    fn validate(&self, v: &mut Validator) {
+        if self.unique_name.is_none() {
+            v.required_attribute(Ns::NONE, "uniqueName", &self.extra_attrs);
+        }
+        if self.value_attr.is_none() {
+            v.required_attribute(Ns::NONE, "value", &self.extra_attrs);
+        }
+    }
+}
+
 /// OLAP KPIs (ECMA-376 Part 1 §18.10.1.48).
 ///
 /// Represents the collection of Key Performance Indicators (KPIs) defined on the OLAP server and stored in the PivotCache.
@@ -26290,6 +28718,14 @@ impl XmlWrite for CT_PCDKPIs {
         rt::write_extras_after(w, &self.extra_children, 0, self.kpi.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_PCDKPIs {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.kpi.iter().enumerate() {
+            v.enter("x:kpi", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -26366,6 +28802,14 @@ impl XmlWrite for CT_PCDSCPage {
     }
 }
 
+impl Validate for CT_PCDSCPage {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.page_item.iter().enumerate() {
+            v.enter("x:pageItem", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Entries (ECMA-376 Part 1 §18.10.1.28).
 ///
 /// Represents the collection of OLAP sheet data entries.
@@ -26433,6 +28877,17 @@ impl XmlWrite for CT_PCDSDTCEntries {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_PCDSDTCEntries {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if self.choice.is_empty() {
+            v.missing_content("one of x:m, x:n, x:e, x:s");
+        }
     }
 }
 
@@ -26516,6 +28971,14 @@ impl XmlWrite for CT_PageBreak {
         rt::write_extras_after(w, &self.extra_children, 0, self.brk.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_PageBreak {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.brk.iter().enumerate() {
+            v.enter("x:brk", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -26625,6 +29088,17 @@ impl XmlWrite for CT_PageField {
     }
 }
 
+impl Validate for CT_PageField {
+    fn validate(&self, v: &mut Validator) {
+        if self.fld.is_none() {
+            v.required_attribute(Ns::NONE, "fld", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Page Field Items (ECMA-376 Part 1 §18.10.1.63).
 ///
 /// Represents the collection of items in the page or report filter region of the PivotTable.
@@ -26698,6 +29172,17 @@ impl XmlWrite for CT_PageFields {
     }
 }
 
+impl Validate for CT_PageFields {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.page_field.iter().enumerate() {
+            v.enter("x:pageField", Some(i), |v| x.validate(v));
+        }
+        if self.page_field.is_empty() {
+            v.required_element(Ns::X, "pageField", &self.extra_children);
+        }
+    }
+}
+
 /// Page Item (ECMA-376 Part 1 §18.10.1.64).
 ///
 /// Represents an item value for a PivotTable page.
@@ -26747,6 +29232,14 @@ impl XmlWrite for CT_PageItem {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_PageItem {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
     }
 }
 
@@ -26847,6 +29340,29 @@ impl XmlWrite for CT_PageMargins {
     }
 }
 
+impl Validate for CT_PageMargins {
+    fn validate(&self, v: &mut Validator) {
+        if self.left.is_none() {
+            v.required_attribute(Ns::NONE, "left", &self.extra_attrs);
+        }
+        if self.right.is_none() {
+            v.required_attribute(Ns::NONE, "right", &self.extra_attrs);
+        }
+        if self.top.is_none() {
+            v.required_attribute(Ns::NONE, "top", &self.extra_attrs);
+        }
+        if self.bottom.is_none() {
+            v.required_attribute(Ns::NONE, "bottom", &self.extra_attrs);
+        }
+        if self.header.is_none() {
+            v.required_attribute(Ns::NONE, "header", &self.extra_attrs);
+        }
+        if self.footer.is_none() {
+            v.required_attribute(Ns::NONE, "footer", &self.extra_attrs);
+        }
+    }
+}
+
 /// Page Setup Properties (ECMA-376 Part 1 §18.3.1.65).
 ///
 /// Page setup properties of the worksheet
@@ -26906,6 +29422,10 @@ impl XmlWrite for CT_PageSetUpPr {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_PageSetUpPr {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Page Setup Settings (ECMA-376 Part 1 §18.3.1.63).
@@ -27122,6 +29642,10 @@ impl XmlWrite for CT_PageSetup {
     }
 }
 
+impl Validate for CT_PageSetup {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Page Item Values (ECMA-376 Part 1 §18.10.1.65).
 ///
 /// Represents the collection of page item values for each page field.
@@ -27192,6 +29716,17 @@ impl XmlWrite for CT_Pages {
         rt::write_extras_after(w, &self.extra_children, 0, self.page.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Pages {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.page.iter().enumerate() {
+            v.enter("x:page", Some(i), |v| x.validate(v));
+        }
+        if self.page.is_empty() {
+            v.required_element(Ns::X, "page", &self.extra_children);
+        }
     }
 }
 
@@ -27281,6 +29816,10 @@ impl XmlWrite for CT_Pane {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Pane {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Parameter Properties (ECMA-376 Part 1 §18.13.6).
@@ -27416,6 +29955,10 @@ impl XmlWrite for CT_Parameter {
     }
 }
 
+impl Validate for CT_Parameter {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Query Parameters (ECMA-376 Part 1 §18.13.7).
 ///
 /// This element serves as a collection of parameters for an ODBC or web query.
@@ -27486,6 +30029,17 @@ impl XmlWrite for CT_Parameters {
         rt::write_extras_after(w, &self.extra_children, 0, self.parameter.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Parameters {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.parameter.iter().enumerate() {
+            v.enter("x:parameter", Some(i), |v| x.validate(v));
+        }
+        if self.parameter.is_empty() {
+            v.required_element(Ns::X, "parameter", &self.extra_children);
+        }
     }
 }
 
@@ -27573,6 +30127,17 @@ impl XmlWrite for CT_PatternFill {
     }
 }
 
+impl Validate for CT_PatternFill {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.fg_color {
+            v.enter("x:fgColor", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bg_color {
+            v.enter("x:bgColor", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Phonetic Properties (ECMA-376 Part 1 §18.4.3).
 ///
 /// This element represents a collection of phonetic properties that affect the display of phonetic text for this String Item (si). Phonetic text is used to give hints as to the pronunciation of an East Asian language, and the hints are displayed as text within the spreadsheet cells across the top portion of the cell. Since the phonetic hints are text, every phonetic hint is expressed as a phonetic run (rPh), and these properties specify how to display that phonetic run.
@@ -27640,6 +30205,14 @@ impl XmlWrite for CT_PhoneticPr {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_PhoneticPr {
+    fn validate(&self, v: &mut Validator) {
+        if self.font_id.is_none() {
+            v.required_attribute(Ns::NONE, "fontId", &self.extra_attrs);
+        }
     }
 }
 
@@ -27722,6 +30295,20 @@ impl XmlWrite for CT_PhoneticRun {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_PhoneticRun {
+    fn validate(&self, v: &mut Validator) {
+        if self.sb.is_none() {
+            v.required_attribute(Ns::NONE, "sb", &self.extra_attrs);
+        }
+        if self.eb.is_none() {
+            v.required_attribute(Ns::NONE, "eb", &self.extra_attrs);
+        }
+        if self.t.is_none() {
+            v.required_element(Ns::X, "t", &self.extra_children);
+        }
     }
 }
 
@@ -27910,6 +30497,17 @@ impl XmlWrite for CT_PivotArea {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_PivotArea {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.references {
+            v.enter("x:references", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -28144,6 +30742,17 @@ impl XmlWrite for CT_PivotAreaReference {
     }
 }
 
+impl Validate for CT_PivotAreaReference {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.x.iter().enumerate() {
+            v.enter("x:x", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// References (ECMA-376 Part 1 §18.10.2.2).
 ///
 /// Represents the set of selected fields and the selected items within those fields.
@@ -28214,6 +30823,17 @@ impl XmlWrite for CT_PivotAreaReferences {
         rt::write_extras_after(w, &self.extra_children, 0, self.reference.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_PivotAreaReferences {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.reference.iter().enumerate() {
+            v.enter("x:reference", Some(i), |v| x.validate(v));
+        }
+        if self.reference.is_empty() {
+            v.required_element(Ns::X, "reference", &self.extra_children);
+        }
     }
 }
 
@@ -28290,6 +30910,14 @@ impl XmlWrite for CT_PivotAreas {
     }
 }
 
+impl Validate for CT_PivotAreas {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.pivot_area.iter().enumerate() {
+            v.enter("x:pivotArea", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// PivotCache (ECMA-376 Part 1 §18.2.17).
 ///
 /// This element represents a cache of data for pivot tables and formulas in the workbook.
@@ -28348,6 +30976,17 @@ impl XmlWrite for CT_PivotCache {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_PivotCache {
+    fn validate(&self, v: &mut Validator) {
+        if self.cache_id.is_none() {
+            v.required_attribute(Ns::NONE, "cacheId", &self.extra_attrs);
+        }
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -28728,6 +31367,48 @@ impl XmlWrite for CT_PivotCacheDefinition {
     }
 }
 
+impl Validate for CT_PivotCacheDefinition {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.cache_source {
+            v.enter("x:cacheSource", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "cacheSource", &self.extra_children);
+        }
+        if let Some(x) = &self.cache_fields {
+            v.enter("x:cacheFields", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "cacheFields", &self.extra_children);
+        }
+        if let Some(x) = &self.cache_hierarchies {
+            v.enter("x:cacheHierarchies", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.kpis {
+            v.enter("x:kpis", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tuple_cache {
+            v.enter("x:tupleCache", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.calculated_items {
+            v.enter("x:calculatedItems", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.calculated_members {
+            v.enter("x:calculatedMembers", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.dimensions {
+            v.enter("x:dimensions", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.measure_groups {
+            v.enter("x:measureGroups", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.maps {
+            v.enter("x:maps", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// PivotCache Records (ECMA-376 Part 1 §18.10.1.68).
 ///
 /// Represents the collection of records in the PivotCache. This part stores the underlying source data that the PivotTable aggregates.
@@ -28815,6 +31496,17 @@ impl XmlWrite for CT_PivotCacheRecords {
     }
 }
 
+impl Validate for CT_PivotCacheRecords {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.r.iter().enumerate() {
+            v.enter("x:r", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// PivotCaches (ECMA-376 Part 1 §18.2.18).
 ///
 /// This element enumerates pivot cache definition parts used by pivot tables and formulas in this workbook.
@@ -28873,6 +31565,17 @@ impl XmlWrite for CT_PivotCaches {
         rt::write_extras_after(w, &self.extra_children, 0, self.pivot_cache.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_PivotCaches {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.pivot_cache.iter().enumerate() {
+            v.enter("x:pivotCache", Some(i), |v| x.validate(v));
+        }
+        if self.pivot_cache.is_empty() {
+            v.required_element(Ns::X, "pivotCache", &self.extra_children);
+        }
     }
 }
 
@@ -28952,6 +31655,20 @@ impl XmlWrite for CT_PivotDimension {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_PivotDimension {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if self.unique_name.is_none() {
+            v.required_attribute(Ns::NONE, "uniqueName", &self.extra_attrs);
+        }
+        if self.caption.is_none() {
+            v.required_attribute(Ns::NONE, "caption", &self.extra_attrs);
+        }
     }
 }
 
@@ -29491,6 +32208,20 @@ impl XmlWrite for CT_PivotField {
     }
 }
 
+impl Validate for CT_PivotField {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.items {
+            v.enter("x:items", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.auto_sort_scope {
+            v.enter("x:autoSortScope", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// PivotTable Fields (ECMA-376 Part 1 §18.10.1.70).
 ///
 /// Represents the collection of fields that appear on the PivotTable.
@@ -29561,6 +32292,17 @@ impl XmlWrite for CT_PivotFields {
         rt::write_extras_after(w, &self.extra_children, 0, self.pivot_field.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_PivotFields {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.pivot_field.iter().enumerate() {
+            v.enter("x:pivotField", Some(i), |v| x.validate(v));
+        }
+        if self.pivot_field.is_empty() {
+            v.required_element(Ns::X, "pivotField", &self.extra_children);
+        }
     }
 }
 
@@ -29738,6 +32480,28 @@ impl XmlWrite for CT_PivotFilter {
     }
 }
 
+impl Validate for CT_PivotFilter {
+    fn validate(&self, v: &mut Validator) {
+        if self.fld.is_none() {
+            v.required_attribute(Ns::NONE, "fld", &self.extra_attrs);
+        }
+        if self.type_.is_none() {
+            v.required_attribute(Ns::NONE, "type", &self.extra_attrs);
+        }
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "id", &self.extra_attrs);
+        }
+        if let Some(x) = &self.auto_filter {
+            v.enter("x:autoFilter", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "autoFilter", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Filters (ECMA-376 Part 1 §18.10.1.34).
 ///
 /// Represents the collection of filters that apply to this PivotTable.
@@ -29811,6 +32575,14 @@ impl XmlWrite for CT_PivotFilters {
     }
 }
 
+impl Validate for CT_PivotFilters {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.filter.iter().enumerate() {
+            v.enter("x:filter", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// PivotTable OLAP Hierarchies (ECMA-376 Part 1 §18.10.1.71).
 ///
 /// Represents the collection of OLAP hierarchies associated with the PivotTable.
@@ -29881,6 +32653,17 @@ impl XmlWrite for CT_PivotHierarchies {
         rt::write_extras_after(w, &self.extra_children, 0, self.pivot_hierarchy.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_PivotHierarchies {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.pivot_hierarchy.iter().enumerate() {
+            v.enter("x:pivotHierarchy", Some(i), |v| x.validate(v));
+        }
+        if self.pivot_hierarchy.is_empty() {
+            v.required_element(Ns::X, "pivotHierarchy", &self.extra_children);
+        }
     }
 }
 
@@ -30082,6 +32865,20 @@ impl XmlWrite for CT_PivotHierarchy {
         }
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_PivotHierarchy {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.mps {
+            v.enter("x:mps", None, |v| x.validate(v));
+        }
+        for (i, x) in self.members.iter().enumerate() {
+            v.enter("x:members", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -30299,6 +33096,16 @@ impl XmlWrite for CT_PivotSelection {
     }
 }
 
+impl Validate for CT_PivotSelection {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pivot_area {
+            v.enter("x:pivotArea", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "pivotArea", &self.extra_children);
+        }
+    }
+}
+
 /// PivotTable Style (ECMA-376 Part 1 §18.10.1.74).
 ///
 /// Represent information on style applied to the PivotTable.
@@ -30396,6 +33203,10 @@ impl XmlWrite for CT_PivotTableStyle {
     }
 }
 
+impl Validate for CT_PivotTableStyle {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Print Options (ECMA-376 Part 1 §18.3.1.70).
 ///
 /// Print options for the sheet. Printer-specific settings are stored separately in the Printer Settings part as defined in §15.2.15.
@@ -30482,6 +33293,10 @@ impl XmlWrite for CT_PrintOptions {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_PrintOptions {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Protected Range (ECMA-376 Part 1 §18.3.1.71).
@@ -30628,6 +33443,17 @@ impl XmlWrite for CT_ProtectedRange {
     }
 }
 
+impl Validate for CT_ProtectedRange {
+    fn validate(&self, v: &mut Validator) {
+        if self.sqref.is_none() {
+            v.required_attribute(Ns::NONE, "sqref", &self.extra_attrs);
+        }
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+    }
+}
+
 /// Protected Ranges (ECMA-376 Part 1 §18.3.1.72).
 ///
 /// This collection specifies all protected ranges on this worksheet.
@@ -30686,6 +33512,17 @@ impl XmlWrite for CT_ProtectedRanges {
         rt::write_extras_after(w, &self.extra_children, 0, self.protected_range.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ProtectedRanges {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.protected_range.iter().enumerate() {
+            v.enter("x:protectedRange", Some(i), |v| x.validate(v));
+        }
+        if self.protected_range.is_empty() {
+            v.required_element(Ns::X, "protectedRange", &self.extra_children);
+        }
     }
 }
 
@@ -30759,6 +33596,17 @@ impl XmlWrite for CT_Query {
     }
 }
 
+impl Validate for CT_Query {
+    fn validate(&self, v: &mut Validator) {
+        if self.mdx.is_none() {
+            v.required_attribute(Ns::NONE, "mdx", &self.extra_attrs);
+        }
+        if let Some(x) = &self.tpls {
+            v.enter("x:tpls", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// OLAP Query Cache (ECMA-376 Part 1 §18.10.1.76).
 ///
 /// Represents the cache of OLAP sheet data queries.
@@ -30829,6 +33677,17 @@ impl XmlWrite for CT_QueryCache {
         rt::write_extras_after(w, &self.extra_children, 0, self.query.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_QueryCache {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.query.iter().enumerate() {
+            v.enter("x:query", Some(i), |v| x.validate(v));
+        }
+        if self.query.is_empty() {
+            v.required_element(Ns::X, "query", &self.extra_children);
+        }
     }
 }
 
@@ -31120,6 +33979,23 @@ impl XmlWrite for CT_QueryTable {
     }
 }
 
+impl Validate for CT_QueryTable {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if self.connection_id.is_none() {
+            v.required_attribute(Ns::NONE, "connectionId", &self.extra_attrs);
+        }
+        if let Some(x) = &self.query_table_refresh {
+            v.enter("x:queryTableRefresh", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Deleted Fields (ECMA-376 Part 1 §18.12.3).
 ///
 /// This element is the collection for deletedField (§18.12.1) elements, each of which represents a column or field that has been deleted from the query table.
@@ -31190,6 +34066,17 @@ impl XmlWrite for CT_QueryTableDeletedFields {
         rt::write_extras_after(w, &self.extra_children, 0, self.deleted_field.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_QueryTableDeletedFields {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.deleted_field.iter().enumerate() {
+            v.enter("x:deletedField", Some(i), |v| x.validate(v));
+        }
+        if self.deleted_field.is_empty() {
+            v.required_element(Ns::X, "deletedField", &self.extra_children);
+        }
     }
 }
 
@@ -31317,6 +34204,17 @@ impl XmlWrite for CT_QueryTableField {
     }
 }
 
+impl Validate for CT_QueryTableField {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "id", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Query table fields (ECMA-376 Part 1 §18.12.5).
 ///
 /// This element is the collection for queryTableField elements.
@@ -31387,6 +34285,14 @@ impl XmlWrite for CT_QueryTableFields {
         rt::write_extras_after(w, &self.extra_children, 0, self.query_table_field.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_QueryTableFields {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.query_table_field.iter().enumerate() {
+            v.enter("x:queryTableField", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -31561,6 +34467,25 @@ impl XmlWrite for CT_QueryTableRefresh {
     }
 }
 
+impl Validate for CT_QueryTableRefresh {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.query_table_fields {
+            v.enter("x:queryTableFields", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "queryTableFields", &self.extra_children);
+        }
+        if let Some(x) = &self.query_table_deleted_fields {
+            v.enter("x:queryTableDeletedFields", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sort_state {
+            v.enter("x:sortState", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Rich Text Run (ECMA-376 Part 1 §18.4.4).
 ///
 /// This element represents a run of rich text. A rich text run is a region of text that share a common set of properties, such as formatting properties. The properties are defined in the rPr element, and the text displayed to the user is defined in the Text (t) element.
@@ -31636,6 +34561,17 @@ impl XmlWrite for CT_RElt {
     }
 }
 
+impl Validate for CT_RElt {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.r_pr {
+            v.enter("x:rPr", None, |v| x.validate(v));
+        }
+        if self.t.is_none() {
+            v.required_element(Ns::X, "t", &self.extra_children);
+        }
+    }
+}
+
 /// Run Properties (ECMA-376 Part 1 §18.4.7).
 ///
 /// This element represents a set of properties to apply to the contents of this rich text run.
@@ -31704,6 +34640,14 @@ impl XmlWrite for CT_RPrElt {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_RPrElt {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
     }
 }
 
@@ -31822,6 +34766,10 @@ impl XmlWrite for CT_RangePr {
     }
 }
 
+impl Validate for CT_RangePr {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Range Set (ECMA-376 Part 1 §18.10.1.79).
 ///
 /// Represents a single range in the rangeSets collection. element is intended to facilitate creating a PivotTable report by consolidating SpreadsheetML ranges that have similar categories of data to be summarized. The simplest layout for the data source is for each rangeSets of data to be in list-like format, with column labels in the first row, row labels in the first column, the rest of the rows having similar items in the same row and
@@ -31937,6 +34885,10 @@ impl XmlWrite for CT_RangeSet {
     }
 }
 
+impl Validate for CT_RangeSet {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Range Sets (ECMA-376 Part 1 §18.10.1.80).
 ///
 /// Represents the collection of reference-page items pairs.
@@ -32010,6 +34962,17 @@ impl XmlWrite for CT_RangeSets {
     }
 }
 
+impl Validate for CT_RangeSets {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.range_set.iter().enumerate() {
+            v.enter("x:rangeSet", Some(i), |v| x.validate(v));
+        }
+        if self.range_set.is_empty() {
+            v.required_element(Ns::X, "rangeSet", &self.extra_children);
+        }
+    }
+}
+
 /// PivotCache Record (ECMA-376 Part 1 §18.10.1.77).
 ///
 /// Represents a single record of data in the PivotCache.
@@ -32073,6 +35036,17 @@ impl XmlWrite for CT_Record {
     }
 }
 
+impl Validate for CT_Record {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if self.choice.is_empty() {
+            v.missing_content("one of x:m, x:n, x:b, x:e, x:s, x:d, …");
+        }
+    }
+}
+
 /// Reviewed (ECMA-376 Part 1 §18.11.1.14).
 ///
 /// This element represents an identifier of a single reviewed revision. A reviewed revision, is a revision that has been reviewed via the spreadsheet application's track changes feature, has been accepted, and has been saved.
@@ -32122,6 +35096,14 @@ impl XmlWrite for CT_Reviewed {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Reviewed {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::NONE, "rId", &self.extra_attrs);
+        }
     }
 }
 
@@ -32195,6 +35177,17 @@ impl XmlWrite for CT_ReviewedRevisions {
         rt::write_extras_after(w, &self.extra_children, 0, self.reviewed.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ReviewedRevisions {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.reviewed.iter().enumerate() {
+            v.enter("x:reviewed", Some(i), |v| x.validate(v));
+        }
+        if self.reviewed.is_empty() {
+            v.required_element(Ns::X, "reviewed", &self.extra_children);
+        }
     }
 }
 
@@ -32329,6 +35322,17 @@ impl XmlWrite for CT_RevisionAutoFormatting {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_RevisionAutoFormatting {
+    fn validate(&self, v: &mut Validator) {
+        if self.sheet_id.is_none() {
+            v.required_attribute(Ns::NONE, "sheetId", &self.extra_attrs);
+        }
+        if self.ref_.is_none() {
+            v.required_attribute(Ns::NONE, "ref", &self.extra_attrs);
+        }
     }
 }
 
@@ -32580,6 +35584,34 @@ impl XmlWrite for CT_RevisionCellChange {
     }
 }
 
+impl Validate for CT_RevisionCellChange {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::NONE, "rId", &self.extra_attrs);
+        }
+        if self.s_id.is_none() {
+            v.required_attribute(Ns::NONE, "sId", &self.extra_attrs);
+        }
+        if let Some(x) = &self.oc {
+            v.enter("x:oc", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.nc {
+            v.enter("x:nc", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "nc", &self.extra_children);
+        }
+        if let Some(x) = &self.odxf {
+            v.enter("x:odxf", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ndxf {
+            v.enter("x:ndxf", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Revision Cell Comment (ECMA-376 Part 1 §18.11.1.11).
 ///
 /// This element represents a revision record of a cell comment change.
@@ -32722,6 +35754,23 @@ impl XmlWrite for CT_RevisionComment {
     }
 }
 
+impl Validate for CT_RevisionComment {
+    fn validate(&self, v: &mut Validator) {
+        if self.sheet_id.is_none() {
+            v.required_attribute(Ns::NONE, "sheetId", &self.extra_attrs);
+        }
+        if self.cell.is_none() {
+            v.required_attribute(Ns::NONE, "cell", &self.extra_attrs);
+        }
+        if self.guid.is_none() {
+            v.required_attribute(Ns::NONE, "guid", &self.extra_attrs);
+        }
+        if self.author.is_none() {
+            v.required_attribute(Ns::NONE, "author", &self.extra_attrs);
+        }
+    }
+}
+
 /// Revision Merge Conflict (ECMA-376 Part 1 §18.11.1.10).
 ///
 /// This element represents a revision record which indicates that there was a merge conflict.
@@ -32801,6 +35850,14 @@ impl XmlWrite for CT_RevisionConflict {
     }
 }
 
+impl Validate for CT_RevisionConflict {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::NONE, "rId", &self.extra_attrs);
+        }
+    }
+}
+
 /// Revision Custom View (ECMA-376 Part 1 §18.11.1.12).
 ///
 /// This element represents a revision record of adding or removing a custom view to the workbook
@@ -32859,6 +35916,17 @@ impl XmlWrite for CT_RevisionCustomView {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_RevisionCustomView {
+    fn validate(&self, v: &mut Validator) {
+        if self.guid.is_none() {
+            v.required_attribute(Ns::NONE, "guid", &self.extra_attrs);
+        }
+        if self.action.is_none() {
+            v.required_attribute(Ns::NONE, "action", &self.extra_attrs);
+        }
     }
 }
 
@@ -33173,6 +36241,20 @@ impl XmlWrite for CT_RevisionDefinedName {
     }
 }
 
+impl Validate for CT_RevisionDefinedName {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::NONE, "rId", &self.extra_attrs);
+        }
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Revision Format (ECMA-376 Part 1 §18.11.1.17).
 ///
 /// This element represents a revision record of information about a formatting change.
@@ -33299,6 +36381,23 @@ impl XmlWrite for CT_RevisionFormatting {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_RevisionFormatting {
+    fn validate(&self, v: &mut Validator) {
+        if self.sheet_id.is_none() {
+            v.required_attribute(Ns::NONE, "sheetId", &self.extra_attrs);
+        }
+        if self.sqref.is_none() {
+            v.required_attribute(Ns::NONE, "sqref", &self.extra_attrs);
+        }
+        if let Some(x) = &self.dxf {
+            v.enter("x:dxf", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -33451,6 +36550,37 @@ impl XmlWrite for CT_RevisionHeader {
         }
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_RevisionHeader {
+    fn validate(&self, v: &mut Validator) {
+        if self.guid.is_none() {
+            v.required_attribute(Ns::NONE, "guid", &self.extra_attrs);
+        }
+        if self.date_time.is_none() {
+            v.required_attribute(Ns::NONE, "dateTime", &self.extra_attrs);
+        }
+        if self.max_sheet_id.is_none() {
+            v.required_attribute(Ns::NONE, "maxSheetId", &self.extra_attrs);
+        }
+        if self.user_name.is_none() {
+            v.required_attribute(Ns::NONE, "userName", &self.extra_attrs);
+        }
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
+        if let Some(x) = &self.sheet_id_map {
+            v.enter("x:sheetIdMap", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "sheetIdMap", &self.extra_children);
+        }
+        if let Some(x) = &self.reviewed_list {
+            v.enter("x:reviewedList", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -33626,6 +36756,20 @@ impl XmlWrite for CT_RevisionHeaders {
     }
 }
 
+impl Validate for CT_RevisionHeaders {
+    fn validate(&self, v: &mut Validator) {
+        if self.guid.is_none() {
+            v.required_attribute(Ns::NONE, "guid", &self.extra_attrs);
+        }
+        for (i, x) in self.header.iter().enumerate() {
+            v.enter("x:header", Some(i), |v| x.validate(v));
+        }
+        if self.header.is_empty() {
+            v.required_element(Ns::X, "header", &self.extra_children);
+        }
+    }
+}
+
 /// Revision Insert Sheet (ECMA-376 Part 1 §18.11.1.18).
 ///
 /// This element represents a revision record of a sheet that was inserted.
@@ -33720,6 +36864,23 @@ impl XmlWrite for CT_RevisionInsertSheet {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_RevisionInsertSheet {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::NONE, "rId", &self.extra_attrs);
+        }
+        if self.sheet_id.is_none() {
+            v.required_attribute(Ns::NONE, "sheetId", &self.extra_attrs);
+        }
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if self.sheet_position.is_none() {
+            v.required_attribute(Ns::NONE, "sheetPosition", &self.extra_attrs);
+        }
     }
 }
 
@@ -33846,6 +37007,26 @@ impl XmlWrite for CT_RevisionMove {
     }
 }
 
+impl Validate for CT_RevisionMove {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::NONE, "rId", &self.extra_attrs);
+        }
+        if self.sheet_id.is_none() {
+            v.required_attribute(Ns::NONE, "sheetId", &self.extra_attrs);
+        }
+        if self.source.is_none() {
+            v.required_attribute(Ns::NONE, "source", &self.extra_attrs);
+        }
+        if self.destination.is_none() {
+            v.required_attribute(Ns::NONE, "destination", &self.extra_attrs);
+        }
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Revision Query Table (ECMA-376 Part 1 §18.11.1.20).
 ///
 /// This element represents a revision record of a query table field change.
@@ -33913,6 +37094,20 @@ impl XmlWrite for CT_RevisionQueryTableField {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_RevisionQueryTableField {
+    fn validate(&self, v: &mut Validator) {
+        if self.sheet_id.is_none() {
+            v.required_attribute(Ns::NONE, "sheetId", &self.extra_attrs);
+        }
+        if self.ref_.is_none() {
+            v.required_attribute(Ns::NONE, "ref", &self.extra_attrs);
+        }
+        if self.field_id.is_none() {
+            v.required_attribute(Ns::NONE, "fieldId", &self.extra_attrs);
+        }
     }
 }
 
@@ -34049,6 +37244,26 @@ impl XmlWrite for CT_RevisionRowColumn {
     }
 }
 
+impl Validate for CT_RevisionRowColumn {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::NONE, "rId", &self.extra_attrs);
+        }
+        if self.s_id.is_none() {
+            v.required_attribute(Ns::NONE, "sId", &self.extra_attrs);
+        }
+        if self.ref_.is_none() {
+            v.required_attribute(Ns::NONE, "ref", &self.extra_attrs);
+        }
+        if self.action.is_none() {
+            v.required_attribute(Ns::NONE, "action", &self.extra_attrs);
+        }
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Revision Sheet Name (ECMA-376 Part 1 §18.11.1.22).
 ///
 /// This element represents a revision record tracking the renaming a sheet.
@@ -34164,6 +37379,26 @@ impl XmlWrite for CT_RevisionSheetRename {
     }
 }
 
+impl Validate for CT_RevisionSheetRename {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::NONE, "rId", &self.extra_attrs);
+        }
+        if self.sheet_id.is_none() {
+            v.required_attribute(Ns::NONE, "sheetId", &self.extra_attrs);
+        }
+        if self.old_name.is_none() {
+            v.required_attribute(Ns::NONE, "oldName", &self.extra_attrs);
+        }
+        if self.new_name.is_none() {
+            v.required_attribute(Ns::NONE, "newName", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Revisions (ECMA-376 Part 1 §18.11.1.16).
 ///
 /// This element represents the root node of a list of revisions made in this shared workbook. This root node shows up at the beginning of every log file that contains specific revisions made to the workbook. When multiple users are sharing, and editing, a workbook at the same time, there can be conflicting changes.
@@ -34232,6 +37467,14 @@ impl XmlWrite for CT_Revisions {
     }
 }
 
+impl Validate for CT_Revisions {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// RGB Color (ECMA-376 Part 1 §18.8.34).
 ///
 /// A single ARGB entry for the corresponding color index.
@@ -34282,6 +37525,10 @@ impl XmlWrite for CT_RgbColor {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_RgbColor {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Row (ECMA-376 Part 1 §18.3.1.73).
@@ -34470,6 +37717,17 @@ impl XmlWrite for CT_Row {
     }
 }
 
+impl Validate for CT_Row {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.c.iter().enumerate() {
+            v.enter("x:c", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Row Fields (ECMA-376 Part 1 §18.10.1.81).
 ///
 /// Represents the collection of row fields for the PivotTable.
@@ -34543,6 +37801,17 @@ impl XmlWrite for CT_RowFields {
     }
 }
 
+impl Validate for CT_RowFields {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.field.iter().enumerate() {
+            v.enter("x:field", Some(i), |v| x.validate(v));
+        }
+        if self.field.is_empty() {
+            v.required_element(Ns::X, "field", &self.extra_children);
+        }
+    }
+}
+
 /// Row OLAP Hierarchy References (ECMA-376 Part 1 §18.10.1.82).
 ///
 /// Represents the collection of references to OLAP hierarchies on the row axis of a PivotTable.
@@ -34613,6 +37882,17 @@ impl XmlWrite for CT_RowHierarchiesUsage {
         rt::write_extras_after(w, &self.extra_children, 0, self.row_hierarchy_usage.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_RowHierarchiesUsage {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.row_hierarchy_usage.iter().enumerate() {
+            v.enter("x:rowHierarchyUsage", Some(i), |v| x.validate(v));
+        }
+        if self.row_hierarchy_usage.is_empty() {
+            v.required_element(Ns::X, "rowHierarchyUsage", &self.extra_children);
+        }
     }
 }
 
@@ -34724,6 +38004,20 @@ impl XmlWrite for CT_Rst {
         }
         rt::write_extras(w, &self.extra_children, 4);
         w.end();
+    }
+}
+
+impl Validate for CT_Rst {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.r.iter().enumerate() {
+            v.enter("x:r", Some(i), |v| x.validate(v));
+        }
+        for (i, x) in self.r_ph.iter().enumerate() {
+            v.enter("x:rPh", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.phonetic_pr {
+            v.enter("x:phoneticPr", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -34845,6 +38139,20 @@ impl XmlWrite for CT_Scenario {
     }
 }
 
+impl Validate for CT_Scenario {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        for (i, x) in self.input_cells.iter().enumerate() {
+            v.enter("x:inputCells", Some(i), |v| x.validate(v));
+        }
+        if self.input_cells.is_empty() {
+            v.required_element(Ns::X, "inputCells", &self.extra_children);
+        }
+    }
+}
+
 /// Scenarios (ECMA-376 Part 1 §18.3.1.76).
 ///
 /// A collection of Scenarios. A scenario is a named what-if model that includes variable cells linked together by one or more formulas.
@@ -34936,6 +38244,17 @@ impl XmlWrite for CT_Scenarios {
     }
 }
 
+impl Validate for CT_Scenarios {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.scenario.iter().enumerate() {
+            v.enter("x:scenario", Some(i), |v| x.validate(v));
+        }
+        if self.scenario.is_empty() {
+            v.required_element(Ns::X, "scenario", &self.extra_children);
+        }
+    }
+}
+
 /// XML Schema (ECMA-376 Part 1 §18.16.4).
 ///
 /// This element contains the XML tree for an attached schema.
@@ -35024,6 +38343,14 @@ impl XmlWrite for CT_Schema {
     }
 }
 
+impl Validate for CT_Schema {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "ID", &self.extra_attrs);
+        }
+    }
+}
+
 /// Selection (ECMA-376 Part 1 §18.3.1.78).
 ///
 /// Worksheet view selection.
@@ -35103,6 +38430,10 @@ impl XmlWrite for CT_Selection {
     }
 }
 
+impl Validate for CT_Selection {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Server Format (ECMA-376 Part 1 §18.10.1.86).
 ///
 /// Represents the numeric format specified by the OLAP server for a tuple.
@@ -35162,6 +38493,10 @@ impl XmlWrite for CT_ServerFormat {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_ServerFormat {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Server Formats (ECMA-376 Part 1 §18.10.1.87).
@@ -35234,6 +38569,14 @@ impl XmlWrite for CT_ServerFormats {
         rt::write_extras_after(w, &self.extra_children, 0, self.server_format.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ServerFormats {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.server_format.iter().enumerate() {
+            v.enter("x:serverFormat", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -35360,6 +38703,23 @@ impl XmlWrite for CT_Set {
     }
 }
 
+impl Validate for CT_Set {
+    fn validate(&self, v: &mut Validator) {
+        if self.max_rank.is_none() {
+            v.required_attribute(Ns::NONE, "maxRank", &self.extra_attrs);
+        }
+        if self.set_definition.is_none() {
+            v.required_attribute(Ns::NONE, "setDefinition", &self.extra_attrs);
+        }
+        for (i, x) in self.tpls.iter().enumerate() {
+            v.enter("x:tpls", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.sort_by_tuple {
+            v.enter("x:sortByTuple", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Sets (ECMA-376 Part 1 §18.10.1.89).
 ///
 /// Represents the collection of OLAP sheet data entries or tuple sets.
@@ -35430,6 +38790,17 @@ impl XmlWrite for CT_Sets {
         rt::write_extras_after(w, &self.extra_children, 0, self.set.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Sets {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.set.iter().enumerate() {
+            v.enter("x:set", Some(i), |v| x.validate(v));
+        }
+        if self.set.is_empty() {
+            v.required_element(Ns::X, "set", &self.extra_children);
+        }
     }
 }
 
@@ -35629,6 +39000,14 @@ impl XmlWrite for CT_SharedItems {
     }
 }
 
+impl Validate for CT_SharedItems {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// User Information (ECMA-376 Part 1 §18.11.2.1).
 ///
 /// This element represents a user, and it stores information about a specific user as it relates to revisions.
@@ -35726,6 +39105,26 @@ impl XmlWrite for CT_SharedUser {
     }
 }
 
+impl Validate for CT_SharedUser {
+    fn validate(&self, v: &mut Validator) {
+        if self.guid.is_none() {
+            v.required_attribute(Ns::NONE, "guid", &self.extra_attrs);
+        }
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "id", &self.extra_attrs);
+        }
+        if self.date_time.is_none() {
+            v.required_attribute(Ns::NONE, "dateTime", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Sheet Information (ECMA-376 Part 1 §18.2.19).
 ///
 /// This element defines a sheet in this workbook. Sheet data is stored in a separate part.
@@ -35805,6 +39204,20 @@ impl XmlWrite for CT_Sheet {
     }
 }
 
+impl Validate for CT_Sheet {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if self.sheet_id.is_none() {
+            v.required_attribute(Ns::NONE, "sheetId", &self.extra_attrs);
+        }
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
+    }
+}
+
 /// Background Image (ECMA-376 Part 1 §18.3.1.67).
 ///
 /// Background sheet image.
@@ -35854,6 +39267,14 @@ impl XmlWrite for CT_SheetBackgroundPicture {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_SheetBackgroundPicture {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -35907,6 +39328,10 @@ impl XmlWrite for CT_SheetCalcPr {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_SheetCalcPr {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Sheet Data (ECMA-376 Part 1 §18.3.1.80).
@@ -35970,6 +39395,14 @@ impl XmlWrite for CT_SheetData {
     }
 }
 
+impl Validate for CT_SheetData {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.row.iter().enumerate() {
+            v.enter("x:row", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Worksheet Dimensions (ECMA-376 Part 1 §18.3.1.35).
 ///
 /// This element specifies the used range of the worksheet. It specifies the row and column bounds of used cells in the worksheet. This is optional and is not required.
@@ -36019,6 +39452,14 @@ impl XmlWrite for CT_SheetDimension {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_SheetDimension {
+    fn validate(&self, v: &mut Validator) {
+        if self.ref_.is_none() {
+            v.required_attribute(Ns::NONE, "ref", &self.extra_attrs);
+        }
     }
 }
 
@@ -36146,6 +39587,14 @@ impl XmlWrite for CT_SheetFormatPr {
     }
 }
 
+impl Validate for CT_SheetFormatPr {
+    fn validate(&self, v: &mut Validator) {
+        if self.default_row_height.is_none() {
+            v.required_attribute(Ns::NONE, "defaultRowHeight", &self.extra_attrs);
+        }
+    }
+}
+
 /// Sheet Id (ECMA-376 Part 1 §18.11.1.23).
 ///
 /// This element represents a sheet that revision can take place on. Each sheet in the workbook should be represented by one of these elements, and each sheet has an id associated with it. Sheet ids are used to refer to sheets internally by the spreadsheet application.
@@ -36195,6 +39644,14 @@ impl XmlWrite for CT_SheetId {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_SheetId {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -36268,6 +39725,17 @@ impl XmlWrite for CT_SheetIdMap {
         rt::write_extras_after(w, &self.extra_children, 0, self.sheet_id.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SheetIdMap {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.sheet_id.iter().enumerate() {
+            v.enter("x:sheetId", Some(i), |v| x.validate(v));
+        }
+        if self.sheet_id.is_empty() {
+            v.required_element(Ns::X, "sheetId", &self.extra_children);
+        }
     }
 }
 
@@ -36443,6 +39911,20 @@ impl XmlWrite for CT_SheetPr {
         }
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_SheetPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.tab_color {
+            v.enter("x:tabColor", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.outline_pr {
+            v.enter("x:outlinePr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.page_set_up_pr {
+            v.enter("x:pageSetUpPr", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -36676,6 +40158,10 @@ impl XmlWrite for CT_SheetProtection {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_SheetProtection {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Worksheet View (ECMA-376 Part 1 §18.3.1.87).
@@ -36968,6 +40454,26 @@ impl XmlWrite for CT_SheetView {
     }
 }
 
+impl Validate for CT_SheetView {
+    fn validate(&self, v: &mut Validator) {
+        if self.workbook_view_id.is_none() {
+            v.required_attribute(Ns::NONE, "workbookViewId", &self.extra_attrs);
+        }
+        if let Some(x) = &self.pane {
+            v.enter("x:pane", None, |v| x.validate(v));
+        }
+        for (i, x) in self.selection.iter().enumerate() {
+            v.enter("x:selection", Some(i), |v| x.validate(v));
+        }
+        for (i, x) in self.pivot_selection.iter().enumerate() {
+            v.enter("x:pivotSelection", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Sheet Views (ECMA-376 Part 1 §18.3.1.88).
 ///
 /// Worksheet views collection.
@@ -37043,6 +40549,20 @@ impl XmlWrite for CT_SheetViews {
     }
 }
 
+impl Validate for CT_SheetViews {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.sheet_view.iter().enumerate() {
+            v.enter("x:sheetView", Some(i), |v| x.validate(v));
+        }
+        if self.sheet_view.is_empty() {
+            v.required_element(Ns::X, "sheetView", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Sheets (ECMA-376 Part 1 §18.2.20).
 ///
 /// This element represents the collection of sheets in the workbook. There are different types of sheets you can create in SpreadsheetML. The most common sheet type is a worksheet; also called a spreadsheet.
@@ -37101,6 +40621,17 @@ impl XmlWrite for CT_Sheets {
         rt::write_extras_after(w, &self.extra_children, 0, self.sheet.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Sheets {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.sheet.iter().enumerate() {
+            v.enter("x:sheet", Some(i), |v| x.validate(v));
+        }
+        if self.sheet.is_empty() {
+            v.required_element(Ns::X, "sheet", &self.extra_children);
+        }
     }
 }
 
@@ -37206,6 +40737,28 @@ impl XmlWrite for CT_SingleXmlCell {
     }
 }
 
+impl Validate for CT_SingleXmlCell {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "id", &self.extra_attrs);
+        }
+        if self.r.is_none() {
+            v.required_attribute(Ns::NONE, "r", &self.extra_attrs);
+        }
+        if self.connection_id.is_none() {
+            v.required_attribute(Ns::NONE, "connectionId", &self.extra_attrs);
+        }
+        if let Some(x) = &self.xml_cell_pr {
+            v.enter("x:xmlCellPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "xmlCellPr", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Single Cells (ECMA-376 Part 1 §18.5.2.2).
 ///
 /// This element is a container for a collection of singleXmlCell tables.
@@ -37264,6 +40817,17 @@ impl XmlWrite for CT_SingleXmlCells {
         rt::write_extras_after(w, &self.extra_children, 0, self.single_xml_cell.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SingleXmlCells {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.single_xml_cell.iter().enumerate() {
+            v.enter("x:singleXmlCell", Some(i), |v| x.validate(v));
+        }
+        if self.single_xml_cell.is_empty() {
+            v.required_element(Ns::X, "singleXmlCell", &self.extra_children);
+        }
     }
 }
 
@@ -37326,6 +40890,10 @@ impl XmlWrite for CT_SmartTagPr {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_SmartTagPr {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Smart Tag Type (ECMA-376 Part 1 §18.2.22).
@@ -37398,6 +40966,10 @@ impl XmlWrite for CT_SmartTagType {
     }
 }
 
+impl Validate for CT_SmartTagType {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Smart Tag Types (ECMA-376 Part 1 §18.2.23).
 ///
 /// This element defines the collection of smart tag types in the workbook. Smart tags represent data that is recognized and labeled as a particular type.
@@ -37459,6 +41031,14 @@ impl XmlWrite for CT_SmartTagTypes {
     }
 }
 
+impl Validate for CT_SmartTagTypes {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.smart_tag_type.iter().enumerate() {
+            v.enter("x:smartTagType", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Smart Tags (ECMA-376 Part 1 §18.3.1.90).
 ///
 /// This collection expresses all smart tags associated with cells on this sheet. There can be multiple smart tags associated with a particular cell, and many cells with smart tags for a given worksheet.
@@ -37517,6 +41097,17 @@ impl XmlWrite for CT_SmartTags {
         rt::write_extras_after(w, &self.extra_children, 0, self.cell_smart_tags.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_SmartTags {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.cell_smart_tags.iter().enumerate() {
+            v.enter("x:cellSmartTags", Some(i), |v| x.validate(v));
+        }
+        if self.cell_smart_tags.is_empty() {
+            v.required_element(Ns::X, "cellSmartTags", &self.extra_children);
+        }
     }
 }
 
@@ -37623,6 +41214,14 @@ impl XmlWrite for CT_SortCondition {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_SortCondition {
+    fn validate(&self, v: &mut Validator) {
+        if self.ref_.is_none() {
+            v.required_attribute(Ns::NONE, "ref", &self.extra_attrs);
+        }
     }
 }
 
@@ -37740,6 +41339,20 @@ impl XmlWrite for CT_SortState {
     }
 }
 
+impl Validate for CT_SortState {
+    fn validate(&self, v: &mut Validator) {
+        if self.ref_.is_none() {
+            v.required_attribute(Ns::NONE, "ref", &self.extra_attrs);
+        }
+        for (i, x) in self.sort_condition.iter().enumerate() {
+            v.enter("x:sortCondition", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Shared String Table (ECMA-376 Part 1 §18.4.9).
 ///
 /// This element is the root of the Shared String Table, which serves as a collection of individual String Items (si).
@@ -37833,6 +41446,17 @@ impl XmlWrite for CT_Sst {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_Sst {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.si.iter().enumerate() {
+            v.enter("x:si", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -38022,6 +41646,20 @@ impl XmlWrite for CT_String {
         rt::write_extras_after(w, &self.extra_children, 1, self.x.len());
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_String {
+    fn validate(&self, v: &mut Validator) {
+        if self.v.is_none() {
+            v.required_attribute(Ns::NONE, "v", &self.extra_attrs);
+        }
+        for (i, x) in self.tpls.iter().enumerate() {
+            v.enter("x:tpls", Some(i), |v| x.validate(v));
+        }
+        for (i, x) in self.x.iter().enumerate() {
+            v.enter("x:x", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -38220,6 +41858,44 @@ impl XmlWrite for CT_Stylesheet {
         }
         rt::write_extras(w, &self.extra_children, 11);
         w.end();
+    }
+}
+
+impl Validate for CT_Stylesheet {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.num_fmts {
+            v.enter("x:numFmts", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.fonts {
+            v.enter("x:fonts", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.fills {
+            v.enter("x:fills", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.borders {
+            v.enter("x:borders", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cell_style_xfs {
+            v.enter("x:cellStyleXfs", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cell_xfs {
+            v.enter("x:cellXfs", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cell_styles {
+            v.enter("x:cellStyles", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.dxfs {
+            v.enter("x:dxfs", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.table_styles {
+            v.enter("x:tableStyles", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.colors {
+            v.enter("x:colors", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -38548,6 +42224,37 @@ impl XmlWrite for CT_Table {
     }
 }
 
+impl Validate for CT_Table {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "id", &self.extra_attrs);
+        }
+        if self.display_name.is_none() {
+            v.required_attribute(Ns::NONE, "displayName", &self.extra_attrs);
+        }
+        if self.ref_.is_none() {
+            v.required_attribute(Ns::NONE, "ref", &self.extra_attrs);
+        }
+        if let Some(x) = &self.auto_filter {
+            v.enter("x:autoFilter", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sort_state {
+            v.enter("x:sortState", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.table_columns {
+            v.enter("x:tableColumns", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "tableColumns", &self.extra_children);
+        }
+        if let Some(x) = &self.table_style_info {
+            v.enter("x:tableStyleInfo", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Table Column (ECMA-376 Part 1 §18.5.1.3).
 ///
 /// An element representing a single column for this table.
@@ -38759,6 +42466,29 @@ impl XmlWrite for CT_TableColumn {
     }
 }
 
+impl Validate for CT_TableColumn {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "id", &self.extra_attrs);
+        }
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if let Some(x) = &self.calculated_column_formula {
+            v.enter("x:calculatedColumnFormula", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.totals_row_formula {
+            v.enter("x:totalsRowFormula", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.xml_column_pr {
+            v.enter("x:xmlColumnPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Table Columns (ECMA-376 Part 1 §18.5.1.4).
 ///
 /// An element representing the collection of all table columns for this table.
@@ -38832,6 +42562,17 @@ impl XmlWrite for CT_TableColumns {
     }
 }
 
+impl Validate for CT_TableColumns {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.table_column.iter().enumerate() {
+            v.enter("x:tableColumn", Some(i), |v| x.validate(v));
+        }
+        if self.table_column.is_empty() {
+            v.required_element(Ns::X, "tableColumn", &self.extra_children);
+        }
+    }
+}
+
 /// Calculated Column Formula (ECMA-376 Part 1 §18.5.1.1).
 ///
 /// Columns in a table can have cells that are calculated, usually based on values in other cells in the table. This element stores the formula that is used to perform the calculation for each cell in this column. It shall be understood that formulas which reference columns of this table, shall be calculated using the cells in those columns on the same row of the table as the cell that the formula resides in.
@@ -38889,6 +42630,10 @@ impl XmlWrite for CT_TableFormula {
     }
 }
 
+impl Validate for CT_TableFormula {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// No Value (ECMA-376 Part 1 §18.13.4).
 ///
 /// This element is present when tables in a web query are missing.
@@ -38927,6 +42672,10 @@ impl XmlWrite for CT_TableMissing {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_TableMissing {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Table Part (ECMA-376 Part 1 §18.3.1.94).
@@ -38978,6 +42727,14 @@ impl XmlWrite for CT_TablePart {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TablePart {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
     }
 }
 
@@ -39051,6 +42808,14 @@ impl XmlWrite for CT_TableParts {
         rt::write_extras_after(w, &self.extra_children, 0, self.table_part.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TableParts {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.table_part.iter().enumerate() {
+            v.enter("x:tablePart", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -39154,6 +42919,17 @@ impl XmlWrite for CT_TableStyle {
     }
 }
 
+impl Validate for CT_TableStyle {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        for (i, x) in self.table_style_element.iter().enumerate() {
+            v.enter("x:tableStyleElement", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Table Style (ECMA-376 Part 1 §18.8.41).
 ///
 /// This element specifies formatting for one area of a table or PivotTable. Together the sequence of these elements makes up one entire Table style or PivotTable style definition. The order in which table style element formatting is applied is as follows: Table Style Element Order  Whole Table  First Column Stripe  Second Column Stripe  First Row Stripe  Second Row Stripe  Last Column  First Column  Header Row  Total Row  First Header Cell  Last Header Cell  First Total Cell  Last Total Cell For instance, row stripe formatting 'wins' over column stripe formatting, and both 'win' over whole table
@@ -39221,6 +42997,14 @@ impl XmlWrite for CT_TableStyleElement {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TableStyleElement {
+    fn validate(&self, v: &mut Validator) {
+        if self.type_.is_none() {
+            v.required_attribute(Ns::NONE, "type", &self.extra_attrs);
+        }
     }
 }
 
@@ -39310,6 +43094,10 @@ impl XmlWrite for CT_TableStyleInfo {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_TableStyleInfo {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Table Styles (ECMA-376 Part 1 §18.8.42).
@@ -39403,6 +43191,14 @@ impl XmlWrite for CT_TableStyles {
     }
 }
 
+impl Validate for CT_TableStyles {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.table_style.iter().enumerate() {
+            v.enter("x:tableStyle", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Tables (ECMA-376 Part 1 §18.13.9).
 ///
 /// This element serves as the collection of tables to be returned via a web query data connection. Tables are then most commonly referenced by &lt;x&gt; via their indices (in order of the &lt;Table&gt; tags in the HTML page).
@@ -39472,6 +43268,17 @@ impl XmlWrite for CT_Tables {
     }
 }
 
+impl Validate for CT_Tables {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if self.choice.is_empty() {
+            v.missing_content("one of x:m, x:s, x:x");
+        }
+    }
+}
+
 /// Text Import Field Settings (ECMA-376 Part 1 §18.13.10).
 ///
 /// This element specifies field settings for text import.
@@ -39531,6 +43338,10 @@ impl XmlWrite for CT_TextField {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_TextField {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Fields (ECMA-376 Part 1 §18.13.11).
@@ -39603,6 +43414,17 @@ impl XmlWrite for CT_TextFields {
         rt::write_extras_after(w, &self.extra_children, 0, self.text_field.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_TextFields {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.text_field.iter().enumerate() {
+            v.enter("x:textField", Some(i), |v| x.validate(v));
+        }
+        if self.text_field.is_empty() {
+            v.required_element(Ns::X, "textField", &self.extra_children);
+        }
     }
 }
 
@@ -39811,6 +43633,14 @@ impl XmlWrite for CT_TextPr {
     }
 }
 
+impl Validate for CT_TextPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.text_fields {
+            v.enter("x:textFields", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Top 10 (ECMA-376 Part 1 §18.3.2.10).
 ///
 /// This element specifies the top N (percent or number of items) to filter by.
@@ -39890,6 +43720,14 @@ impl XmlWrite for CT_Top10 {
     }
 }
 
+impl Validate for CT_Top10 {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Tuple (ECMA-376 Part 1 §18.10.1.92).
 ///
 /// Represents an OLAP sheet data entry member.
@@ -39957,6 +43795,14 @@ impl XmlWrite for CT_Tuple {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Tuple {
+    fn validate(&self, v: &mut Validator) {
+        if self.item.is_none() {
+            v.required_attribute(Ns::NONE, "item", &self.extra_attrs);
+        }
     }
 }
 
@@ -40074,6 +43920,26 @@ impl XmlWrite for CT_TupleCache {
     }
 }
 
+impl Validate for CT_TupleCache {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.entries {
+            v.enter("x:entries", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sets {
+            v.enter("x:sets", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.query_cache {
+            v.enter("x:queryCache", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.server_formats {
+            v.enter("x:serverFormats", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Sort By Tuple (ECMA-376 Part 1 §18.10.1.91).
 ///
 /// Represents the sort applied to a tuple.
@@ -40148,6 +44014,17 @@ impl XmlWrite for CT_Tuples {
     }
 }
 
+impl Validate for CT_Tuples {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.tpl.iter().enumerate() {
+            v.enter("x:tpl", Some(i), |v| x.validate(v));
+        }
+        if self.tpl.is_empty() {
+            v.required_element(Ns::X, "tpl", &self.extra_children);
+        }
+    }
+}
+
 /// Underline (ECMA-376 Part 1 §18.4.13).
 ///
 /// This element represents the underline formatting style.
@@ -40198,6 +44075,10 @@ impl XmlWrite for CT_UnderlineProperty {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_UnderlineProperty {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Undo (ECMA-376 Part 1 §18.11.1.25).
@@ -40342,6 +44223,20 @@ impl XmlWrite for CT_UndoInfo {
     }
 }
 
+impl Validate for CT_UndoInfo {
+    fn validate(&self, v: &mut Validator) {
+        if self.index.is_none() {
+            v.required_attribute(Ns::NONE, "index", &self.extra_attrs);
+        }
+        if self.exp.is_none() {
+            v.required_attribute(Ns::NONE, "exp", &self.extra_attrs);
+        }
+        if self.dr.is_none() {
+            v.required_attribute(Ns::NONE, "dr", &self.extra_attrs);
+        }
+    }
+}
+
 /// User List (ECMA-376 Part 1 §18.11.2.2).
 ///
 /// This element represents a list of users who currently have this shared workbook open. This list does not include any users who have the workbook open in Read-Only mode.
@@ -40415,6 +44310,14 @@ impl XmlWrite for CT_Users {
     }
 }
 
+impl Validate for CT_Users {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.user_info.iter().enumerate() {
+            v.enter("x:userInfo", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// Vertical Alignment (ECMA-376 Part 1 §18.4.14).
 ///
 /// This element adjusts the vertical position of the text relative to the text's default appearance for this run. It is used to get 'superscript' or 'subscript' texts, and shall reduce the font size (if a smaller size is available) accordingly.
@@ -40464,6 +44367,14 @@ impl XmlWrite for CT_VerticalAlignFontProperty {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_VerticalAlignFontProperty {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -40537,6 +44448,20 @@ impl XmlWrite for CT_VolMain {
         rt::write_extras_after(w, &self.extra_children, 0, self.tp.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_VolMain {
+    fn validate(&self, v: &mut Validator) {
+        if self.first.is_none() {
+            v.required_attribute(Ns::NONE, "first", &self.extra_attrs);
+        }
+        for (i, x) in self.tp.iter().enumerate() {
+            v.enter("x:tp", Some(i), |v| x.validate(v));
+        }
+        if self.tp.is_empty() {
+            v.required_element(Ns::X, "tp", &self.extra_children);
+        }
     }
 }
 
@@ -40650,6 +44575,20 @@ impl XmlWrite for CT_VolTopic {
     }
 }
 
+impl Validate for CT_VolTopic {
+    fn validate(&self, v: &mut Validator) {
+        if self.v.is_none() {
+            v.required_element(Ns::X, "v", &self.extra_children);
+        }
+        for (i, x) in self.tr.iter().enumerate() {
+            v.enter("x:tr", Some(i), |v| x.validate(v));
+        }
+        if self.tr.is_empty() {
+            v.required_element(Ns::X, "tr", &self.extra_children);
+        }
+    }
+}
+
 /// References (ECMA-376 Part 1 §18.15.4).
 ///
 /// Represents the reference to a cell that depends on this topic. Each topic can have one or more cells dependencies. For CUBE functions, each &lt;tr&gt; element contains a cell whose cube function call dependent on the connection in main@first.
@@ -40708,6 +44647,17 @@ impl XmlWrite for CT_VolTopicRef {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_VolTopicRef {
+    fn validate(&self, v: &mut Validator) {
+        if self.r.is_none() {
+            v.required_attribute(Ns::NONE, "r", &self.extra_attrs);
+        }
+        if self.s.is_none() {
+            v.required_attribute(Ns::NONE, "s", &self.extra_attrs);
+        }
     }
 }
 
@@ -40784,6 +44734,20 @@ impl XmlWrite for CT_VolType {
     }
 }
 
+impl Validate for CT_VolType {
+    fn validate(&self, v: &mut Validator) {
+        if self.type_.is_none() {
+            v.required_attribute(Ns::NONE, "type", &self.extra_attrs);
+        }
+        for (i, x) in self.main.iter().enumerate() {
+            v.enter("x:main", Some(i), |v| x.validate(v));
+        }
+        if self.main.is_empty() {
+            v.required_element(Ns::X, "main", &self.extra_children);
+        }
+    }
+}
+
 /// Volatile Dependency Types (ECMA-376 Part 1 §18.15.6).
 ///
 /// Represents the collection of external dependencies for a workbook. This element defines the structure of the volatilateDependencies part. There can only be one volatileDependencies part for each workbook.
@@ -40856,6 +44820,20 @@ impl XmlWrite for CT_VolTypes {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_VolTypes {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.vol_type.iter().enumerate() {
+            v.enter("x:volType", Some(i), |v| x.validate(v));
+        }
+        if self.vol_type.is_empty() {
+            v.required_element(Ns::X, "volType", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -41037,6 +45015,14 @@ impl XmlWrite for CT_WebPr {
     }
 }
 
+impl Validate for CT_WebPr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.tables {
+            v.enter("x:tables", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Web Publishing Item (ECMA-376 Part 1 §18.3.1.97).
 ///
 /// This element represents information for a single item or object which can be published to HTML.
@@ -41152,6 +45138,23 @@ impl XmlWrite for CT_WebPublishItem {
     }
 }
 
+impl Validate for CT_WebPublishItem {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "id", &self.extra_attrs);
+        }
+        if self.div_id.is_none() {
+            v.required_attribute(Ns::NONE, "divId", &self.extra_attrs);
+        }
+        if self.source_type.is_none() {
+            v.required_attribute(Ns::NONE, "sourceType", &self.extra_attrs);
+        }
+        if self.destination_file.is_none() {
+            v.required_attribute(Ns::NONE, "destinationFile", &self.extra_attrs);
+        }
+    }
+}
+
 /// Web Publishing Items (ECMA-376 Part 1 §18.3.1.98).
 ///
 /// This represents a listing of individual objects in this workbook that have been published (to HTML). When one of these objects is selected to be published, just the object is published to HTML, not the entire workbook contents.
@@ -41222,6 +45225,17 @@ impl XmlWrite for CT_WebPublishItems {
         rt::write_extras_after(w, &self.extra_children, 0, self.web_publish_item.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_WebPublishItems {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.web_publish_item.iter().enumerate() {
+            v.enter("x:webPublishItem", Some(i), |v| x.validate(v));
+        }
+        if self.web_publish_item.is_empty() {
+            v.required_element(Ns::X, "webPublishItem", &self.extra_children);
+        }
     }
 }
 
@@ -41322,6 +45336,20 @@ impl XmlWrite for CT_WebPublishObject {
     }
 }
 
+impl Validate for CT_WebPublishObject {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "id", &self.extra_attrs);
+        }
+        if self.div_id.is_none() {
+            v.required_attribute(Ns::NONE, "divId", &self.extra_attrs);
+        }
+        if self.destination_file.is_none() {
+            v.required_attribute(Ns::NONE, "destinationFile", &self.extra_attrs);
+        }
+    }
+}
+
 /// Web Publish Objects (ECMA-376 Part 1 §18.2.26).
 ///
 /// This element defines the collection of Web publishing objects in the workbook.
@@ -41392,6 +45420,17 @@ impl XmlWrite for CT_WebPublishObjects {
         rt::write_extras_after(w, &self.extra_children, 0, self.web_publish_object.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_WebPublishObjects {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.web_publish_object.iter().enumerate() {
+            v.enter("x:webPublishObject", Some(i), |v| x.validate(v));
+        }
+        if self.web_publish_object.is_empty() {
+            v.required_element(Ns::X, "webPublishObject", &self.extra_children);
+        }
     }
 }
 
@@ -41517,6 +45556,10 @@ impl XmlWrite for CT_WebPublishing {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_WebPublishing {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Workbook (ECMA-376 Part 1 §18.2.27).
@@ -41844,6 +45887,70 @@ impl XmlWrite for CT_Workbook {
     }
 }
 
+impl Validate for CT_Workbook {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.file_version {
+            v.enter("x:fileVersion", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.file_sharing {
+            v.enter("x:fileSharing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.workbook_pr {
+            v.enter("x:workbookPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.workbook_protection {
+            v.enter("x:workbookProtection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.book_views {
+            v.enter("x:bookViews", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sheets {
+            v.enter("x:sheets", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "sheets", &self.extra_children);
+        }
+        if let Some(x) = &self.function_groups {
+            v.enter("x:functionGroups", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.external_references {
+            v.enter("x:externalReferences", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.defined_names {
+            v.enter("x:definedNames", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.calc_pr {
+            v.enter("x:calcPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ole_size {
+            v.enter("x:oleSize", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.custom_workbook_views {
+            v.enter("x:customWorkbookViews", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.pivot_caches {
+            v.enter("x:pivotCaches", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.smart_tag_pr {
+            v.enter("x:smartTagPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.smart_tag_types {
+            v.enter("x:smartTagTypes", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.web_publishing {
+            v.enter("x:webPublishing", None, |v| x.validate(v));
+        }
+        for (i, x) in self.file_recovery_pr.iter().enumerate() {
+            v.enter("x:fileRecoveryPr", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.web_publish_objects {
+            v.enter("x:webPublishObjects", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Workbook Properties (ECMA-376 Part 1 §18.2.28).
 ///
 /// This element defines a collection of workbook properties.
@@ -42064,6 +46171,10 @@ impl XmlWrite for CT_WorkbookPr {
     }
 }
 
+impl Validate for CT_WorkbookPr {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Workbook Protection (ECMA-376 Part 1 §18.2.29).
 ///
 /// This element specifies options for protecting data in the workbook. Applications might use workbook protection to prevent anyone from accidentally changing, moving, or deleting important data. This protection can be ignored by applications which choose not to support this optional protection mechanism.
@@ -42260,6 +46371,10 @@ impl XmlWrite for CT_WorkbookProtection {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_WorkbookProtection {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Worksheet (ECMA-376 Part 1 §18.3.1.99).
@@ -42858,6 +46973,130 @@ impl XmlWrite for CT_Worksheet {
     }
 }
 
+impl Validate for CT_Worksheet {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.sheet_pr {
+            v.enter("x:sheetPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.dimension {
+            v.enter("x:dimension", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sheet_views {
+            v.enter("x:sheetViews", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sheet_format_pr {
+            v.enter("x:sheetFormatPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.cols.iter().enumerate() {
+            v.enter("x:cols", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.sheet_data {
+            v.enter("x:sheetData", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "sheetData", &self.extra_children);
+        }
+        if let Some(x) = &self.sheet_calc_pr {
+            v.enter("x:sheetCalcPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sheet_protection {
+            v.enter("x:sheetProtection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.protected_ranges {
+            v.enter("x:protectedRanges", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.scenarios {
+            v.enter("x:scenarios", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.auto_filter {
+            v.enter("x:autoFilter", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sort_state {
+            v.enter("x:sortState", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.data_consolidate {
+            v.enter("x:dataConsolidate", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.custom_sheet_views {
+            v.enter("x:customSheetViews", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.merge_cells {
+            v.enter("x:mergeCells", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.phonetic_pr {
+            v.enter("x:phoneticPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.conditional_formatting.iter().enumerate() {
+            v.enter("x:conditionalFormatting", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.data_validations {
+            v.enter("x:dataValidations", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hyperlinks {
+            v.enter("x:hyperlinks", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.print_options {
+            v.enter("x:printOptions", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.page_margins {
+            v.enter("x:pageMargins", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.page_setup {
+            v.enter("x:pageSetup", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.header_footer {
+            v.enter("x:headerFooter", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.row_breaks {
+            v.enter("x:rowBreaks", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.col_breaks {
+            v.enter("x:colBreaks", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.custom_properties {
+            v.enter("x:customProperties", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cell_watches {
+            v.enter("x:cellWatches", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ignored_errors {
+            v.enter("x:ignoredErrors", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.smart_tags {
+            v.enter("x:smartTags", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.drawing {
+            v.enter("x:drawing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.legacy_drawing {
+            v.enter("x:legacyDrawing", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.legacy_drawing_hf {
+            v.enter("x:legacyDrawingHF", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.drawing_hf {
+            v.enter("x:drawingHF", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.picture {
+            v.enter("x:picture", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ole_objects {
+            v.enter("x:oleObjects", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.controls {
+            v.enter("x:controls", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.web_publish_items {
+            v.enter("x:webPublishItems", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.table_parts {
+            v.enter("x:tableParts", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Worksheet PivotCache Source (ECMA-376 Part 1 §18.10.1.95).
 ///
 /// Represents the location of the source of the data that is stored in the cache.
@@ -42937,6 +47176,10 @@ impl XmlWrite for CT_WorksheetSource {
     }
 }
 
+impl Validate for CT_WorksheetSource {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Member Properties Map (ECMA-376 Part 1 §18.10.1.58).
 ///
 /// Represents a mapping to cached member properties.
@@ -42990,6 +47233,10 @@ impl XmlWrite for CT_X {
     }
 }
 
+impl Validate for CT_X {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Character Value (ECMA-376 Part 1 §18.13.8).
 ///
 /// This element is used to specify an HTML table to import by name. If the tables are not named, they shall be specified with the &lt;x v="\[index\]"&gt; syntax instead.
@@ -43039,6 +47286,14 @@ impl XmlWrite for CT_XStringElement {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_XStringElement {
+    fn validate(&self, v: &mut Validator) {
+        if self.v.is_none() {
+            v.required_attribute(Ns::NONE, "v", &self.extra_attrs);
+        }
     }
 }
 
@@ -43248,6 +47503,20 @@ impl XmlWrite for CT_Xf {
     }
 }
 
+impl Validate for CT_Xf {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.alignment {
+            v.enter("x:alignment", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.protection {
+            v.enter("x:protection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Cell Properties (ECMA-376 Part 1 §18.5.2.3).
 ///
 /// This element stores the XML properties for the cell of a single cell xml table.
@@ -43338,6 +47607,22 @@ impl XmlWrite for CT_XmlCellPr {
         }
         rt::write_extras(w, &self.extra_children, 2);
         w.end();
+    }
+}
+
+impl Validate for CT_XmlCellPr {
+    fn validate(&self, v: &mut Validator) {
+        if self.id.is_none() {
+            v.required_attribute(Ns::NONE, "id", &self.extra_attrs);
+        }
+        if let Some(x) = &self.xml_pr {
+            v.enter("x:xmlPr", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "xmlPr", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -43438,6 +47723,23 @@ impl XmlWrite for CT_XmlColumnPr {
     }
 }
 
+impl Validate for CT_XmlColumnPr {
+    fn validate(&self, v: &mut Validator) {
+        if self.map_id.is_none() {
+            v.required_attribute(Ns::NONE, "mapId", &self.extra_attrs);
+        }
+        if self.xpath.is_none() {
+            v.required_attribute(Ns::NONE, "xpath", &self.extra_attrs);
+        }
+        if self.xml_data_type.is_none() {
+            v.required_attribute(Ns::NONE, "xmlDataType", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Column XML Properties (ECMA-376 Part 1 §18.5.2.4).
 ///
 /// This element represents the column properties for single cell XML tables.
@@ -43526,6 +47828,23 @@ impl XmlWrite for CT_XmlPr {
     }
 }
 
+impl Validate for CT_XmlPr {
+    fn validate(&self, v: &mut Validator) {
+        if self.map_id.is_none() {
+            v.required_attribute(Ns::NONE, "mapId", &self.extra_attrs);
+        }
+        if self.xpath.is_none() {
+            v.required_attribute(Ns::NONE, "xpath", &self.extra_attrs);
+        }
+        if self.xml_data_type.is_none() {
+            v.required_attribute(Ns::NONE, "xmlDataType", &self.extra_attrs);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Column Items (ECMA-376 Part 1 §18.10.1.17).
 ///
 /// Represents the collection of column items of the PivotTable.
@@ -43596,6 +47915,17 @@ impl XmlWrite for CT_colItems {
         rt::write_extras_after(w, &self.extra_children, 0, self.i.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_colItems {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.i.iter().enumerate() {
+            v.enter("x:i", Some(i), |v| x.validate(v));
+        }
+        if self.i.is_empty() {
+            v.required_element(Ns::X, "i", &self.extra_children);
+        }
     }
 }
 
@@ -44526,6 +48856,73 @@ impl XmlWrite for CT_pivotTableDefinition {
     }
 }
 
+impl Validate for CT_pivotTableDefinition {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_attribute(Ns::NONE, "name", &self.extra_attrs);
+        }
+        if self.cache_id.is_none() {
+            v.required_attribute(Ns::NONE, "cacheId", &self.extra_attrs);
+        }
+        if self.data_caption.is_none() {
+            v.required_attribute(Ns::NONE, "dataCaption", &self.extra_attrs);
+        }
+        if let Some(x) = &self.location {
+            v.enter("x:location", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::X, "location", &self.extra_children);
+        }
+        if let Some(x) = &self.pivot_fields {
+            v.enter("x:pivotFields", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.row_fields {
+            v.enter("x:rowFields", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.row_items {
+            v.enter("x:rowItems", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.col_fields {
+            v.enter("x:colFields", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.col_items {
+            v.enter("x:colItems", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.page_fields {
+            v.enter("x:pageFields", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.data_fields {
+            v.enter("x:dataFields", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.formats {
+            v.enter("x:formats", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.conditional_formats {
+            v.enter("x:conditionalFormats", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.chart_formats {
+            v.enter("x:chartFormats", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.pivot_hierarchies {
+            v.enter("x:pivotHierarchies", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.pivot_table_style_info {
+            v.enter("x:pivotTableStyleInfo", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.filters {
+            v.enter("x:filters", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.row_hierarchies_usage {
+            v.enter("x:rowHierarchiesUsage", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.col_hierarchies_usage {
+            v.enter("x:colHierarchiesUsage", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("x:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Row Items (ECMA-376 Part 1 §18.10.1.84).
 ///
 /// Represents the collection of items in row axis of the PivotTable.
@@ -44599,6 +48996,17 @@ impl XmlWrite for CT_rowItems {
     }
 }
 
+impl Validate for CT_rowItems {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.i.iter().enumerate() {
+            v.enter("x:i", Some(i), |v| x.validate(v));
+        }
+        if self.i.is_empty() {
+            v.required_element(Ns::X, "i", &self.extra_children);
+        }
+    }
+}
+
 /// A choice among the child elements of `CT_CacheSource`.
 #[derive(Clone, Debug, PartialEq)]
 pub enum CT_CacheSource_Choice {
@@ -44630,6 +49038,16 @@ impl CT_CacheSource_Choice {
             Self::Consolidation(v) => v.write_xml(w, Ns::X, "consolidation"),
             Self::ExtLst(v) => v.write_xml(w, Ns::X, "extLst"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::WorksheetSource(x) => v.enter("x:worksheetSource", index, |v| x.validate(v)),
+            Self::Consolidation(x) => v.enter("x:consolidation", index, |v| x.validate(v)),
+            Self::ExtLst(x) => v.enter("x:extLst", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -44678,6 +49096,16 @@ impl CT_ExternalLink_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::ExternalBook(x) => v.enter("x:externalBook", index, |v| x.validate(v)),
+            Self::DdeLink(x) => v.enter("x:ddeLink", index, |v| x.validate(v)),
+            Self::OleLink(x) => v.enter("x:oleLink", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -44716,6 +49144,15 @@ impl CT_Fill_Choice {
             Self::PatternFill(v) => v.write_xml(w, Ns::X, "patternFill"),
             Self::GradientFill(v) => v.write_xml(w, Ns::X, "gradientFill"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::PatternFill(x) => v.enter("x:patternFill", index, |v| x.validate(v)),
+            Self::GradientFill(x) => v.enter("x:gradientFill", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -44776,6 +49213,20 @@ impl CT_FilterColumn_Choice {
             Self::IconFilter(v) => v.write_xml(w, Ns::X, "iconFilter"),
             Self::ExtLst(v) => v.write_xml(w, Ns::X, "extLst"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Filters(x) => v.enter("x:filters", index, |v| x.validate(v)),
+            Self::Top10(x) => v.enter("x:top10", index, |v| x.validate(v)),
+            Self::CustomFilters(x) => v.enter("x:customFilters", index, |v| x.validate(v)),
+            Self::DynamicFilter(x) => v.enter("x:dynamicFilter", index, |v| x.validate(v)),
+            Self::ColorFilter(x) => v.enter("x:colorFilter", index, |v| x.validate(v)),
+            Self::IconFilter(x) => v.enter("x:iconFilter", index, |v| x.validate(v)),
+            Self::ExtLst(x) => v.enter("x:extLst", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -44876,6 +49327,28 @@ impl CT_Font_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Name(x) => v.enter("x:name", index, |v| x.validate(v)),
+            Self::Charset(x) => v.enter("x:charset", index, |v| x.validate(v)),
+            Self::Family(x) => v.enter("x:family", index, |v| x.validate(v)),
+            Self::B(x) => v.enter("x:b", index, |v| x.validate(v)),
+            Self::I(x) => v.enter("x:i", index, |v| x.validate(v)),
+            Self::Strike(x) => v.enter("x:strike", index, |v| x.validate(v)),
+            Self::Outline(x) => v.enter("x:outline", index, |v| x.validate(v)),
+            Self::Shadow(x) => v.enter("x:shadow", index, |v| x.validate(v)),
+            Self::Condense(x) => v.enter("x:condense", index, |v| x.validate(v)),
+            Self::Extend(x) => v.enter("x:extend", index, |v| x.validate(v)),
+            Self::Color(x) => v.enter("x:color", index, |v| x.validate(v)),
+            Self::Sz(x) => v.enter("x:sz", index, |v| x.validate(v)),
+            Self::U(x) => v.enter("x:u", index, |v| x.validate(v)),
+            Self::VertAlign(x) => v.enter("x:vertAlign", index, |v| x.validate(v)),
+            Self::Scheme(x) => v.enter("x:scheme", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -44945,6 +49418,19 @@ impl CT_GroupItems_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::M(x) => v.enter("x:m", index, |v| x.validate(v)),
+            Self::N(x) => v.enter("x:n", index, |v| x.validate(v)),
+            Self::B(x) => v.enter("x:b", index, |v| x.validate(v)),
+            Self::E(x) => v.enter("x:e", index, |v| x.validate(v)),
+            Self::S(x) => v.enter("x:s", index, |v| x.validate(v)),
+            Self::D(x) => v.enter("x:d", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -44997,6 +49483,17 @@ impl CT_Mdx_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::T(x) => v.enter("x:t", index, |v| x.validate(v)),
+            Self::Ms(x) => v.enter("x:ms", index, |v| x.validate(v)),
+            Self::P(x) => v.enter("x:p", index, |v| x.validate(v)),
+            Self::K(x) => v.enter("x:k", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -45044,6 +49541,17 @@ impl CT_PCDSDTCEntries_Choice {
             Self::E(v) => v.write_xml(w, Ns::X, "e"),
             Self::S(v) => v.write_xml(w, Ns::X, "s"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::M(x) => v.enter("x:m", index, |v| x.validate(v)),
+            Self::N(x) => v.enter("x:n", index, |v| x.validate(v)),
+            Self::E(x) => v.enter("x:e", index, |v| x.validate(v)),
+            Self::S(x) => v.enter("x:s", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -45141,6 +49649,28 @@ impl CT_RPrElt_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::RFont(x) => v.enter("x:rFont", index, |v| x.validate(v)),
+            Self::Charset(x) => v.enter("x:charset", index, |v| x.validate(v)),
+            Self::Family(x) => v.enter("x:family", index, |v| x.validate(v)),
+            Self::B(x) => v.enter("x:b", index, |v| x.validate(v)),
+            Self::I(x) => v.enter("x:i", index, |v| x.validate(v)),
+            Self::Strike(x) => v.enter("x:strike", index, |v| x.validate(v)),
+            Self::Outline(x) => v.enter("x:outline", index, |v| x.validate(v)),
+            Self::Shadow(x) => v.enter("x:shadow", index, |v| x.validate(v)),
+            Self::Condense(x) => v.enter("x:condense", index, |v| x.validate(v)),
+            Self::Extend(x) => v.enter("x:extend", index, |v| x.validate(v)),
+            Self::Color(x) => v.enter("x:color", index, |v| x.validate(v)),
+            Self::Sz(x) => v.enter("x:sz", index, |v| x.validate(v)),
+            Self::U(x) => v.enter("x:u", index, |v| x.validate(v)),
+            Self::VertAlign(x) => v.enter("x:vertAlign", index, |v| x.validate(v)),
+            Self::Scheme(x) => v.enter("x:scheme", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -45214,6 +49744,20 @@ impl CT_Record_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::M(x) => v.enter("x:m", index, |v| x.validate(v)),
+            Self::N(x) => v.enter("x:n", index, |v| x.validate(v)),
+            Self::B(x) => v.enter("x:b", index, |v| x.validate(v)),
+            Self::E(x) => v.enter("x:e", index, |v| x.validate(v)),
+            Self::S(x) => v.enter("x:s", index, |v| x.validate(v)),
+            Self::D(x) => v.enter("x:d", index, |v| x.validate(v)),
+            Self::X(x) => v.enter("x:x", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -45263,6 +49807,16 @@ impl CT_RevisionMove_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Undo(x) => v.enter("x:undo", index, |v| x.validate(v)),
+            Self::Rcc(x) => v.enter("x:rcc", index, |v| x.validate(v)),
+            Self::Rfmt(x) => v.enter("x:rfmt", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -45305,6 +49859,16 @@ impl CT_RevisionRowColumn_Choice {
             Self::Rcc(v) => v.write_xml(w, Ns::X, "rcc"),
             Self::Rfmt(v) => v.write_xml(w, Ns::X, "rfmt"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Undo(x) => v.enter("x:undo", index, |v| x.validate(v)),
+            Self::Rcc(x) => v.enter("x:rcc", index, |v| x.validate(v)),
+            Self::Rfmt(x) => v.enter("x:rfmt", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -45389,6 +49953,25 @@ impl CT_Revisions_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Rrc(x) => v.enter("x:rrc", index, |v| x.validate(v)),
+            Self::Rm(x) => v.enter("x:rm", index, |v| x.validate(v)),
+            Self::Rcv(x) => v.enter("x:rcv", index, |v| x.validate(v)),
+            Self::Rsnm(x) => v.enter("x:rsnm", index, |v| x.validate(v)),
+            Self::Ris(x) => v.enter("x:ris", index, |v| x.validate(v)),
+            Self::Rcc(x) => v.enter("x:rcc", index, |v| x.validate(v)),
+            Self::Rfmt(x) => v.enter("x:rfmt", index, |v| x.validate(v)),
+            Self::Raf(x) => v.enter("x:raf", index, |v| x.validate(v)),
+            Self::Rdn(x) => v.enter("x:rdn", index, |v| x.validate(v)),
+            Self::Rcmt(x) => v.enter("x:rcmt", index, |v| x.validate(v)),
+            Self::Rqt(x) => v.enter("x:rqt", index, |v| x.validate(v)),
+            Self::Rcft(x) => v.enter("x:rcft", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -45455,6 +50038,19 @@ impl CT_SharedItems_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::M(x) => v.enter("x:m", index, |v| x.validate(v)),
+            Self::N(x) => v.enter("x:n", index, |v| x.validate(v)),
+            Self::B(x) => v.enter("x:b", index, |v| x.validate(v)),
+            Self::E(x) => v.enter("x:e", index, |v| x.validate(v)),
+            Self::S(x) => v.enter("x:s", index, |v| x.validate(v)),
+            Self::D(x) => v.enter("x:d", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -45500,6 +50096,16 @@ impl CT_Tables_Choice {
             Self::S(v) => v.write_xml(w, Ns::X, "s"),
             Self::X(v) => v.write_xml(w, Ns::X, "x"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::M(x) => v.enter("x:m", index, |v| x.validate(v)),
+            Self::S(x) => v.enter("x:s", index, |v| x.validate(v)),
+            Self::X(x) => v.enter("x:x", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 

@@ -74,6 +74,14 @@ impl XmlWrite for CT_DigSigBlob {
     }
 }
 
+impl Validate for CT_DigSigBlob {
+    fn validate(&self, v: &mut Validator) {
+        if self.blob.is_none() {
+            v.required_element(Ns::VT, "blob", &self.extra_children);
+        }
+    }
+}
+
 /// Application Specific File Properties (ECMA-376 Part 1 §22.2.2.21).
 ///
 /// This element specifies the application properties of a document. For properties of type string, NCR escape format (_xHHHH_) is used for any invalid XML characters.
@@ -565,6 +573,23 @@ impl XmlWrite for CT_Properties {
     }
 }
 
+impl Validate for CT_Properties {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.heading_pairs {
+            v.enter("ep:HeadingPairs", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.titles_of_parts {
+            v.enter("ep:TitlesOfParts", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.h_links {
+            v.enter("ep:HLinks", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.dig_sig {
+            v.enter("ep:DigSig", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Part Titles (ECMA-376 Part 1 §22.2.2.26).
 ///
 /// This element specifies the title of each document. These parts are not document parts but conceptual representations of document sections.
@@ -620,6 +645,16 @@ impl XmlWrite for CT_VectorLpstr {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_VectorLpstr {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.vector {
+            v.enter("vt:vector", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::VT, "vector", &self.extra_children);
+        }
     }
 }
 
@@ -679,6 +714,16 @@ impl XmlWrite for CT_VectorVariant {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_VectorVariant {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.vector {
+            v.enter("vt:vector", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::VT, "vector", &self.extra_children);
+        }
     }
 }
 

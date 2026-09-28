@@ -205,6 +205,14 @@ impl XmlWrite for CT_AuthorType {
     }
 }
 
+impl Validate for CT_AuthorType {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Name List (ECMA-376 Part 1 §22.6.2.44).
 ///
 /// This element specifies a list containing one or more names of a type of contributor to a source, such as a list of authors, editors, or translators. \[Example:
@@ -266,6 +274,17 @@ impl XmlWrite for CT_NameListType {
     }
 }
 
+impl Validate for CT_NameListType {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.person.iter().enumerate() {
+            v.enter("b:Person", Some(i), |v| x.validate(v));
+        }
+        if self.person.is_empty() {
+            v.required_element(Ns::B, "Person", &self.extra_children);
+        }
+    }
+}
+
 /// Author (ECMA-376 Part 1 §22.6.2.5).
 ///
 /// This element specifies the author of the source. \[Example: &lt;b:Author&gt; &lt;b:Author&gt; &lt;b:NameList&gt; &lt;b:Person&gt; &lt;b:Last&gt;Jones&lt;/b:Last&gt; &lt;b:First&gt;Brian&lt;/b:First&gt; &lt;/b:Person&gt; &lt;/b:NameList&gt; &lt;/b:Author&gt; &lt;/b:Author&gt; end example\]
@@ -322,6 +341,14 @@ impl XmlWrite for CT_NameOrCorporateType {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_NameOrCorporateType {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
     }
 }
 
@@ -393,6 +420,16 @@ impl XmlWrite for CT_NameType {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_NameType {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.name_list {
+            v.enter("b:NameList", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::B, "NameList", &self.extra_children);
+        }
     }
 }
 
@@ -500,6 +537,10 @@ impl XmlWrite for CT_PersonType {
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
     }
+}
+
+impl Validate for CT_PersonType {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Source (ECMA-376 Part 1 §22.6.2.59).
@@ -610,6 +651,14 @@ impl XmlWrite for CT_SourceType {
     }
 }
 
+impl Validate for CT_SourceType {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}
+
 /// Sources (ECMA-376 Part 1 §22.6.2.60).
 ///
 /// This element specifies the sources in a collection.
@@ -701,6 +750,14 @@ impl XmlWrite for CT_Sources {
     }
 }
 
+impl Validate for CT_Sources {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.source.iter().enumerate() {
+            v.enter("b:Source", Some(i), |v| x.validate(v));
+        }
+    }
+}
+
 /// A choice among the child elements of `CT_AuthorType`.
 #[derive(Clone, Debug, PartialEq)]
 pub enum CT_AuthorType_Choice {
@@ -787,6 +844,29 @@ impl CT_AuthorType_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Artist(x) => v.enter("b:Artist", index, |v| x.validate(v)),
+            Self::Author(x) => v.enter("b:Author", index, |v| x.validate(v)),
+            Self::BookAuthor(x) => v.enter("b:BookAuthor", index, |v| x.validate(v)),
+            Self::Compiler(x) => v.enter("b:Compiler", index, |v| x.validate(v)),
+            Self::Composer(x) => v.enter("b:Composer", index, |v| x.validate(v)),
+            Self::Conductor(x) => v.enter("b:Conductor", index, |v| x.validate(v)),
+            Self::Counsel(x) => v.enter("b:Counsel", index, |v| x.validate(v)),
+            Self::Director(x) => v.enter("b:Director", index, |v| x.validate(v)),
+            Self::Editor(x) => v.enter("b:Editor", index, |v| x.validate(v)),
+            Self::Interviewee(x) => v.enter("b:Interviewee", index, |v| x.validate(v)),
+            Self::Interviewer(x) => v.enter("b:Interviewer", index, |v| x.validate(v)),
+            Self::Inventor(x) => v.enter("b:Inventor", index, |v| x.validate(v)),
+            Self::Performer(x) => v.enter("b:Performer", index, |v| x.validate(v)),
+            Self::ProducerName(x) => v.enter("b:ProducerName", index, |v| x.validate(v)),
+            Self::Translator(x) => v.enter("b:Translator", index, |v| x.validate(v)),
+            Self::Writer(x) => v.enter("b:Writer", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -841,6 +921,14 @@ impl CT_NameOrCorporateType_Choice {
             Self::NameList(v) => v.write_xml(w, Ns::B, "NameList"),
             Self::Corporate(v) => rt::write_simple(w, Ns::B, "Corporate", v),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::NameList(x) => v.enter("b:NameList", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -1234,6 +1322,14 @@ impl CT_SourceType_Choice {
             Self::Year(v) => rt::write_simple(w, Ns::B, "Year", v),
             Self::YearAccessed(v) => rt::write_simple(w, Ns::B, "YearAccessed", v),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Author(x) => v.enter("b:Author", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 

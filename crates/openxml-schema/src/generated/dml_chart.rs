@@ -2234,6 +2234,38 @@ impl XmlWrite for CT_Area3DChart {
     }
 }
 
+impl Validate for CT_Area3DChart {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.grouping {
+            v.enter("c:grouping", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.vary_colors {
+            v.enter("c:varyColors", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ser.iter().enumerate() {
+            v.enter("c:ser", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.drop_lines {
+            v.enter("c:dropLines", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.gap_depth {
+            v.enter("c:gapDepth", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ax_id.iter().enumerate() {
+            v.enter("c:axId", Some(i), |v| x.validate(v));
+        }
+        if self.ax_id.is_empty() {
+            v.required_element(Ns::C, "axId", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Area Charts (ECMA-376 Part 1 §21.2.2.5).
 ///
 /// This element specifies the 2-D area series on this chart.
@@ -2379,6 +2411,35 @@ impl XmlWrite for CT_AreaChart {
         }
         rt::write_extras(w, &self.extra_children, 7);
         w.end();
+    }
+}
+
+impl Validate for CT_AreaChart {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.grouping {
+            v.enter("c:grouping", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.vary_colors {
+            v.enter("c:varyColors", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ser.iter().enumerate() {
+            v.enter("c:ser", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.drop_lines {
+            v.enter("c:dropLines", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ax_id.iter().enumerate() {
+            v.enter("c:axId", Some(i), |v| x.validate(v));
+        }
+        if self.ax_id.is_empty() {
+            v.required_element(Ns::C, "axId", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -2603,6 +2664,51 @@ impl XmlWrite for CT_AreaSer {
     }
 }
 
+impl Validate for CT_AreaSer {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.idx {
+            v.enter("c:idx", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "idx", &self.extra_children);
+        }
+        if let Some(x) = &self.order {
+            v.enter("c:order", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "order", &self.extra_children);
+        }
+        if let Some(x) = &self.tx {
+            v.enter("c:tx", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.picture_options {
+            v.enter("c:pictureOptions", None, |v| x.validate(v));
+        }
+        for (i, x) in self.d_pt.iter().enumerate() {
+            v.enter("c:dPt", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        for (i, x) in self.trendline.iter().enumerate() {
+            v.enter("c:trendline", Some(i), |v| x.validate(v));
+        }
+        for (i, x) in self.err_bars.iter().enumerate() {
+            v.enter("c:errBars", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.cat {
+            v.enter("c:cat", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.val {
+            v.enter("c:val", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Category Axis Data (ECMA-376 Part 1 §21.2.2.24).
 ///
 /// This element specifies the data used for the category axis.
@@ -2666,6 +2772,16 @@ impl XmlWrite for CT_AxDataSource {
     }
 }
 
+impl Validate for CT_AxDataSource {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of c:multiLvlStrRef, c:numRef, c:numLit, c:strRef, c:strLit");
+        }
+    }
+}
+
 /// Axis Position (ECMA-376 Part 1 §21.2.2.10).
 ///
 /// This element specifies the position of the axis on the chart.
@@ -2715,6 +2831,14 @@ impl XmlWrite for CT_AxPos {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_AxPos {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -2768,6 +2892,14 @@ impl XmlWrite for CT_AxisUnit {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_AxisUnit {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -2843,6 +2975,19 @@ impl XmlWrite for CT_BandFmt {
     }
 }
 
+impl Validate for CT_BandFmt {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.idx {
+            v.enter("c:idx", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "idx", &self.extra_children);
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Band Formats (ECMA-376 Part 1 §21.2.2.14).
 ///
 /// This element contains a collection of formatting bands for a surface chart indexed from low to high.
@@ -2901,6 +3046,14 @@ impl XmlWrite for CT_BandFmts {
         rt::write_extras_after(w, &self.extra_children, 0, self.band_fmt.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_BandFmts {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.band_fmt.iter().enumerate() {
+            v.enter("c:bandFmt", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -3091,6 +3244,46 @@ impl XmlWrite for CT_Bar3DChart {
         }
         rt::write_extras(w, &self.extra_children, 10);
         w.end();
+    }
+}
+
+impl Validate for CT_Bar3DChart {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.bar_dir {
+            v.enter("c:barDir", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "barDir", &self.extra_children);
+        }
+        if let Some(x) = &self.grouping {
+            v.enter("c:grouping", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.vary_colors {
+            v.enter("c:varyColors", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ser.iter().enumerate() {
+            v.enter("c:ser", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.gap_width {
+            v.enter("c:gapWidth", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.gap_depth {
+            v.enter("c:gapDepth", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.shape {
+            v.enter("c:shape", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ax_id.iter().enumerate() {
+            v.enter("c:axId", Some(i), |v| x.validate(v));
+        }
+        if self.ax_id.is_empty() {
+            v.required_element(Ns::C, "axId", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -3287,6 +3480,46 @@ impl XmlWrite for CT_BarChart {
     }
 }
 
+impl Validate for CT_BarChart {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.bar_dir {
+            v.enter("c:barDir", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "barDir", &self.extra_children);
+        }
+        if let Some(x) = &self.grouping {
+            v.enter("c:grouping", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.vary_colors {
+            v.enter("c:varyColors", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ser.iter().enumerate() {
+            v.enter("c:ser", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.gap_width {
+            v.enter("c:gapWidth", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.overlap {
+            v.enter("c:overlap", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ser_lines.iter().enumerate() {
+            v.enter("c:serLines", Some(i), |v| x.validate(v));
+        }
+        for (i, x) in self.ax_id.iter().enumerate() {
+            v.enter("c:axId", Some(i), |v| x.validate(v));
+        }
+        if self.ax_id.is_empty() {
+            v.required_element(Ns::C, "axId", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Bar Direction (ECMA-376 Part 1 §21.2.2.17).
 ///
 /// This element specifies whether the series form a bar (horizontal) chart or a column (vertical) chart
@@ -3339,6 +3572,10 @@ impl XmlWrite for CT_BarDir {
     }
 }
 
+impl Validate for CT_BarDir {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Bar Grouping (ECMA-376 Part 1 §21.2.2.77).
 ///
 /// This element specifies the kind of grouping for a bar chart.
@@ -3389,6 +3626,10 @@ impl XmlWrite for CT_BarGrouping {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_BarGrouping {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Bar Chart Series (ECMA-376 Part 1 §21.2.2.170).
@@ -3637,6 +3878,57 @@ impl XmlWrite for CT_BarSer {
     }
 }
 
+impl Validate for CT_BarSer {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.idx {
+            v.enter("c:idx", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "idx", &self.extra_children);
+        }
+        if let Some(x) = &self.order {
+            v.enter("c:order", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "order", &self.extra_children);
+        }
+        if let Some(x) = &self.tx {
+            v.enter("c:tx", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.invert_if_negative {
+            v.enter("c:invertIfNegative", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.picture_options {
+            v.enter("c:pictureOptions", None, |v| x.validate(v));
+        }
+        for (i, x) in self.d_pt.iter().enumerate() {
+            v.enter("c:dPt", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        for (i, x) in self.trendline.iter().enumerate() {
+            v.enter("c:trendline", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.err_bars {
+            v.enter("c:errBars", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cat {
+            v.enter("c:cat", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.val {
+            v.enter("c:val", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.shape {
+            v.enter("c:shape", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Apply to End (ECMA-376 Part 1 §21.2.2.1).
 ///
 /// This element specifies the picture shall be applied to the end of the point or series.
@@ -3726,6 +4018,10 @@ impl XmlWrite for CT_Boolean {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Boolean {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Bubble Charts (ECMA-376 Part 1 §21.2.2.20).
@@ -3904,6 +4200,41 @@ impl XmlWrite for CT_BubbleChart {
     }
 }
 
+impl Validate for CT_BubbleChart {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.vary_colors {
+            v.enter("c:varyColors", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ser.iter().enumerate() {
+            v.enter("c:ser", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bubble3_d {
+            v.enter("c:bubble3D", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bubble_scale {
+            v.enter("c:bubbleScale", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.show_neg_bubbles {
+            v.enter("c:showNegBubbles", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.size_represents {
+            v.enter("c:sizeRepresents", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ax_id.iter().enumerate() {
+            v.enter("c:axId", Some(i), |v| x.validate(v));
+        }
+        if self.ax_id.is_empty() {
+            v.required_element(Ns::C, "axId", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Bubble Scale (ECMA-376 Part 1 §21.2.2.21).
 ///
 /// This element specifies the scale factor for the bubble chart. This element can be a percentage value from 0 to 300, corresponding to a percentage of the default size.
@@ -3954,6 +4285,10 @@ impl XmlWrite for CT_BubbleScale {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_BubbleScale {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Bubble Chart Series (ECMA-376 Part 1 §21.2.2.174).
@@ -4205,6 +4540,57 @@ impl XmlWrite for CT_BubbleSer {
     }
 }
 
+impl Validate for CT_BubbleSer {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.idx {
+            v.enter("c:idx", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "idx", &self.extra_children);
+        }
+        if let Some(x) = &self.order {
+            v.enter("c:order", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "order", &self.extra_children);
+        }
+        if let Some(x) = &self.tx {
+            v.enter("c:tx", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.invert_if_negative {
+            v.enter("c:invertIfNegative", None, |v| x.validate(v));
+        }
+        for (i, x) in self.d_pt.iter().enumerate() {
+            v.enter("c:dPt", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        for (i, x) in self.trendline.iter().enumerate() {
+            v.enter("c:trendline", Some(i), |v| x.validate(v));
+        }
+        for (i, x) in self.err_bars.iter().enumerate() {
+            v.enter("c:errBars", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.x_val {
+            v.enter("c:xVal", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.y_val {
+            v.enter("c:yVal", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bubble_size {
+            v.enter("c:bubbleSize", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bubble3_d {
+            v.enter("c:bubble3D", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Built in Display Unit Value (ECMA-376 Part 1 §21.2.2.23).
 ///
 /// This element specifies the display unit is one of the built in values.
@@ -4255,6 +4641,10 @@ impl XmlWrite for CT_BuiltInUnit {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_BuiltInUnit {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Category Axis Data (ECMA-376 Part 1 §21.2.2.25).
@@ -4609,6 +4999,85 @@ impl XmlWrite for CT_CatAx {
     }
 }
 
+impl Validate for CT_CatAx {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ax_id {
+            v.enter("c:axId", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "axId", &self.extra_children);
+        }
+        if let Some(x) = &self.scaling {
+            v.enter("c:scaling", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "scaling", &self.extra_children);
+        }
+        if let Some(x) = &self.delete {
+            v.enter("c:delete", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ax_pos {
+            v.enter("c:axPos", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "axPos", &self.extra_children);
+        }
+        if let Some(x) = &self.major_gridlines {
+            v.enter("c:majorGridlines", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.minor_gridlines {
+            v.enter("c:minorGridlines", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.title {
+            v.enter("c:title", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_fmt {
+            v.enter("c:numFmt", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.major_tick_mark {
+            v.enter("c:majorTickMark", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.minor_tick_mark {
+            v.enter("c:minorTickMark", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tick_lbl_pos {
+            v.enter("c:tickLblPos", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx_pr {
+            v.enter("c:txPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cross_ax {
+            v.enter("c:crossAx", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "crossAx", &self.extra_children);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.auto {
+            v.enter("c:auto", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lbl_algn {
+            v.enter("c:lblAlgn", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lbl_offset {
+            v.enter("c:lblOffset", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tick_lbl_skip {
+            v.enter("c:tickLblSkip", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tick_mark_skip {
+            v.enter("c:tickMarkSkip", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.no_multi_lvl_lbl {
+            v.enter("c:noMultiLvlLbl", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Chart (ECMA-376 Part 1 §21.2.2.27).
 ///
 /// This element specifies the chart.
@@ -4835,6 +5304,52 @@ impl XmlWrite for CT_Chart {
     }
 }
 
+impl Validate for CT_Chart {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.title {
+            v.enter("c:title", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.auto_title_deleted {
+            v.enter("c:autoTitleDeleted", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.pivot_fmts {
+            v.enter("c:pivotFmts", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.view3_d {
+            v.enter("c:view3D", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.floor {
+            v.enter("c:floor", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.side_wall {
+            v.enter("c:sideWall", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.back_wall {
+            v.enter("c:backWall", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.plot_area {
+            v.enter("c:plotArea", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "plotArea", &self.extra_children);
+        }
+        if let Some(x) = &self.legend {
+            v.enter("c:legend", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.plot_vis_only {
+            v.enter("c:plotVisOnly", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.disp_blanks_as {
+            v.enter("c:dispBlanksAs", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.show_d_lbls_over_max {
+            v.enter("c:showDLblsOverMax", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Drop Lines (ECMA-376 Part 1 §21.2.2.53).
 ///
 /// This element specifies drop lines.
@@ -4895,6 +5410,14 @@ impl XmlWrite for CT_ChartLines {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ChartLines {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -5138,6 +5661,55 @@ impl XmlWrite for CT_ChartSpace {
     }
 }
 
+impl Validate for CT_ChartSpace {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.date1904 {
+            v.enter("c:date1904", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lang {
+            v.enter("c:lang", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.rounded_corners {
+            v.enter("c:roundedCorners", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.style {
+            v.enter("c:style", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.clr_map_ovr {
+            v.enter("c:clrMapOvr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.pivot_source {
+            v.enter("c:pivotSource", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.protection {
+            v.enter("c:protection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.chart {
+            v.enter("c:chart", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "chart", &self.extra_children);
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx_pr {
+            v.enter("c:txPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.external_data {
+            v.enter("c:externalData", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.print_settings {
+            v.enter("c:printSettings", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.user_shapes {
+            v.enter("c:userShapes", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Cross Between (ECMA-376 Part 1 §21.2.2.32).
 ///
 /// This element specifies whether the value axis crosses the category axis between categories. If not specified, then the application should choose an appropriate behavior.
@@ -5190,6 +5762,14 @@ impl XmlWrite for CT_CrossBetween {
     }
 }
 
+impl Validate for CT_CrossBetween {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Crosses (ECMA-376 Part 1 §21.2.2.33).
 ///
 /// This element specifies how this axis crosses the perpendicular axis.
@@ -5239,6 +5819,14 @@ impl XmlWrite for CT_Crosses {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Crosses {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -5300,6 +5888,14 @@ impl XmlWrite for CT_CustSplit {
         rt::write_extras_after(w, &self.extra_children, 0, self.second_pie_pt.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_CustSplit {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.second_pie_pt.iter().enumerate() {
+            v.enter("c:secondPiePt", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -5401,6 +5997,22 @@ impl XmlWrite for CT_DLbl {
     }
 }
 
+impl Validate for CT_DLbl {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.idx {
+            v.enter("c:idx", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "idx", &self.extra_children);
+        }
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Data Label Position (ECMA-376 Part 1 §21.2.2.48).
 ///
 /// This element specifies the position of the data label.
@@ -5450,6 +6062,14 @@ impl XmlWrite for CT_DLblPos {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_DLblPos {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -5551,6 +6171,20 @@ impl XmlWrite for CT_DLbls {
         }
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_DLbls {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.d_lbl.iter().enumerate() {
+            v.enter("c:dLbl", Some(i), |v| x.validate(v));
+        }
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -5710,6 +6344,37 @@ impl XmlWrite for CT_DPt {
     }
 }
 
+impl Validate for CT_DPt {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.idx {
+            v.enter("c:idx", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "idx", &self.extra_children);
+        }
+        if let Some(x) = &self.invert_if_negative {
+            v.enter("c:invertIfNegative", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.marker {
+            v.enter("c:marker", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.bubble3_d {
+            v.enter("c:bubble3D", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.explosion {
+            v.enter("c:explosion", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.picture_options {
+            v.enter("c:pictureOptions", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Data Table (ECMA-376 Part 1 §21.2.2.54).
 ///
 /// This element specifies a data table.
@@ -5849,6 +6514,32 @@ impl XmlWrite for CT_DTable {
         }
         rt::write_extras(w, &self.extra_children, 7);
         w.end();
+    }
+}
+
+impl Validate for CT_DTable {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.show_horz_border {
+            v.enter("c:showHorzBorder", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.show_vert_border {
+            v.enter("c:showVertBorder", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.show_outline {
+            v.enter("c:showOutline", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.show_keys {
+            v.enter("c:showKeys", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx_pr {
+            v.enter("c:txPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -6218,6 +6909,88 @@ impl XmlWrite for CT_DateAx {
     }
 }
 
+impl Validate for CT_DateAx {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ax_id {
+            v.enter("c:axId", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "axId", &self.extra_children);
+        }
+        if let Some(x) = &self.scaling {
+            v.enter("c:scaling", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "scaling", &self.extra_children);
+        }
+        if let Some(x) = &self.delete {
+            v.enter("c:delete", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ax_pos {
+            v.enter("c:axPos", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "axPos", &self.extra_children);
+        }
+        if let Some(x) = &self.major_gridlines {
+            v.enter("c:majorGridlines", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.minor_gridlines {
+            v.enter("c:minorGridlines", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.title {
+            v.enter("c:title", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_fmt {
+            v.enter("c:numFmt", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.major_tick_mark {
+            v.enter("c:majorTickMark", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.minor_tick_mark {
+            v.enter("c:minorTickMark", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tick_lbl_pos {
+            v.enter("c:tickLblPos", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx_pr {
+            v.enter("c:txPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cross_ax {
+            v.enter("c:crossAx", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "crossAx", &self.extra_children);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.auto {
+            v.enter("c:auto", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.lbl_offset {
+            v.enter("c:lblOffset", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.base_time_unit {
+            v.enter("c:baseTimeUnit", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.major_unit {
+            v.enter("c:majorUnit", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.major_time_unit {
+            v.enter("c:majorTimeUnit", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.minor_unit {
+            v.enter("c:minorUnit", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.minor_time_unit {
+            v.enter("c:minorTimeUnit", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Depth Percent (ECMA-376 Part 1 §21.2.2.41).
 ///
 /// This element specifies the depth of a 3-D chart as a percentage of the chart width (between 20 and 2000 percent).
@@ -6270,6 +7043,10 @@ impl XmlWrite for CT_DepthPercent {
     }
 }
 
+impl Validate for CT_DepthPercent {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Display Blanks As (ECMA-376 Part 1 §21.2.2.42).
 ///
 /// This element specifies how blank cells shall be plotted on a chart .
@@ -6320,6 +7097,10 @@ impl XmlWrite for CT_DispBlanksAs {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_DispBlanksAs {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Display Units (ECMA-376 Part 1 §21.2.2.45).
@@ -6405,6 +7186,22 @@ impl XmlWrite for CT_DispUnits {
         }
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_DispUnits {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of c:custUnit, c:builtInUnit");
+        }
+        if let Some(x) = &self.disp_units_lbl {
+            v.enter("c:dispUnitsLbl", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -6508,6 +7305,23 @@ impl XmlWrite for CT_DispUnitsLbl {
     }
 }
 
+impl Validate for CT_DispUnitsLbl {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.layout {
+            v.enter("c:layout", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx {
+            v.enter("c:tx", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx_pr {
+            v.enter("c:txPr", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Backward (ECMA-376 Part 1 §21.2.2.12).
 ///
 /// This element specifies the number of categories (or units on a scatter chart) that the trend line extends before the data for the series that is being trended. On scatter and non-scatter charts, the value shall be any non- negative value.
@@ -6569,6 +7383,14 @@ impl XmlWrite for CT_Double {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Double {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -6703,6 +7525,29 @@ impl XmlWrite for CT_DoughnutChart {
     }
 }
 
+impl Validate for CT_DoughnutChart {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.vary_colors {
+            v.enter("c:varyColors", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ser.iter().enumerate() {
+            v.enter("c:ser", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.first_slice_ang {
+            v.enter("c:firstSliceAng", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hole_size {
+            v.enter("c:holeSize", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Error Bar Type (ECMA-376 Part 1 §21.2.2.56).
 ///
 /// This element specifies the style of the error bars - positive, negative, or both.
@@ -6753,6 +7598,10 @@ impl XmlWrite for CT_ErrBarType {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_ErrBarType {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Error Bars (ECMA-376 Part 1 §21.2.2.55).
@@ -6925,6 +7774,42 @@ impl XmlWrite for CT_ErrBars {
     }
 }
 
+impl Validate for CT_ErrBars {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.err_dir {
+            v.enter("c:errDir", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.err_bar_type {
+            v.enter("c:errBarType", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "errBarType", &self.extra_children);
+        }
+        if let Some(x) = &self.err_val_type {
+            v.enter("c:errValType", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "errValType", &self.extra_children);
+        }
+        if let Some(x) = &self.no_end_cap {
+            v.enter("c:noEndCap", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.plus {
+            v.enter("c:plus", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.minus {
+            v.enter("c:minus", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.val {
+            v.enter("c:val", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Error Bar Direction (ECMA-376 Part 1 §21.2.2.57).
 ///
 /// This element specifies the direction of the error bars.
@@ -6974,6 +7859,14 @@ impl XmlWrite for CT_ErrDir {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_ErrDir {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -7027,6 +7920,10 @@ impl XmlWrite for CT_ErrValType {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_ErrValType {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Extension (ECMA-376 Part 1 §21.2.2.62).
@@ -7096,6 +7993,14 @@ impl XmlWrite for CT_Extension {
     }
 }
 
+impl Validate for CT_Extension {
+    fn validate(&self, v: &mut Validator) {
+        if self.any.is_none() {
+            v.missing_content("an element (wildcard)");
+        }
+    }
+}
+
 /// Chart Extensibility (ECMA-376 Part 1 §21.2.2.64).
 ///
 /// This element contains tags used for future extensibility of the file format.
@@ -7154,6 +8059,14 @@ impl XmlWrite for CT_ExtensionList {
         rt::write_extras_after(w, &self.extra_children, 0, self.ext.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_ExtensionList {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.ext.iter().enumerate() {
+            v.enter("c:ext", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -7227,6 +8140,17 @@ impl XmlWrite for CT_ExternalData {
     }
 }
 
+impl Validate for CT_ExternalData {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
+        if let Some(x) = &self.auto_update {
+            v.enter("c:autoUpdate", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// First Slice Angle (ECMA-376 Part 1 §21.2.2.68).
 ///
 /// This element specifies the angle of the first pie or doughnut chart slice, in degrees (clockwise from up).
@@ -7277,6 +8201,10 @@ impl XmlWrite for CT_FirstSliceAng {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_FirstSliceAng {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Gap Depth (ECMA-376 Part 1 §21.2.2.74).
@@ -7332,6 +8260,10 @@ impl XmlWrite for CT_GapAmount {
     }
 }
 
+impl Validate for CT_GapAmount {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Grouping (ECMA-376 Part 1 §21.2.2.76).
 ///
 /// This element specifies the kind of grouping for a column, line, or area chart.
@@ -7384,6 +8316,10 @@ impl XmlWrite for CT_Grouping {
     }
 }
 
+impl Validate for CT_Grouping {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Height Percent (ECMA-376 Part 1 §21.2.2.83).
 ///
 /// This element specifies the height of a 3-D chart as a percentage of the chart width.
@@ -7434,6 +8370,10 @@ impl XmlWrite for CT_HPercent {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_HPercent {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Header and Footer (ECMA-376 Part 1 §21.2.2.79).
@@ -7612,6 +8552,10 @@ impl XmlWrite for CT_HeaderFooter {
     }
 }
 
+impl Validate for CT_HeaderFooter {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Hole Size (ECMA-376 Part 1 §21.2.2.82).
 ///
 /// This element specifies the size of the hole in a doughnut chart group.
@@ -7662,6 +8606,10 @@ impl XmlWrite for CT_HoleSize {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_HoleSize {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Layout (ECMA-376 Part 1 §21.2.2.88).
@@ -7736,6 +8684,17 @@ impl XmlWrite for CT_Layout {
     }
 }
 
+impl Validate for CT_Layout {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.manual_layout {
+            v.enter("c:manualLayout", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Height Mode (ECMA-376 Part 1 §21.2.2.81).
 ///
 /// This element specifies how to interpret the Height element for this manual layout.
@@ -7791,6 +8750,10 @@ impl XmlWrite for CT_LayoutMode {
     }
 }
 
+impl Validate for CT_LayoutMode {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Layout Target (ECMA-376 Part 1 §21.2.2.89).
 ///
 /// This element specifies whether to layout the plot area by its inside (not including axis and axis labels) or outside (including axis and axis labels).
@@ -7841,6 +8804,10 @@ impl XmlWrite for CT_LayoutTarget {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_LayoutTarget {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Label Alignment (ECMA-376 Part 1 §21.2.2.90).
@@ -7895,6 +8862,14 @@ impl XmlWrite for CT_LblAlgn {
     }
 }
 
+impl Validate for CT_LblAlgn {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Label Offset (ECMA-376 Part 1 §21.2.2.91).
 ///
 /// This element specifies the distance of labels from the axis.
@@ -7945,6 +8920,10 @@ impl XmlWrite for CT_LblOffset {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_LblOffset {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Legend (ECMA-376 Part 1 §21.2.2.93).
@@ -8092,6 +9071,32 @@ impl XmlWrite for CT_Legend {
     }
 }
 
+impl Validate for CT_Legend {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.legend_pos {
+            v.enter("c:legendPos", None, |v| x.validate(v));
+        }
+        for (i, x) in self.legend_entry.iter().enumerate() {
+            v.enter("c:legendEntry", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.layout {
+            v.enter("c:layout", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.overlay {
+            v.enter("c:overlay", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx_pr {
+            v.enter("c:txPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Legend Entry (ECMA-376 Part 1 §21.2.2.94).
 ///
 /// This element specifies a legend entry.
@@ -8178,6 +9183,22 @@ impl XmlWrite for CT_LegendEntry {
     }
 }
 
+impl Validate for CT_LegendEntry {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.idx {
+            v.enter("c:idx", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "idx", &self.extra_children);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Legend Position (ECMA-376 Part 1 §21.2.2.95).
 ///
 /// This element specifies the position of the legend.
@@ -8228,6 +9249,10 @@ impl XmlWrite for CT_LegendPos {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_LegendPos {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// 3D Line Charts (ECMA-376 Part 1 §21.2.2.96).
@@ -8389,6 +9414,40 @@ impl XmlWrite for CT_Line3DChart {
         }
         rt::write_extras(w, &self.extra_children, 8);
         w.end();
+    }
+}
+
+impl Validate for CT_Line3DChart {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.grouping {
+            v.enter("c:grouping", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "grouping", &self.extra_children);
+        }
+        if let Some(x) = &self.vary_colors {
+            v.enter("c:varyColors", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ser.iter().enumerate() {
+            v.enter("c:ser", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.drop_lines {
+            v.enter("c:dropLines", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.gap_depth {
+            v.enter("c:gapDepth", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ax_id.iter().enumerate() {
+            v.enter("c:axId", Some(i), |v| x.validate(v));
+        }
+        if self.ax_id.is_empty() {
+            v.required_element(Ns::C, "axId", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -8593,6 +9652,49 @@ impl XmlWrite for CT_LineChart {
         }
         rt::write_extras(w, &self.extra_children, 11);
         w.end();
+    }
+}
+
+impl Validate for CT_LineChart {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.grouping {
+            v.enter("c:grouping", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "grouping", &self.extra_children);
+        }
+        if let Some(x) = &self.vary_colors {
+            v.enter("c:varyColors", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ser.iter().enumerate() {
+            v.enter("c:ser", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.drop_lines {
+            v.enter("c:dropLines", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hi_low_lines {
+            v.enter("c:hiLowLines", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.up_down_bars {
+            v.enter("c:upDownBars", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.marker {
+            v.enter("c:marker", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.smooth {
+            v.enter("c:smooth", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ax_id.iter().enumerate() {
+            v.enter("c:axId", Some(i), |v| x.validate(v));
+        }
+        if self.ax_id.is_empty() {
+            v.required_element(Ns::C, "axId", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -8828,6 +9930,54 @@ impl XmlWrite for CT_LineSer {
     }
 }
 
+impl Validate for CT_LineSer {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.idx {
+            v.enter("c:idx", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "idx", &self.extra_children);
+        }
+        if let Some(x) = &self.order {
+            v.enter("c:order", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "order", &self.extra_children);
+        }
+        if let Some(x) = &self.tx {
+            v.enter("c:tx", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.marker {
+            v.enter("c:marker", None, |v| x.validate(v));
+        }
+        for (i, x) in self.d_pt.iter().enumerate() {
+            v.enter("c:dPt", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        for (i, x) in self.trendline.iter().enumerate() {
+            v.enter("c:trendline", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.err_bars {
+            v.enter("c:errBars", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cat {
+            v.enter("c:cat", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.val {
+            v.enter("c:val", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.smooth {
+            v.enter("c:smooth", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Logarithmic Base (ECMA-376 Part 1 §21.2.2.98).
 ///
 /// This element specifies the logarithmic base for a logarithmic axis.
@@ -8877,6 +10027,14 @@ impl XmlWrite for CT_LogBase {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_LogBase {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -8938,6 +10096,14 @@ impl XmlWrite for CT_Lvl {
         rt::write_extras_after(w, &self.extra_children, 0, self.pt.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Lvl {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.pt.iter().enumerate() {
+            v.enter("c:pt", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -9125,6 +10291,41 @@ impl XmlWrite for CT_ManualLayout {
     }
 }
 
+impl Validate for CT_ManualLayout {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.layout_target {
+            v.enter("c:layoutTarget", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.x_mode {
+            v.enter("c:xMode", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.y_mode {
+            v.enter("c:yMode", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.w_mode {
+            v.enter("c:wMode", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.h_mode {
+            v.enter("c:hMode", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.x {
+            v.enter("c:x", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.y {
+            v.enter("c:y", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.w {
+            v.enter("c:w", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.h {
+            v.enter("c:h", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Marker (ECMA-376 Part 1 §21.2.2.106).
 ///
 /// This element specifies a data marker.
@@ -9225,6 +10426,23 @@ impl XmlWrite for CT_Marker {
     }
 }
 
+impl Validate for CT_Marker {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.symbol {
+            v.enter("c:symbol", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.size {
+            v.enter("c:size", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Size (ECMA-376 Part 1 §21.2.2.192).
 ///
 /// This element specifies the size of the marker in points.
@@ -9277,6 +10495,10 @@ impl XmlWrite for CT_MarkerSize {
     }
 }
 
+impl Validate for CT_MarkerSize {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Symbol (ECMA-376 Part 1 §21.2.2.205).
 ///
 /// This element specifies the marker that is used for the data points.
@@ -9326,6 +10548,14 @@ impl XmlWrite for CT_MarkerStyle {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_MarkerStyle {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -9418,6 +10648,20 @@ impl XmlWrite for CT_MultiLvlStrData {
     }
 }
 
+impl Validate for CT_MultiLvlStrData {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pt_count {
+            v.enter("c:ptCount", None, |v| x.validate(v));
+        }
+        for (i, x) in self.lvl.iter().enumerate() {
+            v.enter("c:lvl", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Multi Level String Reference (ECMA-376 Part 1 §21.2.2.115).
 ///
 /// This element specifies a reference to data for the category axis with a cache of the last values used.
@@ -9504,6 +10748,20 @@ impl XmlWrite for CT_MultiLvlStrRef {
         }
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_MultiLvlStrRef {
+    fn validate(&self, v: &mut Validator) {
+        if self.f.is_none() {
+            v.required_element(Ns::C, "f", &self.extra_children);
+        }
+        if let Some(x) = &self.multi_lvl_str_cache {
+            v.enter("c:multiLvlStrCache", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -9614,6 +10872,20 @@ impl XmlWrite for CT_NumData {
     }
 }
 
+impl Validate for CT_NumData {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pt_count {
+            v.enter("c:ptCount", None, |v| x.validate(v));
+        }
+        for (i, x) in self.pt.iter().enumerate() {
+            v.enter("c:pt", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Bubble Size (ECMA-376 Part 1 §21.2.2.22).
 ///
 /// This element specifies the data for the sizes of the bubbles on the bubble chart.
@@ -9676,6 +10948,16 @@ impl XmlWrite for CT_NumDataSource {
     }
 }
 
+impl Validate for CT_NumDataSource {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of c:numRef, c:numLit");
+        }
+    }
+}
+
 /// Number Format (ECMA-376 Part 1 §21.2.2.121).
 ///
 /// This element specifies number formatting for the parent element.
@@ -9734,6 +11016,14 @@ impl XmlWrite for CT_NumFmt {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_NumFmt {
+    fn validate(&self, v: &mut Validator) {
+        if self.format_code.is_none() {
+            v.required_attribute(Ns::NONE, "formatCode", &self.extra_attrs);
+        }
     }
 }
 
@@ -9826,6 +11116,20 @@ impl XmlWrite for CT_NumRef {
     }
 }
 
+impl Validate for CT_NumRef {
+    fn validate(&self, v: &mut Validator) {
+        if self.f.is_none() {
+            v.required_element(Ns::C, "f", &self.extra_children);
+        }
+        if let Some(x) = &self.num_cache {
+            v.enter("c:numCache", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Numeric Point (ECMA-376 Part 1 §21.2.2.150).
 ///
 /// This element specifies data for a particular data point.
@@ -9905,6 +11209,17 @@ impl XmlWrite for CT_NumVal {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_NumVal {
+    fn validate(&self, v: &mut Validator) {
+        if self.idx.is_none() {
+            v.required_attribute(Ns::NONE, "idx", &self.extra_attrs);
+        }
+        if self.v.is_none() {
+            v.required_element(Ns::C, "v", &self.extra_children);
+        }
     }
 }
 
@@ -10112,6 +11427,46 @@ impl XmlWrite for CT_OfPieChart {
     }
 }
 
+impl Validate for CT_OfPieChart {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.of_pie_type {
+            v.enter("c:ofPieType", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "ofPieType", &self.extra_children);
+        }
+        if let Some(x) = &self.vary_colors {
+            v.enter("c:varyColors", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ser.iter().enumerate() {
+            v.enter("c:ser", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.gap_width {
+            v.enter("c:gapWidth", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.split_type {
+            v.enter("c:splitType", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.split_pos {
+            v.enter("c:splitPos", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cust_split {
+            v.enter("c:custSplit", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.second_pie_size {
+            v.enter("c:secondPieSize", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ser_lines.iter().enumerate() {
+            v.enter("c:serLines", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Pie of Pie or Bar of Pie Type (ECMA-376 Part 1 §21.2.2.127).
 ///
 /// This element specifies whether this chart is pie of pie or bar of pie.
@@ -10162,6 +11517,10 @@ impl XmlWrite for CT_OfPieType {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_OfPieType {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Polynomial Trendline Order (ECMA-376 Part 1 §21.2.2.129).
@@ -10216,6 +11575,10 @@ impl XmlWrite for CT_Order {
     }
 }
 
+impl Validate for CT_Order {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Axis Orientation (ECMA-376 Part 1 §21.2.2.130).
 ///
 /// This element specifies the stretching and stacking of the picture on the data point, series, wall, or floor.
@@ -10268,6 +11631,10 @@ impl XmlWrite for CT_Orientation {
     }
 }
 
+impl Validate for CT_Orientation {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Overlap (ECMA-376 Part 1 §21.2.2.131).
 ///
 /// This element specifies how much bars and columns shall overlap on 2-D charts.
@@ -10318,6 +11685,10 @@ impl XmlWrite for CT_Overlap {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Overlap {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Page Margins (ECMA-376 Part 1 §21.2.2.133).
@@ -10414,6 +11785,29 @@ impl XmlWrite for CT_PageMargins {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_PageMargins {
+    fn validate(&self, v: &mut Validator) {
+        if self.l.is_none() {
+            v.required_attribute(Ns::NONE, "l", &self.extra_attrs);
+        }
+        if self.r.is_none() {
+            v.required_attribute(Ns::NONE, "r", &self.extra_attrs);
+        }
+        if self.t.is_none() {
+            v.required_attribute(Ns::NONE, "t", &self.extra_attrs);
+        }
+        if self.b.is_none() {
+            v.required_attribute(Ns::NONE, "b", &self.extra_attrs);
+        }
+        if self.header.is_none() {
+            v.required_attribute(Ns::NONE, "header", &self.extra_attrs);
+        }
+        if self.footer.is_none() {
+            v.required_attribute(Ns::NONE, "footer", &self.extra_attrs);
+        }
     }
 }
 
@@ -10559,6 +11953,10 @@ impl XmlWrite for CT_PageSetup {
     }
 }
 
+impl Validate for CT_PageSetup {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Period (ECMA-376 Part 1 §21.2.2.135).
 ///
 /// This element specifies the period of the trend line for a moving average trend line. It is ignored for other trend line variants.
@@ -10609,6 +12007,10 @@ impl XmlWrite for CT_Period {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_Period {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Perspective (ECMA-376 Part 1 §21.2.2.136).
@@ -10663,6 +12065,10 @@ impl XmlWrite for CT_Perspective {
     }
 }
 
+impl Validate for CT_Perspective {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Picture Format (ECMA-376 Part 1 §21.2.2.137).
 ///
 /// This element specifies the stretching and stacking of the picture on the data point, series, wall, or floor.
@@ -10712,6 +12118,14 @@ impl XmlWrite for CT_PictureFormat {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_PictureFormat {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -10829,6 +12243,26 @@ impl XmlWrite for CT_PictureOptions {
     }
 }
 
+impl Validate for CT_PictureOptions {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.apply_to_front {
+            v.enter("c:applyToFront", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.apply_to_sides {
+            v.enter("c:applyToSides", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.apply_to_end {
+            v.enter("c:applyToEnd", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.picture_format {
+            v.enter("c:pictureFormat", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.picture_stack_unit {
+            v.enter("c:pictureStackUnit", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Picture Stack Unit (ECMA-376 Part 1 §21.2.2.139).
 ///
 /// This element specifies the unit for each picture on the chart. This element applies only if the Picture Format is Stack and Scale.
@@ -10878,6 +12312,14 @@ impl XmlWrite for CT_PictureStackUnit {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_PictureStackUnit {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -10981,6 +12423,23 @@ impl XmlWrite for CT_Pie3DChart {
         }
         rt::write_extras(w, &self.extra_children, 4);
         w.end();
+    }
+}
+
+impl Validate for CT_Pie3DChart {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.vary_colors {
+            v.enter("c:varyColors", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ser.iter().enumerate() {
+            v.enter("c:ser", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -11098,6 +12557,26 @@ impl XmlWrite for CT_PieChart {
         }
         rt::write_extras(w, &self.extra_children, 5);
         w.end();
+    }
+}
+
+impl Validate for CT_PieChart {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.vary_colors {
+            v.enter("c:varyColors", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ser.iter().enumerate() {
+            v.enter("c:ser", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.first_slice_ang {
+            v.enter("c:firstSliceAng", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -11288,6 +12767,45 @@ impl XmlWrite for CT_PieSer {
     }
 }
 
+impl Validate for CT_PieSer {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.idx {
+            v.enter("c:idx", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "idx", &self.extra_children);
+        }
+        if let Some(x) = &self.order {
+            v.enter("c:order", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "order", &self.extra_children);
+        }
+        if let Some(x) = &self.tx {
+            v.enter("c:tx", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.explosion {
+            v.enter("c:explosion", None, |v| x.validate(v));
+        }
+        for (i, x) in self.d_pt.iter().enumerate() {
+            v.enter("c:dPt", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cat {
+            v.enter("c:cat", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.val {
+            v.enter("c:val", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Pivot Format (ECMA-376 Part 1 §21.2.2.142).
 ///
 /// This element contains a set of formatting to be applied to the chart that is based on a pivotTable.
@@ -11416,6 +12934,31 @@ impl XmlWrite for CT_PivotFmt {
     }
 }
 
+impl Validate for CT_PivotFmt {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.idx {
+            v.enter("c:idx", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "idx", &self.extra_children);
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx_pr {
+            v.enter("c:txPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.marker {
+            v.enter("c:marker", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbl {
+            v.enter("c:dLbl", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Pivot Formats (ECMA-376 Part 1 §21.2.2.143).
 ///
 /// This element contains a collection of formatting bands for a surface chart indexed from low to high.
@@ -11474,6 +13017,14 @@ impl XmlWrite for CT_PivotFmts {
         rt::write_extras_after(w, &self.extra_children, 0, self.pivot_fmt.len());
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_PivotFmts {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.pivot_fmt.iter().enumerate() {
+            v.enter("c:pivotFmt", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -11566,6 +13117,22 @@ impl XmlWrite for CT_PivotSource {
         rt::write_extras_after(w, &self.extra_children, 2, self.ext_lst.len());
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_PivotSource {
+    fn validate(&self, v: &mut Validator) {
+        if self.name.is_none() {
+            v.required_element(Ns::C, "name", &self.extra_children);
+        }
+        if let Some(x) = &self.fmt_id {
+            v.enter("c:fmtId", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "fmtId", &self.extra_children);
+        }
+        for (i, x) in self.ext_lst.iter().enumerate() {
+            v.enter("c:extLst", Some(i), |v| x.validate(v));
+        }
     }
 }
 
@@ -11710,6 +13277,32 @@ impl XmlWrite for CT_PlotArea {
     }
 }
 
+impl Validate for CT_PlotArea {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.layout {
+            v.enter("c:layout", None, |v| x.validate(v));
+        }
+        for (i, x) in self.choice.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if self.choice.is_empty() {
+            v.missing_content("one of c:areaChart, c:area3DChart, c:lineChart, c:line3DChart, c:stockChart, c:radarChart, …");
+        }
+        for (i, x) in self.choice_2.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+        if let Some(x) = &self.d_table {
+            v.enter("c:dTable", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Print Settings (ECMA-376 Part 1 §21.2.2.148).
 ///
 /// This element specifies the print settings for the chart.
@@ -11807,6 +13400,23 @@ impl XmlWrite for CT_PrintSettings {
         }
         rt::write_extras(w, &self.extra_children, 4);
         w.end();
+    }
+}
+
+impl Validate for CT_PrintSettings {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.header_footer {
+            v.enter("c:headerFooter", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.page_margins {
+            v.enter("c:pageMargins", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.page_setup {
+            v.enter("c:pageSetup", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.legacy_drawing_hf {
+            v.enter("c:legacyDrawingHF", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -11921,6 +13531,26 @@ impl XmlWrite for CT_Protection {
         }
         rt::write_extras(w, &self.extra_children, 5);
         w.end();
+    }
+}
+
+impl Validate for CT_Protection {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.chart_object {
+            v.enter("c:chartObject", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.data {
+            v.enter("c:data", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.formatting {
+            v.enter("c:formatting", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.selection {
+            v.enter("c:selection", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.user_interface {
+            v.enter("c:userInterface", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -12055,6 +13685,34 @@ impl XmlWrite for CT_RadarChart {
         }
         rt::write_extras(w, &self.extra_children, 6);
         w.end();
+    }
+}
+
+impl Validate for CT_RadarChart {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.radar_style {
+            v.enter("c:radarStyle", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "radarStyle", &self.extra_children);
+        }
+        if let Some(x) = &self.vary_colors {
+            v.enter("c:varyColors", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ser.iter().enumerate() {
+            v.enter("c:ser", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ax_id.iter().enumerate() {
+            v.enter("c:axId", Some(i), |v| x.validate(v));
+        }
+        if self.ax_id.is_empty() {
+            v.required_element(Ns::C, "axId", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -12245,6 +13903,45 @@ impl XmlWrite for CT_RadarSer {
     }
 }
 
+impl Validate for CT_RadarSer {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.idx {
+            v.enter("c:idx", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "idx", &self.extra_children);
+        }
+        if let Some(x) = &self.order {
+            v.enter("c:order", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "order", &self.extra_children);
+        }
+        if let Some(x) = &self.tx {
+            v.enter("c:tx", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.marker {
+            v.enter("c:marker", None, |v| x.validate(v));
+        }
+        for (i, x) in self.d_pt.iter().enumerate() {
+            v.enter("c:dPt", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cat {
+            v.enter("c:cat", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.val {
+            v.enter("c:val", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Radar Style (ECMA-376 Part 1 §21.2.2.154).
 ///
 /// This element specifies what type of radar chart shall be drawn.
@@ -12295,6 +13992,10 @@ impl XmlWrite for CT_RadarStyle {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_RadarStyle {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Reference to Chart Part (ECMA-376 Part 1 §21.2.2.26).
@@ -12350,6 +14051,14 @@ impl XmlWrite for CT_RelId {
     }
 }
 
+impl Validate for CT_RelId {
+    fn validate(&self, v: &mut Validator) {
+        if self.r_id.is_none() {
+            v.required_attribute(Ns::R, "id", &self.extra_attrs);
+        }
+    }
+}
+
 /// X Rotation (ECMA-376 Part 1 §21.2.2.157).
 ///
 /// This element specifies the amount a 3-D chart shall be rotated in the X direction.
@@ -12402,6 +14111,10 @@ impl XmlWrite for CT_RotX {
     }
 }
 
+impl Validate for CT_RotX {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Y Rotation (ECMA-376 Part 1 §21.2.2.158).
 ///
 /// This element specifies the amount a 3-D chart shall be rotated in the Y direction.
@@ -12452,6 +14165,10 @@ impl XmlWrite for CT_RotY {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_RotY {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Scaling (ECMA-376 Part 1 §21.2.2.160).
@@ -12565,6 +14282,26 @@ impl XmlWrite for CT_Scaling {
         }
         rt::write_extras(w, &self.extra_children, 5);
         w.end();
+    }
+}
+
+impl Validate for CT_Scaling {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.log_base {
+            v.enter("c:logBase", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.orientation {
+            v.enter("c:orientation", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.max {
+            v.enter("c:max", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.min {
+            v.enter("c:min", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -12699,6 +14436,34 @@ impl XmlWrite for CT_ScatterChart {
         }
         rt::write_extras(w, &self.extra_children, 6);
         w.end();
+    }
+}
+
+impl Validate for CT_ScatterChart {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.scatter_style {
+            v.enter("c:scatterStyle", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "scatterStyle", &self.extra_children);
+        }
+        if let Some(x) = &self.vary_colors {
+            v.enter("c:varyColors", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ser.iter().enumerate() {
+            v.enter("c:ser", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ax_id.iter().enumerate() {
+            v.enter("c:axId", Some(i), |v| x.validate(v));
+        }
+        if self.ax_id.is_empty() {
+            v.required_element(Ns::C, "axId", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -12937,6 +14702,54 @@ impl XmlWrite for CT_ScatterSer {
     }
 }
 
+impl Validate for CT_ScatterSer {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.idx {
+            v.enter("c:idx", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "idx", &self.extra_children);
+        }
+        if let Some(x) = &self.order {
+            v.enter("c:order", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "order", &self.extra_children);
+        }
+        if let Some(x) = &self.tx {
+            v.enter("c:tx", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.marker {
+            v.enter("c:marker", None, |v| x.validate(v));
+        }
+        for (i, x) in self.d_pt.iter().enumerate() {
+            v.enter("c:dPt", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        for (i, x) in self.trendline.iter().enumerate() {
+            v.enter("c:trendline", Some(i), |v| x.validate(v));
+        }
+        for (i, x) in self.err_bars.iter().enumerate() {
+            v.enter("c:errBars", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.x_val {
+            v.enter("c:xVal", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.y_val {
+            v.enter("c:yVal", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.smooth {
+            v.enter("c:smooth", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Scatter Style (ECMA-376 Part 1 §21.2.2.162).
 ///
 /// This element specifies the kind of lines for the scatter chart.
@@ -12989,6 +14802,10 @@ impl XmlWrite for CT_ScatterStyle {
     }
 }
 
+impl Validate for CT_ScatterStyle {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Second Pie Size (ECMA-376 Part 1 §21.2.2.164).
 ///
 /// This element specifies the size of the second pie or bar of a pie of pie chart or a bar of pie chart.
@@ -13039,6 +14856,10 @@ impl XmlWrite for CT_SecondPieSize {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_SecondPieSize {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Series Axis (ECMA-376 Part 1 §21.2.2.175).
@@ -13337,6 +15158,73 @@ impl XmlWrite for CT_SerAx {
     }
 }
 
+impl Validate for CT_SerAx {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ax_id {
+            v.enter("c:axId", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "axId", &self.extra_children);
+        }
+        if let Some(x) = &self.scaling {
+            v.enter("c:scaling", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "scaling", &self.extra_children);
+        }
+        if let Some(x) = &self.delete {
+            v.enter("c:delete", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ax_pos {
+            v.enter("c:axPos", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "axPos", &self.extra_children);
+        }
+        if let Some(x) = &self.major_gridlines {
+            v.enter("c:majorGridlines", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.minor_gridlines {
+            v.enter("c:minorGridlines", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.title {
+            v.enter("c:title", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_fmt {
+            v.enter("c:numFmt", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.major_tick_mark {
+            v.enter("c:majorTickMark", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.minor_tick_mark {
+            v.enter("c:minorTickMark", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tick_lbl_pos {
+            v.enter("c:tickLblPos", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx_pr {
+            v.enter("c:txPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cross_ax {
+            v.enter("c:crossAx", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "crossAx", &self.extra_children);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.tick_lbl_skip {
+            v.enter("c:tickLblSkip", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tick_mark_skip {
+            v.enter("c:tickMarkSkip", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Series Text (ECMA-376 Part 1 §21.2.2.215).
 ///
 /// This element specifies text for a series name, without rich text formatting.
@@ -13395,6 +15283,16 @@ impl XmlWrite for CT_SerTx {
     }
 }
 
+impl Validate for CT_SerTx {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of c:strRef, c:v");
+        }
+    }
+}
+
 /// Shape (ECMA-376 Part 1 §21.2.2.177).
 ///
 /// This element specifies the shape of a series or a 3-D bar chart.
@@ -13447,6 +15345,10 @@ impl XmlWrite for CT_Shape {
     }
 }
 
+impl Validate for CT_Shape {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Size Represents (ECMA-376 Part 1 §21.2.2.193).
 ///
 /// This element specifies how the bubble size values are represented on the chart.
@@ -13497,6 +15399,10 @@ impl XmlWrite for CT_SizeRepresents {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_SizeRepresents {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Tick Label Skip (ECMA-376 Part 1 §21.2.2.208).
@@ -13552,6 +15458,14 @@ impl XmlWrite for CT_Skip {
     }
 }
 
+impl Validate for CT_Skip {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Split Type (ECMA-376 Part 1 §21.2.2.196).
 ///
 /// This element specifies how to determine which data points are in the second pie or bar on a pie of pie or bar of pie chart.
@@ -13602,6 +15516,10 @@ impl XmlWrite for CT_SplitType {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_SplitType {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Stock Charts (ECMA-376 Part 1 §21.2.2.198).
@@ -13752,6 +15670,38 @@ impl XmlWrite for CT_StockChart {
     }
 }
 
+impl Validate for CT_StockChart {
+    fn validate(&self, v: &mut Validator) {
+        for (i, x) in self.ser.iter().enumerate() {
+            v.enter("c:ser", Some(i), |v| x.validate(v));
+        }
+        if self.ser.is_empty() {
+            v.required_element(Ns::C, "ser", &self.extra_children);
+        }
+        if let Some(x) = &self.d_lbls {
+            v.enter("c:dLbls", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.drop_lines {
+            v.enter("c:dropLines", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.hi_low_lines {
+            v.enter("c:hiLowLines", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.up_down_bars {
+            v.enter("c:upDownBars", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ax_id.iter().enumerate() {
+            v.enter("c:axId", Some(i), |v| x.validate(v));
+        }
+        if self.ax_id.is_empty() {
+            v.required_element(Ns::C, "axId", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// String Cache (ECMA-376 Part 1 §21.2.2.199).
 ///
 /// This element specifies the last string data used for a chart.
@@ -13839,6 +15789,20 @@ impl XmlWrite for CT_StrData {
         }
         rt::write_extras(w, &self.extra_children, 3);
         w.end();
+    }
+}
+
+impl Validate for CT_StrData {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.pt_count {
+            v.enter("c:ptCount", None, |v| x.validate(v));
+        }
+        for (i, x) in self.pt.iter().enumerate() {
+            v.enter("c:pt", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -13931,6 +15895,20 @@ impl XmlWrite for CT_StrRef {
     }
 }
 
+impl Validate for CT_StrRef {
+    fn validate(&self, v: &mut Validator) {
+        if self.f.is_none() {
+            v.required_element(Ns::C, "f", &self.extra_children);
+        }
+        if let Some(x) = &self.str_cache {
+            v.enter("c:strCache", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// String Point (ECMA-376 Part 1 §21.2.2.151).
 ///
 /// This element specifies string data for a specific data point.
@@ -14004,6 +15982,17 @@ impl XmlWrite for CT_StrVal {
     }
 }
 
+impl Validate for CT_StrVal {
+    fn validate(&self, v: &mut Validator) {
+        if self.idx.is_none() {
+            v.required_attribute(Ns::NONE, "idx", &self.extra_attrs);
+        }
+        if self.v.is_none() {
+            v.required_element(Ns::C, "v", &self.extra_children);
+        }
+    }
+}
+
 /// Style (ECMA-376 Part 1 §21.2.2.202).
 ///
 /// This element specifies the style that shall be applied to the chart.
@@ -14053,6 +16042,14 @@ impl XmlWrite for CT_Style {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_Style {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -14155,6 +16152,23 @@ impl XmlWrite for CT_Surface {
         }
         rt::write_extras(w, &self.extra_children, 4);
         w.end();
+    }
+}
+
+impl Validate for CT_Surface {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.thickness {
+            v.enter("c:thickness", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.picture_options {
+            v.enter("c:pictureOptions", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -14278,6 +16292,29 @@ impl XmlWrite for CT_Surface3DChart {
     }
 }
 
+impl Validate for CT_Surface3DChart {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.wireframe {
+            v.enter("c:wireframe", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ser.iter().enumerate() {
+            v.enter("c:ser", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.band_fmts {
+            v.enter("c:bandFmts", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ax_id.iter().enumerate() {
+            v.enter("c:axId", Some(i), |v| x.validate(v));
+        }
+        if self.ax_id.is_empty() {
+            v.required_element(Ns::C, "axId", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Surface Charts (ECMA-376 Part 1 §21.2.2.204).
 ///
 /// This element contains the set of 2-D contour charts.
@@ -14395,6 +16432,29 @@ impl XmlWrite for CT_SurfaceChart {
         }
         rt::write_extras(w, &self.extra_children, 5);
         w.end();
+    }
+}
+
+impl Validate for CT_SurfaceChart {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.wireframe {
+            v.enter("c:wireframe", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ser.iter().enumerate() {
+            v.enter("c:ser", Some(i), |v| x.validate(v));
+        }
+        if let Some(x) = &self.band_fmts {
+            v.enter("c:bandFmts", None, |v| x.validate(v));
+        }
+        for (i, x) in self.ax_id.iter().enumerate() {
+            v.enter("c:axId", Some(i), |v| x.validate(v));
+        }
+        if self.ax_id.is_empty() {
+            v.required_element(Ns::C, "axId", &self.extra_children);
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -14540,6 +16600,36 @@ impl XmlWrite for CT_SurfaceSer {
     }
 }
 
+impl Validate for CT_SurfaceSer {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.idx {
+            v.enter("c:idx", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "idx", &self.extra_children);
+        }
+        if let Some(x) = &self.order {
+            v.enter("c:order", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "order", &self.extra_children);
+        }
+        if let Some(x) = &self.tx {
+            v.enter("c:tx", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cat {
+            v.enter("c:cat", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.val {
+            v.enter("c:val", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Editing Language (ECMA-376 Part 1 §21.2.2.87).
 ///
 /// This element specifies the primary editing language which was use when this chart was last modified.
@@ -14589,6 +16679,14 @@ impl XmlWrite for CT_TextLanguageID {
         w.attrs_raw(&self.extra_attrs);
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
+    }
+}
+
+impl Validate for CT_TextLanguageID {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
     }
 }
 
@@ -14644,6 +16742,14 @@ impl XmlWrite for CT_Thickness {
     }
 }
 
+impl Validate for CT_Thickness {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Tick Label Position (ECMA-376 Part 1 §21.2.2.207).
 ///
 /// This element specifies the position of the tick labels on the axis.
@@ -14694,6 +16800,10 @@ impl XmlWrite for CT_TickLblPos {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_TickLblPos {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Major Tick Mark (ECMA-376 Part 1 §21.2.2.101).
@@ -14749,6 +16859,10 @@ impl XmlWrite for CT_TickMark {
     }
 }
 
+impl Validate for CT_TickMark {
+    fn validate(&self, v: &mut Validator) {}
+}
+
 /// Base Time Unit (ECMA-376 Part 1 §21.2.2.18).
 ///
 /// This element specifies the smallest time unit that is represented on the date axis.
@@ -14801,6 +16915,10 @@ impl XmlWrite for CT_TimeUnit {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_TimeUnit {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Title (ECMA-376 Part 1 §21.2.2.210).
@@ -14928,6 +17046,29 @@ impl XmlWrite for CT_Title {
         }
         rt::write_extras(w, &self.extra_children, 6);
         w.end();
+    }
+}
+
+impl Validate for CT_Title {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.tx {
+            v.enter("c:tx", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.layout {
+            v.enter("c:layout", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.overlay {
+            v.enter("c:overlay", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx_pr {
+            v.enter("c:txPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -15146,6 +17287,46 @@ impl XmlWrite for CT_Trendline {
     }
 }
 
+impl Validate for CT_Trendline {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.trendline_type {
+            v.enter("c:trendlineType", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "trendlineType", &self.extra_children);
+        }
+        if let Some(x) = &self.order {
+            v.enter("c:order", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.period {
+            v.enter("c:period", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.forward {
+            v.enter("c:forward", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.backward {
+            v.enter("c:backward", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.intercept {
+            v.enter("c:intercept", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.disp_r_sqr {
+            v.enter("c:dispRSqr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.disp_eq {
+            v.enter("c:dispEq", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.trendline_lbl {
+            v.enter("c:trendlineLbl", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Trendline Label (ECMA-376 Part 1 §21.2.2.212).
 ///
 /// This element specifies the label for the trendline.
@@ -15274,6 +17455,29 @@ impl XmlWrite for CT_TrendlineLbl {
     }
 }
 
+impl Validate for CT_TrendlineLbl {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.layout {
+            v.enter("c:layout", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx {
+            v.enter("c:tx", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_fmt {
+            v.enter("c:numFmt", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx_pr {
+            v.enter("c:txPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// Trendline Type (ECMA-376 Part 1 §21.2.2.213).
 ///
 /// This element specifies the style of the trendline.
@@ -15324,6 +17528,10 @@ impl XmlWrite for CT_TrendlineType {
         rt::write_extras(w, &self.extra_children, 0);
         w.end();
     }
+}
+
+impl Validate for CT_TrendlineType {
+    fn validate(&self, v: &mut Validator) {}
 }
 
 /// Chart Text (ECMA-376 Part 1 §21.2.2.214).
@@ -15381,6 +17589,16 @@ impl XmlWrite for CT_Tx {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_Tx {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        } else {
+            v.missing_content("one of c:strRef, c:rich");
+        }
     }
 }
 
@@ -15443,6 +17661,14 @@ impl XmlWrite for CT_UnsignedInt {
     }
 }
 
+impl Validate for CT_UnsignedInt {
+    fn validate(&self, v: &mut Validator) {
+        if self.val.is_none() {
+            v.required_attribute(Ns::NONE, "val", &self.extra_attrs);
+        }
+    }
+}
+
 /// Down Bars (ECMA-376 Part 1 §21.2.2.51).
 ///
 /// This element specifies the down bars.
@@ -15499,6 +17725,14 @@ impl XmlWrite for CT_UpDownBar {
         }
         rt::write_extras(w, &self.extra_children, 1);
         w.end();
+    }
+}
+
+impl Validate for CT_UpDownBar {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -15599,6 +17833,23 @@ impl XmlWrite for CT_UpDownBars {
         }
         rt::write_extras(w, &self.extra_children, 4);
         w.end();
+    }
+}
+
+impl Validate for CT_UpDownBars {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.gap_width {
+            v.enter("c:gapWidth", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.up_bars {
+            v.enter("c:upBars", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.down_bars {
+            v.enter("c:downBars", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
     }
 }
 
@@ -15926,6 +18177,79 @@ impl XmlWrite for CT_ValAx {
     }
 }
 
+impl Validate for CT_ValAx {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.ax_id {
+            v.enter("c:axId", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "axId", &self.extra_children);
+        }
+        if let Some(x) = &self.scaling {
+            v.enter("c:scaling", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "scaling", &self.extra_children);
+        }
+        if let Some(x) = &self.delete {
+            v.enter("c:delete", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ax_pos {
+            v.enter("c:axPos", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "axPos", &self.extra_children);
+        }
+        if let Some(x) = &self.major_gridlines {
+            v.enter("c:majorGridlines", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.minor_gridlines {
+            v.enter("c:minorGridlines", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.title {
+            v.enter("c:title", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.num_fmt {
+            v.enter("c:numFmt", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.major_tick_mark {
+            v.enter("c:majorTickMark", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.minor_tick_mark {
+            v.enter("c:minorTickMark", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tick_lbl_pos {
+            v.enter("c:tickLblPos", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.sp_pr {
+            v.enter("c:spPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.tx_pr {
+            v.enter("c:txPr", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.cross_ax {
+            v.enter("c:crossAx", None, |v| x.validate(v));
+        } else {
+            v.required_element(Ns::C, "crossAx", &self.extra_children);
+        }
+        if let Some(x) = &self.choice {
+            x.validate_at(v, None);
+        }
+        if let Some(x) = &self.cross_between {
+            v.enter("c:crossBetween", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.major_unit {
+            v.enter("c:majorUnit", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.minor_unit {
+            v.enter("c:minorUnit", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.disp_units {
+            v.enter("c:dispUnits", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// View In 3D (ECMA-376 Part 1 §21.2.2.228).
 ///
 /// This element specifies the 3-D view of the chart.
@@ -16068,6 +18392,32 @@ impl XmlWrite for CT_View3D {
     }
 }
 
+impl Validate for CT_View3D {
+    fn validate(&self, v: &mut Validator) {
+        if let Some(x) = &self.rot_x {
+            v.enter("c:rotX", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.h_percent {
+            v.enter("c:hPercent", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.rot_y {
+            v.enter("c:rotY", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.depth_percent {
+            v.enter("c:depthPercent", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.r_ang_ax {
+            v.enter("c:rAngAx", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.perspective {
+            v.enter("c:perspective", None, |v| x.validate(v));
+        }
+        if let Some(x) = &self.ext_lst {
+            v.enter("c:extLst", None, |v| x.validate(v));
+        }
+    }
+}
+
 /// A choice among the child elements of `CT_AxDataSource`.
 #[derive(Clone, Debug, PartialEq)]
 pub enum CT_AxDataSource_Choice {
@@ -16107,6 +18457,18 @@ impl CT_AxDataSource_Choice {
             Self::StrRef(v) => v.write_xml(w, Ns::C, "strRef"),
             Self::StrLit(v) => v.write_xml(w, Ns::C, "strLit"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::MultiLvlStrRef(x) => v.enter("c:multiLvlStrRef", index, |v| x.validate(v)),
+            Self::NumRef(x) => v.enter("c:numRef", index, |v| x.validate(v)),
+            Self::NumLit(x) => v.enter("c:numLit", index, |v| x.validate(v)),
+            Self::StrRef(x) => v.enter("c:strRef", index, |v| x.validate(v)),
+            Self::StrLit(x) => v.enter("c:strLit", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -16150,6 +18512,15 @@ impl CT_CatAx_Choice {
             Self::Crosses(v) => v.write_xml(w, Ns::C, "crosses"),
             Self::CrossesAt(v) => v.write_xml(w, Ns::C, "crossesAt"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Crosses(x) => v.enter("c:crosses", index, |v| x.validate(v)),
+            Self::CrossesAt(x) => v.enter("c:crossesAt", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -16241,6 +18612,26 @@ impl CT_DLbl_Choice {
             Self::ShowBubbleSize(v) => v.write_xml(w, Ns::C, "showBubbleSize"),
             Self::Separator(v) => rt::write_simple(w, Ns::C, "separator", v),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Delete(x) => v.enter("c:delete", index, |v| x.validate(v)),
+            Self::Layout(x) => v.enter("c:layout", index, |v| x.validate(v)),
+            Self::Tx(x) => v.enter("c:tx", index, |v| x.validate(v)),
+            Self::NumFmt(x) => v.enter("c:numFmt", index, |v| x.validate(v)),
+            Self::SpPr(x) => v.enter("c:spPr", index, |v| x.validate(v)),
+            Self::TxPr(x) => v.enter("c:txPr", index, |v| x.validate(v)),
+            Self::DLblPos(x) => v.enter("c:dLblPos", index, |v| x.validate(v)),
+            Self::ShowLegendKey(x) => v.enter("c:showLegendKey", index, |v| x.validate(v)),
+            Self::ShowVal(x) => v.enter("c:showVal", index, |v| x.validate(v)),
+            Self::ShowCatName(x) => v.enter("c:showCatName", index, |v| x.validate(v)),
+            Self::ShowSerName(x) => v.enter("c:showSerName", index, |v| x.validate(v)),
+            Self::ShowPercent(x) => v.enter("c:showPercent", index, |v| x.validate(v)),
+            Self::ShowBubbleSize(x) => v.enter("c:showBubbleSize", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -16347,6 +18738,26 @@ impl CT_DLbls_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Delete(x) => v.enter("c:delete", index, |v| x.validate(v)),
+            Self::NumFmt(x) => v.enter("c:numFmt", index, |v| x.validate(v)),
+            Self::SpPr(x) => v.enter("c:spPr", index, |v| x.validate(v)),
+            Self::TxPr(x) => v.enter("c:txPr", index, |v| x.validate(v)),
+            Self::DLblPos(x) => v.enter("c:dLblPos", index, |v| x.validate(v)),
+            Self::ShowLegendKey(x) => v.enter("c:showLegendKey", index, |v| x.validate(v)),
+            Self::ShowVal(x) => v.enter("c:showVal", index, |v| x.validate(v)),
+            Self::ShowCatName(x) => v.enter("c:showCatName", index, |v| x.validate(v)),
+            Self::ShowSerName(x) => v.enter("c:showSerName", index, |v| x.validate(v)),
+            Self::ShowPercent(x) => v.enter("c:showPercent", index, |v| x.validate(v)),
+            Self::ShowBubbleSize(x) => v.enter("c:showBubbleSize", index, |v| x.validate(v)),
+            Self::ShowLeaderLines(x) => v.enter("c:showLeaderLines", index, |v| x.validate(v)),
+            Self::LeaderLines(x) => v.enter("c:leaderLines", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -16399,6 +18810,15 @@ impl CT_DateAx_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Crosses(x) => v.enter("c:crosses", index, |v| x.validate(v)),
+            Self::CrossesAt(x) => v.enter("c:crossesAt", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -16436,6 +18856,15 @@ impl CT_DispUnits_Choice {
             Self::CustUnit(v) => v.write_xml(w, Ns::C, "custUnit"),
             Self::BuiltInUnit(v) => v.write_xml(w, Ns::C, "builtInUnit"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::CustUnit(x) => v.enter("c:custUnit", index, |v| x.validate(v)),
+            Self::BuiltInUnit(x) => v.enter("c:builtInUnit", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -16479,6 +18908,15 @@ impl CT_LegendEntry_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Delete(x) => v.enter("c:delete", index, |v| x.validate(v)),
+            Self::TxPr(x) => v.enter("c:txPr", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -16516,6 +18954,15 @@ impl CT_NumDataSource_Choice {
             Self::NumRef(v) => v.write_xml(w, Ns::C, "numRef"),
             Self::NumLit(v) => v.write_xml(w, Ns::C, "numLit"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::NumRef(x) => v.enter("c:numRef", index, |v| x.validate(v)),
+            Self::NumLit(x) => v.enter("c:numLit", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -16615,6 +19062,29 @@ impl CT_PlotArea_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::AreaChart(x) => v.enter("c:areaChart", index, |v| x.validate(v)),
+            Self::Area3DChart(x) => v.enter("c:area3DChart", index, |v| x.validate(v)),
+            Self::LineChart(x) => v.enter("c:lineChart", index, |v| x.validate(v)),
+            Self::Line3DChart(x) => v.enter("c:line3DChart", index, |v| x.validate(v)),
+            Self::StockChart(x) => v.enter("c:stockChart", index, |v| x.validate(v)),
+            Self::RadarChart(x) => v.enter("c:radarChart", index, |v| x.validate(v)),
+            Self::ScatterChart(x) => v.enter("c:scatterChart", index, |v| x.validate(v)),
+            Self::PieChart(x) => v.enter("c:pieChart", index, |v| x.validate(v)),
+            Self::Pie3DChart(x) => v.enter("c:pie3DChart", index, |v| x.validate(v)),
+            Self::DoughnutChart(x) => v.enter("c:doughnutChart", index, |v| x.validate(v)),
+            Self::BarChart(x) => v.enter("c:barChart", index, |v| x.validate(v)),
+            Self::Bar3DChart(x) => v.enter("c:bar3DChart", index, |v| x.validate(v)),
+            Self::OfPieChart(x) => v.enter("c:ofPieChart", index, |v| x.validate(v)),
+            Self::SurfaceChart(x) => v.enter("c:surfaceChart", index, |v| x.validate(v)),
+            Self::Surface3DChart(x) => v.enter("c:surface3DChart", index, |v| x.validate(v)),
+            Self::BubbleChart(x) => v.enter("c:bubbleChart", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -16677,6 +19147,17 @@ impl CT_PlotArea_Choice2 {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::ValAx(x) => v.enter("c:valAx", index, |v| x.validate(v)),
+            Self::CatAx(x) => v.enter("c:catAx", index, |v| x.validate(v)),
+            Self::DateAx(x) => v.enter("c:dateAx", index, |v| x.validate(v)),
+            Self::SerAx(x) => v.enter("c:serAx", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -16716,6 +19197,15 @@ impl CT_SerAx_Choice {
             Self::Crosses(v) => v.write_xml(w, Ns::C, "crosses"),
             Self::CrossesAt(v) => v.write_xml(w, Ns::C, "crossesAt"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Crosses(x) => v.enter("c:crosses", index, |v| x.validate(v)),
+            Self::CrossesAt(x) => v.enter("c:crossesAt", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
@@ -16762,6 +19252,14 @@ impl CT_SerTx_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::StrRef(x) => v.enter("c:strRef", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -16802,6 +19300,15 @@ impl CT_Tx_Choice {
         }
     }
 
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::StrRef(x) => v.enter("c:strRef", index, |v| x.validate(v)),
+            Self::Rich(x) => v.enter("c:rich", index, |v| x.validate(v)),
+            _ => {}
+        }
+    }
+
     /// Namespace and local name of the element this variant represents.
     pub fn element_name(&self) -> (Ns, &str) {
         match self {
@@ -16839,6 +19346,15 @@ impl CT_ValAx_Choice {
             Self::Crosses(v) => v.write_xml(w, Ns::C, "crosses"),
             Self::CrossesAt(v) => v.write_xml(w, Ns::C, "crossesAt"),
             Self::Other(v) => v.write(w),
+        }
+    }
+
+    /// Validates the variant's element, recorded at position `index` of its field.
+    pub fn validate_at(&self, v: &mut Validator, index: Option<usize>) {
+        match self {
+            Self::Crosses(x) => v.enter("c:crosses", index, |v| x.validate(v)),
+            Self::CrossesAt(x) => v.enter("c:crossesAt", index, |v| x.validate(v)),
+            _ => {}
         }
     }
 
