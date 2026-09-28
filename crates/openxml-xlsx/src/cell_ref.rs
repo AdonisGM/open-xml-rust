@@ -302,6 +302,97 @@ impl FromStr for CellRange {
     }
 }
 
+/// Anything that designates a block of cells: `"A1:C3"`, `"B2"`, a
+/// [`CellRange`] or a single [`CellRef`].
+pub trait ToCellRange {
+    /// Resolves the range.
+    fn to_cell_range(&self) -> Result<CellRange>;
+}
+
+impl ToCellRange for CellRange {
+    fn to_cell_range(&self) -> Result<CellRange> {
+        Ok(*self)
+    }
+}
+
+impl ToCellRange for CellRef {
+    fn to_cell_range(&self) -> Result<CellRange> {
+        Ok(CellRange::single(*self))
+    }
+}
+
+impl ToCellRange for &str {
+    fn to_cell_range(&self) -> Result<CellRange> {
+        CellRange::parse(self)
+    }
+}
+
+impl ToCellRange for String {
+    fn to_cell_range(&self) -> Result<CellRange> {
+        CellRange::parse(self)
+    }
+}
+
+/// One or more ranges (a "sqref"): `"A1:A10 C1:C10"` (space or comma
+/// separated), a [`CellRange`], or a slice of ranges.
+pub trait ToRanges {
+    /// Resolves the ranges (at least one).
+    fn to_ranges(&self) -> Result<Vec<CellRange>>;
+}
+
+impl ToRanges for &str {
+    fn to_ranges(&self) -> Result<Vec<CellRange>> {
+        let ranges = self
+            .split(|c: char| c == ',' || c.is_whitespace())
+            .filter(|s| !s.is_empty())
+            .map(CellRange::parse)
+            .collect::<Result<Vec<_>>>()?;
+        if ranges.is_empty() {
+            return Err(invalid("no range in", format!("{self:?}")));
+        }
+        Ok(ranges)
+    }
+}
+
+impl ToRanges for String {
+    fn to_ranges(&self) -> Result<Vec<CellRange>> {
+        self.as_str().to_ranges()
+    }
+}
+
+impl ToRanges for CellRange {
+    fn to_ranges(&self) -> Result<Vec<CellRange>> {
+        Ok(vec![*self])
+    }
+}
+
+impl ToRanges for CellRef {
+    fn to_ranges(&self) -> Result<Vec<CellRange>> {
+        Ok(vec![CellRange::single(*self)])
+    }
+}
+
+impl ToRanges for &[CellRange] {
+    fn to_ranges(&self) -> Result<Vec<CellRange>> {
+        if self.is_empty() {
+            return Err(Error::InvalidArgument("no range given".into()));
+        }
+        Ok(self.to_vec())
+    }
+}
+
+impl ToRanges for Vec<CellRange> {
+    fn to_ranges(&self) -> Result<Vec<CellRange>> {
+        self.as_slice().to_ranges()
+    }
+}
+
+impl<const N: usize> ToRanges for [CellRange; N] {
+    fn to_ranges(&self) -> Result<Vec<CellRange>> {
+        self.as_slice().to_ranges()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

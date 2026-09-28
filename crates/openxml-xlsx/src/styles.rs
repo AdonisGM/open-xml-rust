@@ -6,14 +6,16 @@
 //! and cell format (`xf`) records it needs — reusing identical records — and
 //! returns the [`StyleId`] to put on cells.
 
-use openxml_schema::sml;
+use openxml_schema::{shared_types, sml};
 use openxml_xml::{ExtraChild, HexBinary, Ns, RawElement, XmlRead};
 
 use crate::date::is_date_format;
 
+pub use shared_types::ST_VerticalAlignRun as FontVerticalAlign;
 pub use sml::{
     ST_BorderStyle as BorderStyle, ST_HorizontalAlignment as HorizontalAlignment,
-    ST_PatternType as PatternType, ST_VerticalAlignment as VerticalAlignment,
+    ST_PatternType as PatternType, ST_UnderlineValues as UnderlineStyle,
+    ST_VerticalAlignment as VerticalAlignment,
 };
 
 /// Index of a cell format (`cellXfs` entry), stored in a cell's `s` attribute.
@@ -43,7 +45,7 @@ impl Color {
         Some(Color::Rgb((v >> 16) as u8, (v >> 8) as u8, v as u8))
     }
 
-    fn to_ct(self) -> sml::CT_Color {
+    pub(crate) fn to_ct(self) -> sml::CT_Color {
         match self {
             Color::Rgb(r, g, b) => sml::CT_Color {
                 rgb: Some(HexBinary(vec![0xFF, r, g, b])),
@@ -60,7 +62,7 @@ impl Color {
         }
     }
 
-    fn from_ct(c: &sml::CT_Color) -> Option<Self> {
+    pub(crate) fn from_ct(c: &sml::CT_Color) -> Option<Self> {
         if let Some(rgb) = &c.rgb {
             let b = rgb.as_bytes();
             return match b.len() {
@@ -86,10 +88,44 @@ pub struct Font {
     pub italic: bool,
     /// Single underline.
     pub underline: bool,
+    /// Underline style other than single (double, accounting); implies `underline`.
+    pub underline_style: Option<UnderlineStyle>,
     /// Strikethrough.
     pub strike: bool,
+    /// Superscript or subscript.
+    pub vertical_align: Option<FontVerticalAlign>,
     /// Text colour.
     pub color: Option<Color>,
+}
+
+/// How the colours of a gradient fill are laid out.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum GradientKind {
+    /// A linear gradient at `degree` degrees (0 = left to right, 90 = top to bottom).
+    Linear {
+        /// Angle in degrees.
+        degree: f64,
+    },
+    /// A path gradient spreading from a rectangle given as fractions (0–1) of the cell.
+    Path {
+        /// Left edge of the inner rectangle.
+        left: f64,
+        /// Right edge of the inner rectangle.
+        right: f64,
+        /// Top edge of the inner rectangle.
+        top: f64,
+        /// Bottom edge of the inner rectangle.
+        bottom: f64,
+    },
+}
+
+/// A gradient cell background (ECMA-376 Part 1 §18.8.24).
+#[derive(Clone, Debug, PartialEq)]
+pub struct GradientFill {
+    /// Linear or path gradient.
+    pub kind: GradientKind,
+    /// Colour stops as `(position 0–1, colour)`.
+    pub stops: Vec<(f64, Color)>,
 }
 
 /// A cell background.
@@ -101,6 +137,8 @@ pub struct Fill {
     pub fg_color: Option<Color>,
     /// Background colour of the pattern.
     pub bg_color: Option<Color>,
+    /// A gradient; when set, the pattern fields are ignored.
+    pub gradient: Option<GradientFill>,
 }
 
 impl Fill {
@@ -110,6 +148,53 @@ impl Fill {
             pattern: PatternType::Solid,
             fg_color: Some(color),
             bg_color: None,
+            gradient: None,
+        }
+    }
+
+    /// A pattern fill (e.g. `PatternType::DarkGrid`) with foreground and background colours.
+    pub fn pattern(pattern: PatternType, fg_color: Option<Color>, bg_color: Option<Color>) -> Self {
+        Fill {
+            pattern,
+            fg_color,
+            bg_color,
+            gradient: None,
+        }
+    }
+
+    /// A gradient fill.
+    pub fn gradient(gradient: GradientFill) -> Self {
+        Fill {
+            pattern: PatternType::None,
+            fg_color: None,
+            bg_color: None,
+            gradient: Some(gradient),
+        }
+    }
+
+    /// A two-colour linear gradient at `degree` degrees.
+    pub fn linear_gradient(degree: f64, from: Color, to: Color) -> Self {
+        Fill::gradient(GradientFill {
+            kind: GradientKind::Linear { degree },
+            stops: vec![(0.0, from), (1.0, to)],
+        })
+    }
+}
+
+/// Cell protection flags; they take effect when the sheet is protected.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CellProtection {
+    /// The cell cannot be edited (Excel's default for every cell).
+    pub locked: bool,
+    /// The formula is hidden in the formula bar.
+    pub hidden: bool,
+}
+
+impl Default for CellProtection {
+    fn default() -> Self {
+        CellProtection {
+            locked: true,
+            hidden: false,
         }
     }
 }
@@ -134,6 +219,12 @@ pub struct Border {
     pub top: Option<BorderSide>,
     /// Bottom edge.
     pub bottom: Option<BorderSide>,
+    /// Diagonal line(s); drawn in the directions enabled below.
+    pub diagonal: Option<BorderSide>,
+    /// Draw the diagonal from bottom-left to top-right.
+    pub diagonal_up: bool,
+    /// Draw the diagonal from top-left to bottom-right.
+    pub diagonal_down: bool,
 }
 
 impl Border {
@@ -145,7 +236,16 @@ impl Border {
             right: side.clone(),
             top: side.clone(),
             bottom: side,
+            ..Default::default()
         }
+    }
+
+    /// Adds diagonal lines.
+    pub fn with_diagonal(mut self, side: BorderSide, up: bool, down: bool) -> Self {
+        self.diagonal = Some(side);
+        self.diagonal_up = up;
+        self.diagonal_down = down;
+        self
     }
 }
 
@@ -183,10 +283,104 @@ impl NumberFormat {
     pub const DATE_TIME: NumberFormat = NumberFormat::Builtin(22);
     /// Text, `@` (id 49).
     pub const TEXT: NumberFormat = NumberFormat::Builtin(49);
+    /// Fraction with one digit, `# ?/?` (id 12).
+    pub const FRACTION: NumberFormat = NumberFormat::Builtin(12);
+    /// Fraction with two digits, `# ??/??` (id 13).
+    pub const FRACTION_2: NumberFormat = NumberFormat::Builtin(13);
+    /// `d-mmm-yy` (id 15).
+    pub const DATE_D_MMM_YY: NumberFormat = NumberFormat::Builtin(15);
+    /// `d-mmm` (id 16).
+    pub const DATE_D_MMM: NumberFormat = NumberFormat::Builtin(16);
+    /// `mmm-yy` (id 17).
+    pub const DATE_MMM_YY: NumberFormat = NumberFormat::Builtin(17);
+    /// `h:mm AM/PM` (id 18).
+    pub const TIME_12H: NumberFormat = NumberFormat::Builtin(18);
+    /// `h:mm:ss AM/PM` (id 19).
+    pub const TIME_12H_SECONDS: NumberFormat = NumberFormat::Builtin(19);
+    /// `h:mm` (id 20).
+    pub const TIME_HOURS_MINUTES: NumberFormat = NumberFormat::Builtin(20);
+    /// `#,##0 ;(#,##0)` — negatives in parentheses (id 37).
+    pub const NEGATIVE_PARENS: NumberFormat = NumberFormat::Builtin(37);
+    /// `#,##0 ;[Red](#,##0)` — negatives red in parentheses (id 38).
+    pub const NEGATIVE_PARENS_RED: NumberFormat = NumberFormat::Builtin(38);
+    /// `#,##0.00;(#,##0.00)` (id 39).
+    pub const NEGATIVE_PARENS_DECIMAL_2: NumberFormat = NumberFormat::Builtin(39);
+    /// `#,##0.00;[Red](#,##0.00)` (id 40).
+    pub const NEGATIVE_PARENS_RED_DECIMAL_2: NumberFormat = NumberFormat::Builtin(40);
+    /// `mm:ss` (id 45).
+    pub const MINUTES_SECONDS: NumberFormat = NumberFormat::Builtin(45);
+    /// Elapsed time, `[h]:mm:ss` (id 46).
+    pub const DURATION: NumberFormat = NumberFormat::Builtin(46);
+    /// `mmss.0` (id 47).
+    pub const MINUTES_SECONDS_TENTHS: NumberFormat = NumberFormat::Builtin(47);
+    /// Engineering notation, `##0.0E+0` (id 48).
+    pub const ENGINEERING: NumberFormat = NumberFormat::Builtin(48);
 
     /// A custom format code.
     pub fn custom(code: impl Into<String>) -> Self {
         NumberFormat::Custom(code.into())
+    }
+
+    fn places(places: u8) -> String {
+        if places == 0 {
+            String::new()
+        } else {
+            format!(".{}", "0".repeat(usize::from(places)))
+        }
+    }
+
+    /// A fixed number of decimal places, optionally with thousands separators
+    /// (`decimal(2, true)` is `#,##0.00`).
+    pub fn decimal(places: u8, thousands: bool) -> Self {
+        let int = if thousands { "#,##0" } else { "0" };
+        NumberFormat::Custom(format!("{int}{}", Self::places(places))).canonical()
+    }
+
+    /// A percentage with `places` decimals (`percent(1)` is `0.0%`).
+    pub fn percent(places: u8) -> Self {
+        NumberFormat::Custom(format!("0{}%", Self::places(places))).canonical()
+    }
+
+    /// Scientific notation with `places` decimals (`scientific(2)` is `0.00E+00`).
+    pub fn scientific(places: u8) -> Self {
+        NumberFormat::Custom(format!("0{}E+00", Self::places(places))).canonical()
+    }
+
+    /// A currency amount with the symbol before the number and negatives
+    /// prefixed with a minus sign, e.g. `"$"#,##0.00`.
+    pub fn currency(symbol: &str, places: u8) -> Self {
+        let sym = symbol.replace('"', "");
+        let n = format!("#,##0{}", Self::places(places));
+        NumberFormat::Custom(format!("\"{sym}\"{n};-\"{sym}\"{n}"))
+    }
+
+    /// Excel's accounting layout: symbol aligned left, negatives in
+    /// parentheses and zero shown as a dash.
+    pub fn accounting(symbol: &str, places: u8) -> Self {
+        let sym = symbol.replace('"', "");
+        let p = Self::places(places);
+        let dash = if places == 0 { "\"-\"" } else { "\"-\"??" };
+        NumberFormat::Custom(format!(
+            "_(\"{sym}\"* #,##0{p}_);_(\"{sym}\"* \\(#,##0{p}\\);_(\"{sym}\"* {dash}_);_(@_)"
+        ))
+    }
+
+    /// The built-in id for codes of built-in formats, the value otherwise.
+    fn canonical(self) -> Self {
+        match &self {
+            NumberFormat::Custom(code) => (0..FIRST_CUSTOM_NUMFMT)
+                .find(|&id| builtin_format_code(id) == Some(code.as_str()))
+                .map_or(self, NumberFormat::Builtin),
+            NumberFormat::Builtin(_) => self,
+        }
+    }
+
+    /// The format code (built-in codes are the invariant ones of §18.8.30).
+    pub fn code(&self) -> Option<&str> {
+        match self {
+            NumberFormat::Builtin(id) => builtin_format_code(*id),
+            NumberFormat::Custom(code) => Some(code),
+        }
     }
 }
 
@@ -203,6 +397,10 @@ pub struct Alignment {
     pub indent: Option<u32>,
     /// Text rotation in degrees (0–90 counter-clockwise, 91–180 clockwise).
     pub rotation: Option<u32>,
+    /// Vertical (stacked) text: rotation value 255.
+    pub vertical_text: bool,
+    /// Shrink the text to fit the column width.
+    pub shrink_to_fit: bool,
 }
 
 /// The formatting of a cell.
@@ -231,6 +429,8 @@ pub struct CellStyle {
     pub number_format: Option<NumberFormat>,
     /// Alignment.
     pub alignment: Option<Alignment>,
+    /// Protection flags (locked / formula hidden).
+    pub protection: Option<CellProtection>,
 }
 
 impl CellStyle {
@@ -325,6 +525,53 @@ impl CellStyle {
     /// Text rotation in degrees.
     pub fn rotation(mut self, degrees: u32) -> Self {
         self.alignment_mut().rotation = Some(degrees);
+        self
+    }
+    /// Stacked (vertical) text.
+    pub fn vertical_text(mut self) -> Self {
+        self.alignment_mut().vertical_text = true;
+        self
+    }
+    /// Shrink text to fit the cell.
+    pub fn shrink_to_fit(mut self) -> Self {
+        self.alignment_mut().shrink_to_fit = true;
+        self
+    }
+    /// Underline with a specific style (double, accounting…).
+    pub fn underline_style(mut self, style: UnderlineStyle) -> Self {
+        let f = self.font_mut();
+        f.underline = style != UnderlineStyle::None;
+        f.underline_style =
+            (style != UnderlineStyle::Single && style != UnderlineStyle::None).then_some(style);
+        self
+    }
+    /// Double underline.
+    pub fn double_underline(self) -> Self {
+        self.underline_style(UnderlineStyle::Double)
+    }
+    /// Superscript text.
+    pub fn superscript(mut self) -> Self {
+        self.font_mut().vertical_align = Some(FontVerticalAlign::Superscript);
+        self
+    }
+    /// Subscript text.
+    pub fn subscript(mut self) -> Self {
+        self.font_mut().vertical_align = Some(FontVerticalAlign::Subscript);
+        self
+    }
+    /// Protection flags.
+    pub fn protection(mut self, protection: CellProtection) -> Self {
+        self.protection = Some(protection);
+        self
+    }
+    /// The cell stays editable when the sheet is protected.
+    pub fn unlocked(mut self) -> Self {
+        self.protection.get_or_insert_with(CellProtection::default).locked = false;
+        self
+    }
+    /// The formula is hidden when the sheet is protected.
+    pub fn formula_hidden(mut self) -> Self {
+        self.protection.get_or_insert_with(CellProtection::default).hidden = true;
         self
     }
 }
@@ -682,129 +929,316 @@ impl Styles {
 
     fn intern_font(&mut self, font: &Font) -> u32 {
         let base = self.font(0).unwrap_or_else(default_font);
-        let mut size = None;
-        let mut color = None;
-        let mut name = None;
-        let mut family = None;
-        let mut charset = None;
-        let mut scheme = None;
-        for c in &base.choice {
-            match c {
-                sml::CT_Font_Choice::Sz(v) => size = v.val,
-                sml::CT_Font_Choice::Color(v) => color = Some((**v).clone()),
-                sml::CT_Font_Choice::Name(v) => name = v.val.clone(),
-                sml::CT_Font_Choice::Family(v) => family = Some((**v).clone()),
-                sml::CT_Font_Choice::Charset(v) => charset = Some((**v).clone()),
-                sml::CT_Font_Choice::Scheme(v) => scheme = Some((**v).clone()),
-                _ => {}
-            }
-        }
-        if let Some(n) = &font.name {
-            if name.as_deref() != Some(n.as_str()) {
-                // A theme font scheme would override an explicit typeface.
-                scheme = None;
-                charset = None;
-            }
-            name = Some(n.clone());
-        }
-        if let Some(s) = font.size {
-            size = Some(s);
-        }
-        if let Some(c) = font.color {
-            color = Some(c.to_ct());
-        }
-        let flag = || Box::new(sml::CT_BooleanProperty::default());
-        let mut choice = Vec::new();
-        if font.bold {
-            choice.push(sml::CT_Font_Choice::B(flag()));
-        }
-        if font.italic {
-            choice.push(sml::CT_Font_Choice::I(flag()));
-        }
-        if font.strike {
-            choice.push(sml::CT_Font_Choice::Strike(flag()));
-        }
-        if font.underline {
-            choice.push(sml::CT_Font_Choice::U(Box::default()));
-        }
-        if let Some(s) = size {
-            choice.push(sml::CT_Font_Choice::Sz(Box::new(sml::CT_FontSize {
-                val: Some(s),
-                ..Default::default()
-            })));
-        }
-        if let Some(c) = color {
-            choice.push(sml::CT_Font_Choice::Color(Box::new(c)));
-        }
-        if let Some(n) = name {
-            choice.push(sml::CT_Font_Choice::Name(Box::new(sml::CT_FontName {
-                val: Some(n),
-                ..Default::default()
-            })));
-        }
-        if let Some(f) = family {
-            choice.push(sml::CT_Font_Choice::Family(Box::new(f)));
-        }
-        if let Some(c) = charset {
-            choice.push(sml::CT_Font_Choice::Charset(Box::new(c)));
-        }
-        if let Some(s) = scheme {
-            choice.push(sml::CT_Font_Choice::Scheme(Box::new(s)));
-        }
-        let record = sml::CT_Font {
-            choice,
-            ..Default::default()
-        };
+        let record = font_record(font, Some(&base));
         let fonts = self.sheet.fonts.get_or_insert_with(Box::default);
         intern(&mut fonts.font, &fonts.extra_children, record)
     }
 
     fn intern_fill(&mut self, fill: &Fill) -> u32 {
-        let fg = fill.fg_color.map(|c| Box::new(c.to_ct()));
-        let bg = match (fill.bg_color, fill.pattern) {
-            (Some(c), _) => Some(Box::new(c.to_ct())),
-            (None, PatternType::Solid) => Some(Box::new(sml::CT_Color {
-                indexed: Some(64),
-                ..Default::default()
-            })),
-            _ => None,
-        };
-        let record = sml::CT_Fill {
-            choice: Some(sml::CT_Fill_Choice::PatternFill(Box::new(sml::CT_PatternFill {
-                pattern_type: Some(fill.pattern),
-                fg_color: fg,
-                bg_color: bg,
-                ..Default::default()
-            }))),
-            ..Default::default()
-        };
+        let record = fill_record(fill, false);
         let fills = self.sheet.fills.get_or_insert_with(Box::default);
         intern(&mut fills.fill, &fills.extra_children, record)
     }
 
     fn intern_border(&mut self, border: &Border) -> u32 {
-        let side = |s: &Option<BorderSide>| -> Option<Box<sml::CT_BorderPr>> {
-            Some(Box::new(match s {
-                Some(s) => sml::CT_BorderPr {
-                    style: Some(s.style),
-                    color: s.color.map(|c| Box::new(c.to_ct())),
-                    ..Default::default()
-                },
-                None => sml::CT_BorderPr::default(),
-            }))
-        };
-        let record = sml::CT_Border {
-            left: side(&border.left),
-            right: side(&border.right),
-            top: side(&border.top),
-            bottom: side(&border.bottom),
-            diagonal: Some(Box::default()),
-            ..Default::default()
-        };
+        let record = border_record(border);
         let borders = self.sheet.borders.get_or_insert_with(Box::default);
         intern(&mut borders.border, &borders.extra_children, record)
     }
+}
 
+/// A font record: the properties of `font`, inheriting unset name, size,
+/// colour, family, charset and scheme from `base` when given.
+fn font_record(font: &Font, base: Option<&sml::CT_Font>) -> sml::CT_Font {
+    let mut size = None;
+    let mut color = None;
+    let mut name = None;
+    let mut family = None;
+    let mut charset = None;
+    let mut scheme = None;
+    for c in base.map_or(&[][..], |b| &b.choice) {
+        match c {
+            sml::CT_Font_Choice::Sz(v) => size = v.val,
+            sml::CT_Font_Choice::Color(v) => color = Some((**v).clone()),
+            sml::CT_Font_Choice::Name(v) => name = v.val.clone(),
+            sml::CT_Font_Choice::Family(v) => family = Some((**v).clone()),
+            sml::CT_Font_Choice::Charset(v) => charset = Some((**v).clone()),
+            sml::CT_Font_Choice::Scheme(v) => scheme = Some((**v).clone()),
+            _ => {}
+        }
+    }
+    if let Some(n) = &font.name {
+        if name.as_deref() != Some(n.as_str()) {
+            // A theme font scheme would override an explicit typeface.
+            scheme = None;
+            charset = None;
+        }
+        name = Some(n.clone());
+    }
+    if let Some(s) = font.size {
+        size = Some(s);
+    }
+    if let Some(c) = font.color {
+        color = Some(c.to_ct());
+    }
+    let flag = || Box::new(sml::CT_BooleanProperty::default());
+    let mut choice = Vec::new();
+    if font.bold {
+        choice.push(sml::CT_Font_Choice::B(flag()));
+    }
+    if font.italic {
+        choice.push(sml::CT_Font_Choice::I(flag()));
+    }
+    if font.strike {
+        choice.push(sml::CT_Font_Choice::Strike(flag()));
+    }
+    if font.underline || font.underline_style.is_some() {
+        choice.push(sml::CT_Font_Choice::U(Box::new(sml::CT_UnderlineProperty {
+            val: font.underline_style.filter(|u| *u != UnderlineStyle::Single),
+            ..Default::default()
+        })));
+    }
+    if let Some(v) = font.vertical_align {
+        choice.push(sml::CT_Font_Choice::VertAlign(Box::new(
+            sml::CT_VerticalAlignFontProperty {
+                val: Some(v),
+                ..Default::default()
+            },
+        )));
+    }
+    if let Some(s) = size {
+        choice.push(sml::CT_Font_Choice::Sz(Box::new(sml::CT_FontSize {
+            val: Some(s),
+            ..Default::default()
+        })));
+    }
+    if let Some(c) = color {
+        choice.push(sml::CT_Font_Choice::Color(Box::new(c)));
+    }
+    if let Some(n) = name {
+        choice.push(sml::CT_Font_Choice::Name(Box::new(sml::CT_FontName {
+            val: Some(n),
+            ..Default::default()
+        })));
+    }
+    if let Some(f) = family {
+        choice.push(sml::CT_Font_Choice::Family(Box::new(f)));
+    }
+    if let Some(c) = charset {
+        choice.push(sml::CT_Font_Choice::Charset(Box::new(c)));
+    }
+    if let Some(s) = scheme {
+        choice.push(sml::CT_Font_Choice::Scheme(Box::new(s)));
+    }
+    sml::CT_Font {
+        choice,
+        ..Default::default()
+    }
+}
+
+/// A fill record. In differential formats (`dxf == true`) a solid fill
+/// carries its colour in `bgColor`, as Excel expects (§18.8.20).
+fn fill_record(fill: &Fill, dxf: bool) -> sml::CT_Fill {
+    if let Some(g) = &fill.gradient {
+        let mut record = sml::CT_GradientFill {
+            stop: g
+                .stops
+                .iter()
+                .map(|(position, color)| sml::CT_GradientStop {
+                    position: Some(*position),
+                    color: Some(Box::new(color.to_ct())),
+                    ..Default::default()
+                })
+                .collect(),
+            ..Default::default()
+        };
+        match g.kind {
+            GradientKind::Linear { degree } => {
+                record.degree = (degree != 0.0).then_some(degree);
+            }
+            GradientKind::Path {
+                left,
+                right,
+                top,
+                bottom,
+            } => {
+                record.type_ = Some(sml::ST_GradientType::Path);
+                record.left = Some(left);
+                record.right = Some(right);
+                record.top = Some(top);
+                record.bottom = Some(bottom);
+            }
+        }
+        return sml::CT_Fill {
+            choice: Some(sml::CT_Fill_Choice::GradientFill(Box::new(record))),
+            ..Default::default()
+        };
+    }
+    let color = |c: Option<Color>| c.map(|c| Box::new(c.to_ct()));
+    let pattern = if dxf && fill.pattern == PatternType::Solid {
+        sml::CT_PatternFill {
+            bg_color: color(fill.fg_color.or(fill.bg_color)),
+            ..Default::default()
+        }
+    } else {
+        let bg = match (fill.bg_color, fill.pattern) {
+            (Some(c), _) => Some(Box::new(c.to_ct())),
+            (None, PatternType::Solid) if !dxf => Some(Box::new(sml::CT_Color {
+                indexed: Some(64),
+                ..Default::default()
+            })),
+            _ => None,
+        };
+        sml::CT_PatternFill {
+            pattern_type: Some(fill.pattern),
+            fg_color: color(fill.fg_color),
+            bg_color: bg,
+            ..Default::default()
+        }
+    };
+    sml::CT_Fill {
+        choice: Some(sml::CT_Fill_Choice::PatternFill(Box::new(pattern))),
+        ..Default::default()
+    }
+}
+
+fn border_record(border: &Border) -> sml::CT_Border {
+    let side = |s: &Option<BorderSide>| -> Option<Box<sml::CT_BorderPr>> {
+        Some(Box::new(match s {
+            Some(s) => sml::CT_BorderPr {
+                style: Some(s.style),
+                color: s.color.map(|c| Box::new(c.to_ct())),
+                ..Default::default()
+            },
+            None => sml::CT_BorderPr::default(),
+        }))
+    };
+    sml::CT_Border {
+        diagonal_up: border.diagonal_up.then_some(true),
+        diagonal_down: border.diagonal_down.then_some(true),
+        left: side(&border.left),
+        right: side(&border.right),
+        top: side(&border.top),
+        bottom: side(&border.bottom),
+        diagonal: side(&border.diagonal),
+        ..Default::default()
+    }
+}
+
+fn alignment_record(a: &Alignment) -> sml::CT_CellAlignment {
+    let rotation = if a.vertical_text {
+        Some(sml::ST_TextRotation::Member2(sml::ST_TextRotation_Member2::V255))
+    } else {
+        a.rotation.map(|r| sml::ST_TextRotation::Member1(u64::from(r)))
+    };
+    sml::CT_CellAlignment {
+        horizontal: a.horizontal,
+        vertical: a.vertical,
+        wrap_text: a.wrap_text.then_some(true),
+        indent: a.indent,
+        text_rotation: rotation,
+        shrink_to_fit: a.shrink_to_fit.then_some(true),
+        ..Default::default()
+    }
+}
+
+fn alignment_properties(a: &sml::CT_CellAlignment) -> Alignment {
+    Alignment {
+        horizontal: a.horizontal,
+        vertical: a.vertical,
+        wrap_text: a.wrap_text.unwrap_or(false),
+        indent: a.indent,
+        rotation: match a.text_rotation {
+            Some(sml::ST_TextRotation::Member1(r)) if r != 255 => Some(r as u32),
+            _ => None,
+        },
+        vertical_text: matches!(
+            a.text_rotation,
+            Some(sml::ST_TextRotation::Member2(_) | sml::ST_TextRotation::Member1(255))
+        ),
+        shrink_to_fit: a.shrink_to_fit.unwrap_or(false),
+    }
+}
+
+fn protection_record(p: &CellProtection) -> sml::CT_CellProtection {
+    sml::CT_CellProtection {
+        locked: (!p.locked).then_some(false),
+        hidden: p.hidden.then_some(true),
+        ..Default::default()
+    }
+}
+
+fn protection_properties(p: &sml::CT_CellProtection) -> CellProtection {
+    CellProtection {
+        locked: p.locked.unwrap_or(true),
+        hidden: p.hidden.unwrap_or(false),
+    }
+}
+
+fn fill_properties(fill: &sml::CT_Fill, dxf: bool) -> Option<Fill> {
+    match fill.choice.as_ref()? {
+        sml::CT_Fill_Choice::PatternFill(p) => {
+            let fg = p.fg_color.as_deref().and_then(Color::from_ct);
+            let bg = p.bg_color.as_deref().and_then(Color::from_ct);
+            if dxf && p.pattern_type.is_none_or(|t| t == PatternType::Solid) {
+                // Differential solid fills carry their colour in bgColor.
+                return Some(Fill::solid(bg.or(fg)?));
+            }
+            let pattern = p.pattern_type.filter(|p| *p != PatternType::None)?;
+            Some(Fill {
+                pattern,
+                fg_color: fg,
+                bg_color: bg.filter(|c| *c != Color::Indexed(64)),
+                gradient: None,
+            })
+        }
+        sml::CT_Fill_Choice::GradientFill(g) => {
+            let kind = if g.type_ == Some(sml::ST_GradientType::Path) {
+                GradientKind::Path {
+                    left: g.left.unwrap_or(0.0),
+                    right: g.right.unwrap_or(0.0),
+                    top: g.top.unwrap_or(0.0),
+                    bottom: g.bottom.unwrap_or(0.0),
+                }
+            } else {
+                GradientKind::Linear {
+                    degree: g.degree.unwrap_or(0.0),
+                }
+            };
+            let stops = g
+                .stop
+                .iter()
+                .filter_map(|s| Some((s.position?, s.color.as_deref().and_then(Color::from_ct)?)))
+                .collect();
+            Some(Fill::gradient(GradientFill { kind, stops }))
+        }
+        sml::CT_Fill_Choice::Other(_) => None,
+    }
+}
+
+fn border_properties(b: &sml::CT_Border) -> Border {
+    let side = |s: &Option<Box<sml::CT_BorderPr>>| {
+        s.as_ref().and_then(|s| {
+            s.style
+                .filter(|st| *st != BorderStyle::None)
+                .map(|style| BorderSide {
+                    style,
+                    color: s.color.as_deref().and_then(Color::from_ct),
+                })
+        })
+    };
+    Border {
+        left: side(&b.left).or(side(&b.start)),
+        right: side(&b.right).or(side(&b.end)),
+        top: side(&b.top),
+        bottom: side(&b.bottom),
+        diagonal: side(&b.diagonal),
+        diagonal_up: b.diagonal_up.unwrap_or(false),
+        diagonal_down: b.diagonal_down.unwrap_or(false),
+    }
+}
+
+impl Styles {
     fn intern_number_format(&mut self, format: &NumberFormat) -> u32 {
         let code = match format {
             NumberFormat::Builtin(id) => return *id,
@@ -845,10 +1279,11 @@ impl Styles {
         StyleId(id)
     }
 
-    /// Registers a style and returns its cell format index.
-    pub fn add(&mut self, style: &CellStyle) -> StyleId {
+    /// The format records of a style: font, fill, border and number format
+    /// are interned; the result has no parent style (`xfId`).
+    fn build_xf(&mut self, style: &CellStyle) -> sml::CT_Xf {
         self.ensure_defaults();
-        let mut xf = default_xf(true);
+        let mut xf = default_xf(false);
         if let Some(font) = &style.font {
             xf.font_id = Some(self.intern_font(font));
             xf.apply_font = Some(true);
@@ -866,16 +1301,20 @@ impl Styles {
             xf.apply_number_format = Some(true);
         }
         if let Some(a) = &style.alignment {
-            xf.alignment = Some(Box::new(sml::CT_CellAlignment {
-                horizontal: a.horizontal,
-                vertical: a.vertical,
-                wrap_text: a.wrap_text.then_some(true),
-                indent: a.indent,
-                text_rotation: a.rotation.map(|r| sml::ST_TextRotation::Member1(u64::from(r))),
-                ..Default::default()
-            }));
+            xf.alignment = Some(Box::new(alignment_record(a)));
             xf.apply_alignment = Some(true);
         }
+        if let Some(p) = &style.protection {
+            xf.protection = Some(Box::new(protection_record(p)));
+            xf.apply_protection = Some(true);
+        }
+        xf
+    }
+
+    /// Registers a style and returns its cell format index.
+    pub fn add(&mut self, style: &CellStyle) -> StyleId {
+        let mut xf = self.build_xf(style);
+        xf.xf_id = Some(0);
         self.intern_xf(xf)
     }
 
@@ -890,6 +1329,180 @@ impl Styles {
         self.intern_xf(xf)
     }
 
+    /// Registers a named cell style (shown in Excel's *Cell Styles*
+    /// gallery) and returns a cell format that applies it.
+    ///
+    /// Adding a style whose name exists returns the existing style's cell
+    /// format when the formatting is identical and fails otherwise.
+    pub fn add_named_style(&mut self, name: &str, style: &CellStyle) -> Result<StyleId, String> {
+        self.add_style_entry(name, None, style)
+    }
+
+    /// Registers the built-in cell style `builtin_id` (e.g. 8 = Hyperlink).
+    pub(crate) fn add_builtin_style(
+        &mut self,
+        name: &str,
+        builtin_id: u32,
+        style: &CellStyle,
+    ) -> Result<StyleId, String> {
+        self.add_style_entry(name, Some(builtin_id), style)
+    }
+
+    fn add_style_entry(
+        &mut self,
+        name: &str,
+        builtin_id: Option<u32>,
+        style: &CellStyle,
+    ) -> Result<StyleId, String> {
+        let name = name.trim();
+        if name.is_empty() || name.chars().count() > 255 {
+            return Err(format!("invalid style name {name:?}"));
+        }
+        let parent = self.build_xf(style);
+        let existing = self.sheet.cell_styles.as_ref().and_then(|c| {
+            c.cell_style
+                .iter()
+                .find(|s| s.name.as_deref().is_some_and(|n| n.eq_ignore_ascii_case(name)))
+                .map(|s| s.xf_id.unwrap_or(0))
+        });
+        let xf_id = match existing {
+            Some(id) => {
+                let xfs = self.sheet.cell_style_xfs.as_deref();
+                let current: Option<sml::CT_Xf> = xfs.and_then(|x| record_at(&x.xf, &x.extra_children, id));
+                if current.as_ref() != Some(&parent) {
+                    match (builtin_id, current) {
+                        // A built-in style defined by the file (e.g. Excel's
+                        // theme-coloured Hyperlink) is used as it is.
+                        (Some(_), Some(mut record)) => {
+                            record.xf_id = Some(id);
+                            record.apply_font = record.font_id.map(|_| true);
+                            return Ok(self.intern_xf(record));
+                        }
+                        _ => return Err(format!("a different cell style named {name:?} exists")),
+                    }
+                }
+                id
+            }
+            None => {
+                let xfs = self.sheet.cell_style_xfs.get_or_insert_with(Box::default);
+                // A new entry even when an identical one exists: each named style owns its record.
+                xfs.xf.push(parent.clone());
+                let id = real_index(&xfs.xf, &xfs.extra_children, xfs.xf.len() - 1);
+                let styles = self.sheet.cell_styles.get_or_insert_with(Box::default);
+                styles.cell_style.push(sml::CT_CellStyle {
+                    name: Some(name.to_owned()),
+                    xf_id: Some(id),
+                    builtin_id,
+                    ..Default::default()
+                });
+                id
+            }
+        };
+        let mut xf = parent;
+        xf.xf_id = Some(xf_id);
+        Ok(self.intern_xf(xf))
+    }
+
+    /// Names of the named cell styles.
+    pub fn named_styles(&self) -> Vec<String> {
+        self.sheet
+            .cell_styles
+            .as_ref()
+            .map(|c| c.cell_style.iter().filter_map(|s| s.name.clone()).collect())
+            .unwrap_or_default()
+    }
+
+    /// Name of the named cell style a cell format is based on.
+    pub fn style_name(&self, id: StyleId) -> Option<String> {
+        let parent = self.xf(id.0)?.xf_id.unwrap_or(0);
+        self.sheet
+            .cell_styles
+            .as_ref()?
+            .cell_style
+            .iter()
+            .find(|s| s.xf_id.unwrap_or(0) == parent)
+            .and_then(|s| s.name.clone())
+    }
+
+    /// Registers a differential format (used by conditional formatting and
+    /// table styles) and returns its `dxfId`. Identical formats are shared.
+    pub fn add_dxf(&mut self, style: &CellStyle) -> u32 {
+        let mut dxf = sml::CT_Dxf::default();
+        if let Some(font) = &style.font {
+            dxf.font = Some(Box::new(font_record(font, None)));
+        }
+        if let Some(fmt) = &style.number_format {
+            let id = self.intern_number_format(fmt);
+            let code = self.format_code(id).unwrap_or_else(|| "General".into());
+            dxf.num_fmt = Some(Box::new(sml::CT_NumFmt {
+                num_fmt_id: Some(id),
+                format_code: Some(code),
+                ..Default::default()
+            }));
+        }
+        if let Some(fill) = &style.fill {
+            dxf.fill = Some(Box::new(fill_record(fill, true)));
+        }
+        if let Some(a) = &style.alignment {
+            dxf.alignment = Some(Box::new(alignment_record(a)));
+        }
+        if let Some(b) = &style.border {
+            let mut record = border_record(b);
+            // Unset edges are left unchanged by a differential format.
+            let keep = |s: &Option<BorderSide>, r: &mut Option<Box<sml::CT_BorderPr>>| {
+                if s.is_none() {
+                    *r = None;
+                }
+            };
+            keep(&b.left, &mut record.left);
+            keep(&b.right, &mut record.right);
+            keep(&b.top, &mut record.top);
+            keep(&b.bottom, &mut record.bottom);
+            keep(&b.diagonal, &mut record.diagonal);
+            dxf.border = Some(Box::new(record));
+        }
+        if let Some(p) = &style.protection {
+            dxf.protection = Some(Box::new(sml::CT_CellProtection {
+                locked: Some(p.locked),
+                hidden: Some(p.hidden),
+                ..Default::default()
+            }));
+        }
+        self.dirty = true;
+        let dxfs = self.sheet.dxfs.get_or_insert_with(Box::default);
+        intern(&mut dxfs.dxf, &dxfs.extra_children, dxf)
+    }
+
+    /// Reconstructs the formatting of differential format `id`.
+    pub fn dxf_style(&self, id: u32) -> Option<CellStyle> {
+        let dxfs = self.sheet.dxfs.as_deref()?;
+        let dxf: sml::CT_Dxf = record_at(&dxfs.dxf, &dxfs.extra_children, id)?;
+        let mut style = CellStyle::new();
+        style.font = dxf.font.as_deref().map(Self::font_properties);
+        style.fill = dxf.fill.as_deref().and_then(|f| fill_properties(f, true));
+        style.border = dxf.border.as_deref().map(border_properties);
+        style.number_format = dxf.num_fmt.as_deref().map(|n| {
+            let id = n.num_fmt_id.unwrap_or(0);
+            match &n.format_code {
+                Some(code) if builtin_format_code(id) != Some(code.as_str()) => {
+                    NumberFormat::Custom(code.clone())
+                }
+                _ => NumberFormat::Builtin(id),
+            }
+        });
+        style.alignment = dxf.alignment.as_deref().map(alignment_properties);
+        style.protection = dxf.protection.as_deref().map(protection_properties);
+        Some(style)
+    }
+
+    /// Number of differential formats.
+    pub fn dxf_count(&self) -> usize {
+        self.sheet
+            .dxfs
+            .as_deref()
+            .map_or(0, |d| entry_count(&d.dxf, &d.extra_children) as usize)
+    }
+
     fn font_properties(font: &sml::CT_Font) -> Font {
         let mut f = Font::default();
         for c in &font.choice {
@@ -897,7 +1510,15 @@ impl Styles {
                 sml::CT_Font_Choice::B(b) => f.bold = b.val.unwrap_or(true),
                 sml::CT_Font_Choice::I(b) => f.italic = b.val.unwrap_or(true),
                 sml::CT_Font_Choice::Strike(b) => f.strike = b.val.unwrap_or(true),
-                sml::CT_Font_Choice::U(u) => f.underline = u.val != Some(sml::ST_UnderlineValues::None),
+                sml::CT_Font_Choice::U(u) => {
+                    let val = u.val.unwrap_or(UnderlineStyle::Single);
+                    f.underline = val != UnderlineStyle::None;
+                    f.underline_style =
+                        (val != UnderlineStyle::Single && val != UnderlineStyle::None).then_some(val);
+                }
+                sml::CT_Font_Choice::VertAlign(v) => {
+                    f.vertical_align = v.val.filter(|v| *v != FontVerticalAlign::Baseline);
+                }
                 sml::CT_Font_Choice::Sz(s) => f.size = s.val,
                 sml::CT_Font_Choice::Name(n) => f.name = n.val.clone(),
                 sml::CT_Font_Choice::Color(c) => f.color = Color::from_ct(c),
@@ -930,37 +1551,11 @@ impl Styles {
             }
             style.font = Some(f);
         }
-        if let Some(fill) = xf.fill_id.filter(|&i| i > 1).and_then(|i| self.fill(i))
-            && let Some(sml::CT_Fill_Choice::PatternFill(p)) = &fill.choice
-            && let Some(pattern) = p.pattern_type.filter(|p| *p != PatternType::None)
-        {
-            style.fill = Some(Fill {
-                pattern,
-                fg_color: p.fg_color.as_deref().and_then(Color::from_ct),
-                bg_color: p
-                    .bg_color
-                    .as_deref()
-                    .and_then(Color::from_ct)
-                    .filter(|c| *c != Color::Indexed(64)),
-            });
+        if let Some(fill) = xf.fill_id.filter(|&i| i > 1).and_then(|i| self.fill(i)) {
+            style.fill = fill_properties(&fill, false);
         }
         if let Some(b) = xf.border_id.and_then(|i| self.border(i)) {
-            let side = |s: &Option<Box<sml::CT_BorderPr>>| {
-                s.as_ref().and_then(|s| {
-                    s.style
-                        .filter(|st| *st != BorderStyle::None)
-                        .map(|style| BorderSide {
-                            style,
-                            color: s.color.as_deref().and_then(Color::from_ct),
-                        })
-                })
-            };
-            let border = Border {
-                left: side(&b.left).or(side(&b.start)),
-                right: side(&b.right).or(side(&b.end)),
-                top: side(&b.top),
-                bottom: side(&b.bottom),
-            };
+            let border = border_properties(&b);
             if border != Border::default() {
                 style.border = Some(border);
             }
@@ -980,16 +1575,13 @@ impl Styles {
             );
         }
         if let Some(a) = &xf.alignment {
-            style.alignment = Some(Alignment {
-                horizontal: a.horizontal,
-                vertical: a.vertical,
-                wrap_text: a.wrap_text.unwrap_or(false),
-                indent: a.indent,
-                rotation: match a.text_rotation {
-                    Some(sml::ST_TextRotation::Member1(r)) => Some(r as u32),
-                    _ => None,
-                },
-            });
+            style.alignment = Some(alignment_properties(a));
+        }
+        if let Some(p) = &xf.protection {
+            let p = protection_properties(p);
+            if p != CellProtection::default() {
+                style.protection = Some(p);
+            }
         }
         Some(style)
     }
@@ -1023,6 +1615,9 @@ impl Styles {
         }
         if let Some(c) = s.cell_styles.as_mut() {
             refresh(&mut c.count, entry_count(&c.cell_style, &c.extra_children));
+        }
+        if let Some(d) = s.dxfs.as_mut() {
+            refresh(&mut d.count, entry_count(&d.dxf, &d.extra_children));
         }
         s
     }
@@ -1236,6 +1831,164 @@ mod tests {
             Some(Color::Indexed(9))
         );
         assert_eq!(Color::from_ct(&sml::CT_Color::default()), None);
+    }
+
+    #[test]
+    fn differential_formats() {
+        let mut s = Styles::new_default();
+        let style = CellStyle::new()
+            .bold()
+            .font_color(Color::Rgb(1, 2, 3))
+            .fill_color(Color::Rgb(4, 5, 6))
+            .number_format(NumberFormat::custom("0.0%"))
+            .border(Border {
+                bottom: Some(BorderSide {
+                    style: BorderStyle::Thin,
+                    color: None,
+                }),
+                ..Border::default()
+            });
+        let a = s.add_dxf(&style);
+        assert_eq!(s.add_dxf(&style), a, "identical formats are shared");
+        assert_eq!(s.dxf_count(), 1);
+        let dxf = &s.stylesheet().dxfs.as_ref().unwrap().dxf[0];
+        let Some(sml::CT_Fill_Choice::PatternFill(p)) = &dxf.fill.as_ref().unwrap().choice else {
+            panic!("pattern fill")
+        };
+        assert_eq!(
+            p.pattern_type, None,
+            "a solid differential fill has no pattern type"
+        );
+        assert!(
+            p.bg_color.is_some() && p.fg_color.is_none(),
+            "its colour is the background"
+        );
+        assert_eq!(
+            dxf.font.as_ref().unwrap().choice.len(),
+            2,
+            "only the given font properties"
+        );
+        assert!(
+            dxf.border.as_ref().unwrap().left.is_none(),
+            "unset edges are omitted"
+        );
+        assert_eq!(dxf.num_fmt.as_ref().unwrap().format_code.as_deref(), Some("0.0%"));
+        assert_eq!(s.dxf_style(a).unwrap(), style);
+        let b = s.add_dxf(&CellStyle::new().number_format(NumberFormat::PERCENT));
+        assert_eq!(b, 1);
+        assert_eq!(s.dxf_style(b).unwrap().number_format, Some(NumberFormat::PERCENT));
+        assert_eq!(s.to_stylesheet().dxfs.unwrap().count, Some(2));
+        assert!(s.dxf_style(9).is_none());
+    }
+
+    #[test]
+    fn named_styles_have_their_own_records() {
+        let mut s = Styles::new_default();
+        let style = CellStyle::new().italic().fill_color(Color::Theme(5));
+        let id = s.add_named_style("Accent", &style).unwrap();
+        assert_eq!(s.add_named_style("accent", &style).unwrap(), id);
+        assert!(s.add_named_style("Accent", &CellStyle::new().bold()).is_err());
+        assert!(s.add_named_style("  ", &style).is_err());
+        assert_eq!(s.style_name(id).as_deref(), Some("Accent"));
+        assert_eq!(s.style_name(StyleId(0)).as_deref(), Some("Normal"));
+        assert_eq!(s.named_styles(), ["Normal", "Accent"]);
+        let xf = s.xf(id.0).unwrap();
+        assert_eq!(xf.xf_id, Some(1), "points to its cellStyleXfs record");
+        let sheet = s.to_stylesheet();
+        assert_eq!(sheet.cell_style_xfs.as_ref().unwrap().xf.len(), 2);
+        assert_eq!(sheet.cell_styles.as_ref().unwrap().count, Some(2));
+        assert_eq!(s.cell_style(id).unwrap(), style);
+        let link = s
+            .add_builtin_style("Hyperlink", 8, &CellStyle::new().underline())
+            .unwrap();
+        assert_eq!(
+            s.stylesheet().cell_styles.as_ref().unwrap().cell_style[2].builtin_id,
+            Some(8)
+        );
+        assert_ne!(link, id);
+        // A file's own definition of a built-in style is reused, not refused.
+        let theirs = s
+            .add_builtin_style("Hyperlink", 8, &CellStyle::new().font_color(Color::Theme(10)))
+            .unwrap();
+        assert_eq!(s.style_name(theirs).as_deref(), Some("Hyperlink"));
+        assert_eq!(s.xf(theirs.0).unwrap().font_id, s.xf(link.0).unwrap().font_id);
+    }
+
+    #[test]
+    fn fills_borders_and_alignment_records() {
+        let gradient = Fill::gradient(GradientFill {
+            kind: GradientKind::Path {
+                left: 0.2,
+                right: 0.8,
+                top: 0.2,
+                bottom: 0.8,
+            },
+            stops: vec![(0.0, Color::Rgb(1, 1, 1)), (1.0, Color::Theme(3))],
+        });
+        let record = fill_record(&gradient, false);
+        let Some(sml::CT_Fill_Choice::GradientFill(g)) = &record.choice else {
+            panic!("gradient")
+        };
+        assert_eq!(g.type_, Some(sml::ST_GradientType::Path));
+        assert_eq!(g.stop.len(), 2);
+        assert_eq!(fill_properties(&record, false), Some(gradient));
+        let linear = Fill::linear_gradient(0.0, Color::Theme(0), Color::Theme(1));
+        let record = fill_record(&linear, false);
+        let Some(sml::CT_Fill_Choice::GradientFill(g)) = &record.choice else {
+            panic!("gradient")
+        };
+        assert_eq!(g.degree, None, "0 degrees is the default");
+        assert_eq!(fill_properties(&record, false), Some(linear));
+        let border = Border::default().with_diagonal(
+            BorderSide {
+                style: BorderStyle::Thick,
+                color: None,
+            },
+            false,
+            true,
+        );
+        let record = border_record(&border);
+        assert_eq!((record.diagonal_up, record.diagonal_down), (None, Some(true)));
+        assert_eq!(border_properties(&record), border);
+        let a = Alignment {
+            vertical_text: true,
+            shrink_to_fit: true,
+            ..Alignment::default()
+        };
+        let record = alignment_record(&a);
+        assert!(matches!(
+            record.text_rotation,
+            Some(sml::ST_TextRotation::Member2(_))
+        ));
+        assert_eq!(alignment_properties(&record), a);
+        assert_eq!(
+            protection_properties(&protection_record(&CellProtection::default())),
+            CellProtection::default()
+        );
+    }
+
+    #[test]
+    fn number_format_helpers() {
+        assert_eq!(NumberFormat::decimal(0, false), NumberFormat::INTEGER);
+        assert_eq!(NumberFormat::decimal(0, true), NumberFormat::THOUSANDS);
+        assert_eq!(NumberFormat::percent(2), NumberFormat::PERCENT_DECIMAL_2);
+        assert_eq!(NumberFormat::scientific(1), NumberFormat::custom("0.0E+00"));
+        assert_eq!(
+            NumberFormat::currency("$", 2),
+            NumberFormat::custom("\"$\"#,##0.00;-\"$\"#,##0.00")
+        );
+        assert_eq!(
+            NumberFormat::accounting("$", 2),
+            NumberFormat::custom("_(\"$\"* #,##0.00_);_(\"$\"* \\(#,##0.00\\);_(\"$\"* \"-\"??_);_(@_)"),
+            "Excel's built-in accounting layout (id 44)"
+        );
+        assert_eq!(
+            NumberFormat::accounting("€", 0),
+            NumberFormat::custom("_(\"€\"* #,##0_);_(\"€\"* \\(#,##0\\);_(\"€\"* \"-\"_);_(@_)")
+        );
+        assert_eq!(NumberFormat::TIME_12H.code(), Some("h:mm AM/PM"));
+        assert_eq!(NumberFormat::Builtin(5).code(), None);
+        assert_eq!(NumberFormat::custom("x").code(), Some("x"));
     }
 
     #[test]

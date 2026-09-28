@@ -118,6 +118,30 @@ impl SharedStrings {
         index
     }
 
+    /// Adds a rich (formatted) item, reusing an identical one, and counts
+    /// one more reference. Returns its index.
+    pub fn intern_rich(&mut self, item: sml::CT_Rst) -> u32 {
+        let unformatted = item.r_ph.is_empty()
+            && item.phonetic_pr.is_none()
+            && item
+                .r
+                .iter()
+                .all(|r| r.r_pr.is_none() && r.extra_children.is_empty());
+        if unformatted {
+            // Without formatting it is plain text, shared with plain strings.
+            return self.intern(&rst_text(&item));
+        }
+        self.added_refs += 1;
+        if let Some(i) = self.items.iter().position(|x| !x.r.is_empty() && *x == item) {
+            return i as u32;
+        }
+        let index = self.items.len() as u32;
+        self.texts.push(rst_text(&item));
+        self.items.push(item);
+        self.dirty = true;
+        index
+    }
+
     /// Whether the table changed since it was loaded.
     pub fn is_dirty(&self) -> bool {
         self.dirty || self.added_refs > 0

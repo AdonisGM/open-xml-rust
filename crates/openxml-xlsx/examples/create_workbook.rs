@@ -1,13 +1,17 @@
-//! Creates a small sales report workbook.
+//! Creates a small sales report workbook: styles, formulas, a table,
+//! conditional formatting, data validation, a comment, a hyperlink, a
+//! picture, rich text, print settings and sheet protection.
 //!
 //! ```text
 //! cargo run -p openxml-xlsx --example create_workbook -- report.xlsx
 //! ```
 
 use openxml_opc::CoreProperties;
+use openxml_xlsx::print::{hf, paper};
 use openxml_xlsx::{
-    Border, BorderStyle, CellRange, CellStyle, CellValue, Color, DateTime, HorizontalAlignment, NumberFormat,
-    Workbook,
+    Border, BorderStyle, CellRange, CellStyle, CellValue, CfOperator, Color, ConditionalFormat,
+    DataValidation, DateTime, HeaderFooter, HorizontalAlignment, Image, Length, LinkTarget, NumberFormat,
+    Orientation, PageSetup, RichText, SheetProtection, Table, Workbook,
 };
 
 fn main() -> openxml_xlsx::Result<()> {
@@ -76,6 +80,76 @@ fn main() -> openxml_xlsx::Result<()> {
             sheet.set_column_width(col, width)?;
         }
         sheet.freeze_panes("A4")?;
+
+        // The data as a table with a style and filter buttons.
+        sheet.add_table(
+            "A3:E7",
+            &Table::new().name("Sales").style(Some("TableStyleMedium9")),
+        )?;
+        // Highlight large quantities and draw bars for the amounts.
+        let green = CellStyle::new()
+            .bold()
+            .font_color(Color::Rgb(0x00, 0x61, 0x00))
+            .fill_color(Color::Rgb(0xC6, 0xEF, 0xCE));
+        sheet.add_conditional_format(
+            "C4:C7",
+            &ConditionalFormat::cell_is(CfOperator::GreaterThan, "10").style(green),
+        )?;
+        sheet.add_conditional_format(
+            "E4:E7",
+            &ConditionalFormat::data_bar(Color::Rgb(0x63, 0x8E, 0xC6)),
+        )?;
+        // Only known products can be typed into the product column.
+        sheet.add_data_validation(
+            "A4:A7",
+            &DataValidation::list(["Coffee", "Tea", "Cake", "Juice"])?
+                .input_message("Product", "Pick a product"),
+        )?;
+        sheet.add_comment(
+            (last + 1, 5),
+            "openxml-rust",
+            "Sum of the Amount column (cached value computed by Workbook::calculate).",
+        )?;
+        sheet.set_rich_text(
+            "A2",
+            &RichText::new()
+                .push("Prepared with ")
+                .bold("openxml-rust")
+                .italic(" (example)"),
+        )?;
+        sheet.set_link(
+            (last + 3, 1),
+            "ECMA-376 (Office Open XML)",
+            LinkTarget::Url(
+                "https://ecma-international.org/publications-and-standards/standards/ecma-376/".into(),
+            ),
+        )?;
+        // A picture (a generated 120 × 40 PNG) to the right of the table.
+        let png = openxml_core::image::tiny_png(120, 40);
+        sheet.add_image_with(
+            &png,
+            &Image::at("G3")?
+                .width(Length::cm(3.2))
+                .description("Logo placeholder"),
+        )?;
+        sheet.set_tab_color(Some(Color::Rgb(0x44, 0x72, 0xC4)));
+        // Print on one landscape A4 page with headers and footers.
+        sheet.set_page_setup(&PageSetup {
+            orientation: Some(Orientation::Landscape),
+            paper_size: Some(paper::A4),
+            ..PageSetup::default()
+        })?;
+        sheet.fit_to_pages(1, 0)?;
+        sheet.set_header_footer(
+            &HeaderFooter::new()
+                .header(hf::sections("", "&BSales report", hf::DATE))
+                .footer(hf::sections(
+                    hf::SHEET,
+                    "",
+                    &format!("Page {} of {}", hf::PAGE, hf::PAGES),
+                )),
+        )?;
+        sheet.set_print_titles(Some((3, 3)), None)?;
     }
     wb.rename_worksheet("Sheet1", "May")?;
     wb.set_defined_name("Amounts", "May!$E$4:$E$7", None)?;
@@ -87,6 +161,11 @@ fn main() -> openxml_xlsx::Result<()> {
         log.write_row([CellValue::from(i), CellValue::from(f64::from(i).sqrt())])?;
     }
     log.finish()?;
+    wb.worksheet_mut("Log")?.protect(&SheetProtection::new())?;
+
+    // Store computed results for the formulas (Excel recalculates anyway).
+    let report = wb.calculate()?;
+    println!("calculated {} formulas", report.calculated);
 
     wb.save(&path)?;
     println!("wrote {path}");
