@@ -14,12 +14,13 @@ use openxml_xml::{XmlRead, XmlReader, decode_xml_bytes};
 
 use crate::cell_ref::CellRef;
 use crate::date::DateSystem;
+use crate::parts::SideParts;
 use crate::shared_strings::SharedStrings;
 use crate::stream::StreamingWorksheet;
 use crate::styles::{CellStyle, StyleId, Styles, default_stylesheet};
 use crate::value::CellValue;
 use crate::worksheet::{
-    ReadCtx, SharedFormulas, SheetEntry, SheetKind, Worksheet, WorksheetMut, collect_shared, finalize,
+    Env, ReadCtx, SharedFormulas, SheetEntry, SheetKind, Worksheet, WorksheetMut, collect_shared, finalize,
     normalize_row, row_values,
 };
 
@@ -66,10 +67,10 @@ pub struct DefinedName {
 /// ```
 #[derive(Debug)]
 pub struct Workbook {
-    package: Package,
+    pub(crate) package: Package,
     workbook_part: PartName,
-    workbook: sml::CT_Workbook,
-    workbook_dirty: bool,
+    pub(crate) workbook: sml::CT_Workbook,
+    pub(crate) workbook_dirty: bool,
     pub(crate) sheets: Vec<SheetEntry>,
     pub(crate) sst: SharedStrings,
     sst_part: Option<PartName>,
@@ -77,6 +78,7 @@ pub struct Workbook {
     styles_part: Option<PartName>,
     pub(crate) date_system: DateSystem,
     pub(crate) needs_recalc: bool,
+    pub(crate) side: SideParts,
 }
 
 fn part(name: &str) -> PartName {
@@ -247,6 +249,7 @@ impl Workbook {
             styles_part: Some(styles_part),
             date_system: DateSystem::V1900,
             needs_recalc: false,
+            side: SideParts::default(),
         };
         wb.add_worksheet("Sheet1").expect("first sheet");
         wb
@@ -346,6 +349,7 @@ impl Workbook {
             styles_part,
             date_system,
             needs_recalc: false,
+            side: SideParts::default(),
         })
     }
 
@@ -353,6 +357,7 @@ impl Workbook {
 
     /// Writes the typed parts that changed into the package.
     pub fn flush(&mut self) -> Result<()> {
+        self.side.flush(&mut self.package)?;
         for sheet in &mut self.sheets {
             if !sheet.dirty {
                 continue;
@@ -595,7 +600,7 @@ impl Workbook {
             .map(|s| s.kind)
     }
 
-    fn index_of(&self, name: &str) -> Result<usize> {
+    pub(crate) fn index_of(&self, name: &str) -> Result<usize> {
         self.sheets
             .iter()
             .position(|s| s.name == name)
@@ -603,7 +608,7 @@ impl Workbook {
             .ok_or_else(|| Error::NotFound(format!("sheet {name:?}")))
     }
 
-    fn worksheet_index(&self, name: &str) -> Result<usize> {
+    pub(crate) fn worksheet_index(&self, name: &str) -> Result<usize> {
         let i = self.index_of(name)?;
         if self.sheets[i].kind != SheetKind::Worksheet {
             return Err(Error::InvalidArgument(format!(
@@ -613,7 +618,7 @@ impl Workbook {
         Ok(i)
     }
 
-    fn view(&self, i: usize) -> Result<Worksheet<'_>> {
+    pub(crate) fn view(&self, i: usize) -> Result<Worksheet<'_>> {
         let entry = &self.sheets[i];
         let data = entry.load(&self.package)?;
         let ctx = ReadCtx {
@@ -621,15 +626,22 @@ impl Workbook {
             styles: &self.styles,
             date_system: self.date_system,
         };
+        let env = Env {
+            package: &self.package,
+            side: &self.side,
+            workbook: &self.workbook,
+            index: i,
+        };
         Ok(Worksheet::new(
             &entry.name,
             entry.part.as_ref().expect("loaded sheets have a part"),
             data,
             ctx,
+            env,
         ))
     }
 
-    fn view_mut(&mut self, i: usize) -> Result<WorksheetMut<'_>> {
+    pub(crate) fn view_mut(&mut self, i: usize) -> Result<WorksheetMut<'_>> {
         self.sheets[i].load(&self.package)?;
         let Workbook {
             sheets,
@@ -637,6 +649,10 @@ impl Workbook {
             styles,
             date_system,
             needs_recalc,
+            package,
+            side,
+            workbook,
+            workbook_dirty,
             ..
         } = self;
         let entry = &mut sheets[i];
@@ -650,6 +666,11 @@ impl Workbook {
             styles,
             date_system: *date_system,
             needs_recalc,
+            index: i,
+            package,
+            side,
+            workbook,
+            workbook_dirty,
         })
     }
 
@@ -770,6 +791,7 @@ impl Workbook {
     pub fn rename_worksheet(&mut self, old: &str, new: &str) -> Result<()> {
         let i = self.index_of(old)?;
         self.check_new_name(new, Some(i))?;
+        let old = self.sheets[i].name.clone();
         self.sheets[i].name = new.to_owned();
         let rel_id = self.sheets[i].rel_id.clone();
         if let Some(s) = self
@@ -781,6 +803,9 @@ impl Workbook {
             s.name = Some(new.to_owned());
         }
         self.workbook_dirty = true;
+        if old != new {
+            self.rename_references(&old, Some(new))?;
+        }
         Ok(())
     }
 
@@ -810,7 +835,19 @@ impl Workbook {
             sheets.sheet.retain(|s| s.r_id.as_deref() != Some(&rel_id));
         }
         if let Some(part) = &entry.part {
+            // Parts only this sheet used (drawings, comments, tables…) go with it.
+            let targets: Vec<PartName> = self
+                .package
+                .relationships(Some(part))
+                .map(|rels| {
+                    rels.iter()
+                        .filter(|r| !r.is_external())
+                        .filter_map(|r| PartName::resolve(Some(part), &r.target).ok())
+                        .collect()
+                })
+                .unwrap_or_default();
             self.package.remove_part(part);
+            self.remove_orphans_of(targets);
         }
         if let Some(rels) = self.package.relationships_mut(Some(&self.workbook_part)) {
             rels.remove(&rel_id);
@@ -824,6 +861,8 @@ impl Workbook {
                 }
             }
         }
+        self.rename_references(&entry.name, None)?;
+        self.drop_calc_chain();
         let last = (self.sheets.len() - 1) as u32;
         if let Some(views) = self.workbook.book_views.as_mut() {
             for v in &mut views.workbook_view {

@@ -12,6 +12,7 @@ use openxml_xml::{Ns, XmlList};
 use crate::cell_ref::{CellRange, CellRef, MAX_COL, MAX_ROW, ToCellRef, column_index};
 use crate::date::{DateSystem, DateTime};
 use crate::formula::shift_formula;
+use crate::parts::SideParts;
 use crate::shared_strings::{SharedStrings, rst_text};
 use crate::styles::{NumberFormat, StyleId, Styles};
 use crate::value::{CellValue, MAX_TEXT_LEN, decode_xstring, encode_xstring, format_number};
@@ -234,12 +235,23 @@ fn cell_value<'m>(
     }
 }
 
+/// The parts of the workbook a worksheet view can see besides its own data.
+#[derive(Clone, Copy)]
+pub(crate) struct Env<'a> {
+    pub package: &'a Package,
+    pub side: &'a SideParts,
+    pub workbook: &'a sml::CT_Workbook,
+    /// Position of the sheet in the workbook (the `localSheetId` of its names).
+    pub index: usize,
+}
+
 /// A read-only view of a worksheet.
 pub struct Worksheet<'a> {
-    name: &'a str,
-    part: &'a PartName,
-    data: &'a sml::CT_Worksheet,
-    ctx: ReadCtx<'a>,
+    pub(crate) name: &'a str,
+    pub(crate) part: &'a PartName,
+    pub(crate) data: &'a sml::CT_Worksheet,
+    pub(crate) ctx: ReadCtx<'a>,
+    pub(crate) env: Env<'a>,
     shared: OnceCell<SharedFormulas>,
 }
 
@@ -281,12 +293,14 @@ impl<'a> Worksheet<'a> {
         part: &'a PartName,
         data: &'a sml::CT_Worksheet,
         ctx: ReadCtx<'a>,
+        env: Env<'a>,
     ) -> Self {
         Worksheet {
             name,
             part,
             data,
             ctx,
+            env,
             shared: OnceCell::new(),
         }
     }
@@ -295,6 +309,10 @@ impl<'a> Worksheet<'a> {
         cell_value(c, self.ctx, &|| {
             self.shared.get_or_init(|| shared_formulas(self.data))
         })
+    }
+
+    pub(crate) fn find_cell(&self, r: CellRef) -> Option<&'a sml::CT_Cell> {
+        self.find(r)
     }
 
     fn find(&self, r: CellRef) -> Option<&'a sml::CT_Cell> {
@@ -506,6 +524,12 @@ pub struct WorksheetMut<'a> {
     pub(crate) styles: &'a mut Styles,
     pub(crate) date_system: DateSystem,
     pub(crate) needs_recalc: &'a mut bool,
+    /// Position of the sheet in the workbook.
+    pub(crate) index: usize,
+    pub(crate) package: &'a mut Package,
+    pub(crate) side: &'a mut SideParts,
+    pub(crate) workbook: &'a mut sml::CT_Workbook,
+    pub(crate) workbook_dirty: &'a mut bool,
 }
 
 impl WorksheetMut<'_> {
@@ -519,6 +543,12 @@ impl WorksheetMut<'_> {
                 sst: self.sst,
                 styles: self.styles,
                 date_system: self.date_system,
+            },
+            Env {
+                package: self.package,
+                side: self.side,
+                workbook: self.workbook,
+                index: self.index,
             },
         )
     }
@@ -538,7 +568,19 @@ impl WorksheetMut<'_> {
         self.data
     }
 
-    fn row_mut(&mut self, r: u32) -> &mut sml::CT_Row {
+    /// Name of the worksheet part.
+    pub fn part_name(&self) -> &PartName {
+        self.part
+    }
+
+    /// The package, for adding parts the sheet refers to (for example a
+    /// chart part before [`WorksheetMut::add_graphic_frame`]). Parts the
+    /// workbook edits are overwritten from the typed model on save.
+    pub fn package_mut(&mut self) -> &mut Package {
+        self.package
+    }
+
+    pub(crate) fn row_mut(&mut self, r: u32) -> &mut sml::CT_Row {
         let rows = &mut self.data.sheet_data.get_or_insert_with(Box::default).row;
         let i = match find_row(rows, r) {
             Ok(i) => i,
@@ -556,7 +598,7 @@ impl WorksheetMut<'_> {
         &mut rows[i]
     }
 
-    fn cell_mut(&mut self, r: CellRef) -> &mut sml::CT_Cell {
+    pub(crate) fn cell_mut(&mut self, r: CellRef) -> &mut sml::CT_Cell {
         let row = self.row_mut(r.row());
         let i = match find_cell(&row.c, r.col()) {
             Ok(i) => i,
@@ -769,50 +811,10 @@ impl WorksheetMut<'_> {
                 "column width out of range: {width}"
             )));
         }
-        if self.data.cols.is_empty() {
-            self.data.cols.push(sml::CT_Cols::default());
-        }
-        let cols = &mut self.data.cols[0].col;
-        // Split any definition that covers the column.
-        let mut out = Vec::with_capacity(cols.len() + 2);
-        for c in cols.drain(..) {
-            let (min, max) = (c.min.unwrap_or(0), c.max.unwrap_or(0));
-            if min <= col && col <= max {
-                if min < col {
-                    out.push(sml::CT_Col {
-                        max: Some(col - 1),
-                        ..c.clone()
-                    });
-                }
-                if col < max {
-                    out.push(sml::CT_Col {
-                        min: Some(col + 1),
-                        ..c.clone()
-                    });
-                }
-                out.push(sml::CT_Col {
-                    min: Some(col),
-                    max: Some(col),
-                    width: Some(width),
-                    custom_width: Some(true),
-                    ..c
-                });
-            } else {
-                out.push(c);
-            }
-        }
-        if !out.iter().any(|c| c.min == Some(col)) {
-            out.push(sml::CT_Col {
-                min: Some(col),
-                max: Some(col),
-                width: Some(width),
-                custom_width: Some(true),
-                ..Default::default()
-            });
-        }
-        out.sort_by_key(|c| c.min);
-        *cols = out;
-        Ok(())
+        self.update_cols(col, col, |c| {
+            c.width = Some(width);
+            c.custom_width = Some(true);
+        })
     }
 
     /// Sets the height of a row in points.
@@ -907,7 +909,7 @@ fn validate(value: &CellValue) -> Result<()> {
     }
 }
 
-fn clear_value(c: &mut sml::CT_Cell) {
+pub(crate) fn clear_value(c: &mut sml::CT_Cell) {
     c.t = None;
     c.v = None;
     c.f = None;

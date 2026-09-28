@@ -269,14 +269,30 @@ impl<'a> StreamingWorksheet<'a> {
             Some(used.map_or_else(|| "A1".into(), |u| u.to_string()));
         {
             let mut recalc = false;
+            let mut workbook_dirty = false;
+            let index = wb.sheets.len();
+            let Workbook {
+                sst,
+                styles,
+                date_system,
+                package,
+                side,
+                workbook,
+                ..
+            } = &mut *wb;
             let mut view = WorksheetMut {
                 name: &name,
                 part: &part,
                 data: &mut ws,
-                sst: &mut wb.sst,
-                styles: &mut wb.styles,
-                date_system: wb.date_system,
+                sst,
+                styles,
+                date_system: *date_system,
                 needs_recalc: &mut recalc,
+                index,
+                package,
+                side,
+                workbook,
+                workbook_dirty: &mut workbook_dirty,
             };
             for (col, width) in columns {
                 view.set_column_width(col, width)?;
