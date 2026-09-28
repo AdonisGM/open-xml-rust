@@ -153,11 +153,33 @@ variants are converted to `snake_case` / `UpperCamelCase`.
   is what keeps `mc:AlternateContent` wrappers, `w14:*` extensions and
   vendor markup in place.
 
+### Validation
+
+Every generated type also implements `Validate`: required attributes
+(`use="required"`) and required child elements (`minOccurs ≥ 1`, propagated
+through nested sequences and choices) must be present. Element order, value
+spaces and enumerations are already guaranteed by the types, so together
+they cover most of what an XML Schema validator checks — without leaving
+Rust. Problems are reported with a path and distinguish *missing* items
+from *invalid* ones (whose raw form was preserved):
+
+```text
+/c:chartSpace/c:chart/c:plotArea/c:valAx[1]/c:axId: invalid value "-1884097184" for required attribute val
+/w:document/w:body/w:tbl[2]: missing required child element w:tblGrid
+```
+
+`ElementDef::validate(&value)` checks one document; the generated
+`validate_xml(xml)` dispatches on the root element of any part.
+
 ## Test strategy
 
 | Level | What is checked |
 |-------|-----------------|
 | unit tests | every module of every crate |
+| specification examples | 479 XML examples extracted from the Part 1 PDF (`schemas/spec-examples.json`), each read as the type its section names and written back: 478 round-trip semantically (the last is a simple-typed element) |
+| Strict ⊂ Transitional | every Strict type, group, element, attribute and simple type exists in the Transitional schemas — the premise of reading Strict files with the Transitional model |
+| robustness | 2 000 deterministic mutations of real parts and 300 of a whole package: errors, never panics; accepted input is written as well-formed XML |
+| validator | all fixture parts are checked; the only issues are genuine schema violations in a POI-written chart |
 | schema behaviour | typed construction → XSD-valid XML; Strict→Transitional; MCE preservation; ordering; invalid values |
 | corpus round trip | every XML part of every fixture: typed read → write → semantic diff = ∅, and writing twice is byte-identical |
 | XSD validation | documents produced by the APIs validate against the ECMA schemas with `xmllint` |
