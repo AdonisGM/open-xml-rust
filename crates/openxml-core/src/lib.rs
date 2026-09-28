@@ -4,13 +4,15 @@
 //! * [`Error`] / [`Result`] — the error type of all document APIs;
 //! * [`part`] — reading and writing typed XML parts of a package;
 //! * [`units`] — lengths in EMU/twips/points and font sizes;
-//! * [`image`] — image format and size detection.
+//! * [`image`] — image format and size detection;
+//! * [`properties`] — custom and extended document properties.
 
 #![warn(missing_docs)]
 
 mod error;
 pub mod image;
 pub mod part;
+pub mod properties;
 pub mod units;
 
 pub use error::{Error, Result};
