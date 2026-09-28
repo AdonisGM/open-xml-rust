@@ -182,7 +182,9 @@ impl XmlRead for CT_AuthorType {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_AuthorType_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_AuthorType_Choice::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -628,7 +630,9 @@ impl XmlRead for CT_SourceType {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_SourceType_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_SourceType_Choice::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -794,7 +798,7 @@ pub enum CT_AuthorType_Choice {
     /// `b:Writer` — Writer (§22.6.2.74).
     Writer(Box<CT_NameType>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_AuthorType_Choice {
@@ -817,7 +821,7 @@ impl CT_AuthorType_Choice {
             (Ns::B, "ProducerName") => Self::ProducerName(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::B, "Translator") => Self::Translator(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::B, "Writer") => Self::Writer(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -899,7 +903,7 @@ pub enum CT_NameOrCorporateType_Choice {
     /// `b:Corporate` — Corporate Author (§22.6.2.18).
     Corporate(crate::shared_types::ST_String),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_NameOrCorporateType_Choice {
@@ -909,9 +913,9 @@ impl CT_NameOrCorporateType_Choice {
             (Ns::B, "NameList") => Self::NameList(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::B, "Corporate") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Corporate(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -1050,7 +1054,7 @@ pub enum CT_SourceType_Choice {
     /// `b:YearAccessed` — Year Accessed (§22.6.2.76).
     YearAccessed(crate::shared_types::ST_String),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_SourceType_Choice {
@@ -1059,210 +1063,210 @@ impl CT_SourceType_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::B, "AbbreviatedCaseNumber") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::AbbreviatedCaseNumber(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "AlbumTitle") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::AlbumTitle(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Author") => Self::Author(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::B, "BookTitle") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::BookTitle(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Broadcaster") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Broadcaster(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "BroadcastTitle") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::BroadcastTitle(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "CaseNumber") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::CaseNumber(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "ChapterNumber") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::ChapterNumber(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "City") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::City(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Comments") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Comments(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "ConferenceName") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::ConferenceName(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "CountryRegion") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::CountryRegion(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Court") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Court(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Day") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Day(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "DayAccessed") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::DayAccessed(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Department") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Department(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Distributor") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Distributor(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Edition") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Edition(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Guid") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Guid(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Institution") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Institution(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "InternetSiteTitle") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::InternetSiteTitle(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Issue") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Issue(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "JournalName") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::JournalName(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "LCID") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::LCID(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Medium") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Medium(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Month") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Month(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "MonthAccessed") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::MonthAccessed(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "NumberVolumes") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::NumberVolumes(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Pages") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Pages(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "PatentNumber") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::PatentNumber(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "PeriodicalTitle") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::PeriodicalTitle(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "ProductionCompany") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::ProductionCompany(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "PublicationTitle") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::PublicationTitle(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Publisher") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Publisher(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "RecordingNumber") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::RecordingNumber(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "RefOrder") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::RefOrder(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Reporter") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Reporter(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "SourceType") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::SourceType(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "ShortTitle") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::ShortTitle(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "StandardNumber") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::StandardNumber(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "StateProvince") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::StateProvince(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Station") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Station(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Tag") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Tag(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Theater") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Theater(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "ThesisType") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::ThesisType(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Title") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Title(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Type") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Type(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "URL") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::URL(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Version") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Version(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Volume") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Volume(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "Year") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Year(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::B, "YearAccessed") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::YearAccessed(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 

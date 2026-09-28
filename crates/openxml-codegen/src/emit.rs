@@ -737,7 +737,7 @@ fn emit_read_fields(o: &mut Out, fields: &[Field]) {
             } => (
                 format!("pos <= {} && {}", i + 1, any_test(ns)),
                 format!(
-                    "this.{}.push({}::Other(RawElement::read(r, &child)?));",
+                    "this.{}.push({}::Other(Box::new(RawElement::read(r, &child)?)));",
                     f.name,
                     o.path(path)
                 ),
@@ -756,7 +756,7 @@ fn emit_read_fields(o: &mut Out, fields: &[Field]) {
             } => {
                 let _ = write!(
                     arms,
-                    "{} => this.{}.push({}::Other(RawElement::read(r, &child)?)), ",
+                    "{} => this.{}.push({}::Other(Box::new(RawElement::read(r, &child)?))), ",
                     i + 1,
                     f.name,
                     o.path(path)
@@ -888,16 +888,18 @@ fn emit_enum(o: &mut Out, e: &ChoiceEnum) {
         }
         let ty = o.elem_ty(&v.elem);
         match &v.elem.ty {
-            ElemType::Complex(_) => {
+            // Complex and raw payloads are boxed so that the enum (and every
+            // Vec of it) stays small.
+            ElemType::Complex(_) | ElemType::Raw => {
                 let _ = writeln!(o.buf, "    {}(Box<{ty}>),", v.name);
             }
-            _ => {
+            ElemType::Simple(_) => {
                 let _ = writeln!(o.buf, "    {}({ty}),", v.name);
             }
         }
     }
     o.line("    /// An element not described by the schema, kept as raw XML.");
-    o.line("    Other(RawElement),");
+    o.line("    Other(Box<RawElement>),");
     o.line("}");
     o.line("");
     let _ = writeln!(o.buf, "impl {} {{", e.name);
@@ -909,14 +911,14 @@ fn emit_enum(o: &mut Out, e: &ChoiceEnum) {
         let expr = match &v.elem.ty {
             ElemType::Complex(_) => format!("Self::{}(Box::new(XmlRead::read_xml(r, tag)?))", v.name),
             ElemType::Simple(_) => format!(
-                "match rt::read_simple(r, tag)? {{ Ok(v) => Self::{}(v), Err(raw) => Self::Other(raw) }}",
+                "match rt::read_simple(r, tag)? {{ Ok(v) => Self::{}(v), Err(raw) => Self::Other(Box::new(raw)) }}",
                 v.name
             ),
-            ElemType::Raw => format!("Self::{}(RawElement::read(r, tag)?)", v.name),
+            ElemType::Raw => format!("Self::{}(Box::new(RawElement::read(r, tag)?))", v.name),
         };
         let _ = writeln!(o.buf, "            {pat} => {expr},");
     }
-    o.line("            _ => Self::Other(RawElement::read(r, tag)?),");
+    o.line("            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),");
     o.line("        })");
     o.line("    }");
     o.line("");
@@ -1013,6 +1015,6 @@ mod tests {
             "position-dependent dispatch:\n{src}"
         );
         assert!(src.contains("pub const P: ElementDef<CT_P> = ElementDef::new(Ns::W, \"p\", &[Ns::W]);"));
-        assert!(src.contains("Other(RawElement),"));
+        assert!(src.contains("Other(Box<RawElement>),"));
     }
 }

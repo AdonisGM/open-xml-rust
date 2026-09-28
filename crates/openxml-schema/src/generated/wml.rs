@@ -7613,7 +7613,7 @@ impl XmlRead for CT_BdoContentRun {
                     _ => match pos {
                         1 => this
                             .p_content
-                            .push(EG_PContent::Other(RawElement::read(r, &child)?)),
+                            .push(EG_PContent::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -7720,7 +7720,7 @@ impl XmlRead for CT_Body {
                     _ => match pos {
                         1 => this
                             .block_level_elts
-                            .push(EG_BlockLevelElts::Other(RawElement::read(r, &child)?)),
+                            .push(EG_BlockLevelElts::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -9482,7 +9482,7 @@ impl XmlRead for CT_Comment {
                     _ => match pos {
                         1 => this
                             .block_level_elts
-                            .push(EG_BlockLevelElts::Other(RawElement::read(r, &child)?)),
+                            .push(EG_BlockLevelElts::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -11023,7 +11023,9 @@ impl XmlRead for CT_CustomXmlBlock {
                     _ => match pos {
                         2 => this
                             .content_block_content
-                            .push(EG_ContentBlockContent::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ContentBlockContent::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -11157,7 +11159,9 @@ impl XmlRead for CT_CustomXmlCell {
                     _ => match pos {
                         2 => this
                             .content_cell_content
-                            .push(EG_ContentCellContent::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ContentCellContent::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -11377,7 +11381,9 @@ impl XmlRead for CT_CustomXmlRow {
                     _ => match pos {
                         2 => this
                             .content_row_content
-                            .push(EG_ContentRowContent::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ContentRowContent::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -11516,7 +11522,7 @@ impl XmlRead for CT_CustomXmlRun {
                     _ => match pos {
                         2 => this
                             .p_content
-                            .push(EG_PContent::Other(RawElement::read(r, &child)?)),
+                            .push(EG_PContent::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -11871,7 +11877,7 @@ impl XmlRead for CT_DirContentRun {
                     _ => match pos {
                         1 => this
                             .p_content
-                            .push(EG_PContent::Other(RawElement::read(r, &child)?)),
+                            .push(EG_PContent::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -13977,7 +13983,7 @@ impl XmlRead for CT_Drawing {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_Drawing_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_Drawing_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -14860,7 +14866,7 @@ impl XmlRead for CT_FFData {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_FFData_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_FFData_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -16796,7 +16802,7 @@ impl XmlRead for CT_Frameset {
                     _ => match pos {
                         5 => this
                             .choice
-                            .push(CT_Frameset_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_Frameset_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -17193,7 +17199,7 @@ impl XmlRead for CT_FtnEdn {
                     _ => match pos {
                         1 => this
                             .block_level_elts
-                            .push(EG_BlockLevelElts::Other(RawElement::read(r, &child)?)),
+                            .push(EG_BlockLevelElts::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -17791,7 +17797,7 @@ impl XmlRead for CT_HdrFtr {
                     _ => match pos {
                         1 => this
                             .block_level_elts
-                            .push(EG_BlockLevelElts::Other(RawElement::read(r, &child)?)),
+                            .push(EG_BlockLevelElts::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -18273,7 +18279,7 @@ impl XmlRead for CT_Hyperlink {
                     _ => match pos {
                         1 => this
                             .p_content
-                            .push(EG_PContent::Other(RawElement::read(r, &child)?)),
+                            .push(EG_PContent::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -22642,7 +22648,7 @@ impl XmlRead for CT_P {
                     _ => match pos {
                         2 => this
                             .p_content
-                            .push(EG_PContent::Other(RawElement::read(r, &child)?)),
+                            .push(EG_PContent::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -25825,7 +25831,7 @@ impl XmlRead for CT_ParaRPr {
                     _ => match pos {
                         5 => this
                             .r_pr_base
-                            .push(EG_RPrBase::Other(RawElement::read(r, &child)?)),
+                            .push(EG_RPrBase::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -26107,7 +26113,7 @@ impl XmlRead for CT_ParaRPrOriginal {
                     _ => match pos {
                         5 => this
                             .r_pr_base
-                            .push(EG_RPrBase::Other(RawElement::read(r, &child)?)),
+                            .push(EG_RPrBase::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -26846,7 +26852,7 @@ impl XmlRead for CT_R {
                     _ => match pos {
                         2 => this
                             .run_inner_content
-                            .push(EG_RunInnerContent::Other(RawElement::read(r, &child)?)),
+                            .push(EG_RunInnerContent::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -26975,7 +26981,7 @@ impl XmlRead for CT_RPr {
                     _ => match pos {
                         1 => this
                             .r_pr_base
-                            .push(EG_RPrBase::Other(RawElement::read(r, &child)?)),
+                            .push(EG_RPrBase::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -27255,7 +27261,7 @@ impl XmlRead for CT_RPrOriginal {
                     _ => match pos {
                         1 => this
                             .r_pr_base
-                            .push(EG_RPrBase::Other(RawElement::read(r, &child)?)),
+                            .push(EG_RPrBase::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -27745,7 +27751,9 @@ impl XmlRead for CT_Row {
                     _ => match pos {
                         3 => this
                             .content_cell_content
-                            .push(EG_ContentCellContent::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ContentCellContent::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -28020,7 +28028,7 @@ impl XmlRead for CT_RubyContent {
                     _ => match pos {
                         1 => this
                             .ruby_content
-                            .push(EG_RubyContent::Other(RawElement::read(r, &child)?)),
+                            .push(EG_RubyContent::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -28327,7 +28335,9 @@ impl XmlRead for CT_RunTrackChange {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_RunTrackChange_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_RunTrackChange_Choice::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -28776,7 +28786,9 @@ impl XmlRead for CT_SdtContentBlock {
                     _ => match pos {
                         1 => this
                             .content_block_content
-                            .push(EG_ContentBlockContent::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ContentBlockContent::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -28869,7 +28881,9 @@ impl XmlRead for CT_SdtContentCell {
                     _ => match pos {
                         1 => this
                             .content_cell_content
-                            .push(EG_ContentCellContent::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ContentCellContent::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -28962,7 +28976,9 @@ impl XmlRead for CT_SdtContentRow {
                     _ => match pos {
                         1 => this
                             .content_row_content
-                            .push(EG_ContentRowContent::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ContentRowContent::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -29060,7 +29076,7 @@ impl XmlRead for CT_SdtContentRun {
                     _ => match pos {
                         1 => this
                             .p_content
-                            .push(EG_PContent::Other(RawElement::read(r, &child)?)),
+                            .push(EG_PContent::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -30384,7 +30400,7 @@ impl XmlRead for CT_SectPr {
                     _ => match pos {
                         1 => this
                             .hdr_ftr_references
-                            .push(EG_HdrFtrReferences::Other(RawElement::read(r, &child)?)),
+                            .push(EG_HdrFtrReferences::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -33282,7 +33298,7 @@ impl XmlRead for CT_SimpleField {
                     _ => match pos {
                         2 => this
                             .p_content
-                            .push(EG_PContent::Other(RawElement::read(r, &child)?)),
+                            .push(EG_PContent::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -33491,7 +33507,7 @@ impl XmlRead for CT_SmartTagRun {
                     _ => match pos {
                         2 => this
                             .p_content
-                            .push(EG_PContent::Other(RawElement::read(r, &child)?)),
+                            .push(EG_PContent::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -35194,10 +35210,14 @@ impl XmlRead for CT_Tbl {
                     _ => match pos {
                         1 => this
                             .range_markup_elements
-                            .push(EG_RangeMarkupElements::Other(RawElement::read(r, &child)?)),
+                            .push(EG_RangeMarkupElements::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         4 => this
                             .content_row_content
-                            .push(EG_ContentRowContent::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ContentRowContent::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -37890,7 +37910,7 @@ impl XmlRead for CT_Tc {
                     _ => match pos {
                         2 => this
                             .block_level_elts
-                            .push(EG_BlockLevelElts::Other(RawElement::read(r, &child)?)),
+                            .push(EG_BlockLevelElts::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -39908,7 +39928,7 @@ impl XmlRead for CT_TrPr {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_TrPr_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_TrPr_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -40005,7 +40025,7 @@ impl XmlRead for CT_TrPrBase {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_TrPrBase_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_TrPrBase_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -40617,7 +40637,7 @@ impl XmlRead for CT_TxbxContent {
                     _ => match pos {
                         1 => this
                             .block_level_elts
-                            .push(EG_BlockLevelElts::Other(RawElement::read(r, &child)?)),
+                            .push(EG_BlockLevelElts::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -41707,7 +41727,7 @@ pub enum CT_Drawing_Choice {
     /// `wp:inline` — Inline DrawingML Object (§20.4.2.8).
     Inline(Box<crate::dml_wordprocessing_drawing::CT_Inline>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Drawing_Choice {
@@ -41716,7 +41736,7 @@ impl CT_Drawing_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::WP, "anchor") => Self::Anchor(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::WP, "inline") => Self::Inline(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -41756,7 +41776,7 @@ pub enum CT_FFCheckBox_Choice {
     /// `w:sizeAuto` — Automatically Size Form Field (§17.16.30).
     SizeAuto(Box<CT_OnOff>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_FFCheckBox_Choice {
@@ -41765,7 +41785,7 @@ impl CT_FFCheckBox_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::W, "size") => Self::Size(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "sizeAuto") => Self::SizeAuto(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -41825,7 +41845,7 @@ pub enum CT_FFData_Choice {
     /// `w:textInput` — Text Box Form Field Properties (§17.16.33).
     TextInput(Box<CT_FFTextInput>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_FFData_Choice {
@@ -41844,7 +41864,7 @@ impl CT_FFData_Choice {
             (Ns::W, "checkBox") => Self::CheckBox(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "ddList") => Self::DdList(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "textInput") => Self::TextInput(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -41916,7 +41936,7 @@ pub enum CT_FldChar_Choice {
     /// `w:numberingChange` element.
     NumberingChange(Box<CT_TrackChangeNumbering>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_FldChar_Choice {
@@ -41926,7 +41946,7 @@ impl CT_FldChar_Choice {
             (Ns::W, "fldData") => Self::FldData(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "ffData") => Self::FfData(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "numberingChange") => Self::NumberingChange(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -41969,7 +41989,7 @@ pub enum CT_Frameset_Choice {
     /// `w:frame` — Single Frame Properties (§17.15.2.16).
     Frame(Box<CT_Frame>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Frameset_Choice {
@@ -41978,7 +41998,7 @@ impl CT_Frameset_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::W, "frameset") => Self::Frameset(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "frame") => Self::Frame(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -42018,7 +42038,7 @@ pub enum CT_MathCtrlIns_Choice {
     /// `w:rPr` — Run Properties (§17.3.2.28).
     RPr(Box<CT_RPr>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_MathCtrlIns_Choice {
@@ -42027,7 +42047,7 @@ impl CT_MathCtrlIns_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::W, "del") => Self::Del(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "rPr") => Self::RPr(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -42067,7 +42087,7 @@ pub enum CT_NumPicBullet_Choice {
     /// `w:drawing` — DrawingML Object (§17.3.3.9).
     Drawing(Box<CT_Drawing>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_NumPicBullet_Choice {
@@ -42076,7 +42096,7 @@ impl CT_NumPicBullet_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::W, "pict") => Self::Pict(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "drawing") => Self::Drawing(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -42120,7 +42140,7 @@ pub enum CT_Object_Choice {
     /// `w:movie` — Embedded Video (§17.3.3.17).
     Movie(Box<CT_Rel>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Object_Choice {
@@ -42131,7 +42151,7 @@ impl CT_Object_Choice {
             (Ns::W, "objectLink") => Self::ObjectLink(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "objectEmbed") => Self::ObjectEmbed(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "movie") => Self::Movie(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -42275,7 +42295,7 @@ pub enum CT_RunTrackChange_Choice {
     /// `m:r` — Run (§22.1.2.87).
     MR(Box<crate::shared_math::CT_R>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_RunTrackChange_Choice {
@@ -42349,7 +42369,7 @@ impl CT_RunTrackChange_Choice {
             (Ns::M, "sSubSup") => Self::SSubSup(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::M, "sSup") => Self::SSup(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::M, "r") => Self::MR(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -42564,7 +42584,7 @@ pub enum CT_SdtPr_Choice {
     /// `w:bibliography` — Bibliography Structured Document Tag (§17.5.2.2).
     Bibliography(Box<CT_Empty>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_SdtPr_Choice {
@@ -42583,7 +42603,7 @@ impl CT_SdtPr_Choice {
             (Ns::W, "citation") => Self::Citation(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "group") => Self::Group(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "bibliography") => Self::Bibliography(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -42673,7 +42693,7 @@ pub enum CT_TrPrBase_Choice {
     /// `w:hidden` — Hidden Table Row Marker (§17.4.20).
     Hidden(Box<CT_OnOff>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_TrPrBase_Choice {
@@ -42692,7 +42712,7 @@ impl CT_TrPrBase_Choice {
             (Ns::W, "tblCellSpacing") => Self::TblCellSpacing(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "jc") => Self::Jc(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "hidden") => Self::Hidden(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -42782,7 +42802,7 @@ pub enum CT_TrPr_Choice {
     /// `w:hidden` — Hidden Table Row Marker (§17.4.20).
     Hidden(Box<CT_OnOff>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_TrPr_Choice {
@@ -42801,7 +42821,7 @@ impl CT_TrPr_Choice {
             (Ns::W, "tblCellSpacing") => Self::TblCellSpacing(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "jc") => Self::Jc(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "hidden") => Self::Hidden(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -42927,7 +42947,7 @@ pub enum EG_BlockLevelElts {
     /// `w:altChunk` — Anchor for Imported External Content (§17.17.2.1).
     AltChunk(Box<CT_AltChunk>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_BlockLevelElts {
@@ -42980,7 +43000,7 @@ impl EG_BlockLevelElts {
             (Ns::M, "oMathPara") => Self::OMathPara(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::M, "oMath") => Self::OMath(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "altChunk") => Self::AltChunk(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -43114,7 +43134,7 @@ pub enum EG_CellMarkupElements {
     /// `w:cellMerge` — Vertically Merged/Split Table Cells (§17.13.5.3).
     CellMerge(Box<CT_CellMergeTrackChange>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_CellMarkupElements {
@@ -43124,7 +43144,7 @@ impl EG_CellMarkupElements {
             (Ns::W, "cellIns") => Self::CellIns(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "cellDel") => Self::CellDel(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "cellMerge") => Self::CellMerge(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -43221,7 +43241,7 @@ pub enum EG_ContentBlockContent {
     /// `m:oMath` — Office Math (§22.1.2.77).
     OMath(Box<crate::shared_math::CT_OMath>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_ContentBlockContent {
@@ -43273,7 +43293,7 @@ impl EG_ContentBlockContent {
             (Ns::W, "moveTo") => Self::MoveTo(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::M, "oMathPara") => Self::OMathPara(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::M, "oMath") => Self::OMath(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -43454,7 +43474,7 @@ pub enum EG_ContentCellContent {
     /// `m:oMath` — Office Math (§22.1.2.77).
     OMath(Box<crate::shared_math::CT_OMath>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_ContentCellContent {
@@ -43505,7 +43525,7 @@ impl EG_ContentCellContent {
             (Ns::W, "moveTo") => Self::MoveTo(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::M, "oMathPara") => Self::OMathPara(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::M, "oMath") => Self::OMath(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -43683,7 +43703,7 @@ pub enum EG_ContentRowContent {
     /// `m:oMath` — Office Math (§22.1.2.77).
     OMath(Box<crate::shared_math::CT_OMath>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_ContentRowContent {
@@ -43734,7 +43754,7 @@ impl EG_ContentRowContent {
             (Ns::W, "moveTo") => Self::MoveTo(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::M, "oMathPara") => Self::OMathPara(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::M, "oMath") => Self::OMath(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -43860,7 +43880,7 @@ pub enum EG_HdrFtrReferences {
     /// `w:footerReference` — Footer Reference (§17.10.2).
     FooterReference(Box<CT_HdrFtrRef>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_HdrFtrReferences {
@@ -43869,7 +43889,7 @@ impl EG_HdrFtrReferences {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::W, "headerReference") => Self::HeaderReference(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "footerReference") => Self::FooterReference(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -43973,7 +43993,7 @@ pub enum EG_PContent {
     /// `w:subDoc` — Anchor for Subdocument Location (§17.17.1.1).
     SubDoc(Box<CT_Rel>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_PContent {
@@ -44030,7 +44050,7 @@ impl EG_PContent {
             (Ns::W, "fldSimple") => Self::FldSimple(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "hyperlink") => Self::Hyperlink(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "subDoc") => Self::SubDoc(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -44248,7 +44268,7 @@ pub enum EG_RPrBase {
     /// `w:oMath` — Office Open XML Math (§17.3.2.22).
     OMath(Box<CT_OnOff>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_RPrBase {
@@ -44294,7 +44314,7 @@ impl EG_RPrBase {
             (Ns::W, "eastAsianLayout") => Self::EastAsianLayout(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "specVanish") => Self::SpecVanish(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "oMath") => Self::OMath(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -44447,7 +44467,7 @@ pub enum EG_RPrMath {
     /// `w:del` — Deleted Math Control Character (§17.13.5.13).
     Del(Box<CT_MathCtrlDel>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_RPrMath {
@@ -44457,7 +44477,7 @@ impl EG_RPrMath {
             (Ns::W, "rPr") => Self::RPr(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "ins") => Self::Ins(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::W, "del") => Self::Del(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -44528,7 +44548,7 @@ pub enum EG_RangeMarkupElements {
     /// `w:customXmlMoveToRangeEnd` — Custom XML Markup Move Destination Location End (§17.13.5.10).
     CustomXmlMoveToRangeEnd(Box<CT_Markup>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_RangeMarkupElements {
@@ -44567,7 +44587,7 @@ impl EG_RangeMarkupElements {
             (Ns::W, "customXmlMoveToRangeEnd") => {
                 Self::CustomXmlMoveToRangeEnd(Box::new(XmlRead::read_xml(r, tag)?))
             }
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -44705,7 +44725,7 @@ pub enum EG_RubyContent {
     /// `m:oMath` — Office Math (§22.1.2.77).
     OMath(Box<crate::shared_math::CT_OMath>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_RubyContent {
@@ -44754,7 +44774,7 @@ impl EG_RubyContent {
             (Ns::W, "moveTo") => Self::MoveTo(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::M, "oMathPara") => Self::OMathPara(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::M, "oMath") => Self::OMath(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -44936,7 +44956,7 @@ pub enum EG_RunInnerContent {
     /// `w:lastRenderedPageBreak` — Position of Last Calculated Page Break (§17.3.3.13).
     LastRenderedPageBreak(Box<CT_Empty>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_RunInnerContent {
@@ -44980,7 +45000,7 @@ impl EG_RunInnerContent {
             (Ns::W, "lastRenderedPageBreak") => {
                 Self::LastRenderedPageBreak(Box::new(XmlRead::read_xml(r, tag)?))
             }
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 

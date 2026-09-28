@@ -888,7 +888,7 @@ mod tests {
             r#"</mc:AlternateContent>"#
         ))
         .unwrap();
-        tree.choice.push(pml::CT_GroupShape_Choice::Other(ac));
+        tree.choice.push(pml::CT_GroupShape_Choice::Other(Box::new(ac)));
         assert_eq!(max_shape_id(&tree), 9);
         let infos = describe_tree(&tree);
         assert_eq!(infos[1].name, "old");
@@ -896,7 +896,7 @@ mod tests {
         assert_eq!(tree_text(&tree), "x\nfallback");
         let other = RawElement::new(Ns::NONE, "unknown");
         assert_eq!(
-            describe(&pml::CT_GroupShape_Choice::Other(other)).kind,
+            describe(&pml::CT_GroupShape_Choice::Other(Box::new(other))).kind,
             ShapeKind::Other
         );
     }

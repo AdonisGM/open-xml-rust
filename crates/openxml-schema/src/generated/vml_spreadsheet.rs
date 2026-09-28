@@ -247,7 +247,9 @@ impl XmlRead for CT_ClientData {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_ClientData_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_ClientData_Choice::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -420,7 +422,7 @@ pub enum CT_ClientData_Choice {
     /// `x:FmlaTxbx` element.
     FmlaTxbx(String),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_ClientData_Choice {
@@ -429,273 +431,273 @@ impl CT_ClientData_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::XVML, "MoveWithCells") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::MoveWithCells(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "SizeWithCells") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::SizeWithCells(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Anchor") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Anchor(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Locked") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Locked(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "DefaultSize") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::DefaultSize(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "PrintObject") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::PrintObject(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Disabled") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Disabled(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "AutoFill") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::AutoFill(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "AutoLine") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::AutoLine(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "AutoPict") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::AutoPict(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "FmlaMacro") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::FmlaMacro(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "TextHAlign") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::TextHAlign(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "TextVAlign") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::TextVAlign(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "LockText") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::LockText(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "JustLastX") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::JustLastX(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "SecretEdit") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::SecretEdit(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Default") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Default(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Help") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Help(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Cancel") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Cancel(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Dismiss") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Dismiss(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Accel") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Accel(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Accel2") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Accel2(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Row") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Row(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Column") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Column(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Visible") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Visible(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "RowHidden") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::RowHidden(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "ColHidden") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::ColHidden(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "VTEdit") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::VTEdit(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "MultiLine") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::MultiLine(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "VScroll") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::VScroll(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "ValidIds") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::ValidIds(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "FmlaRange") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::FmlaRange(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "WidthMin") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::WidthMin(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Sel") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Sel(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "NoThreeD2") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::NoThreeD2(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "SelType") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::SelType(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "MultiSel") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::MultiSel(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "LCT") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::LCT(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "ListItem") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::ListItem(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "DropStyle") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::DropStyle(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Colored") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Colored(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "DropLines") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::DropLines(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Checked") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Checked(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "FmlaLink") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::FmlaLink(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "FmlaPict") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::FmlaPict(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "NoThreeD") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::NoThreeD(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "FirstButton") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::FirstButton(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "FmlaGroup") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::FmlaGroup(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Val") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Val(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Min") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Min(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Max") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Max(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Inc") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Inc(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Page") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Page(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Horiz") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Horiz(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Dx") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Dx(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "MapOCX") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::MapOCX(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "CF") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::CF(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "Camera") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Camera(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "RecalcAlways") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::RecalcAlways(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "AutoScale") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::AutoScale(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "DDE") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::DDE(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "UIObj") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::UIObj(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "ScriptText") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::ScriptText(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "ScriptExtended") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::ScriptExtended(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "ScriptLanguage") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::ScriptLanguage(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "ScriptLocation") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::ScriptLocation(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::XVML, "FmlaTxbx") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::FmlaTxbx(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 

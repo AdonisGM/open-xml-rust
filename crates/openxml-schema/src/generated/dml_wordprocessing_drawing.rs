@@ -1499,7 +1499,9 @@ impl XmlRead for CT_TxbxContent {
                     _ => match pos {
                         1 => this
                             .block_level_elts
-                            .push(crate::wml::EG_BlockLevelElts::Other(RawElement::read(r, &child)?)),
+                            .push(crate::wml::EG_BlockLevelElts::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -1591,11 +1593,9 @@ impl XmlRead for CT_WordprocessingCanvas {
                         pos = 4;
                     }
                     _ => match pos {
-                        3 => this
-                            .choice
-                            .push(CT_WordprocessingCanvas_Choice::Other(RawElement::read(
-                                r, &child,
-                            )?)),
+                        3 => this.choice.push(CT_WordprocessingCanvas_Choice::Other(Box::new(
+                            RawElement::read(r, &child)?,
+                        ))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -1919,9 +1919,9 @@ impl XmlRead for CT_WordprocessingGroup {
                         pos = 5;
                     }
                     _ => match pos {
-                        4 => this
-                            .choice
-                            .push(CT_WordprocessingGroup_Choice::Other(RawElement::read(r, &child)?)),
+                        4 => this.choice.push(CT_WordprocessingGroup_Choice::Other(Box::new(
+                            RawElement::read(r, &child)?,
+                        ))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -2731,7 +2731,7 @@ pub enum CT_Anchor_Choice {
     /// `wp:wrapTopAndBottom` — Top and Bottom Wrapping (§20.4.2.20).
     WrapTopAndBottom(Box<CT_WrapTopBottom>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Anchor_Choice {
@@ -2743,7 +2743,7 @@ impl CT_Anchor_Choice {
             (Ns::WP, "wrapTight") => Self::WrapTight(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::WP, "wrapThrough") => Self::WrapThrough(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::WP, "wrapTopAndBottom") => Self::WrapTopAndBottom(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -2792,7 +2792,7 @@ pub enum CT_PosH_Choice {
     /// `wp:posOffset` — Absolute Position Offset (§20.4.2.12).
     PosOffset(ST_PositionOffset),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_PosH_Choice {
@@ -2801,13 +2801,13 @@ impl CT_PosH_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::WP, "align") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Align(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::WP, "posOffset") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::PosOffset(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -2845,7 +2845,7 @@ pub enum CT_PosV_Choice {
     /// `wp:posOffset` — Absolute Position Offset (§20.4.2.12).
     PosOffset(ST_PositionOffset),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_PosV_Choice {
@@ -2854,13 +2854,13 @@ impl CT_PosV_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::WP, "align") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Align(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::WP, "posOffset") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::PosOffset(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -2904,7 +2904,7 @@ pub enum CT_WordprocessingCanvas_Choice {
     /// `wp:graphicFrame` — Graphical object container (§20.4.2.31).
     GraphicFrame(Box<CT_GraphicFrame>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_WordprocessingCanvas_Choice {
@@ -2916,7 +2916,7 @@ impl CT_WordprocessingCanvas_Choice {
             (Ns::WP, "contentPart") => Self::ContentPart(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::WP, "wgp") => Self::Wgp(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::WP, "graphicFrame") => Self::GraphicFrame(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -2971,7 +2971,7 @@ pub enum CT_WordprocessingGroup_Choice {
     /// `wp:contentPart` — Content Part (§20.4.2.29).
     ContentPart(Box<CT_WordprocessingContentPart>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_WordprocessingGroup_Choice {
@@ -2983,7 +2983,7 @@ impl CT_WordprocessingGroup_Choice {
             (Ns::WP, "graphicFrame") => Self::GraphicFrame(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::PIC, "pic") => Self::Pic(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::WP, "contentPart") => Self::ContentPart(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -3032,7 +3032,7 @@ pub enum CT_WordprocessingShape_Choice {
     /// `wp:cNvCnPr` — Non-Visual Connector Shape Drawing Properties (§20.4.2.23).
     CNvCnPr(Box<crate::dml::CT_NonVisualConnectorProperties>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_WordprocessingShape_Choice {
@@ -3041,7 +3041,7 @@ impl CT_WordprocessingShape_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::WP, "cNvSpPr") => Self::CNvSpPr(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::WP, "cNvCnPr") => Self::CNvCnPr(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -3081,7 +3081,7 @@ pub enum CT_WordprocessingShape_Choice2 {
     /// `wp:linkedTxbx` — Textual contents of shape (§20.4.2.34).
     LinkedTxbx(Box<CT_LinkedTextboxInformation>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_WordprocessingShape_Choice2 {
@@ -3090,7 +3090,7 @@ impl CT_WordprocessingShape_Choice2 {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::WP, "txbx") => Self::Txbx(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::WP, "linkedTxbx") => Self::LinkedTxbx(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 

@@ -20372,7 +20372,7 @@ impl XmlRead for CT_Font {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_Font_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_Font_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -21481,7 +21481,9 @@ impl XmlRead for CT_GroupItems {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_GroupItems_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_GroupItems_Choice::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -28856,7 +28858,9 @@ impl XmlRead for CT_PCDSDTCEntries {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_PCDSDTCEntries_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_PCDSDTCEntries_Choice::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -34620,7 +34624,7 @@ impl XmlRead for CT_RPrElt {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_RPrElt_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_RPrElt_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -35013,7 +35017,7 @@ impl XmlRead for CT_Record {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_Record_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_Record_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -36977,7 +36981,9 @@ impl XmlRead for CT_RevisionMove {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_RevisionMove_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_RevisionMove_Choice::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -37210,12 +37216,14 @@ impl XmlRead for CT_RevisionRowColumn {
                             .push(CT_RevisionRowColumn_Choice::read_choice(r, &child)?);
                         pos = 1;
                     }
-                    _ => match pos {
-                        1 => this
-                            .choice
-                            .push(CT_RevisionRowColumn_Choice::Other(RawElement::read(r, &child)?)),
-                        _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
-                    },
+                    _ => {
+                        match pos {
+                            1 => this.choice.push(CT_RevisionRowColumn_Choice::Other(Box::new(
+                                RawElement::read(r, &child)?,
+                            ))),
+                            _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
+                        }
+                    }
                 }
             }
         }
@@ -37444,7 +37452,7 @@ impl XmlRead for CT_Revisions {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_Revisions_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_Revisions_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -38958,7 +38966,9 @@ impl XmlRead for CT_SharedItems {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_SharedItems_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_SharedItems_Choice::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -43244,7 +43254,7 @@ impl XmlRead for CT_Tables {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_Tables_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_Tables_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -49017,7 +49027,7 @@ pub enum CT_CacheSource_Choice {
     /// `x:extLst` — Future Feature Data Storage Area (§18.2.10).
     ExtLst(Box<CT_ExtensionList>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_CacheSource_Choice {
@@ -49027,7 +49037,7 @@ impl CT_CacheSource_Choice {
             (Ns::X, "worksheetSource") => Self::WorksheetSource(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "consolidation") => Self::Consolidation(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "extLst") => Self::ExtLst(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -49072,7 +49082,7 @@ pub enum CT_ExternalLink_Choice {
     /// `x:oleLink` — Generic Object Link Connection (§18.14.11).
     OleLink(Box<CT_OleLink>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_ExternalLink_Choice {
@@ -49082,7 +49092,7 @@ impl CT_ExternalLink_Choice {
             (Ns::X, "externalBook") => Self::ExternalBook(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "ddeLink") => Self::DdeLink(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "oleLink") => Self::OleLink(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -49125,7 +49135,7 @@ pub enum CT_Fill_Choice {
     /// `x:gradientFill` — Gradient (§18.8.24).
     GradientFill(Box<CT_GradientFill>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Fill_Choice {
@@ -49134,7 +49144,7 @@ impl CT_Fill_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::X, "patternFill") => Self::PatternFill(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "gradientFill") => Self::GradientFill(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -49184,7 +49194,7 @@ pub enum CT_FilterColumn_Choice {
     /// `x:extLst` — Future Feature Data Storage Area (§18.2.10).
     ExtLst(Box<CT_ExtensionList>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_FilterColumn_Choice {
@@ -49198,7 +49208,7 @@ impl CT_FilterColumn_Choice {
             (Ns::X, "colorFilter") => Self::ColorFilter(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "iconFilter") => Self::IconFilter(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "extLst") => Self::ExtLst(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -49279,7 +49289,7 @@ pub enum CT_Font_Choice {
     /// `x:scheme` — Scheme (§18.8.35).
     Scheme(Box<CT_FontScheme>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Font_Choice {
@@ -49301,7 +49311,7 @@ impl CT_Font_Choice {
             (Ns::X, "u") => Self::U(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "vertAlign") => Self::VertAlign(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "scheme") => Self::Scheme(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -49388,7 +49398,7 @@ pub enum CT_GroupItems_Choice {
     /// `x:d` — Date Time (§18.10.1.21).
     D(Box<CT_DateTime>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_GroupItems_Choice {
@@ -49401,7 +49411,7 @@ impl CT_GroupItems_Choice {
             (Ns::X, "e") => Self::E(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "s") => Self::S(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "d") => Self::D(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -49457,7 +49467,7 @@ pub enum CT_Mdx_Choice {
     /// `x:k` — KPI MDX Metadata (§18.9.5).
     K(Box<CT_MdxKPI>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Mdx_Choice {
@@ -49468,7 +49478,7 @@ impl CT_Mdx_Choice {
             (Ns::X, "ms") => Self::Ms(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "p") => Self::P(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "k") => Self::K(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -49518,7 +49528,7 @@ pub enum CT_PCDSDTCEntries_Choice {
     /// `x:s` — Character Value (§18.10.1.85).
     S(Box<CT_String>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_PCDSDTCEntries_Choice {
@@ -49529,7 +49539,7 @@ impl CT_PCDSDTCEntries_Choice {
             (Ns::X, "n") => Self::N(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "e") => Self::E(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "s") => Self::S(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -49601,7 +49611,7 @@ pub enum CT_RPrElt_Choice {
     /// `x:scheme` — Scheme (§18.8.35).
     Scheme(Box<CT_FontScheme>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_RPrElt_Choice {
@@ -49623,7 +49633,7 @@ impl CT_RPrElt_Choice {
             (Ns::X, "u") => Self::U(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "vertAlign") => Self::VertAlign(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "scheme") => Self::Scheme(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -49712,7 +49722,7 @@ pub enum CT_Record_Choice {
     /// `x:x` — Shared Items Index (§18.10.1.97).
     X(Box<CT_Index>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Record_Choice {
@@ -49726,7 +49736,7 @@ impl CT_Record_Choice {
             (Ns::X, "s") => Self::S(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "d") => Self::D(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "x") => Self::X(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -49783,7 +49793,7 @@ pub enum CT_RevisionMove_Choice {
     /// `x:rfmt` — Revision Format (§18.11.1.17).
     Rfmt(Box<CT_RevisionFormatting>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_RevisionMove_Choice {
@@ -49793,7 +49803,7 @@ impl CT_RevisionMove_Choice {
             (Ns::X, "undo") => Self::Undo(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "rcc") => Self::Rcc(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "rfmt") => Self::Rfmt(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -49838,7 +49848,7 @@ pub enum CT_RevisionRowColumn_Choice {
     /// `x:rfmt` — Revision Format (§18.11.1.17).
     Rfmt(Box<CT_RevisionFormatting>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_RevisionRowColumn_Choice {
@@ -49848,7 +49858,7 @@ impl CT_RevisionRowColumn_Choice {
             (Ns::X, "undo") => Self::Undo(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "rcc") => Self::Rcc(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "rfmt") => Self::Rfmt(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -49911,7 +49921,7 @@ pub enum CT_Revisions_Choice {
     /// `x:rcft` — Revision Merge Conflict (§18.11.1.10).
     Rcft(Box<CT_RevisionConflict>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Revisions_Choice {
@@ -49930,7 +49940,7 @@ impl CT_Revisions_Choice {
             (Ns::X, "rcmt") => Self::Rcmt(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "rqt") => Self::Rqt(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "rcft") => Self::Rcft(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -50008,7 +50018,7 @@ pub enum CT_SharedItems_Choice {
     /// `x:d` — Date Time (§18.10.1.21).
     D(Box<CT_DateTime>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_SharedItems_Choice {
@@ -50021,7 +50031,7 @@ impl CT_SharedItems_Choice {
             (Ns::X, "e") => Self::E(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "s") => Self::S(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "d") => Self::D(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -50075,7 +50085,7 @@ pub enum CT_Tables_Choice {
     /// `x:x` — Shared Items Index (§18.10.1.97).
     X(Box<CT_Index>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Tables_Choice {
@@ -50085,7 +50095,7 @@ impl CT_Tables_Choice {
             (Ns::X, "m") => Self::M(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "s") => Self::S(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::X, "x") => Self::X(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 

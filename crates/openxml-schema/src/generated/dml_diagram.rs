@@ -5536,9 +5536,9 @@ impl XmlRead for CT_Colors {
                         pos = 1;
                     }
                     _ => match pos {
-                        1 => this
-                            .color_choice
-                            .push(crate::dml::EG_ColorChoice::Other(RawElement::read(r, &child)?)),
+                        1 => this.color_choice.push(crate::dml::EG_ColorChoice::Other(Box::new(
+                            RawElement::read(r, &child)?,
+                        ))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -7226,7 +7226,7 @@ impl XmlRead for CT_ForEach {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_ForEach_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_ForEach_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -7399,7 +7399,9 @@ impl XmlRead for CT_LayoutNode {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_LayoutNode_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_LayoutNode_Choice::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -7950,7 +7952,7 @@ impl XmlRead for CT_Otherwise {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_Otherwise_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_Otherwise_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -9888,7 +9890,7 @@ impl XmlRead for CT_When {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_When_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_When_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -9961,7 +9963,7 @@ pub enum CT_ForEach_Choice {
     /// `dgm:extLst` — Extension List (§21.4.2.13).
     ExtLst(Box<crate::dml::CT_OfficeArtExtensionList>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_ForEach_Choice {
@@ -9977,7 +9979,7 @@ impl CT_ForEach_Choice {
             (Ns::DGM, "layoutNode") => Self::LayoutNode(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::DGM, "choose") => Self::Choose(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::DGM, "extLst") => Self::ExtLst(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -10054,7 +10056,7 @@ pub enum CT_LayoutNode_Choice {
     /// `dgm:extLst` — Extension List (§21.4.2.13).
     ExtLst(Box<crate::dml::CT_OfficeArtExtensionList>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_LayoutNode_Choice {
@@ -10071,7 +10073,7 @@ impl CT_LayoutNode_Choice {
             (Ns::DGM, "layoutNode") => Self::LayoutNode(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::DGM, "choose") => Self::Choose(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::DGM, "extLst") => Self::ExtLst(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -10149,7 +10151,7 @@ pub enum CT_Otherwise_Choice {
     /// `dgm:extLst` — Extension List (§21.4.2.13).
     ExtLst(Box<crate::dml::CT_OfficeArtExtensionList>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Otherwise_Choice {
@@ -10165,7 +10167,7 @@ impl CT_Otherwise_Choice {
             (Ns::DGM, "layoutNode") => Self::LayoutNode(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::DGM, "choose") => Self::Choose(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::DGM, "extLst") => Self::ExtLst(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -10240,7 +10242,7 @@ pub enum CT_When_Choice {
     /// `dgm:extLst` — Extension List (§21.4.2.13).
     ExtLst(Box<crate::dml::CT_OfficeArtExtensionList>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_When_Choice {
@@ -10256,7 +10258,7 @@ impl CT_When_Choice {
             (Ns::DGM, "layoutNode") => Self::LayoutNode(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::DGM, "choose") => Self::Choose(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::DGM, "extLst") => Self::ExtLst(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 

@@ -359,7 +359,7 @@ impl XmlRead for CT_Array {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_Array_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_Array_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -666,7 +666,7 @@ impl XmlRead for CT_Vector {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_Vector_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_Vector_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -806,7 +806,7 @@ pub enum CT_Array_Choice {
     /// `vt:cy` — Currency (§22.4.2.6).
     Cy(ST_Cy),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Array_Choice {
@@ -816,69 +816,69 @@ impl CT_Array_Choice {
             (Ns::VT, "variant") => Self::Variant(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::VT, "i1") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::I1(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "i2") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::I2(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "i4") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::I4(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "int") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Int(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "ui1") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Ui1(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "ui2") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Ui2(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "ui4") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Ui4(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "uint") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Uint(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "r4") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::R4(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "r8") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::R8(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "decimal") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Decimal(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "bstr") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Bstr(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "date") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Date(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "bool") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Bool(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "error") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Error(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "cy") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Cy(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -1011,7 +1011,7 @@ pub enum CT_Variant_Choice {
     /// `vt:clsid` — Class ID (§22.4.2.5).
     Clsid(crate::shared_types::ST_Guid),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Variant_Choice {
@@ -1023,120 +1023,120 @@ impl CT_Variant_Choice {
             (Ns::VT, "array") => Self::Array(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::VT, "blob") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Blob(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "oblob") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Oblob(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "empty") => Self::Empty(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::VT, "null") => Self::Null(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::VT, "i1") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::I1(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "i2") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::I2(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "i4") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::I4(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "i8") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::I8(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "int") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Int(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "ui1") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Ui1(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "ui2") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Ui2(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "ui4") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Ui4(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "ui8") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Ui8(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "uint") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Uint(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "r4") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::R4(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "r8") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::R8(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "decimal") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Decimal(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "lpstr") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Lpstr(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "lpwstr") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Lpwstr(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "bstr") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Bstr(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "date") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Date(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "filetime") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Filetime(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "bool") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Bool(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "cy") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Cy(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "error") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Error(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "stream") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Stream(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "ostream") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Ostream(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "storage") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Storage(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "ostorage") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Ostorage(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "vstream") => Self::Vstream(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::VT, "clsid") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Clsid(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -1280,7 +1280,7 @@ pub enum CT_Vector_Choice {
     /// `vt:clsid` — Class ID (§22.4.2.5).
     Clsid(crate::shared_types::ST_Guid),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Vector_Choice {
@@ -1290,81 +1290,81 @@ impl CT_Vector_Choice {
             (Ns::VT, "variant") => Self::Variant(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::VT, "i1") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::I1(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "i2") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::I2(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "i4") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::I4(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "i8") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::I8(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "ui1") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Ui1(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "ui2") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Ui2(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "ui4") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Ui4(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "ui8") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Ui8(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "r4") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::R4(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "r8") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::R8(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "lpstr") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Lpstr(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "lpwstr") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Lpwstr(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "bstr") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Bstr(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "date") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Date(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "filetime") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Filetime(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "bool") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Bool(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "cy") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Cy(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "error") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Error(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::VT, "clsid") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Clsid(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 

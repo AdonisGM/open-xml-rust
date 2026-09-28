@@ -5966,7 +5966,7 @@ impl XmlRead for CT_DLbl {
                     _ => match pos {
                         2 => this
                             .choice
-                            .push(CT_DLbl_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_DLbl_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -6142,7 +6142,7 @@ impl XmlRead for CT_DLbls {
                         ),
                         2 => this
                             .choice
-                            .push(CT_DLbls_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_DLbls_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -13231,10 +13231,10 @@ impl XmlRead for CT_PlotArea {
                     _ => match pos {
                         2 => this
                             .choice
-                            .push(CT_PlotArea_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_PlotArea_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         3 => this
                             .choice_2
-                            .push(CT_PlotArea_Choice2::Other(RawElement::read(r, &child)?)),
+                            .push(CT_PlotArea_Choice2::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -18432,7 +18432,7 @@ pub enum CT_AxDataSource_Choice {
     /// `c:strLit` — String Literal (§21.2.2.200).
     StrLit(Box<CT_StrData>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_AxDataSource_Choice {
@@ -18444,7 +18444,7 @@ impl CT_AxDataSource_Choice {
             (Ns::C, "numLit") => Self::NumLit(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::C, "strRef") => Self::StrRef(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::C, "strLit") => Self::StrLit(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -18493,7 +18493,7 @@ pub enum CT_CatAx_Choice {
     /// `c:crossesAt` — Crossing Value (§21.2.2.34).
     CrossesAt(Box<CT_Double>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_CatAx_Choice {
@@ -18502,7 +18502,7 @@ impl CT_CatAx_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::C, "crosses") => Self::Crosses(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::C, "crossesAt") => Self::CrossesAt(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -18566,7 +18566,7 @@ pub enum CT_DLbl_Choice {
     /// `c:separator` — Separator (§21.2.2.166).
     Separator(String),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_DLbl_Choice {
@@ -18588,9 +18588,9 @@ impl CT_DLbl_Choice {
             (Ns::C, "showBubbleSize") => Self::ShowBubbleSize(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::C, "separator") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Separator(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -18689,7 +18689,7 @@ pub enum CT_DLbls_Choice {
     /// `c:leaderLines` — Leader Lines (§21.2.2.92).
     LeaderLines(Box<CT_ChartLines>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_DLbls_Choice {
@@ -18709,11 +18709,11 @@ impl CT_DLbls_Choice {
             (Ns::C, "showBubbleSize") => Self::ShowBubbleSize(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::C, "separator") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::Separator(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
             (Ns::C, "showLeaderLines") => Self::ShowLeaderLines(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::C, "leaderLines") => Self::LeaderLines(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -18788,7 +18788,7 @@ pub enum CT_DateAx_Choice {
     /// `c:crossesAt` — Crossing Value (§21.2.2.34).
     CrossesAt(Box<CT_Double>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_DateAx_Choice {
@@ -18797,7 +18797,7 @@ impl CT_DateAx_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::C, "crosses") => Self::Crosses(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::C, "crossesAt") => Self::CrossesAt(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -18837,7 +18837,7 @@ pub enum CT_DispUnits_Choice {
     /// `c:builtInUnit` — Built in Display Unit Value (§21.2.2.23).
     BuiltInUnit(Box<CT_BuiltInUnit>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_DispUnits_Choice {
@@ -18846,7 +18846,7 @@ impl CT_DispUnits_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::C, "custUnit") => Self::CustUnit(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::C, "builtInUnit") => Self::BuiltInUnit(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -18886,7 +18886,7 @@ pub enum CT_LegendEntry_Choice {
     /// `c:txPr` — Text Properties (§21.2.2.216).
     TxPr(Box<crate::dml::CT_TextBody>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_LegendEntry_Choice {
@@ -18895,7 +18895,7 @@ impl CT_LegendEntry_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::C, "delete") => Self::Delete(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::C, "txPr") => Self::TxPr(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -18935,7 +18935,7 @@ pub enum CT_NumDataSource_Choice {
     /// `c:numLit` — Number Literal (§21.2.2.122).
     NumLit(Box<CT_NumData>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_NumDataSource_Choice {
@@ -18944,7 +18944,7 @@ impl CT_NumDataSource_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::C, "numRef") => Self::NumRef(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::C, "numLit") => Self::NumLit(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -19012,7 +19012,7 @@ pub enum CT_PlotArea_Choice {
     /// `c:bubbleChart` — Bubble Charts (§21.2.2.20).
     BubbleChart(Box<CT_BubbleChart>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_PlotArea_Choice {
@@ -19035,7 +19035,7 @@ impl CT_PlotArea_Choice {
             (Ns::C, "surfaceChart") => Self::SurfaceChart(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::C, "surface3DChart") => Self::Surface3DChart(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::C, "bubbleChart") => Self::BubbleChart(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -19121,7 +19121,7 @@ pub enum CT_PlotArea_Choice2 {
     /// `c:serAx` — Series Axis (§21.2.2.175).
     SerAx(Box<CT_SerAx>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_PlotArea_Choice2 {
@@ -19132,7 +19132,7 @@ impl CT_PlotArea_Choice2 {
             (Ns::C, "catAx") => Self::CatAx(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::C, "dateAx") => Self::DateAx(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::C, "serAx") => Self::SerAx(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -19178,7 +19178,7 @@ pub enum CT_SerAx_Choice {
     /// `c:crossesAt` — Crossing Value (§21.2.2.34).
     CrossesAt(Box<CT_Double>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_SerAx_Choice {
@@ -19187,7 +19187,7 @@ impl CT_SerAx_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::C, "crosses") => Self::Crosses(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::C, "crossesAt") => Self::CrossesAt(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -19227,7 +19227,7 @@ pub enum CT_SerTx_Choice {
     /// `c:v` element.
     V(crate::shared_types::ST_Xstring),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_SerTx_Choice {
@@ -19237,9 +19237,9 @@ impl CT_SerTx_Choice {
             (Ns::C, "strRef") => Self::StrRef(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::C, "v") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::V(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -19278,7 +19278,7 @@ pub enum CT_Tx_Choice {
     /// `c:rich` — Rich Text (§21.2.2.156).
     Rich(Box<crate::dml::CT_TextBody>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Tx_Choice {
@@ -19287,7 +19287,7 @@ impl CT_Tx_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::C, "strRef") => Self::StrRef(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::C, "rich") => Self::Rich(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -19327,7 +19327,7 @@ pub enum CT_ValAx_Choice {
     /// `c:crossesAt` — Crossing Value (§21.2.2.34).
     CrossesAt(Box<CT_Double>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_ValAx_Choice {
@@ -19336,7 +19336,7 @@ impl CT_ValAx_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::C, "crosses") => Self::Crosses(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::C, "crossesAt") => Self::CrossesAt(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 

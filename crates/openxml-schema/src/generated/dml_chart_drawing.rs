@@ -368,7 +368,9 @@ impl XmlRead for CT_Drawing {
                         pos = 1;
                     }
                     _ => match pos {
-                        1 => this.anchor.push(EG_Anchor::Other(RawElement::read(r, &child)?)),
+                        1 => this
+                            .anchor
+                            .push(EG_Anchor::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -671,7 +673,9 @@ impl XmlRead for CT_GroupShape {
                     _ => match pos {
                         3 => this
                             .choice
-                            .push(CT_GroupShape_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_GroupShape_Choice::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -1499,7 +1503,7 @@ pub enum CT_AbsSizeAnchor_Choice {
     /// `cdr:pic` — Picture (§21.3.2.20).
     Pic(Box<CT_Picture>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_AbsSizeAnchor_Choice {
@@ -1511,7 +1515,7 @@ impl CT_AbsSizeAnchor_Choice {
             (Ns::CDR, "graphicFrame") => Self::GraphicFrame(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::CDR, "cxnSp") => Self::CxnSp(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::CDR, "pic") => Self::Pic(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -1566,7 +1570,7 @@ pub enum CT_GroupShape_Choice {
     /// `cdr:pic` — Picture (§21.3.2.20).
     Pic(Box<CT_Picture>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_GroupShape_Choice {
@@ -1578,7 +1582,7 @@ impl CT_GroupShape_Choice {
             (Ns::CDR, "graphicFrame") => Self::GraphicFrame(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::CDR, "cxnSp") => Self::CxnSp(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::CDR, "pic") => Self::Pic(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -1633,7 +1637,7 @@ pub enum CT_RelSizeAnchor_Choice {
     /// `cdr:pic` — Picture (§21.3.2.20).
     Pic(Box<CT_Picture>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_RelSizeAnchor_Choice {
@@ -1645,7 +1649,7 @@ impl CT_RelSizeAnchor_Choice {
             (Ns::CDR, "graphicFrame") => Self::GraphicFrame(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::CDR, "cxnSp") => Self::CxnSp(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::CDR, "pic") => Self::Pic(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -1694,7 +1698,7 @@ pub enum EG_Anchor {
     /// `cdr:absSizeAnchor` — Absolute Anchor Shape Size (§21.3.2.1).
     AbsSizeAnchor(Box<CT_AbsSizeAnchor>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_Anchor {
@@ -1703,7 +1707,7 @@ impl EG_Anchor {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::CDR, "relSizeAnchor") => Self::RelSizeAnchor(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::CDR, "absSizeAnchor") => Self::AbsSizeAnchor(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 

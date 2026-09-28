@@ -6847,12 +6847,14 @@ impl XmlRead for CT_AdjustHandleList {
                             .push(CT_AdjustHandleList_Choice::read_choice(r, &child)?);
                         pos = 1;
                     }
-                    _ => match pos {
-                        1 => this
-                            .choice
-                            .push(CT_AdjustHandleList_Choice::Other(RawElement::read(r, &child)?)),
-                        _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
-                    },
+                    _ => {
+                        match pos {
+                            1 => this.choice.push(CT_AdjustHandleList_Choice::Other(Box::new(
+                                RawElement::read(r, &child)?,
+                            ))),
+                            _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
+                        }
+                    }
                 }
             }
         }
@@ -8226,7 +8228,7 @@ impl XmlRead for CT_BackgroundFillStyleList {
                     _ => match pos {
                         1 => this
                             .fill_properties
-                            .push(EG_FillProperties::Other(RawElement::read(r, &child)?)),
+                            .push(EG_FillProperties::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -8871,7 +8873,7 @@ impl XmlRead for CT_Blip {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_Blip_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_Blip_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -9672,7 +9674,7 @@ impl XmlRead for CT_ColorMRU {
                     _ => match pos {
                         1 => this
                             .color_choice
-                            .push(EG_ColorChoice::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ColorChoice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -11731,7 +11733,7 @@ impl XmlRead for CT_DuotoneEffect {
                     _ => match pos {
                         1 => this
                             .color_choice
-                            .push(EG_ColorChoice::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ColorChoice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -11846,7 +11848,9 @@ impl XmlRead for CT_EffectContainer {
                         pos = 1;
                     }
                     _ => match pos {
-                        1 => this.effect.push(EG_Effect::Other(RawElement::read(r, &child)?)),
+                        1 => this
+                            .effect
+                            .push(EG_Effect::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -12755,7 +12759,7 @@ impl XmlRead for CT_FillStyleList {
                     _ => match pos {
                         1 => this
                             .fill_properties
-                            .push(EG_FillProperties::Other(RawElement::read(r, &child)?)),
+                            .push(EG_FillProperties::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -15219,7 +15223,9 @@ impl XmlRead for CT_GvmlGroupShape {
                     _ => match pos {
                         3 => this
                             .choice
-                            .push(CT_GvmlGroupShape_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_GvmlGroupShape_Choice::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -16195,7 +16201,7 @@ impl XmlRead for CT_HslColor {
                     _ => match pos {
                         1 => this
                             .color_transform
-                            .push(EG_ColorTransform::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ColorTransform::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -18708,7 +18714,7 @@ impl XmlRead for CT_Path2D {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_Path2D_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_Path2D_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -20259,7 +20265,7 @@ impl XmlRead for CT_PresetColor {
                     _ => match pos {
                         1 => this
                             .color_transform
-                            .push(EG_ColorTransform::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ColorTransform::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -21255,7 +21261,7 @@ impl XmlRead for CT_SRgbColor {
                     _ => match pos {
                         1 => this
                             .color_transform
-                            .push(EG_ColorTransform::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ColorTransform::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -21379,7 +21385,7 @@ impl XmlRead for CT_ScRgbColor {
                     _ => match pos {
                         1 => this
                             .color_transform
-                            .push(EG_ColorTransform::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ColorTransform::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -21697,7 +21703,7 @@ impl XmlRead for CT_SchemeColor {
                     _ => match pos {
                         1 => this
                             .color_transform
-                            .push(EG_ColorTransform::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ColorTransform::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -23059,7 +23065,7 @@ impl XmlRead for CT_SystemColor {
                     _ => match pos {
                         1 => this
                             .color_transform
-                            .push(EG_ColorTransform::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ColorTransform::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -27167,7 +27173,7 @@ impl XmlRead for CT_TextParagraph {
                     _ => match pos {
                         2 => this
                             .text_run
-                            .push(EG_TextRun::Other(RawElement::read(r, &child)?)),
+                            .push(EG_TextRun::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -28912,7 +28918,7 @@ pub enum CT_AdjustHandleList_Choice {
     /// `a:ahPolar` — Polar Adjust Handle (§20.1.9.2).
     AhPolar(Box<CT_PolarAdjustHandle>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_AdjustHandleList_Choice {
@@ -28921,7 +28927,7 @@ impl CT_AdjustHandleList_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "ahXY") => Self::AhXY(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "ahPolar") => Self::AhPolar(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -28961,7 +28967,7 @@ pub enum CT_AnimationElementChoice_Choice {
     /// `a:chart` — Chart to Animate (§20.1.2.2.3).
     Chart(Box<CT_AnimationChartElement>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_AnimationElementChoice_Choice {
@@ -28970,7 +28976,7 @@ impl CT_AnimationElementChoice_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "dgm") => Self::Dgm(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "chart") => Self::Chart(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -29010,7 +29016,7 @@ pub enum CT_AnimationGraphicalObjectBuildProperties_Choice {
     /// `a:bldChart` — Build Chart (§20.1.2.2.1).
     BldChart(Box<CT_AnimationChartBuildProperties>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_AnimationGraphicalObjectBuildProperties_Choice {
@@ -29019,7 +29025,7 @@ impl CT_AnimationGraphicalObjectBuildProperties_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "bldDgm") => Self::BldDgm(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "bldChart") => Self::BldChart(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -29089,7 +29095,7 @@ pub enum CT_Blip_Choice {
     /// `a:tint` — Tint Effect (§20.1.8.60).
     Tint(Box<CT_TintEffect>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Blip_Choice {
@@ -29113,7 +29119,7 @@ impl CT_Blip_Choice {
             (Ns::A, "hsl") => Self::Hsl(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "lum") => Self::Lum(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "tint") => Self::Tint(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -29198,7 +29204,7 @@ pub enum CT_ColorMappingOverride_Choice {
     /// `a:overrideClrMapping` — Override Color Mapping (§20.1.6.8).
     OverrideClrMapping(Box<CT_ColorMapping>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_ColorMappingOverride_Choice {
@@ -29207,7 +29213,7 @@ impl CT_ColorMappingOverride_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "masterClrMapping") => Self::MasterClrMapping(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "overrideClrMapping") => Self::OverrideClrMapping(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -29255,7 +29261,7 @@ pub enum CT_GvmlGroupShape_Choice {
     /// `a:grpSp` — Group shape (§20.1.2.2.20).
     GrpSp(Box<CT_GvmlGroupShape>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_GvmlGroupShape_Choice {
@@ -29268,7 +29274,7 @@ impl CT_GvmlGroupShape_Choice {
             (Ns::A, "pic") => Self::Pic(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "graphicFrame") => Self::GraphicFrame(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "grpSp") => Self::GrpSp(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -29320,7 +29326,7 @@ pub enum CT_GvmlTextShape_Choice {
     /// `a:xfrm` — 2D Transform for Individual Objects (§20.1.7.6).
     Xfrm(Box<CT_Transform2D>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_GvmlTextShape_Choice {
@@ -29329,7 +29335,7 @@ impl CT_GvmlTextShape_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "useSpRect") => Self::UseSpRect(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "xfrm") => Self::Xfrm(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -29377,7 +29383,7 @@ pub enum CT_Path2D_Choice {
     /// `a:cubicBezTo` — Draw Cubic Bezier Curve To (§20.1.9.7).
     CubicBezTo(Box<CT_Path2DCubicBezierTo>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Path2D_Choice {
@@ -29390,7 +29396,7 @@ impl CT_Path2D_Choice {
             (Ns::A, "arcTo") => Self::ArcTo(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "quadBezTo") => Self::QuadBezTo(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "cubicBezTo") => Self::CubicBezTo(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -29442,7 +29448,7 @@ pub enum CT_TableProperties_Choice {
     /// `a:tableStyleId` — Table Style ID (§21.1.3.12).
     TableStyleId(crate::shared_types::ST_Guid),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_TableProperties_Choice {
@@ -29452,9 +29458,9 @@ impl CT_TableProperties_Choice {
             (Ns::A, "tableStyle") => Self::TableStyle(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "tableStyleId") => match rt::read_simple(r, tag)? {
                 Ok(v) => Self::TableStyleId(v),
-                Err(raw) => Self::Other(raw),
+                Err(raw) => Self::Other(Box::new(raw)),
             },
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -29493,7 +29499,7 @@ pub enum CT_TextSpacing_Choice {
     /// `a:spcPts` — Spacing Points (§21.1.2.2.12).
     SpcPts(Box<CT_TextSpacingPoint>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_TextSpacing_Choice {
@@ -29502,7 +29508,7 @@ impl CT_TextSpacing_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "spcPct") => Self::SpcPct(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "spcPts") => Self::SpcPts(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -29542,7 +29548,7 @@ pub enum CT_ThemeableLineStyle_Choice {
     /// `a:lnRef` — Line Reference (§20.1.4.2.19).
     LnRef(Box<CT_StyleMatrixReference>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_ThemeableLineStyle_Choice {
@@ -29551,7 +29557,7 @@ impl CT_ThemeableLineStyle_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "ln") => Self::Ln(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "lnRef") => Self::LnRef(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -29599,7 +29605,7 @@ pub enum EG_ColorChoice {
     /// `a:prstClr` — Preset Color (§20.1.2.3.22).
     PrstClr(Box<CT_PresetColor>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_ColorChoice {
@@ -29612,7 +29618,7 @@ impl EG_ColorChoice {
             (Ns::A, "sysClr") => Self::SysClr(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "schemeClr") => Self::SchemeClr(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "prstClr") => Self::PrstClr(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -29716,7 +29722,7 @@ pub enum EG_ColorTransform {
     /// `a:invGamma` — Inverse Gamma (§20.1.2.3.18).
     InvGamma(Box<CT_InverseGammaTransform>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_ColorTransform {
@@ -29751,7 +29757,7 @@ impl EG_ColorTransform {
             (Ns::A, "blueMod") => Self::BlueMod(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "gamma") => Self::Gamma(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "invGamma") => Self::InvGamma(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -29925,7 +29931,7 @@ pub enum EG_Effect {
     /// `a:xfrm` — Transform Effect (§20.1.8.61).
     Xfrm(Box<CT_TransformEffect>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_Effect {
@@ -29962,7 +29968,7 @@ impl EG_Effect {
             (Ns::A, "softEdge") => Self::SoftEdge(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "tint") => Self::Tint(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "xfrm") => Self::Xfrm(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -30086,7 +30092,7 @@ pub enum EG_EffectProperties {
     /// `a:effectDag` — Effect Container (§20.1.8.25).
     EffectDag(Box<CT_EffectContainer>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_EffectProperties {
@@ -30095,7 +30101,7 @@ impl EG_EffectProperties {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "effectLst") => Self::EffectLst(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "effectDag") => Self::EffectDag(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -30135,7 +30141,7 @@ pub enum EG_FillModeProperties {
     /// `a:stretch` — Stretch (§20.1.8.56).
     Stretch(Box<CT_StretchInfoProperties>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_FillModeProperties {
@@ -30144,7 +30150,7 @@ impl EG_FillModeProperties {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "tile") => Self::Tile(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "stretch") => Self::Stretch(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -30192,7 +30198,7 @@ pub enum EG_FillProperties {
     /// `a:grpFill` — Group Fill (§20.1.8.35).
     GrpFill(Box<CT_GroupFillProperties>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_FillProperties {
@@ -30205,7 +30211,7 @@ impl EG_FillProperties {
             (Ns::A, "blipFill") => Self::BlipFill(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "pattFill") => Self::PattFill(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "grpFill") => Self::GrpFill(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -30257,7 +30263,7 @@ pub enum EG_Geometry {
     /// `a:prstGeom` — Preset geometry (§20.1.9.18).
     PrstGeom(Box<CT_PresetGeometry2D>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_Geometry {
@@ -30266,7 +30272,7 @@ impl EG_Geometry {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "custGeom") => Self::CustGeom(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "prstGeom") => Self::PrstGeom(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -30306,7 +30312,7 @@ pub enum EG_LineDashProperties {
     /// `a:custDash` — Custom Dash (§20.1.8.21).
     CustDash(Box<CT_DashStopList>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_LineDashProperties {
@@ -30315,7 +30321,7 @@ impl EG_LineDashProperties {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "prstDash") => Self::PrstDash(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "custDash") => Self::CustDash(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -30359,7 +30365,7 @@ pub enum EG_LineFillProperties {
     /// `a:pattFill` — Pattern Fill (§20.1.8.47).
     PattFill(Box<CT_PatternFillProperties>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_LineFillProperties {
@@ -30370,7 +30376,7 @@ impl EG_LineFillProperties {
             (Ns::A, "solidFill") => Self::SolidFill(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "gradFill") => Self::GradFill(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "pattFill") => Self::PattFill(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -30418,7 +30424,7 @@ pub enum EG_LineJoinProperties {
     /// `a:miter` — Miter Line Join (§20.1.8.43).
     Miter(Box<CT_LineJoinMiterProperties>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_LineJoinProperties {
@@ -30428,7 +30434,7 @@ impl EG_LineJoinProperties {
             (Ns::A, "round") => Self::Round(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "bevel") => Self::Bevel(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "miter") => Self::Miter(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -30477,7 +30483,7 @@ pub enum EG_Media {
     /// `a:quickTimeFile` — QuickTime from File (§20.1.3.4).
     QuickTimeFile(Box<CT_QuickTimeFile>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_Media {
@@ -30489,7 +30495,7 @@ impl EG_Media {
             (Ns::A, "audioFile") => Self::AudioFile(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "videoFile") => Self::VideoFile(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "quickTimeFile") => Self::QuickTimeFile(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -30538,7 +30544,7 @@ pub enum EG_ShadeProperties {
     /// `a:path` — Path Gradient (§20.1.8.46).
     Path(Box<CT_PathShadeProperties>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_ShadeProperties {
@@ -30547,7 +30553,7 @@ impl EG_ShadeProperties {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "lin") => Self::Lin(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "path") => Self::Path(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -30587,7 +30593,7 @@ pub enum EG_Text3D {
     /// `a:flatTx` — No text in 3D scene (§20.1.5.8).
     FlatTx(Box<CT_FlatText>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_Text3D {
@@ -30596,7 +30602,7 @@ impl EG_Text3D {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "sp3d") => Self::Sp3d(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "flatTx") => Self::FlatTx(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -30638,7 +30644,7 @@ pub enum EG_TextAutofit {
     /// `a:spAutoFit` — Shape AutoFit (§21.1.2.1.4).
     SpAutoFit(Box<CT_TextShapeAutofit>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_TextAutofit {
@@ -30648,7 +30654,7 @@ impl EG_TextAutofit {
             (Ns::A, "noAutofit") => Self::NoAutofit(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "normAutofit") => Self::NormAutofit(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "spAutoFit") => Self::SpAutoFit(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -30695,7 +30701,7 @@ pub enum EG_TextBullet {
     /// `a:buBlip` — Picture Bullet (§21.1.2.4.2).
     BuBlip(Box<CT_TextBlipBullet>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_TextBullet {
@@ -30706,7 +30712,7 @@ impl EG_TextBullet {
             (Ns::A, "buAutoNum") => Self::BuAutoNum(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "buChar") => Self::BuChar(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "buBlip") => Self::BuBlip(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -30752,7 +30758,7 @@ pub enum EG_TextBulletColor {
     /// `a:buClr` — Color Specified (§21.1.2.4.4).
     BuClr(Box<CT_Color>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_TextBulletColor {
@@ -30761,7 +30767,7 @@ impl EG_TextBulletColor {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "buClrTx") => Self::BuClrTx(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "buClr") => Self::BuClr(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -30803,7 +30809,7 @@ pub enum EG_TextBulletSize {
     /// `a:buSzPts` — Bullet Size Points (§21.1.2.4.10).
     BuSzPts(Box<CT_TextBulletSizePoint>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_TextBulletSize {
@@ -30813,7 +30819,7 @@ impl EG_TextBulletSize {
             (Ns::A, "buSzTx") => Self::BuSzTx(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "buSzPct") => Self::BuSzPct(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "buSzPts") => Self::BuSzPts(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -30856,7 +30862,7 @@ pub enum EG_TextBulletTypeface {
     /// `a:buFont` — Specified (§21.1.2.4.6).
     BuFont(Box<CT_TextFont>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_TextBulletTypeface {
@@ -30865,7 +30871,7 @@ impl EG_TextBulletTypeface {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "buFontTx") => Self::BuFontTx(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "buFont") => Self::BuFont(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -30907,7 +30913,7 @@ pub enum EG_TextRun {
     /// `a:fld` — Text Field (§21.1.2.2.4).
     Fld(Box<CT_TextField>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_TextRun {
@@ -30917,7 +30923,7 @@ impl EG_TextRun {
             (Ns::A, "r") => Self::R(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "br") => Self::Br(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "fld") => Self::Fld(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -30960,7 +30966,7 @@ pub enum EG_TextUnderlineFill {
     /// `a:uFill` — Underline Fill (§21.1.2.3.12).
     UFill(Box<CT_TextUnderlineFillGroupWrapper>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_TextUnderlineFill {
@@ -30969,7 +30975,7 @@ impl EG_TextUnderlineFill {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "uFillTx") => Self::UFillTx(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "uFill") => Self::UFill(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -31009,7 +31015,7 @@ pub enum EG_TextUnderlineLine {
     /// `a:uLn` — Underline Stroke (§21.1.2.3.14).
     ULn(Box<CT_LineProperties>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_TextUnderlineLine {
@@ -31018,7 +31024,7 @@ impl EG_TextUnderlineLine {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "uLnTx") => Self::ULnTx(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "uLn") => Self::ULn(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -31058,7 +31064,7 @@ pub enum EG_ThemeableEffectStyle {
     /// `a:effectRef` — Effect Reference (§20.1.4.2.8).
     EffectRef(Box<CT_StyleMatrixReference>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_ThemeableEffectStyle {
@@ -31067,7 +31073,7 @@ impl EG_ThemeableEffectStyle {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "effect") => Self::Effect(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "effectRef") => Self::EffectRef(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -31107,7 +31113,7 @@ pub enum EG_ThemeableFillStyle {
     /// `a:fillRef` — Fill Reference (§20.1.4.2.10).
     FillRef(Box<CT_StyleMatrixReference>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_ThemeableFillStyle {
@@ -31116,7 +31122,7 @@ impl EG_ThemeableFillStyle {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "fill") => Self::Fill(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "fillRef") => Self::FillRef(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -31156,7 +31162,7 @@ pub enum EG_ThemeableFontStyles {
     /// `a:fontRef` — Font Reference (§20.1.4.1.17).
     FontRef(Box<CT_FontReference>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_ThemeableFontStyles {
@@ -31165,7 +31171,7 @@ impl EG_ThemeableFontStyles {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::A, "font") => Self::Font(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::A, "fontRef") => Self::FontRef(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 

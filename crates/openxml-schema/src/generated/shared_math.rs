@@ -4504,7 +4504,7 @@ impl XmlRead for CT_OMath {
                     _ => match pos {
                         1 => this
                             .o_math_elements
-                            .push(EG_OMathElements::Other(RawElement::read(r, &child)?)),
+                            .push(EG_OMathElements::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -4646,7 +4646,7 @@ impl XmlRead for CT_OMathArg {
                     _ => match pos {
                         2 => this
                             .o_math_elements
-                            .push(EG_OMathElements::Other(RawElement::read(r, &child)?)),
+                            .push(EG_OMathElements::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -5375,7 +5375,9 @@ impl XmlRead for CT_R {
                         pos = 3;
                     }
                     _ => match pos {
-                        3 => this.choice.push(CT_R_Choice::Other(RawElement::read(r, &child)?)),
+                        3 => this
+                            .choice
+                            .push(CT_R_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -5484,7 +5486,7 @@ impl XmlRead for CT_RPR {
                     _ => match pos {
                         2 => this
                             .choice
-                            .push(CT_RPR_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_RPR_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -7124,7 +7126,7 @@ pub enum CT_MathPr_Choice {
     /// `m:wrapRight` — Wrap Right (§22.1.2.121).
     WrapRight(Box<CT_OnOff>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_MathPr_Choice {
@@ -7133,7 +7135,7 @@ impl CT_MathPr_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::M, "wrapIndent") => Self::WrapIndent(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::M, "wrapRight") => Self::WrapRight(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -7175,7 +7177,7 @@ pub enum CT_RPR_Choice {
     /// `m:sty` — style (§22.1.2.111).
     Sty(Box<CT_Style>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_RPR_Choice {
@@ -7185,7 +7187,7 @@ impl CT_RPR_Choice {
             (Ns::M, "nor") => Self::Nor(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::M, "scr") => Self::Scr(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::M, "sty") => Self::Sty(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -7292,7 +7294,7 @@ pub enum CT_R_Choice {
     /// `m:t` — Text (§22.1.2.116).
     MT(Box<CT_Text>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_R_Choice {
@@ -7337,7 +7339,7 @@ impl CT_R_Choice {
                 Self::LastRenderedPageBreak(Box::new(XmlRead::read_xml(r, tag)?))
             }
             (Ns::M, "t") => Self::MT(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -7569,7 +7571,7 @@ pub enum EG_OMathElements {
     /// `m:oMath` — Office Math (§22.1.2.77).
     OMath(Box<CT_OMath>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_OMathElements {
@@ -7642,7 +7644,7 @@ impl EG_OMathElements {
             (Ns::W, "moveTo") => Self::MoveTo(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::M, "oMathPara") => Self::OMathPara(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::M, "oMath") => Self::OMath(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 

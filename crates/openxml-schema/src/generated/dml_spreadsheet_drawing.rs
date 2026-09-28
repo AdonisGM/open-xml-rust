@@ -514,7 +514,9 @@ impl XmlRead for CT_Drawing {
                         pos = 1;
                     }
                     _ => match pos {
-                        1 => this.anchor.push(EG_Anchor::Other(RawElement::read(r, &child)?)),
+                        1 => this
+                            .anchor
+                            .push(EG_Anchor::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -817,7 +819,9 @@ impl XmlRead for CT_GroupShape {
                     _ => match pos {
                         3 => this
                             .choice
-                            .push(CT_GroupShape_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_GroupShape_Choice::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -1913,7 +1917,7 @@ pub enum CT_AbsoluteAnchor_Choice {
     /// `xdr:contentPart` — Content Part (§20.5.2.12).
     ContentPart(Box<CT_Rel>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_AbsoluteAnchor_Choice {
@@ -1926,7 +1930,7 @@ impl CT_AbsoluteAnchor_Choice {
             (Ns::XDR, "cxnSp") => Self::CxnSp(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::XDR, "pic") => Self::Pic(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::XDR, "contentPart") => Self::ContentPart(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -1984,7 +1988,7 @@ pub enum CT_GroupShape_Choice {
     /// `xdr:pic` — Picture (§20.5.2.25).
     Pic(Box<CT_Picture>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_GroupShape_Choice {
@@ -1996,7 +2000,7 @@ impl CT_GroupShape_Choice {
             (Ns::XDR, "graphicFrame") => Self::GraphicFrame(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::XDR, "cxnSp") => Self::CxnSp(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::XDR, "pic") => Self::Pic(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -2053,7 +2057,7 @@ pub enum CT_OneCellAnchor_Choice {
     /// `xdr:contentPart` — Content Part (§20.5.2.12).
     ContentPart(Box<CT_Rel>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_OneCellAnchor_Choice {
@@ -2066,7 +2070,7 @@ impl CT_OneCellAnchor_Choice {
             (Ns::XDR, "cxnSp") => Self::CxnSp(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::XDR, "pic") => Self::Pic(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::XDR, "contentPart") => Self::ContentPart(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -2126,7 +2130,7 @@ pub enum CT_TwoCellAnchor_Choice {
     /// `xdr:contentPart` — Content Part (§20.5.2.12).
     ContentPart(Box<CT_Rel>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_TwoCellAnchor_Choice {
@@ -2139,7 +2143,7 @@ impl CT_TwoCellAnchor_Choice {
             (Ns::XDR, "cxnSp") => Self::CxnSp(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::XDR, "pic") => Self::Pic(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::XDR, "contentPart") => Self::ContentPart(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -2193,7 +2197,7 @@ pub enum EG_Anchor {
     /// `xdr:absoluteAnchor` — Absolute Anchor Shape Size (§20.5.2.1).
     AbsoluteAnchor(Box<CT_AbsoluteAnchor>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_Anchor {
@@ -2203,7 +2207,7 @@ impl EG_Anchor {
             (Ns::XDR, "twoCellAnchor") => Self::TwoCellAnchor(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::XDR, "oneCellAnchor") => Self::OneCellAnchor(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::XDR, "absoluteAnchor") => Self::AbsoluteAnchor(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 

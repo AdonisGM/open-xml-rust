@@ -1105,7 +1105,7 @@ impl XmlRead for CT_Arc {
                     _ => match pos {
                         1 => this
                             .shape_elements
-                            .push(EG_ShapeElements::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ShapeElements::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -1827,7 +1827,7 @@ impl XmlRead for CT_Curve {
                     _ => match pos {
                         1 => this
                             .shape_elements
-                            .push(EG_ShapeElements::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ShapeElements::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -2711,7 +2711,7 @@ impl XmlRead for CT_Group {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_Group_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_Group_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -3524,7 +3524,7 @@ impl XmlRead for CT_Image {
                     _ => match pos {
                         1 => this
                             .shape_elements
-                            .push(EG_ShapeElements::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ShapeElements::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -4369,7 +4369,7 @@ impl XmlRead for CT_Line {
                     _ => match pos {
                         1 => this
                             .shape_elements
-                            .push(EG_ShapeElements::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ShapeElements::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -4933,7 +4933,7 @@ impl XmlRead for CT_Oval {
                     _ => match pos {
                         1 => this
                             .shape_elements
-                            .push(EG_ShapeElements::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ShapeElements::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -5679,7 +5679,7 @@ impl XmlRead for CT_PolyLine {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_PolyLine_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_PolyLine_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -6242,7 +6242,7 @@ impl XmlRead for CT_Rect {
                     _ => match pos {
                         1 => this
                             .shape_elements
-                            .push(EG_ShapeElements::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ShapeElements::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -6812,7 +6812,7 @@ impl XmlRead for CT_RoundRect {
                     _ => match pos {
                         1 => this
                             .shape_elements
-                            .push(EG_ShapeElements::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ShapeElements::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -7557,7 +7557,7 @@ impl XmlRead for CT_Shape {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_Shape_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_Shape_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -8158,7 +8158,7 @@ impl XmlRead for CT_Shapetype {
                     _ => match pos {
                         1 => this
                             .shape_elements
-                            .push(EG_ShapeElements::Other(RawElement::read(r, &child)?)),
+                            .push(EG_ShapeElements::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -8939,7 +8939,7 @@ pub enum CT_Group_Choice {
     /// `o:diagram` element.
     Diagram(Box<crate::vml_office::CT_Diagram>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Group_Choice {
@@ -8981,7 +8981,7 @@ impl CT_Group_Choice {
             (Ns::V, "rect") => Self::Rect(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::V, "roundrect") => Self::Roundrect(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::O, "diagram") => Self::Diagram(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -9164,7 +9164,7 @@ pub enum CT_PolyLine_Choice {
     /// `o:ink` element.
     Ink(Box<crate::vml_office::CT_Ink>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_PolyLine_Choice {
@@ -9195,7 +9195,7 @@ impl CT_PolyLine_Choice {
             (Ns::XVML, "ClientData") => Self::ClientData(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::PVML, "textdata") => Self::Textdata(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::O, "ink") => Self::Ink(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -9349,7 +9349,7 @@ pub enum CT_Shape_Choice {
     /// `o:equationxml` element.
     Equationxml(Box<crate::vml_office::CT_EquationXml>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Shape_Choice {
@@ -9382,7 +9382,7 @@ impl CT_Shape_Choice {
             (Ns::O, "ink") => Self::Ink(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::PVML, "iscomment") => Self::Iscomment(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::O, "equationxml") => Self::Equationxml(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -9492,7 +9492,7 @@ pub enum CT_Textbox_Choice {
     /// `w:txbxContent` element.
     TxbxContent(Box<crate::wml::CT_TxbxContent>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_Textbox_Choice {
@@ -9500,7 +9500,7 @@ impl CT_Textbox_Choice {
     pub fn read_choice(r: &mut XmlReader<'_>, tag: &StartTag<'_>) -> Result<Self> {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::W, "txbxContent") => Self::TxbxContent(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -9579,7 +9579,7 @@ pub enum EG_ShapeElements {
     /// `pvml:textdata` element.
     Textdata(Box<crate::vml_presentation::CT_Rel>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_ShapeElements {
@@ -9609,7 +9609,7 @@ impl EG_ShapeElements {
             (Ns::W10, "borderright") => Self::Borderright(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::XVML, "ClientData") => Self::ClientData(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::PVML, "textdata") => Self::Textdata(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 

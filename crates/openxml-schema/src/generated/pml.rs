@@ -3310,7 +3310,7 @@ impl XmlRead for CT_BuildList {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_BuildList_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_BuildList_Choice::Other(Box::new(RawElement::read(r, &child)?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -5910,7 +5910,9 @@ impl XmlRead for CT_GroupShape {
                     _ => match pos {
                         3 => this
                             .choice
-                            .push(CT_GroupShape_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_GroupShape_Choice::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -17030,7 +17032,9 @@ impl XmlRead for CT_TimeNodeList {
                     _ => match pos {
                         1 => this
                             .choice
-                            .push(CT_TimeNodeList_Choice::Other(RawElement::read(r, &child)?)),
+                            .push(CT_TimeNodeList_Choice::Other(Box::new(RawElement::read(
+                                r, &child,
+                            )?))),
                         _ => rt::push_extra(&mut this.extra_children, pos, RawElement::read(r, &child)?),
                     },
                 }
@@ -17630,7 +17634,7 @@ pub enum CT_BuildList_Choice {
     /// `p:bldGraphic` — Build Graphics (§19.5.13).
     BldGraphic(Box<CT_TLGraphicalObjectBuild>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_BuildList_Choice {
@@ -17641,7 +17645,7 @@ impl CT_BuildList_Choice {
             (Ns::P, "bldDgm") => Self::BldDgm(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "bldOleChart") => Self::BldOleChart(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "bldGraphic") => Self::BldGraphic(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -17695,7 +17699,7 @@ pub enum CT_GroupShape_Choice {
     /// `p:contentPart` — Content Part (§19.3.1.14).
     ContentPart(Box<CT_Rel>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_GroupShape_Choice {
@@ -17708,7 +17712,7 @@ impl CT_GroupShape_Choice {
             (Ns::P, "cxnSp") => Self::CxnSp(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "pic") => Self::Pic(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "contentPart") => Self::ContentPart(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -17760,7 +17764,7 @@ pub enum CT_OleObject_Choice {
     /// `p:link` — Linked Object or Control (§19.3.2.3).
     Link(Box<CT_OleObjectLink>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_OleObject_Choice {
@@ -17769,7 +17773,7 @@ impl CT_OleObject_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::P, "embed") => Self::Embed(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "link") => Self::Link(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -17847,7 +17851,7 @@ pub enum CT_SlideTransition_Choice {
     /// `p:zoom` — Zoom Slide Transition (§19.5.97).
     Zoom(Box<CT_InOutTransition>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_SlideTransition_Choice {
@@ -17875,7 +17879,7 @@ impl CT_SlideTransition_Choice {
             (Ns::P, "wheel") => Self::Wheel(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "wipe") => Self::Wipe(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "zoom") => Self::Zoom(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -17978,7 +17982,7 @@ pub enum CT_TLAnimVariant_Choice {
     /// `p:clrVal` — Color Value (§19.5.27).
     ClrVal(Box<crate::dml::CT_Color>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_TLAnimVariant_Choice {
@@ -17990,7 +17994,7 @@ impl CT_TLAnimVariant_Choice {
             (Ns::P, "fltVal") => Self::FltVal(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "strVal") => Self::StrVal(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "clrVal") => Self::ClrVal(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -18039,7 +18043,7 @@ pub enum CT_TLByAnimateColorTransform_Choice {
     /// `p:hsl` — HSL (§19.5.46).
     Hsl(Box<CT_TLByHslColorTransform>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_TLByAnimateColorTransform_Choice {
@@ -18048,7 +18052,7 @@ impl CT_TLByAnimateColorTransform_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::P, "rgb") => Self::Rgb(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "hsl") => Self::Hsl(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -18088,7 +18092,7 @@ pub enum CT_TLGraphicalObjectBuild_Choice {
     /// `p:bldSub` — Build Sub Elements (§19.5.17).
     BldSub(Box<crate::dml::CT_AnimationGraphicalObjectBuildProperties>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_TLGraphicalObjectBuild_Choice {
@@ -18097,7 +18101,7 @@ impl CT_TLGraphicalObjectBuild_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::P, "bldAsOne") => Self::BldAsOne(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "bldSub") => Self::BldSub(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -18137,7 +18141,7 @@ pub enum CT_TLIterateData_Choice {
     /// `p:tmPct` — Time Percentage (§19.5.83).
     TmPct(Box<CT_TLIterateIntervalPercentage>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_TLIterateData_Choice {
@@ -18146,7 +18150,7 @@ impl CT_TLIterateData_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::P, "tmAbs") => Self::TmAbs(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "tmPct") => Self::TmPct(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -18192,7 +18196,7 @@ pub enum CT_TLShapeTargetElement_Choice {
     /// `p:graphicEl` — Graphic Element (§19.5.45).
     GraphicEl(Box<crate::dml::CT_AnimationElementChoice>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_TLShapeTargetElement_Choice {
@@ -18204,7 +18208,7 @@ impl CT_TLShapeTargetElement_Choice {
             (Ns::P, "oleChartEl") => Self::OleChartEl(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "txEl") => Self::TxEl(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "graphicEl") => Self::GraphicEl(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -18253,7 +18257,7 @@ pub enum CT_TLTextTargetElement_Choice {
     /// `p:pRg` — Paragraph Text Range (§19.5.56).
     PRg(Box<CT_IndexRange>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_TLTextTargetElement_Choice {
@@ -18262,7 +18266,7 @@ impl CT_TLTextTargetElement_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::P, "charRg") => Self::CharRg(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "pRg") => Self::PRg(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -18304,7 +18308,7 @@ pub enum CT_TLTimeCondition_Choice {
     /// `p:rtn` — Runtime Node Trigger Choice (§19.5.64).
     Rtn(Box<CT_TLTriggerRuntimeNode>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_TLTimeCondition_Choice {
@@ -18314,7 +18318,7 @@ impl CT_TLTimeCondition_Choice {
             (Ns::P, "tgtEl") => Self::TgtEl(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "tn") => Self::Tn(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "rtn") => Self::Rtn(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -18361,7 +18365,7 @@ pub enum CT_TLTimeTargetElement_Choice {
     /// `p:inkTgt` — Ink Target (§19.5.47).
     InkTgt(Box<CT_TLSubShapeId>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_TLTimeTargetElement_Choice {
@@ -18372,7 +18376,7 @@ impl CT_TLTimeTargetElement_Choice {
             (Ns::P, "sndTgt") => Self::SndTgt(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "spTgt") => Self::SpTgt(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "inkTgt") => Self::InkTgt(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -18440,7 +18444,7 @@ pub enum CT_TimeNodeList_Choice {
     /// `p:video` — Video (§19.5.93).
     Video(Box<CT_TLMediaNodeVideo>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_TimeNodeList_Choice {
@@ -18460,7 +18464,7 @@ impl CT_TimeNodeList_Choice {
             (Ns::P, "set") => Self::Set(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "audio") => Self::Audio(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "video") => Self::Video(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -18533,7 +18537,7 @@ pub enum CT_TransitionSoundAction_Choice {
     /// `p:endSnd` — Stop Sound Action (§19.5.38).
     EndSnd(Box<CT_Empty>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl CT_TransitionSoundAction_Choice {
@@ -18542,7 +18546,7 @@ impl CT_TransitionSoundAction_Choice {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::P, "stSnd") => Self::StSnd(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "endSnd") => Self::EndSnd(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -18582,7 +18586,7 @@ pub enum EG_Background {
     /// `p:bgRef` — Background Style Reference (§19.3.1.3).
     BgRef(Box<crate::dml::CT_StyleMatrixReference>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_Background {
@@ -18591,7 +18595,7 @@ impl EG_Background {
         Ok(match (tag.ns(), tag.local()) {
             (Ns::P, "bgPr") => Self::BgPr(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "bgRef") => Self::BgRef(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -18633,7 +18637,7 @@ pub enum EG_ShowType {
     /// `p:kiosk` — Kiosk Slide Show Mode (§19.2.1.18).
     Kiosk(Box<CT_ShowInfoKiosk>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_ShowType {
@@ -18643,7 +18647,7 @@ impl EG_ShowType {
             (Ns::P, "present") => Self::Present(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "browse") => Self::Browse(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "kiosk") => Self::Kiosk(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
@@ -18688,7 +18692,7 @@ pub enum EG_SlideListChoice {
     /// `p:custShow` — Custom Show (§19.2.1.5).
     CustShow(Box<CT_CustomShowId>),
     /// An element not described by the schema, kept as raw XML.
-    Other(RawElement),
+    Other(Box<RawElement>),
 }
 
 impl EG_SlideListChoice {
@@ -18698,7 +18702,7 @@ impl EG_SlideListChoice {
             (Ns::P, "sldAll") => Self::SldAll(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "sldRg") => Self::SldRg(Box::new(XmlRead::read_xml(r, tag)?)),
             (Ns::P, "custShow") => Self::CustShow(Box::new(XmlRead::read_xml(r, tag)?)),
-            _ => Self::Other(RawElement::read(r, tag)?),
+            _ => Self::Other(Box::new(RawElement::read(r, tag)?)),
         })
     }
 
