@@ -56,12 +56,57 @@ pub struct HyperlinkRef {
     pub relationship_id: Option<String>,
     /// Bookmark name for an internal target.
     pub anchor: Option<String>,
+    /// Tooltip shown when hovering the link.
+    pub tooltip: Option<String>,
+}
+
+/// Target of a hyperlink.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum LinkTarget {
+    /// An external URL.
+    Url(String),
+    /// An e-mail address (`mailto:`), with an optional subject.
+    Email {
+        /// Address.
+        address: String,
+        /// Subject line.
+        subject: Option<String>,
+    },
+    /// A bookmark inside the document.
+    Bookmark(String),
+}
+
+impl LinkTarget {
+    /// The URL of an external target (`mailto:` for e-mail addresses).
+    pub fn url(&self) -> Option<String> {
+        match self {
+            LinkTarget::Url(u) => Some(u.clone()),
+            LinkTarget::Email { address, subject } => Some(match subject {
+                Some(s) => format!("mailto:{address}?subject={}", percent_encode(s)),
+                None => format!("mailto:{address}"),
+            }),
+            LinkTarget::Bookmark(_) => None,
+        }
+    }
+}
+
+/// Percent-encodes everything but unreserved URI characters.
+fn percent_encode(s: &str) -> String {
+    let mut out = String::new();
+    for b in s.bytes() {
+        if b.is_ascii_alphanumeric() || matches!(b, b'-' | b'.' | b'_' | b'~') {
+            out.push(b as char);
+        } else {
+            out.push_str(&format!("%{b:02X}"));
+        }
+    }
+    out
 }
 
 /// Read-only view of a paragraph.
 #[derive(Clone, Copy, Debug)]
 pub struct Paragraph<'a> {
-    p: &'a wml::CT_P,
+    pub(crate) p: &'a wml::CT_P,
 }
 
 impl<'a> Paragraph<'a> {
@@ -122,6 +167,7 @@ impl<'a> Paragraph<'a> {
                             .collect(),
                         relationship_id: h.r_id.clone(),
                         anchor: h.anchor.clone(),
+                        tooltip: h.tooltip.clone(),
                     }),
                     EG_PContent::Sdt(s) => {
                         if let Some(c) = &s.sdt_content {
@@ -170,9 +216,9 @@ impl<'a> Paragraph<'a> {
 /// ```
 #[derive(Debug)]
 pub struct ParagraphMut<'a> {
-    p: &'a mut wml::CT_P,
-    shared: &'a mut Shared,
-    part: PartName,
+    pub(crate) p: &'a mut wml::CT_P,
+    pub(crate) shared: &'a mut Shared,
+    pub(crate) part: PartName,
 }
 
 impl<'a> ParagraphMut<'a> {
@@ -190,11 +236,11 @@ impl<'a> ParagraphMut<'a> {
         Paragraph::new(self.p)
     }
 
-    fn p_pr(&mut self) -> &mut wml::CT_PPr {
+    pub(crate) fn p_pr(&mut self) -> &mut wml::CT_PPr {
         self.p.p_pr.get_or_insert_with(Default::default)
     }
 
-    fn push_run(&mut self, run: wml::CT_R) -> RunMut<'_> {
+    pub(crate) fn push_run(&mut self, run: wml::CT_R) -> RunMut<'_> {
         self.p.p_content.push(EG_PContent::R(Box::new(run)));
         let Some(EG_PContent::R(r)) = self.p.p_content.last_mut() else {
             unreachable!()
@@ -291,30 +337,46 @@ impl<'a> ParagraphMut<'a> {
 
     /// Appends a hyperlink to an external URL, formatted with the `Hyperlink` character style.
     pub fn add_hyperlink(&mut self, text: &str, url: &str) -> Result<&mut Self> {
-        let style = self.shared.resolve_style("Hyperlink")?;
-        let rel_id = self.shared.add_hyperlink_relationship(&self.part, url)?;
-        let mut run = wml::CT_R::default();
-        RunMut::new(&mut run).style(&style).add_text(text);
-        let link = wml::CT_Hyperlink {
-            r_id: Some(rel_id),
-            history: Some(openxml_schema::shared_types::ST_OnOff::Boolean(true)),
-            p_content: vec![EG_PContent::R(Box::new(run))],
-            ..Default::default()
-        };
-        self.p.p_content.push(EG_PContent::Hyperlink(Box::new(link)));
-        Ok(self)
+        self.add_link(text, &LinkTarget::Url(url.to_owned()), None)
     }
 
     /// Appends a hyperlink to a bookmark inside the document.
     pub fn add_internal_hyperlink(&mut self, text: &str, bookmark: &str) -> Result<&mut Self> {
+        self.add_link(text, &LinkTarget::Bookmark(bookmark.to_owned()), None)
+    }
+
+    /// Appends a hyperlink to a URL, an e-mail address or a bookmark, with
+    /// an optional tooltip, formatted with the `Hyperlink` character style.
+    ///
+    /// ```
+    /// use openxml_docx::{Document, LinkTarget};
+    ///
+    /// let mut doc = Document::new();
+    /// let mail = LinkTarget::Email { address: "team@example.com".into(), subject: Some("Hello there".into()) };
+    /// doc.add_paragraph("Write to ").add_link("the team", &mail, Some("Send an e-mail"))?;
+    /// let link = &doc.paragraphs()[0].hyperlinks()[0];
+    /// assert_eq!(link.tooltip.as_deref(), Some("Send an e-mail"));
+    /// let target = doc.hyperlink_target(link.relationship_id.as_deref().unwrap());
+    /// assert_eq!(target, Some("mailto:team@example.com?subject=Hello%20there"));
+    /// # Ok::<(), openxml_docx::Error>(())
+    /// ```
+    pub fn add_link(&mut self, text: &str, target: &LinkTarget, tooltip: Option<&str>) -> Result<&mut Self> {
         let style = self.shared.resolve_style("Hyperlink")?;
         let mut run = wml::CT_R::default();
         RunMut::new(&mut run).style(&style).add_text(text);
-        let link = wml::CT_Hyperlink {
-            anchor: Some(bookmark.to_owned()),
+        let mut link = wml::CT_Hyperlink {
+            tooltip: tooltip.map(str::to_owned),
             p_content: vec![EG_PContent::R(Box::new(run))],
             ..Default::default()
         };
+        match target {
+            LinkTarget::Bookmark(name) => link.anchor = Some(name.clone()),
+            _ => {
+                let url = target.url().expect("external targets have a URL");
+                link.r_id = Some(self.shared.add_hyperlink_relationship(&self.part, &url)?);
+                link.history = Some(openxml_schema::shared_types::ST_OnOff::Boolean(true));
+            }
+        }
         self.p.p_content.push(EG_PContent::Hyperlink(Box::new(link)));
         Ok(self)
     }
@@ -417,6 +479,21 @@ mod tests {
     }
 
     #[test]
+    fn link_targets() {
+        assert_eq!(percent_encode("a b&c/é"), "a%20b%26c%2F%C3%A9");
+        let mail = LinkTarget::Email {
+            address: "a@b.c".into(),
+            subject: None,
+        };
+        assert_eq!(mail.url().as_deref(), Some("mailto:a@b.c"));
+        assert_eq!(LinkTarget::Bookmark("x".into()).url(), None);
+        assert_eq!(
+            LinkTarget::Url("https://x".into()).url().as_deref(),
+            Some("https://x")
+        );
+    }
+
+    #[test]
     fn replace_keeps_containers_separate() {
         let xml = r#"<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>foo b</w:t></w:r><w:r><w:t>ar</w:t></w:r><w:hyperlink><w:r><w:t>bar</w:t></w:r></w:hyperlink></w:p></w:body></w:document>"#;
         let mut doc = wml::elements::DOCUMENT.parse(xml).unwrap();
@@ -445,7 +522,8 @@ mod tests {
             HyperlinkRef {
                 text: "x".into(),
                 relationship_id: Some("rId9".into()),
-                anchor: None
+                anchor: None,
+                tooltip: None
             }
         );
         assert_eq!(links[1].anchor.as_deref(), Some("bm"));

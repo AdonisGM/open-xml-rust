@@ -9,6 +9,10 @@ use openxml_schema::wml::{
 };
 
 use crate::document::Shared;
+use crate::format::{
+    CellMargins, HeightRule, TableAlignment, TableBorders, TableFormat, TableLayout, TableWidth,
+    apply_table_format, cell_margins, dxa as format_dxa,
+};
 use crate::paragraph::{Paragraph, ParagraphMut};
 use crate::text;
 use crate::util::{decimal, hex_color, on, string_val, twips};
@@ -102,7 +106,7 @@ pub(crate) fn new_table(rows: usize, cols: usize, style_id: &str, total_width: L
 /// Read-only view of a table.
 #[derive(Clone, Copy, Debug)]
 pub struct Table<'a> {
-    t: &'a wml::CT_Tbl,
+    pub(crate) t: &'a wml::CT_Tbl,
 }
 
 impl<'a> Table<'a> {
@@ -154,7 +158,7 @@ impl<'a> Table<'a> {
 /// Read-only view of a table row.
 #[derive(Clone, Copy, Debug)]
 pub struct TableRow<'a> {
-    r: &'a wml::CT_Row,
+    pub(crate) r: &'a wml::CT_Row,
 }
 
 impl<'a> TableRow<'a> {
@@ -181,7 +185,7 @@ impl<'a> TableRow<'a> {
 /// Read-only view of a table cell.
 #[derive(Clone, Copy, Debug)]
 pub struct TableCell<'a> {
-    c: &'a wml::CT_Tc,
+    pub(crate) c: &'a wml::CT_Tc,
 }
 
 impl<'a> TableCell<'a> {
@@ -255,9 +259,9 @@ impl<'a> TableCell<'a> {
 /// ```
 #[derive(Debug)]
 pub struct TableMut<'a> {
-    t: &'a mut wml::CT_Tbl,
-    shared: &'a mut Shared,
-    part: PartName,
+    pub(crate) t: &'a mut wml::CT_Tbl,
+    pub(crate) shared: &'a mut Shared,
+    pub(crate) part: PartName,
 }
 
 impl<'a> TableMut<'a> {
@@ -502,9 +506,9 @@ impl<'a> TableMut<'a> {
 /// Mutable access to a table cell.
 #[derive(Debug)]
 pub struct CellMut<'a> {
-    c: &'a mut wml::CT_Tc,
-    shared: &'a mut Shared,
-    part: PartName,
+    pub(crate) c: &'a mut wml::CT_Tc,
+    pub(crate) shared: &'a mut Shared,
+    pub(crate) part: PartName,
 }
 
 impl<'a> CellMut<'a> {
@@ -579,6 +583,234 @@ impl<'a> CellMut<'a> {
             ..Default::default()
         }));
         self
+    }
+}
+
+impl TableMut<'_> {
+    fn tbl_pr(&mut self) -> &mut wml::CT_TblPr {
+        self.t.tbl_pr.get_or_insert_with(Default::default)
+    }
+
+    fn row_pr(&mut self, row: usize) -> Result<&mut wml::CT_TrPr> {
+        let mut rows = text::rows_mut(self.t);
+        let count = rows.len();
+        if row >= count {
+            return Err(Error::NotFound(format!("row {row} (the table has {count})")));
+        }
+        Ok(rows.swap_remove(row).tr_pr.get_or_insert_with(Default::default))
+    }
+
+    /// Applies table formatting (fields left at `None` are unchanged).
+    pub fn set_format(&mut self, format: &TableFormat) -> Result<&mut Self> {
+        apply_table_format(self.tbl_pr(), format)?;
+        Ok(self)
+    }
+
+    /// Sets the table borders.
+    pub fn set_borders(&mut self, borders: &TableBorders) -> Result<&mut Self> {
+        self.tbl_pr().tbl_borders = Some(Box::new(borders.to_table()?));
+        Ok(self)
+    }
+
+    /// Sets the default cell margins.
+    pub fn set_cell_margins(&mut self, margins: &CellMargins) -> &mut Self {
+        self.tbl_pr().tbl_cell_mar = Some(Box::new(cell_margins(margins)));
+        self
+    }
+
+    /// Sets the alignment of the table between the margins.
+    pub fn set_alignment(&mut self, alignment: TableAlignment) -> &mut Self {
+        let f = TableFormat {
+            alignment: Some(alignment),
+            ..Default::default()
+        };
+        apply_table_format(self.tbl_pr(), &f).expect("alignment cannot fail");
+        self
+    }
+
+    /// Sets the indentation from the leading margin.
+    pub fn set_indent(&mut self, indent: Length) -> &mut Self {
+        self.tbl_pr().tbl_ind = Some(format_dxa(indent));
+        self
+    }
+
+    /// Sets the layout: fixed column widths or autofit to the content.
+    pub fn set_layout(&mut self, layout: TableLayout) -> &mut Self {
+        let f = TableFormat {
+            layout: Some(layout),
+            ..Default::default()
+        };
+        apply_table_format(self.tbl_pr(), &f).expect("layout cannot fail");
+        self
+    }
+
+    /// Sets the preferred table width.
+    pub fn set_width(&mut self, width: TableWidth) -> &mut Self {
+        let f = TableFormat {
+            width: Some(width),
+            ..Default::default()
+        };
+        apply_table_format(self.tbl_pr(), &f).expect("width cannot fail");
+        self
+    }
+
+    /// Sets the height of a row.
+    pub fn set_row_height(&mut self, row: usize, height: Length, rule: HeightRule) -> Result<&mut Self> {
+        let pr = self.row_pr(row)?;
+        pr.choice.retain(|c| !matches!(c, CT_TrPr_Choice::TrHeight(_)));
+        pr.choice.push(CT_TrPr_Choice::TrHeight(Box::new(wml::CT_Height {
+            val: Some(twips(height)),
+            h_rule: Some(match rule {
+                HeightRule::AtLeast => wml::ST_HeightRule::AtLeast,
+                HeightRule::Exact => wml::ST_HeightRule::Exact,
+            }),
+            ..Default::default()
+        })));
+        Ok(self)
+    }
+
+    /// Prevents a row from breaking across pages.
+    pub fn set_cant_split(&mut self, row: usize, value: bool) -> Result<&mut Self> {
+        let pr = self.row_pr(row)?;
+        pr.choice.retain(|c| !matches!(c, CT_TrPr_Choice::CantSplit(_)));
+        if value {
+            pr.choice.push(CT_TrPr_Choice::CantSplit(on()));
+        }
+        Ok(self)
+    }
+
+    /// Marks the first `count` rows as header rows repeated on each page.
+    pub fn set_header_rows(&mut self, count: usize) -> Result<&mut Self> {
+        let rows = self.row_count();
+        for row in 0..rows {
+            self.set_header_row(row, row < count)?;
+        }
+        Ok(self)
+    }
+}
+
+impl CellMut<'_> {
+    /// Sets the borders of the cell (the inside borders are ignored).
+    pub fn set_borders(&mut self, borders: &TableBorders) -> Result<&mut Self> {
+        let b = TableBorders {
+            inside_horizontal: None,
+            inside_vertical: None,
+            ..borders.clone()
+        };
+        self.c.tc_pr.get_or_insert_with(Default::default).tc_borders = Some(Box::new(b.to_cell()?));
+        Ok(self)
+    }
+
+    /// Sets the margins of the cell.
+    pub fn set_margins(&mut self, margins: &CellMargins) -> &mut Self {
+        let m = cell_margins(margins);
+        self.c.tc_pr.get_or_insert_with(Default::default).tc_mar = Some(Box::new(wml::CT_TcMar {
+            top: m.top,
+            left: m.left,
+            bottom: m.bottom,
+            right: m.right,
+            ..Default::default()
+        }));
+        self
+    }
+
+    /// Appends a nested table with `rows` × `cols` empty cells filling the
+    /// cell width. The cell keeps a paragraph after the table, as required.
+    pub fn add_table(&mut self, rows: usize, cols: usize) -> Result<TableMut<'_>> {
+        if rows == 0 || cols == 0 {
+            return Err(Error::InvalidArgument(
+                "a table needs at least one row and one column".into(),
+            ));
+        }
+        let style = self.shared.resolve_style("TableGrid")?;
+        let width = self
+            .c
+            .tc_pr
+            .as_deref()
+            .and_then(|p| p.tc_w.as_deref())
+            .and_then(|w| match (&w.w, w.type_) {
+                (
+                    Some(ST_MeasurementOrPercent::DecimalNumberOrPercent(
+                        wml::ST_DecimalNumberOrPercent::UnqualifiedPercentage(v),
+                    )),
+                    Some(ST_TblWidth::Dxa),
+                ) => Some(Length::twips(*v)),
+                _ => None,
+            })
+            .map(|w| w - Length::twips(216))
+            .filter(|w| w.as_emu() > 0)
+            .unwrap_or(Length::inches(2.0));
+        let table = new_table(rows, cols, &style, width);
+        // A cell must end with a paragraph. A fresh cell's empty paragraph
+        // follows the table; otherwise the table is appended with a new one.
+        let fresh =
+            matches!(self.c.block_level_elts.as_slice(), [EG_BlockLevelElts::P(p)] if p.p_content.is_empty());
+        let at = if fresh {
+            0
+        } else {
+            self.c.block_level_elts.push(EG_BlockLevelElts::P(Box::default()));
+            self.c.block_level_elts.len() - 1
+        };
+        self.c
+            .block_level_elts
+            .insert(at, EG_BlockLevelElts::Tbl(Box::new(table)));
+        let EG_BlockLevelElts::Tbl(t) = &mut self.c.block_level_elts[at] else {
+            unreachable!("a table was just inserted")
+        };
+        Ok(TableMut::new(t, self.shared, self.part.clone()))
+    }
+}
+
+impl<'a> Table<'a> {
+    fn props(&self) -> Option<&'a wml::CT_TblPr> {
+        self.t.tbl_pr.as_deref()
+    }
+
+    /// Borders applied directly to the table.
+    pub fn borders(&self) -> Option<TableBorders> {
+        Some(TableBorders::from_table(self.props()?.tbl_borders.as_deref()?))
+    }
+
+    /// Alignment between the margins.
+    pub fn alignment(&self) -> Option<TableAlignment> {
+        Some(match self.props()?.jc.as_deref()?.val? {
+            wml::ST_JcTable::Center => TableAlignment::Center,
+            wml::ST_JcTable::Right | wml::ST_JcTable::End => TableAlignment::Right,
+            wml::ST_JcTable::Left | wml::ST_JcTable::Start => TableAlignment::Left,
+        })
+    }
+
+    /// Layout algorithm.
+    pub fn layout(&self) -> Option<TableLayout> {
+        Some(match self.props()?.tbl_layout.as_deref()?.type_? {
+            wml::ST_TblLayoutType::Fixed => TableLayout::Fixed,
+            wml::ST_TblLayoutType::Autofit => TableLayout::Autofit,
+        })
+    }
+}
+
+impl TableRow<'_> {
+    /// Height of the row, when specified.
+    pub fn height(&self) -> Option<(Length, HeightRule)> {
+        self.r.tr_pr.as_deref()?.choice.iter().find_map(|c| match c {
+            CT_TrPr_Choice::TrHeight(h) => Some((
+                h.val.as_ref().and_then(crate::util::twips_value)?,
+                match h.h_rule {
+                    Some(wml::ST_HeightRule::Exact) => HeightRule::Exact,
+                    _ => HeightRule::AtLeast,
+                },
+            )),
+            _ => None,
+        })
+    }
+
+    /// Whether the row may not break across pages.
+    pub fn cant_split(&self) -> bool {
+        self.r.tr_pr.as_deref().is_some_and(|p| {
+            p.choice
+                .iter()
+                .any(|c| matches!(c, CT_TrPr_Choice::CantSplit(v) if crate::util::on_off_value(v)))
+        })
     }
 }
 
