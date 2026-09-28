@@ -140,6 +140,7 @@ impl Presentation {
                     part: lp,
                     master: master.clone(),
                     data,
+                    dirty: false,
                 });
             }
         }
@@ -198,6 +199,16 @@ impl Presentation {
 
     /// Writes every modified typed part back into the package.
     pub fn flush(&mut self) -> Result<()> {
+        for layout in self.layouts.iter_mut().filter(|l| l.dirty) {
+            write_part(
+                &mut self.package,
+                &layout.part,
+                ct::PML_SLIDE_LAYOUT,
+                &pml::elements::SLD_LAYOUT,
+                &layout.data,
+            )?;
+            layout.dirty = false;
+        }
         for slide in &mut self.slides {
             if slide.dirty {
                 let ct = self
@@ -467,6 +478,8 @@ impl Presentation {
             notes: None,
             dirty: true,
         });
+        let previous = self.slides.len().checked_sub(2).map(|i| self.slides[i].id);
+        self.sections_insert_slide(previous, id);
         self.dirty = true;
         let index = self.slides.len() - 1;
         Ok(SlideMut { pres: self, index })
@@ -490,12 +503,15 @@ impl Presentation {
             removed.push(notes.part.clone());
         }
         self.remove_parts_and_orphans(removed);
+        self.sections_remove_slide(slide.id);
+        self.scrub_dangling_links();
+        self.remove_from_custom_shows();
         self.dirty = true;
         Ok(())
     }
 
     /// Removes parts, then every part that is no longer the target of any relationship.
-    fn remove_parts_and_orphans(&mut self, parts: Vec<PartName>) {
+    pub(crate) fn remove_parts_and_orphans(&mut self, parts: Vec<PartName>) {
         let explicit: HashSet<PartName> = parts.iter().cloned().collect();
         let mut queue = parts;
         while let Some(name) = queue.pop() {
@@ -520,7 +536,7 @@ impl Presentation {
         }
     }
 
-    fn is_referenced(&self, target: &PartName) -> bool {
+    pub(crate) fn is_referenced(&self, target: &PartName) -> bool {
         let resolves = |source: Option<&PartName>, rels: &openxml_opc::Relationships| {
             rels.iter()
                 .filter(|r| !r.is_external())
@@ -543,7 +559,11 @@ impl Presentation {
             )));
         }
         let slide = self.slides.remove(from);
+        let id = slide.id;
         self.slides.insert(to, slide);
+        self.sections_remove_slide(id);
+        let previous = to.checked_sub(1).map(|i| self.slides[i].id);
+        self.sections_insert_slide(previous, id);
         if let Some(list) = self.presentation.sld_id_lst.as_mut() {
             let order: Vec<u32> = self.slides.iter().map(|s| s.id).collect();
             list.sld_id.sort_by_key(|e| {

@@ -105,6 +105,29 @@ impl PlaceholderKind {
         }
     }
 
+    /// The `type` attribute value (`None` for the default, generic content).
+    pub(crate) fn to_pml(self) -> Option<pml::ST_PlaceholderType> {
+        use pml::ST_PlaceholderType as T;
+        Some(match self {
+            PlaceholderKind::Object => return None,
+            PlaceholderKind::Title => T::Title,
+            PlaceholderKind::CenteredTitle => T::CtrTitle,
+            PlaceholderKind::Subtitle => T::SubTitle,
+            PlaceholderKind::Body => T::Body,
+            PlaceholderKind::Chart => T::Chart,
+            PlaceholderKind::Table => T::Tbl,
+            PlaceholderKind::ClipArt => T::ClipArt,
+            PlaceholderKind::Diagram => T::Dgm,
+            PlaceholderKind::Media => T::Media,
+            PlaceholderKind::SlideImage => T::SldImg,
+            PlaceholderKind::Picture => T::Pic,
+            PlaceholderKind::Date => T::Dt,
+            PlaceholderKind::Footer => T::Ftr,
+            PlaceholderKind::Header => T::Hdr,
+            PlaceholderKind::SlideNumber => T::SldNum,
+        })
+    }
+
     /// Whether the placeholder is a title.
     pub fn is_title(self) -> bool {
         matches!(self, PlaceholderKind::Title | PlaceholderKind::CenteredTitle)
@@ -534,6 +557,68 @@ pub(crate) fn new_text_box(id: u32, x: Length, y: Length, w: Length, h: Length, 
     }
 }
 
+/// The name PowerPoint gives new shapes of a preset geometry.
+fn preset_name(shape: dml::ST_ShapeType) -> &'static str {
+    use dml::ST_ShapeType as T;
+    match shape {
+        T::Rect => "Rectangle",
+        T::RoundRect => "Rectangle: Rounded Corners",
+        T::Ellipse => "Oval",
+        T::Triangle => "Isosceles Triangle",
+        T::RtTriangle => "Right Triangle",
+        T::Diamond => "Diamond",
+        T::Pentagon | T::HomePlate => "Pentagon",
+        T::Hexagon => "Hexagon",
+        T::Octagon => "Octagon",
+        T::Star5 => "Star: 5 Points",
+        T::RightArrow => "Arrow: Right",
+        T::LeftArrow => "Arrow: Left",
+        T::UpArrow => "Arrow: Up",
+        T::DownArrow => "Arrow: Down",
+        T::Heart => "Heart",
+        T::Cloud => "Cloud",
+        T::WedgeRectCallout => "Speech Bubble: Rectangle",
+        T::Line => "Straight Connector",
+        _ => "Shape",
+    }
+}
+
+/// A preset-geometry shape styled by the theme like PowerPoint's
+/// "Insert > Shapes": accent 1 fill, darker outline, light centred text.
+pub(crate) fn new_auto_shape(
+    id: u32,
+    geometry: dml::ST_ShapeType,
+    x: Length,
+    y: Length,
+    w: Length,
+    h: Length,
+) -> pml::CT_Shape {
+    let name = format!("{} {}", preset_name(geometry), id.saturating_sub(1));
+    let mut sp: pml::CT_Shape = crate::util::fragment(&format!(
+        concat!(
+            r#"<p:sp><p:nvSpPr><p:cNvPr id="{id}" name="{name}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr/>"#,
+            r#"<p:style><a:lnRef idx="2"><a:schemeClr val="accent1"><a:shade val="50000"/></a:schemeClr></a:lnRef>"#,
+            r#"<a:fillRef idx="1"><a:schemeClr val="accent1"/></a:fillRef>"#,
+            r#"<a:effectRef idx="0"><a:schemeClr val="accent1"/></a:effectRef>"#,
+            r#"<a:fontRef idx="minor"><a:schemeClr val="lt1"/></a:fontRef></p:style>"#,
+            r#"<p:txBody><a:bodyPr rtlCol="0" anchor="ctr"/><a:lstStyle/>"#,
+            r#"<a:p><a:pPr algn="ctr"/><a:endParaRPr lang="en-US"/></a:p></p:txBody></p:sp>"#
+        ),
+        id = id,
+        name = crate::util::xml_escape(&name),
+    ));
+    sp.sp_pr = Some(Box::new(dml::CT_ShapeProperties {
+        xfrm: Some(Box::new(transform(x, y, w, h))),
+        geometry: Some(dml::EG_Geometry::PrstGeom(Box::new(dml::CT_PresetGeometry2D {
+            prst: Some(geometry),
+            av_lst: Some(Box::default()),
+            ..Default::default()
+        }))),
+        ..Default::default()
+    }));
+    sp
+}
+
 /// An empty slide placeholder that inherits everything from `layout_sp`.
 pub(crate) fn placeholder_from_layout(layout_sp: &pml::CT_Shape, id: u32) -> Option<pml::CT_Shape> {
     let ph = layout_sp.nv_sp_pr.as_ref()?.nv_pr.as_ref()?.ph.as_deref()?;
@@ -575,7 +660,7 @@ pub(crate) fn placeholder_from_layout(layout_sp: &pml::CT_Shape, id: u32) -> Opt
 /// Formatting methods apply to the text the shape currently holds; call
 /// [`ShapeMut::set_text`] first when replacing text.
 pub struct ShapeMut<'a> {
-    shape: &'a mut pml::CT_Shape,
+    pub(crate) shape: &'a mut pml::CT_Shape,
 }
 
 impl<'a> ShapeMut<'a> {
@@ -610,13 +695,14 @@ impl<'a> ShapeMut<'a> {
             .unwrap_or_default()
     }
 
-    fn body(&mut self) -> &mut dml::CT_TextBody {
+    pub(crate) fn body(&mut self) -> &mut dml::CT_TextBody {
         self.shape
             .tx_body
             .get_or_insert_with(|| Box::new(text::text_body(Vec::new())))
     }
 
-    /// Replaces the text (one paragraph per line), keeping the formatting of the first run.
+    /// Replaces the text (one paragraph per line), keeping the formatting of
+    /// the first run and of the first paragraph.
     pub fn set_text(&mut self, text: &str) -> &mut Self {
         let body = self.body();
         let template = body.p.iter().find_map(|p| {
@@ -625,9 +711,16 @@ impl<'a> ShapeMut<'a> {
                 _ => None,
             })
         });
+        // Paragraph formatting (alignment, bullets, spacing) of the first paragraph is kept too.
+        let paragraph_props = body.p.first().and_then(|p| p.p_pr.clone());
         text::set_paragraphs(body, text::paragraphs_from_text(text));
         if let Some(props) = template {
             text::for_each_run_props(body, |p| *p = (*props).clone());
+        }
+        if let Some(pp) = paragraph_props {
+            for p in &mut body.p {
+                p.p_pr = Some(pp.clone());
+            }
         }
         self
     }
@@ -685,7 +778,7 @@ impl<'a> ShapeMut<'a> {
         self
     }
 
-    fn sp_pr(&mut self) -> &mut dml::CT_ShapeProperties {
+    pub(crate) fn sp_pr(&mut self) -> &mut dml::CT_ShapeProperties {
         self.shape.sp_pr.get_or_insert_with(Box::default)
     }
 
@@ -775,8 +868,10 @@ mod tests {
         assert!(PlaceholderKind::Subtitle.holds_text());
         assert!(!PlaceholderKind::Picture.holds_text());
         for t in pml::ST_PlaceholderType::ALL {
-            let _ = PlaceholderKind::from_pml(Some(*t));
+            let kind = PlaceholderKind::from_pml(Some(*t));
+            assert_eq!(PlaceholderKind::from_pml(kind.to_pml()), kind);
         }
+        assert_eq!(PlaceholderKind::Object.to_pml(), None);
     }
 
     #[test]
