@@ -1,0 +1,8 @@
+/target
+.DS_Store
+# Large reference material stays local; the machine-readable schemas are vendored under /schemas.
+/docs/*.pdf
+/docs/*.zip
+# Scratch output of tests and examples.
+/out
+*.tmp

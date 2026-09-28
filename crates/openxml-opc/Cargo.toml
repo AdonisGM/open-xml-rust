@@ -1,0 +1,15 @@
+[package]
+name = "openxml-opc"
+description = "Open Packaging Conventions (ECMA-376 Part 2) for Office Open XML packages"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+openxml-xml = { workspace = true }
+zip = { workspace = true }
+
+[lints]
+workspace = true

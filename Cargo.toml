@@ -1,0 +1,26 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/openxml-xml",
+    "crates/openxml-opc",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/open-xml-rust/open-xml-rust"
+
+[workspace.dependencies]
+openxml-xml = { path = "crates/openxml-xml" }
+openxml-opc = { path = "crates/openxml-opc" }
+quick-xml = "0.42"
+zip = { version = "8.6", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+roxmltree = "0.21"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[profile.dev.package."*"]
+opt-level = 1
