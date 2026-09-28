@@ -85,7 +85,7 @@ pub struct CT_Property {
     pub name: Option<String>,
     /// `linkTarget` attribute.
     pub link_target: Option<String>,
-    /// Child elements of choice [`CT_Property_Choice`].
+    /// Child elements of choice [`CT_Property_Choice`](crate::shared_custom_properties::CT_Property_Choice).
     pub choice: Option<CT_Property_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,

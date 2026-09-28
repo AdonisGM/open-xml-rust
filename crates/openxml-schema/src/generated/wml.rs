@@ -6975,7 +6975,7 @@ impl XmlWrite for CT_AbstractNum {
 /// * `w:altChunk` — Anchor for Imported External Content (§17.17.2.1)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_AltChunk {
-    /// `r:id` — Relationship to Part. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a specified part containing alternate content for import.
+    /// `r:id` — Relationship to Part. Specifies the relationship ID to a specified part containing alternate content for import.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `w:altChunkPr` — External Content Import Properties (§17.17.2.2).
     pub alt_chunk_pr: Option<Box<CT_AltChunkPr>>,
@@ -7452,7 +7452,7 @@ impl XmlWrite for CT_Base64Binary {
 pub struct CT_BdoContentRun {
     /// `w:val` — Direction of Override. Specifies the direction of the override being applied.
     pub val: Option<ST_Direction>,
-    /// Child elements of choice [`EG_PContent`].
+    /// Child elements of choice [`EG_PContent`](crate::wml::EG_PContent).
     pub p_content: Vec<EG_PContent>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -7553,7 +7553,7 @@ impl XmlWrite for CT_BdoContentRun {
 /// * `w:docPartBody` — Contents of Glossary Document Entry (§17.12.6)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Body {
-    /// Child elements of choice [`EG_BlockLevelElts`].
+    /// Child elements of choice [`EG_BlockLevelElts`](crate::wml::EG_BlockLevelElts).
     pub block_level_elts: Vec<EG_BlockLevelElts>,
     /// `w:sectPr` — Document Final Section Properties (§17.6.17).
     pub sect_pr: Option<Box<CT_SectPr>>,
@@ -7981,11 +7981,11 @@ pub struct CT_BottomPageBorder {
     pub shadow: Option<crate::shared_types::ST_OnOff>,
     /// `w:frame` — Create Frame Effect. Specifies whether the specified border should be modified to create a frame effect by reversing the border's appearance from the edge nearest the text to the edge furthest from the text.
     pub frame: Option<crate::shared_types::ST_OnOff>,
-    /// `r:id` — Custom Defined Border Relationship Reference. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the relationship which contains the custom border image for the parent element.
+    /// `r:id` — Custom Defined Border Relationship Reference. Specifies the relationship ID for the relationship which contains the custom border image for the parent element.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
-    /// `r:bottomLeft` — Custom Defined Bottom Left Border Relationship Reference. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the relationship which contains the custom bottom left border image for the parent element.
+    /// `r:bottomLeft` — Custom Defined Bottom Left Border Relationship Reference. Specifies the relationship ID for the relationship which contains the custom bottom left border image for the parent element.
     pub r_bottom_left: Option<crate::shared_relationship_reference::ST_RelationshipId>,
-    /// `r:bottomRight` — Custom Defined Bottom Right Border Relationship Reference. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the relationship which contains the custom bottom right border image for the parent element.
+    /// `r:bottomRight` — Custom Defined Bottom Right Border Relationship Reference. Specifies the relationship ID for the relationship which contains the custom bottom right border image for the parent element.
     pub r_bottom_right: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -9171,7 +9171,7 @@ pub struct CT_Comment {
     pub date: Option<ST_DateTime>,
     /// `w:initials` — Initials of Comment Author. Specifies the initials of the author of the current comment.
     pub initials: Option<crate::shared_types::ST_String>,
-    /// Child elements of choice [`EG_BlockLevelElts`].
+    /// Child elements of choice [`EG_BlockLevelElts`](crate::wml::EG_BlockLevelElts).
     pub block_level_elts: Vec<EG_BlockLevelElts>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -10484,7 +10484,7 @@ pub struct CT_CustomXmlBlock {
     pub element: Option<crate::shared_types::ST_XmlName>,
     /// `w:customXmlPr` — Custom XML Element Properties (§17.5.1.7).
     pub custom_xml_pr: Option<Box<CT_CustomXmlPr>>,
-    /// Child elements of choice [`EG_ContentBlockContent`].
+    /// Child elements of choice [`EG_ContentBlockContent`](crate::wml::EG_ContentBlockContent).
     pub content_block_content: Vec<EG_ContentBlockContent>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -10605,7 +10605,7 @@ pub struct CT_CustomXmlCell {
     pub element: Option<crate::shared_types::ST_XmlName>,
     /// `w:customXmlPr` — Custom XML Element Properties (§17.5.1.7).
     pub custom_xml_pr: Option<Box<CT_CustomXmlPr>>,
-    /// Child elements of choice [`EG_ContentCellContent`].
+    /// Child elements of choice [`EG_ContentCellContent`](crate::wml::EG_ContentCellContent).
     pub content_cell_content: Vec<EG_ContentCellContent>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -10800,7 +10800,7 @@ pub struct CT_CustomXmlRow {
     pub element: Option<crate::shared_types::ST_XmlName>,
     /// `w:customXmlPr` — Custom XML Element Properties (§17.5.1.7).
     pub custom_xml_pr: Option<Box<CT_CustomXmlPr>>,
-    /// Child elements of choice [`EG_ContentRowContent`].
+    /// Child elements of choice [`EG_ContentRowContent`](crate::wml::EG_ContentRowContent).
     pub content_row_content: Vec<EG_ContentRowContent>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -10920,7 +10920,7 @@ pub struct CT_CustomXmlRun {
     pub element: Option<crate::shared_types::ST_XmlName>,
     /// `w:customXmlPr` — Custom XML Element Properties (§17.5.1.7).
     pub custom_xml_pr: Option<Box<CT_CustomXmlPr>>,
-    /// Child elements of choice [`EG_PContent`].
+    /// Child elements of choice [`EG_PContent`](crate::wml::EG_PContent).
     pub p_content: Vec<EG_PContent>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -11248,7 +11248,7 @@ impl XmlWrite for CT_DecimalNumberOrPrecent {
 pub struct CT_DirContentRun {
     /// `w:val` — Direction of Embedding. Specifies the direction of the embedding being applied.
     pub val: Option<ST_Direction>,
-    /// Child elements of choice [`EG_PContent`].
+    /// Child elements of choice [`EG_PContent`](crate::wml::EG_PContent).
     pub p_content: Vec<EG_PContent>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -13125,7 +13125,7 @@ impl XmlWrite for CT_DocumentBase {
 /// * `w:drawing` — DrawingML Object (§17.3.3.9)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Drawing {
-    /// Child elements of choice [`CT_Drawing_Choice`].
+    /// Child elements of choice [`CT_Drawing_Choice`](crate::wml::CT_Drawing_Choice).
     pub choice: Vec<CT_Drawing_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -13715,7 +13715,7 @@ impl XmlWrite for CT_Endnotes {
 /// * `w:checkBox` — Checkbox Form Field Properties (§17.16.7)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_FFCheckBox {
-    /// Child elements of choice [`CT_FFCheckBox_Choice`].
+    /// Child elements of choice [`CT_FFCheckBox_Choice`](crate::wml::CT_FFCheckBox_Choice).
     pub choice: Option<CT_FFCheckBox_Choice>,
     /// `w:default` — Default Checkbox Form Field State (§17.16.12).
     pub default: Option<Box<CT_OnOff>>,
@@ -13890,7 +13890,7 @@ impl XmlWrite for CT_FFDDList {
 /// * `w:ffData` — Form Field Properties (§17.16.17)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_FFData {
-    /// Child elements of choice [`CT_FFData_Choice`].
+    /// Child elements of choice [`CT_FFData_Choice`](crate::wml::CT_FFData_Choice).
     pub choice: Vec<CT_FFData_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -14351,7 +14351,7 @@ pub struct CT_FldChar {
     pub fld_lock: Option<crate::shared_types::ST_OnOff>,
     /// `w:dirty` — Field Result Invalidated. Specifies that this field has been flagged by an application to indicate that its current results are no longer correct (stale) due to other modifications made to the document, and these contents should be updated before they are displayed if this functionality is supported by the next processing application.
     pub dirty: Option<crate::shared_types::ST_OnOff>,
-    /// Child elements of choice [`CT_FldChar_Choice`].
+    /// Child elements of choice [`CT_FldChar_Choice`](crate::wml::CT_FldChar_Choice).
     pub choice: Option<CT_FldChar_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -14698,7 +14698,7 @@ impl XmlWrite for CT_FontFamily {
 /// * `w:embedRegular` — Regular Font Style Embedding (§17.8.3.6)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_FontRel {
-    /// `r:id` — Relationship to Part. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a specified part. Required by the schema.
+    /// `r:id` — Relationship to Part. Specifies the relationship ID to a specified part. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `w:fontKey` — Embedded Font Obfuscation Key. Specifies the key which was used to obfuscate this embedded font.
     pub font_key: Option<crate::shared_types::ST_Guid>,
@@ -15586,7 +15586,7 @@ pub struct CT_Frameset {
     pub frame_layout: Option<Box<CT_FrameLayout>>,
     /// `w:title` — Frame or Frameset Title (§17.15.2.42).
     pub title: Option<Box<CT_String>>,
-    /// Child elements of choice [`CT_Frameset_Choice`].
+    /// Child elements of choice [`CT_Frameset_Choice`](crate::wml::CT_Frameset_Choice).
     pub choice: Vec<CT_Frameset_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -15913,7 +15913,7 @@ pub struct CT_FtnEdn {
     pub type_: Option<ST_FtnEdn>,
     /// `w:id` — Footnote/Endnote ID. Specifies a unique ID which shall be used to match the contents of a footnote or endnote to the associated footnote/endnote reference mark in the document using the footnoteRef or endnoteRef element, as appropriate. Required by the schema.
     pub id: Option<ST_DecimalNumber>,
-    /// Child elements of choice [`EG_BlockLevelElts`].
+    /// Child elements of choice [`EG_BlockLevelElts`](crate::wml::EG_BlockLevelElts).
     pub block_level_elts: Vec<EG_BlockLevelElts>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -16455,7 +16455,7 @@ impl XmlWrite for CT_HMerge {
 /// * `w:hdr` — Header (§17.10.4)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_HdrFtr {
-    /// Child elements of choice [`EG_BlockLevelElts`].
+    /// Child elements of choice [`EG_BlockLevelElts`](crate::wml::EG_BlockLevelElts).
     pub block_level_elts: Vec<EG_BlockLevelElts>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -16535,7 +16535,7 @@ impl XmlWrite for CT_HdrFtr {
 
 /// Footer Reference (ECMA-376 Part 1 §17.10.2).
 ///
-/// This element specifies a single footer which shall be associated with the current section in the document. This footer shall be referenced via the id attribute, which specifies an explicit relationship to the appropriate Footer part in the WordprocessingML package. If the relationship type of the relationship specified by this element is not http://purl.oclc.org/ooxml/officeDocument/relationships/footer, is not present, or does not have a TargetMode attribute value of Internal, then the document shall be considered non-conformant.
+/// This element specifies a single footer which shall be associated with the current section in the document. This footer shall be referenced via the id attribute, which specifies an explicit relationship to the appropriate Footer part in the WordprocessingML package. If the relationship type of the relationship specified by this element is not <http://purl.oclc.org/ooxml/officeDocument/relationships/footer>, is not present, or does not have a TargetMode attribute value of Internal, then the document shall be considered non-conformant.
 ///
 /// Schema type `CT_HdrFtrRef`, used by:
 ///
@@ -16543,7 +16543,7 @@ impl XmlWrite for CT_HdrFtr {
 /// * `w:headerReference` — Header Reference (§17.10.5)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_HdrFtrRef {
-    /// `r:id` — Relationship to Part. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a specified part. Required by the schema.
+    /// `r:id` — Relationship to Part. Specifies the relationship ID to a specified part. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `w:type` — Header or Footer Type. Specifies the type of header or footer specified by the target relationship ID. Required by the schema.
     pub type_: Option<ST_HdrFtr>,
@@ -16846,9 +16846,9 @@ pub struct CT_Hyperlink {
     pub history: Option<crate::shared_types::ST_OnOff>,
     /// `w:anchor` — Hyperlink Anchor. Specifies the name of a bookmark in the current document which shall be the target of this hyperlink.
     pub anchor: Option<crate::shared_types::ST_String>,
-    /// `r:id` — Hyperlink Target. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the ID of the relationship whose target shall be used as the target for this hyperlink.
+    /// `r:id` — Hyperlink Target. Specifies the ID of the relationship whose target shall be used as the target for this hyperlink.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
-    /// Child elements of choice [`EG_PContent`].
+    /// Child elements of choice [`EG_PContent`](crate::wml::EG_PContent).
     pub p_content: Vec<EG_PContent>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -19046,7 +19046,7 @@ pub struct CT_MathCtrlIns {
     pub author: Option<crate::shared_types::ST_String>,
     /// `w:date` — Annotation Date. Specifies the date information for an annotation within a WordprocessingML document.
     pub date: Option<ST_DateTime>,
-    /// Child elements of choice [`CT_MathCtrlIns_Choice`].
+    /// Child elements of choice [`CT_MathCtrlIns_Choice`](crate::wml::CT_MathCtrlIns_Choice).
     pub choice: Option<CT_MathCtrlIns_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -19523,7 +19523,7 @@ impl XmlWrite for CT_NumLvl {
 pub struct CT_NumPicBullet {
     /// `w:numPicBulletId` — Picture Numbering Symbol ID. Specifies a unique ID for this picture bullet definition which shall be used to reference this picture bullet from a numbering level definition. Required by the schema.
     pub num_pic_bullet_id: Option<ST_DecimalNumber>,
-    /// Child elements of choice [`CT_NumPicBullet_Choice`].
+    /// Child elements of choice [`CT_NumPicBullet_Choice`](crate::wml::CT_NumPicBullet_Choice).
     pub choice: Option<CT_NumPicBullet_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -19860,7 +19860,7 @@ pub struct CT_Object {
     pub any: Vec<RawElement>,
     /// `w:drawing` — DrawingML Object (§17.3.3.9).
     pub drawing: Option<Box<CT_Drawing>>,
-    /// Child elements of choice [`CT_Object_Choice`].
+    /// Child elements of choice [`CT_Object_Choice`](crate::wml::CT_Object_Choice).
     pub choice: Option<CT_Object_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -20715,7 +20715,7 @@ pub struct CT_P {
     pub rsid_r_default: Option<ST_LongHexNumber>,
     /// `w:pPr` — Paragraph Properties (§17.3.1.26).
     pub p_pr: Option<Box<CT_PPr>>,
-    /// Child elements of choice [`EG_PContent`].
+    /// Child elements of choice [`EG_PContent`](crate::wml::EG_PContent).
     pub p_content: Vec<EG_PContent>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -23425,7 +23425,7 @@ pub struct CT_ParaRPr {
     pub move_from: Option<Box<CT_TrackChange>>,
     /// `w:moveTo` — Move Destination Paragraph (§17.13.5.26).
     pub move_to: Option<Box<CT_TrackChange>>,
-    /// Child elements of choice [`EG_RPrBase`].
+    /// Child elements of choice [`EG_RPrBase`](crate::wml::EG_RPrBase).
     pub r_pr_base: Vec<EG_RPrBase>,
     /// `w:rPrChange` — Revision Information for Run Properties on the Paragraph Mark (§17.13.5.30).
     pub r_pr_change: Option<Box<CT_ParaRPrChange>>,
@@ -23678,7 +23678,7 @@ pub struct CT_ParaRPrOriginal {
     pub move_from: Option<Box<CT_TrackChange>>,
     /// `w:moveTo` — Move Destination Paragraph (§17.13.5.26).
     pub move_to: Option<Box<CT_TrackChange>>,
-    /// Child elements of choice [`EG_RPrBase`].
+    /// Child elements of choice [`EG_RPrBase`](crate::wml::EG_RPrBase).
     pub r_pr_base: Vec<EG_RPrBase>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -24340,7 +24340,7 @@ pub struct CT_R {
     pub rsid_r: Option<ST_LongHexNumber>,
     /// `w:rPr` — Run Properties (§17.3.2.28).
     pub r_pr: Option<Box<CT_RPr>>,
-    /// Child elements of choice [`EG_RunInnerContent`].
+    /// Child elements of choice [`EG_RunInnerContent`](crate::wml::EG_RunInnerContent).
     pub run_inner_content: Vec<EG_RunInnerContent>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -24472,7 +24472,7 @@ impl XmlWrite for CT_R {
 /// * `w:rPr` — Numbering Symbol Run Properties (§17.9.24)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_RPr {
-    /// Child elements of choice [`EG_RPrBase`].
+    /// Child elements of choice [`EG_RPrBase`](crate::wml::EG_RPrBase).
     pub r_pr_base: Vec<EG_RPrBase>,
     /// `w:rPrChange` — Revision Information for Run Properties (§17.13.5.31).
     pub r_pr_change: Option<Box<CT_RPrChange>>,
@@ -24727,7 +24727,7 @@ impl XmlWrite for CT_RPrDefault {
 /// * `w:rPr` — Previous Run Properties (§17.3.2.27)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_RPrOriginal {
-    /// Child elements of choice [`EG_RPrBase`].
+    /// Child elements of choice [`EG_RPrBase`](crate::wml::EG_RPrBase).
     pub r_pr_base: Vec<EG_RPrBase>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -25058,7 +25058,7 @@ impl XmlWrite for CT_Recipients {
 /// * `w:subDoc` — Anchor for Subdocument Location (§17.17.1.1)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Rel {
-    /// `r:id` — Relationship to Part. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a specified part. Required by the schema.
+    /// `r:id` — Relationship to Part. Specifies the relationship ID to a specified part. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -25122,7 +25122,7 @@ pub struct CT_Row {
     pub tbl_pr_ex: Option<Box<CT_TblPrEx>>,
     /// `w:trPr` — Table Row Properties (§17.4.81).
     pub tr_pr: Option<Box<CT_TrPr>>,
-    /// Child elements of choice [`EG_ContentCellContent`].
+    /// Child elements of choice [`EG_ContentCellContent`](crate::wml::EG_ContentCellContent).
     pub content_cell_content: Vec<EG_ContentCellContent>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -25401,7 +25401,7 @@ impl XmlWrite for CT_RubyAlign {
 /// * `w:rubyBase` — Phonetic Guide Base Text (§17.3.3.27)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_RubyContent {
-    /// Child elements of choice [`EG_RubyContent`].
+    /// Child elements of choice [`EG_RubyContent`](crate::wml::EG_RubyContent).
     pub ruby_content: Vec<EG_RubyContent>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -25620,7 +25620,7 @@ pub struct CT_RunTrackChange {
     pub author: Option<crate::shared_types::ST_String>,
     /// `w:date` — Annotation Date. Specifies the date information for an annotation within a WordprocessingML document.
     pub date: Option<ST_DateTime>,
-    /// Child elements of choice [`CT_RunTrackChange_Choice`].
+    /// Child elements of choice [`CT_RunTrackChange_Choice`](crate::wml::CT_RunTrackChange_Choice).
     pub choice: Vec<CT_RunTrackChange_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -25752,7 +25752,7 @@ impl XmlWrite for CT_RunTrackChange {
 /// * `w:saveThroughXslt` — Custom XSL Transform To Use When Saving As XML File (§17.15.1.76)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_SaveThroughXslt {
-    /// `r:id` — XSL Transformation Location. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies an explicit relationship to the location of the XSL Transformation which shall be applied.
+    /// `r:id` — XSL Transformation Location. Specifies an explicit relationship to the location of the XSL Transformation which shall be applied.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `w:solutionID` — Local Identifier for XSL Transform. Specifies a string identifier that can be used to locate the XSL transform to be applied.
     pub solution_id: Option<crate::shared_types::ST_String>,
@@ -26058,7 +26058,7 @@ impl XmlWrite for CT_SdtComboBox {
 /// * `w:sdtContent` — Block-Level Structured Document Tag Content (§17.5.2.34)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_SdtContentBlock {
-    /// Child elements of choice [`EG_ContentBlockContent`].
+    /// Child elements of choice [`EG_ContentBlockContent`](crate::wml::EG_ContentBlockContent).
     pub content_block_content: Vec<EG_ContentBlockContent>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -26144,7 +26144,7 @@ impl XmlWrite for CT_SdtContentBlock {
 /// * `w:sdtContent` — Cell-Level Structured Document Tag Content (§17.5.2.33)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_SdtContentCell {
-    /// Child elements of choice [`EG_ContentCellContent`].
+    /// Child elements of choice [`EG_ContentCellContent`](crate::wml::EG_ContentCellContent).
     pub content_cell_content: Vec<EG_ContentCellContent>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -26229,7 +26229,7 @@ impl XmlWrite for CT_SdtContentCell {
 /// * `w:sdtContent` — Row-Level Structured Document Tag Content (§17.5.2.35)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_SdtContentRow {
-    /// Child elements of choice [`EG_ContentRowContent`].
+    /// Child elements of choice [`EG_ContentRowContent`](crate::wml::EG_ContentRowContent).
     pub content_row_content: Vec<EG_ContentRowContent>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -26314,7 +26314,7 @@ impl XmlWrite for CT_SdtContentRow {
 /// * `w:sdtContent` — Inline-Level Structured Document Tag Content (§17.5.2.36)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_SdtContentRun {
-    /// Child elements of choice [`EG_PContent`].
+    /// Child elements of choice [`EG_PContent`](crate::wml::EG_PContent).
     pub p_content: Vec<EG_PContent>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -26873,7 +26873,7 @@ pub struct CT_SdtPr {
     pub label: Option<Box<CT_DecimalNumber>>,
     /// `w:tabIndex` — Structured Document Tag Navigation Order Index (§17.5.2.41).
     pub tab_index: Option<Box<CT_UnsignedDecimalNumber>>,
-    /// Child elements of choice [`CT_SdtPr_Choice`].
+    /// Child elements of choice [`CT_SdtPr_Choice`](crate::wml::CT_SdtPr_Choice).
     pub choice: Option<CT_SdtPr_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -27307,7 +27307,7 @@ pub struct CT_SectPr {
     pub rsid_r: Option<ST_LongHexNumber>,
     /// `w:rsidSect` — Section Properties Revision ID. Specifies a unique identifier used to track the editing session when the physical character representing this section mark was last formatted.
     pub rsid_sect: Option<ST_LongHexNumber>,
-    /// Child elements of choice [`EG_HdrFtrReferences`].
+    /// Child elements of choice [`EG_HdrFtrReferences`](crate::wml::EG_HdrFtrReferences).
     pub hdr_ftr_references: Vec<EG_HdrFtrReferences>,
     /// `w:footnotePr` — Section-Wide Footnote Properties (§17.11.11).
     pub footnote_pr: Option<Box<CT_FtnProps>>,
@@ -29896,7 +29896,7 @@ pub struct CT_SimpleField {
     pub dirty: Option<crate::shared_types::ST_OnOff>,
     /// `w:fldData` element.
     pub fld_data: Option<Box<CT_Text>>,
-    /// Child elements of choice [`EG_PContent`].
+    /// Child elements of choice [`EG_PContent`](crate::wml::EG_PContent).
     pub p_content: Vec<EG_PContent>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -30089,7 +30089,7 @@ pub struct CT_SmartTagRun {
     pub element: Option<crate::shared_types::ST_XmlName>,
     /// `w:smartTagPr` — Smart Tag Properties (§17.5.1.10).
     pub smart_tag_pr: Option<Box<CT_SmartTagPr>>,
-    /// Child elements of choice [`EG_PContent`].
+    /// Child elements of choice [`EG_PContent`](crate::wml::EG_PContent).
     pub p_content: Vec<EG_PContent>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -31477,13 +31477,13 @@ impl XmlWrite for CT_TargetScreenSz {
 /// * `w:tbl` — Table (§17.4.37)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Tbl {
-    /// Child elements of choice [`EG_RangeMarkupElements`].
+    /// Child elements of choice [`EG_RangeMarkupElements`](crate::wml::EG_RangeMarkupElements).
     pub range_markup_elements: Vec<EG_RangeMarkupElements>,
     /// `w:tblPr` — Table Properties (§17.4.59).
     pub tbl_pr: Option<Box<CT_TblPr>>,
     /// `w:tblGrid` — Table Grid (§17.4.48).
     pub tbl_grid: Option<Box<CT_TblGrid>>,
-    /// Child elements of choice [`EG_ContentRowContent`].
+    /// Child elements of choice [`EG_ContentRowContent`](crate::wml::EG_ContentRowContent).
     pub content_row_content: Vec<EG_ContentRowContent>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -33966,7 +33966,7 @@ pub struct CT_Tc {
     pub id: Option<crate::shared_types::ST_String>,
     /// `w:tcPr` — Table Cell Properties (§17.4.69).
     pub tc_pr: Option<Box<CT_TcPr>>,
-    /// Child elements of choice [`EG_BlockLevelElts`].
+    /// Child elements of choice [`EG_BlockLevelElts`](crate::wml::EG_BlockLevelElts).
     pub block_level_elts: Vec<EG_BlockLevelElts>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -34417,7 +34417,7 @@ pub struct CT_TcPr {
     pub hide_mark: Option<Box<CT_OnOff>>,
     /// `w:headers` — Header Cells Associated With Table Cell (§17.4.19).
     pub headers: Option<Box<CT_Headers>>,
-    /// Child elements of choice [`EG_CellMarkupElements`].
+    /// Child elements of choice [`EG_CellMarkupElements`](crate::wml::EG_CellMarkupElements).
     pub cell_markup_elements: Option<EG_CellMarkupElements>,
     /// `w:tcPrChange` — Revision Information for Table Cell Properties (§17.13.5.36).
     pub tc_pr_change: Option<Box<CT_TcPrChange>>,
@@ -35007,7 +35007,7 @@ pub struct CT_TcPrInner {
     pub hide_mark: Option<Box<CT_OnOff>>,
     /// `w:headers` — Header Cells Associated With Table Cell (§17.4.19).
     pub headers: Option<Box<CT_Headers>>,
-    /// Child elements of choice [`EG_CellMarkupElements`].
+    /// Child elements of choice [`EG_CellMarkupElements`](crate::wml::EG_CellMarkupElements).
     pub cell_markup_elements: Option<EG_CellMarkupElements>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -35572,7 +35572,7 @@ pub struct CT_TopPageBorder {
     pub shadow: Option<crate::shared_types::ST_OnOff>,
     /// `w:frame` — Create Frame Effect. Specifies whether the specified border should be modified to create a frame effect by reversing the border's appearance from the edge nearest the text to the edge furthest from the text.
     pub frame: Option<crate::shared_types::ST_OnOff>,
-    /// `r:id` — Custom Defined Border Relationship Reference. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the relationship which contains the custom border image for the parent element.
+    /// `r:id` — Custom Defined Border Relationship Reference. Specifies the relationship ID for the relationship which contains the custom border image for the parent element.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `r:topLeft` — Custom Defined Top Left Border Relationship Reference. Namespace: .../officeDocument /2006/relationshi ps Specifies the relationship ID for the relationship which contains the custom top left border image for the parent element.
     pub r_top_left: Option<crate::shared_relationship_reference::ST_RelationshipId>,
@@ -35707,7 +35707,7 @@ impl XmlWrite for CT_TopPageBorder {
 /// * `w:trPr` — Style Table Row Properties (§17.7.6.11)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TrPr {
-    /// Child elements of choice [`CT_TrPr_Choice`].
+    /// Child elements of choice [`CT_TrPr_Choice`](crate::wml::CT_TrPr_Choice).
     pub choice: Vec<CT_TrPr_Choice>,
     /// `w:ins` — Inserted Table Row (§17.13.5.17).
     pub ins: Option<Box<CT_TrackChange>>,
@@ -35817,7 +35817,7 @@ impl XmlWrite for CT_TrPr {
 /// * `w:trPr` — Previous Table Row Properties (§17.4.82)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TrPrBase {
-    /// Child elements of choice [`CT_TrPrBase_Choice`].
+    /// Child elements of choice [`CT_TrPrBase_Choice`](crate::wml::CT_TrPrBase_Choice).
     pub choice: Vec<CT_TrPrBase_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -36341,7 +36341,7 @@ impl XmlWrite for CT_TwipsMeasure {
 /// Schema complex type `CT_TxbxContent`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TxbxContent {
-    /// Child elements of choice [`EG_BlockLevelElts`].
+    /// Child elements of choice [`EG_BlockLevelElts`](crate::wml::EG_BlockLevelElts).
     pub block_level_elts: Vec<EG_BlockLevelElts>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,

@@ -5464,7 +5464,7 @@ impl std::fmt::Display for ST_WebSourceType {
 
 /// XML Data Types (ECMA-376 Part 1 §18.18.93).
 ///
-/// Represents a W3C XML built-in datatype name (http://www.w3.org/TR/xmlschema-2/). The values permitted by this type are the names of the simple datatypes defined by the XMLSchema Library, http://www.w3.org/2001/XML-Schema-datatypes.
+/// Represents a W3C XML built-in datatype name (<http://www.w3.org/TR/xmlschema-2/>). The values permitted by this type are the names of the simple datatypes defined by the XMLSchema Library, <http://www.w3.org/2001/XML-Schema-datatypes>.
 ///
 /// Schema type `ST_XmlDataType`.
 pub type ST_XmlDataType = String;
@@ -7266,7 +7266,7 @@ pub struct CT_CacheSource {
     pub type_: Option<ST_SourceType>,
     /// `connectionId` — Connection Index. Specifies the index to the workbook connection. Default: `0`.
     pub connection_id: Option<u32>,
-    /// Child elements of choice [`CT_CacheSource_Choice`].
+    /// Child elements of choice [`CT_CacheSource_Choice`](crate::sml::CT_CacheSource_Choice).
     pub choice: Option<CT_CacheSource_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -12120,7 +12120,7 @@ impl XmlWrite for CT_Consolidation {
 pub struct CT_Control {
     /// `shapeId` — Shape Id. ID of the drawing shape in the DrawingML part with which this control is associated. Required by the schema.
     pub shape_id: Option<u32>,
-    /// `r:id` — Relationship Id. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps This relationship ID references an Embedded Control Data part which contains control- specific properties and state information about this particular embedded control. Required by the schema.
+    /// `r:id` — Relationship Id. This relationship ID references an Embedded Control Data part which contains control- specific properties and state information about this particular embedded control. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `name` — Control Name. The code name of the control.
     pub name: Option<String>,
@@ -12234,7 +12234,7 @@ pub struct CT_ControlPr {
     pub list_fill_range: Option<ST_Formula>,
     /// `cf` — Image Format. Specifies the image format used to render the object. Default: `pict`.
     pub cf: Option<crate::shared_types::ST_Xstring>,
-    /// `r:id` — Relationship ID for Embedded Control Properties. Namespace: http://purl.oclc.or Specifies the relationship ID for the relationship which contains the properties for this embedded control.
+    /// `r:id` — Relationship ID for Embedded Control Properties. Specifies the relationship ID for the relationship which contains the properties for this embedded control.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `x:anchor` — Object Cell Anchor (§18.3.1.1).
     pub anchor: Option<Box<CT_ObjectAnchor>>,
@@ -12487,7 +12487,7 @@ pub struct CT_CsPageSetup {
     pub vertical_dpi: Option<u32>,
     /// `copies` — Number Of Copies. Number of copies to print. Default: `1`.
     pub copies: Option<u32>,
-    /// `r:id` — Id. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Relationship Id of the devMode printer settings part.
+    /// `r:id` — Id. Relationship Id of the devMode printer settings part.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -13006,7 +13006,7 @@ impl XmlWrite for CT_CustomProperties {
 pub struct CT_CustomProperty {
     /// `name` — Custom Property Name. Name of the custom property The possible values for this attribute are defined by the ST_Xstring simple type (§22.9.2.19). Required by the schema.
     pub name: Option<crate::shared_types::ST_Xstring>,
-    /// `r:id` — Relationship Id. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps This relationship references the binary part containing the specified custom properties. Required by the schema.
+    /// `r:id` — Relationship Id. This relationship references the binary part containing the specified custom properties. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -14348,7 +14348,7 @@ pub struct CT_DataRef {
     pub name: Option<crate::shared_types::ST_Xstring>,
     /// `sheet` — Sheet Name. Sheet name.
     pub sheet: Option<crate::shared_types::ST_Xstring>,
-    /// `r:id` — relationship Id. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Used only when the source range is external to this workbook.
+    /// `r:id` — relationship Id. Used only when the source range is external to this workbook.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -16187,7 +16187,7 @@ impl XmlWrite for CT_DiscretePr {
 /// * `x:drawing` — Drawing (§18.3.1.36)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Drawing {
-    /// `r:id` — Relationship id. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Relationship Id referencing a part containing drawingML definitions for this worksheet. Required by the schema.
+    /// `r:id` — Relationship id. Relationship Id referencing a part containing drawingML definitions for this worksheet. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -16239,7 +16239,7 @@ impl XmlWrite for CT_Drawing {
 /// * `x:drawingHF` — Drawing Reference in Header Footer (§18.3.1.37)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_DrawingHF {
-    /// `r:id` — Relationship ID for Embedded Control Properties. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the relationship to the DrawingML part that contains the drawing objects used in the header and footer. Required by the schema.
+    /// `r:id` — Relationship ID for Embedded Control Properties. Specifies the relationship ID for the relationship to the DrawingML part that contains the drawing objects used in the header and footer. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `lho` — Left Header for Odd Pages. Specifies the DrawingML shape to be used for the left section of the header on odd pages if the differentOddEven attribute of the corresponding headerFooter element (§18.3.1.46) is true.
     pub lho: Option<u32>,
@@ -17392,7 +17392,7 @@ impl XmlWrite for CT_ExternalDefinedNames {
 /// * `x:externalLink` — External Reference (§18.14.8)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_ExternalLink {
-    /// Child elements of choice [`CT_ExternalLink_Choice`].
+    /// Child elements of choice [`CT_ExternalLink_Choice`](crate::sml::CT_ExternalLink_Choice).
     pub choice: Option<CT_ExternalLink_Choice>,
     /// `x:extLst` — Future Feature Data Storage Area (§18.2.10).
     pub ext_lst: Option<Box<CT_ExtensionList>>,
@@ -17464,7 +17464,7 @@ impl XmlWrite for CT_ExternalLink {
 /// * `x:externalReference` — External Reference (§18.2.8)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_ExternalReference {
-    /// `r:id` — Relationship Id. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies a unique identifier that is used to identify a relationship to another part in the file. Required by the schema.
+    /// `r:id` — Relationship Id. Specifies a unique identifier that is used to identify a relationship to another part in the file. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -18463,7 +18463,7 @@ impl XmlWrite for CT_FileVersion {
 /// * `x:fill` — Fill (§18.8.20)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Fill {
-    /// Child elements of choice [`CT_Fill_Choice`].
+    /// Child elements of choice [`CT_Fill_Choice`](crate::sml::CT_Fill_Choice).
     pub choice: Option<CT_Fill_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -18652,7 +18652,7 @@ pub struct CT_FilterColumn {
     pub hidden_button: Option<bool>,
     /// `showButton` — Show Filter Button. Flag indicating whether an application intended for editing Office Open XML documents should show filtering interface elements on this cell. Default: `true`.
     pub show_button: Option<bool>,
-    /// Child elements of choice [`CT_FilterColumn_Choice`].
+    /// Child elements of choice [`CT_FilterColumn_Choice`](crate::sml::CT_FilterColumn_Choice).
     pub choice: Option<CT_FilterColumn_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -18839,7 +18839,7 @@ impl XmlWrite for CT_Filters {
 /// * `x:font` — Font (§18.8.22)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Font {
-    /// Child elements of choice [`CT_Font_Choice`].
+    /// Child elements of choice [`CT_Font_Choice`](crate::sml::CT_Font_Choice).
     pub choice: Vec<CT_Font_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -19821,7 +19821,7 @@ impl XmlWrite for CT_GradientStop {
 pub struct CT_GroupItems {
     /// `count` — Items Created Count. Specifies the number of items created for this grouped field.
     pub count: Option<u32>,
-    /// Child elements of choice [`CT_GroupItems_Choice`].
+    /// Child elements of choice [`CT_GroupItems_Choice`](crate::sml::CT_GroupItems_Choice).
     pub choice: Vec<CT_GroupItems_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -20524,7 +20524,7 @@ impl XmlWrite for CT_HierarchyUsage {
 pub struct CT_Hyperlink {
     /// `ref` — Reference. Cell location of hyperlink on worksheet. Required by the schema.
     pub ref_: Option<ST_Ref>,
-    /// `r:id` — Relationship Id. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Relationship Id in this sheet's relationships part, expressing the target location of the resource.
+    /// `r:id` — Relationship Id. Relationship Id in this sheet's relationships part, expressing the target location of the resource.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `location` — Location. Location within target.
     pub location: Option<crate::shared_types::ST_Xstring>,
@@ -22572,7 +22572,7 @@ pub struct CT_Mdx {
     pub n: Option<u32>,
     /// `f` — Cube Function Tag. This is an enumeration representing the function type of the calling cube function from the spreadsheet. Required by the schema.
     pub f: Option<ST_MdxFunctionType>,
-    /// Child elements of choice [`CT_Mdx_Choice`].
+    /// Child elements of choice [`CT_Mdx_Choice`](crate::sml::CT_Mdx_Choice).
     pub choice: Option<CT_Mdx_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -25281,7 +25281,7 @@ pub struct CT_ObjectPr {
     pub alt_text: Option<crate::shared_types::ST_Xstring>,
     /// `dde` — Dynamic Data Exchange Flag. Specifies whether the object is a Dynamic Data Exchange link. Default: `false`.
     pub dde: Option<bool>,
-    /// `r:id` — Relationship ID to Embedded Object Data. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the relationship which targets the Embedded Object Part containing the embedded object data.
+    /// `r:id` — Relationship ID to Embedded Object Data. Specifies the relationship ID for the relationship which targets the Embedded Object Part containing the embedded object data.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `x:anchor` — Object Cell Anchor (§18.3.1.1).
     pub anchor: Option<Box<CT_ObjectAnchor>>,
@@ -25692,7 +25692,7 @@ impl XmlWrite for CT_OleItems {
 /// * `x:oleLink` — Generic Object Link Connection (§18.14.11)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_OleLink {
-    /// `r:id` — Object Link Relationship. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Relationship ID that references a link in the relationships collection. Required by the schema.
+    /// `r:id` — Object Link Relationship. Relationship ID that references a link in the relationships collection. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `progId` — Object Link Identifier. The ID for the object link connection. Required by the schema.
     pub prog_id: Option<crate::shared_types::ST_Xstring>,
@@ -25783,7 +25783,7 @@ pub struct CT_OleObject {
     pub auto_load: Option<bool>,
     /// `shapeId` — Shape Id. Id of the shape this object is associated with. Required by the schema.
     pub shape_id: Option<u32>,
-    /// `r:id` — Relationship Id. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Relationship Id of the relationship pointing to the object persistence part.
+    /// `r:id` — Relationship Id. Relationship Id of the relationship pointing to the object persistence part.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `x:objectPr` — Embedded Object Properties (§18.3.1.56).
     pub object_pr: Option<Box<CT_ObjectPr>>,
@@ -26377,7 +26377,7 @@ impl XmlWrite for CT_PCDSCPage {
 pub struct CT_PCDSDTCEntries {
     /// `count` — Tuple Count. Specifies the number of tuple entries.
     pub count: Option<u32>,
-    /// Child elements of choice [`CT_PCDSDTCEntries_Choice`].
+    /// Child elements of choice [`CT_PCDSDTCEntries_Choice`](crate::sml::CT_PCDSDTCEntries_Choice).
     pub choice: Vec<CT_PCDSDTCEntries_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -26953,7 +26953,7 @@ pub struct CT_PageSetup {
     pub vertical_dpi: Option<u32>,
     /// `copies` — Number Of Copies. Number of copies to print. Default: `1`.
     pub copies: Option<u32>,
-    /// `r:id` — Id. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Relationship Id of the devMode printer settings part.
+    /// `r:id` — Id. Relationship Id of the devMode printer settings part.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -28301,7 +28301,7 @@ impl XmlWrite for CT_PivotAreas {
 pub struct CT_PivotCache {
     /// `cacheId` — PivotCache Id. Specifies the unique identifier for the pivot cache for this workbook in the pivot cache part. Required by the schema.
     pub cache_id: Option<u32>,
-    /// `r:id` — Relationship Id. Namespace: http://purl.oclc.or g/ooxml/officeDoc Specifies the identifier to a pivot cache definition part where cached data is stored. Required by the schema.
+    /// `r:id` — Relationship Id. Specifies the identifier to a pivot cache definition part where cached data is stored. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -28360,7 +28360,7 @@ impl XmlWrite for CT_PivotCache {
 /// * `x:pivotCacheDefinition` — PivotCache Definition (§18.10.1.67)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_PivotCacheDefinition {
-    /// `r:id` — Relationship Identifier. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the unique identifier that corresponds to the related pivotCacheRecords part.
+    /// `r:id` — Relationship Identifier. Specifies the unique identifier that corresponds to the related pivotCacheRecords part.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `invalid` — Invalid Cache. Specifies a boolean value that indicates whether the cache needs to be refreshed. Default: `false`.
     pub invalid: Option<bool>,
@@ -30126,7 +30126,7 @@ pub struct CT_PivotSelection {
     pub previous_col: Option<u32>,
     /// `click` — Click Count. Number of clicks for this structure selection. Default: `0`.
     pub click: Option<u32>,
-    /// `r:id` — Relationship Id. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Relationship Id pointing to the particular PivotTable Part corresponding to this selection.
+    /// `r:id` — Relationship Id. Relationship Id pointing to the particular PivotTable Part corresponding to this selection.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `x:pivotArea` — Pivot Area (§18.3.1.68).
     pub pivot_area: Option<Box<CT_PivotArea>>,
@@ -31645,7 +31645,7 @@ impl XmlWrite for CT_RElt {
 /// * `x:rPr` — Run Properties (§18.4.7)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_RPrElt {
-    /// Child elements of choice [`CT_RPrElt_Choice`].
+    /// Child elements of choice [`CT_RPrElt_Choice`](crate::sml::CT_RPrElt_Choice).
     pub choice: Vec<CT_RPrElt_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -31845,7 +31845,7 @@ pub struct CT_RangeSet {
     pub name: Option<crate::shared_types::ST_Xstring>,
     /// `sheet` — Sheet Name. Specifies the sheet name.
     pub sheet: Option<crate::shared_types::ST_Xstring>,
-    /// `r:id` — Relationship Id. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the unique identifier of the Workbook part where the range set is stored.
+    /// `r:id` — Relationship Id. Specifies the unique identifier of the Workbook part where the range set is stored.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -32019,7 +32019,7 @@ impl XmlWrite for CT_RangeSets {
 /// * `x:r` — PivotCache Record (§18.10.1.77)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Record {
-    /// Child elements of choice [`CT_Record_Choice`].
+    /// Child elements of choice [`CT_Record_Choice`](crate::sml::CT_Record_Choice).
     pub choice: Vec<CT_Record_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -33319,7 +33319,7 @@ pub struct CT_RevisionHeader {
     pub max_sheet_id: Option<u32>,
     /// `userName` — User Name. A string representing the name of the user making the revision.. Required by the schema.
     pub user_name: Option<crate::shared_types::ST_Xstring>,
-    /// `r:id` — Relationship ID. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps This is the ID that is used to find the corresponding log record of the changes made for this header. Required by the schema.
+    /// `r:id` — Relationship ID. This is the ID that is used to find the corresponding log record of the changes made for this header. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `minRId` — Minimum Revision Id. The lowest revision id that belongs to this header.
     pub min_r_id: Option<u32>,
@@ -33746,7 +33746,7 @@ pub struct CT_RevisionMove {
     pub destination: Option<ST_Ref>,
     /// `sourceSheetId` — Source Sheet Id. An integer representing the internal id of the sheet where the cell(s) originally resided. Default: `0`.
     pub source_sheet_id: Option<u32>,
-    /// Child elements of choice [`CT_RevisionMove_Choice`].
+    /// Child elements of choice [`CT_RevisionMove_Choice`](crate::sml::CT_RevisionMove_Choice).
     pub choice: Vec<CT_RevisionMove_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -33941,7 +33941,7 @@ pub struct CT_RevisionRowColumn {
     pub action: Option<ST_rwColActionType>,
     /// `edge` — Edge Deleted. A Boolean flag indicating that a row or column is being deleted at the edge of a sorted range (only applicable to a Delete Row/Column revision types). Default: `false`.
     pub edge: Option<bool>,
-    /// Child elements of choice [`CT_RevisionRowColumn_Choice`].
+    /// Child elements of choice [`CT_RevisionRowColumn_Choice`](crate::sml::CT_RevisionRowColumn_Choice).
     pub choice: Vec<CT_RevisionRowColumn_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -34173,7 +34173,7 @@ impl XmlWrite for CT_RevisionSheetRename {
 /// * `x:revisions` — Revisions (§18.11.1.16)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Revisions {
-    /// Child elements of choice [`CT_Revisions_Choice`].
+    /// Child elements of choice [`CT_Revisions_Choice`](crate::sml::CT_Revisions_Choice).
     pub choice: Vec<CT_Revisions_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -35470,7 +35470,7 @@ pub struct CT_SharedItems {
     pub count: Option<u32>,
     /// `longText` — Long Text. Specifies a boolean value that indicates whether this field contains a long text value. Default: `false`.
     pub long_text: Option<bool>,
-    /// Child elements of choice [`CT_SharedItems_Choice`].
+    /// Child elements of choice [`CT_SharedItems_Choice`](crate::sml::CT_SharedItems_Choice).
     pub choice: Vec<CT_SharedItems_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -35741,7 +35741,7 @@ pub struct CT_Sheet {
     pub sheet_id: Option<u32>,
     /// `state` — Visible State. Specifies the visible state of this sheet. Default: `visible`.
     pub state: Option<ST_SheetState>,
-    /// `r:id` — Relationship Id. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the identifier of the sheet part where the definition for this sheet is stored. Required by the schema.
+    /// `r:id` — Relationship Id. Specifies the identifier of the sheet part where the definition for this sheet is stored. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -35814,7 +35814,7 @@ impl XmlWrite for CT_Sheet {
 /// * `x:picture` — Background Image (§18.3.1.67)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_SheetBackgroundPicture {
-    /// `r:id` — Relationship Id. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Relationship Id pointing to the image part. Required by the schema.
+    /// `r:id` — Relationship Id. Relationship Id pointing to the image part. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -38938,7 +38938,7 @@ impl XmlWrite for CT_TableMissing {
 /// * `x:tablePart` — Table Part (§18.3.1.94)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TablePart {
-    /// `r:id` — Relationship Id. Namespace: http://purl.oclc.or g/ooxml/officeDoc This relationship Id is used to locate a particular table definition part. Required by the schema.
+    /// `r:id` — Relationship Id. This relationship Id is used to locate a particular table definition part. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -39414,7 +39414,7 @@ impl XmlWrite for CT_TableStyles {
 pub struct CT_Tables {
     /// `count` — Count of Tables. Number of tables to pull data from when refreshing from a web query.
     pub count: Option<u32>,
-    /// Child elements of choice [`CT_Tables_Choice`].
+    /// Child elements of choice [`CT_Tables_Choice`](crate::sml::CT_Tables_Choice).
     pub choice: Vec<CT_Tables_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -42873,7 +42873,7 @@ pub struct CT_WorksheetSource {
     pub name: Option<crate::shared_types::ST_Xstring>,
     /// `sheet` — Sheet Name. Specifies the name of the sheet that is the source for the cached data.
     pub sheet: Option<crate::shared_types::ST_Xstring>,
-    /// `r:id` — Relationship Id. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the identifier to the Sheet part whose data is stored in the cache.
+    /// `r:id` — Relationship Id. Specifies the identifier to the Sheet part whose data is stored in the cache.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,

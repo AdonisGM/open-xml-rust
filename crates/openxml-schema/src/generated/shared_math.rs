@@ -1379,7 +1379,7 @@ impl XmlWrite for CT_Char {
 /// * `m:ctrlPr` — Control Properties (§22.1.2.23)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_CtrlPr {
-    /// Child elements of choice [`EG_RPrMath`].
+    /// Child elements of choice [`EG_RPrMath`](crate::wml::EG_RPrMath).
     pub r_pr_math: Option<crate::wml::EG_RPrMath>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -3388,7 +3388,7 @@ pub struct CT_MathPr {
     pub inter_sp: Option<Box<CT_TwipsMeasure>>,
     /// `m:intraSp` — Intra-Equation Spacing (§22.1.2.50).
     pub intra_sp: Option<Box<CT_TwipsMeasure>>,
-    /// Child elements of choice [`CT_MathPr_Choice`].
+    /// Child elements of choice [`CT_MathPr_Choice`](crate::shared_math::CT_MathPr_Choice).
     pub choice: Option<CT_MathPr_Choice>,
     /// `m:intLim` — Integral Limit Locations (§22.1.2.49).
     pub int_lim: Option<Box<CT_LimLoc>>,
@@ -3846,7 +3846,7 @@ impl XmlWrite for CT_NaryPr {
 /// * `m:oMath` — Office Math (§22.1.2.77)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_OMath {
-    /// Child elements of choice [`EG_OMathElements`].
+    /// Child elements of choice [`EG_OMathElements`](crate::shared_math::EG_OMathElements).
     pub o_math_elements: Vec<EG_OMathElements>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -3962,7 +3962,7 @@ impl XmlWrite for CT_OMath {
 pub struct CT_OMathArg {
     /// `m:argPr` — Argument Properties (§22.1.2.5).
     pub arg_pr: Option<Box<CT_OMathArgPr>>,
-    /// Child elements of choice [`EG_OMathElements`].
+    /// Child elements of choice [`EG_OMathElements`](crate::shared_math::EG_OMathElements).
     pub o_math_elements: Vec<EG_OMathElements>,
     /// `m:ctrlPr` — Control Properties (§22.1.2.23).
     pub ctrl_pr: Option<Box<CT_CtrlPr>>,
@@ -4624,7 +4624,7 @@ pub struct CT_R {
     pub r_pr: Option<Box<CT_RPR>>,
     /// `w:rPr` — Run Properties (§17.3.2.28).
     pub r_pr_2: Option<Box<crate::wml::CT_RPr>>,
-    /// Child elements of choice [`CT_R_Choice`].
+    /// Child elements of choice [`CT_R_Choice`](crate::shared_math::CT_R_Choice).
     pub choice: Vec<CT_R_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -4738,7 +4738,7 @@ impl XmlWrite for CT_R {
 pub struct CT_RPR {
     /// `m:lit` — Literal (§22.1.2.58).
     pub lit: Option<Box<CT_OnOff>>,
-    /// Child elements of choice [`CT_RPR_Choice`].
+    /// Child elements of choice [`CT_RPR_Choice`](crate::shared_math::CT_RPR_Choice).
     pub choice: Vec<CT_RPR_Choice>,
     /// `m:brk` — Break (§22.1.2.15).
     pub brk: Option<Box<CT_ManualBreak>>,

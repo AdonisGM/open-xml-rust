@@ -1,7 +1,7 @@
 //! Lowering of the schema model into the code-generation IR.
 //!
 //! The central decision is how an XML Schema content model becomes Rust
-//! fields (see [`Lowerer::layout`]):
+//! fields (see `Lowerer::layout`):
 //!
 //! * the top-level sequence of a type is split into its members, and nested
 //!   non-repeating sequences (including references to sequence groups) are
@@ -869,7 +869,12 @@ impl<'a> Lowerer<'a> {
                 f.name = unique(std::mem::take(&mut f.name), &mut taken, false);
                 f.doc = Some(match &f.kind {
                     FieldKind::Element { elem, .. } => self.element_doc(elem),
-                    FieldKind::Choice { path, .. } => format!("Child elements of choice [`{}`].", path.name),
+                    FieldKind::Choice { path, .. } => {
+                        format!(
+                            "Child elements of choice [`{}`](crate::{}::{}).",
+                            path.name, path.module, path.name
+                        )
+                    }
                     FieldKind::Any { .. } => "Wildcard content (`xsd:any`), kept as raw XML.".into(),
                 });
             }

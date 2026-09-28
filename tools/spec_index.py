@@ -128,6 +128,11 @@ COMMON_DEFS = [
 ]
 
 
+def strip_namespace_notes(text):
+    """Removes 'Namespace: <uri>' notes, whose URIs the PDF text splits with spaces."""
+    return re.sub(r"Namespace:\s*https?://.*?(?=\s[A-Z]|$)", "", text).strip()
+
+
 def parse_table(body_text, header):
     """Parse `name (Title) description` rows following a table header."""
     idx = body_text.find(header)
@@ -142,7 +147,7 @@ def parse_table(body_text, header):
     for m in re.finditer(r"(?:(?<=\s)|^)([A-Za-z0-9_:.+-]+) \(([^()]{2,120})\)\s+(.*?)(?=\s[A-Za-z0-9_:.+-]+ \([^()]{2,120}\)\s+[A-Z]|$)", rest, re.S):
         name, title, desc = m.group(1), m.group(2), m.group(3)
         title = re.sub(r"\s+", " ", title).strip()
-        desc = re.sub(r"\s+", " ", desc).strip()
+        desc = strip_namespace_notes(re.sub(r"\s+", " ", desc).strip())
         desc = re.split(r"(?<=[.])\s+(?=[A-Z\[])", desc)[0] if desc else ""
         if desc.startswith("[Example"):
             desc = ""

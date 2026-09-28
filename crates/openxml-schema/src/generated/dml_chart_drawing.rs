@@ -33,7 +33,7 @@ pub struct CT_AbsSizeAnchor {
     pub from: Option<Box<CT_Marker>>,
     /// `cdr:ext` — Shape Extent (§21.3.2.10).
     pub ext: Option<Box<crate::dml::CT_PositiveSize2D>>,
-    /// Child elements of choice [`CT_AbsSizeAnchor_Choice`].
+    /// Child elements of choice [`CT_AbsSizeAnchor_Choice`](crate::dml_chart_drawing::CT_AbsSizeAnchor_Choice).
     pub choice: Option<CT_AbsSizeAnchor_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -292,7 +292,7 @@ impl XmlWrite for CT_ConnectorNonVisual {
 /// Schema complex type `CT_Drawing`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Drawing {
-    /// Child elements of choice [`EG_Anchor`].
+    /// Child elements of choice [`EG_Anchor`](crate::dml_chart_drawing::EG_Anchor).
     pub anchor: Vec<EG_Anchor>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -530,7 +530,7 @@ pub struct CT_GroupShape {
     pub nv_grp_sp_pr: Option<Box<CT_GroupShapeNonVisual>>,
     /// `cdr:grpSpPr` — Group Shape Properties (§21.3.2.14).
     pub grp_sp_pr: Option<Box<crate::dml::CT_GroupShapeProperties>>,
-    /// Child elements of choice [`CT_GroupShape_Choice`].
+    /// Child elements of choice [`CT_GroupShape_Choice`](crate::dml_chart_drawing::CT_GroupShape_Choice).
     pub choice: Vec<CT_GroupShape_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -963,7 +963,7 @@ pub struct CT_RelSizeAnchor {
     pub from: Option<Box<CT_Marker>>,
     /// `cdr:to` — Ending Anchor Point (§21.3.2.25).
     pub to: Option<Box<CT_Marker>>,
-    /// Child elements of choice [`CT_RelSizeAnchor_Choice`].
+    /// Child elements of choice [`CT_RelSizeAnchor_Choice`](crate::dml_chart_drawing::CT_RelSizeAnchor_Choice).
     pub choice: Option<CT_RelSizeAnchor_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,

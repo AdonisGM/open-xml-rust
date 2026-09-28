@@ -86,7 +86,7 @@ pub struct CT_AbsoluteAnchor {
     pub pos: Option<Box<crate::dml::CT_Point2D>>,
     /// `xdr:ext` — Shape Extent (§20.5.2.14).
     pub ext: Option<Box<crate::dml::CT_PositiveSize2D>>,
-    /// Child elements of choice [`CT_AbsoluteAnchor_Choice`].
+    /// Child elements of choice [`CT_AbsoluteAnchor_Choice`](crate::dml_spreadsheet_drawing::CT_AbsoluteAnchor_Choice).
     pub choice: Option<CT_AbsoluteAnchor_Choice>,
     /// `xdr:clientData` — Client Data (§20.5.2.3).
     pub client_data: Option<Box<CT_AnchorClientData>>,
@@ -427,7 +427,7 @@ impl XmlWrite for CT_ConnectorNonVisual {
 /// * `xdr:wsDr` — Worksheet Drawing (§20.5.2.35)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Drawing {
-    /// Child elements of choice [`EG_Anchor`].
+    /// Child elements of choice [`EG_Anchor`](crate::dml_spreadsheet_drawing::EG_Anchor).
     pub anchor: Vec<EG_Anchor>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -665,7 +665,7 @@ pub struct CT_GroupShape {
     pub nv_grp_sp_pr: Option<Box<CT_GroupShapeNonVisual>>,
     /// `xdr:grpSpPr` — Group Shape Properties (§20.5.2.18).
     pub grp_sp_pr: Option<Box<crate::dml::CT_GroupShapeProperties>>,
-    /// Child elements of choice [`CT_GroupShape_Choice`].
+    /// Child elements of choice [`CT_GroupShape_Choice`](crate::dml_spreadsheet_drawing::CT_GroupShape_Choice).
     pub choice: Vec<CT_GroupShape_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -939,7 +939,7 @@ pub struct CT_OneCellAnchor {
     pub from: Option<Box<CT_Marker>>,
     /// `xdr:ext` — Shape Extent (§20.5.2.14).
     pub ext: Option<Box<crate::dml::CT_PositiveSize2D>>,
-    /// Child elements of choice [`CT_OneCellAnchor_Choice`].
+    /// Child elements of choice [`CT_OneCellAnchor_Choice`](crate::dml_spreadsheet_drawing::CT_OneCellAnchor_Choice).
     pub choice: Option<CT_OneCellAnchor_Choice>,
     /// `xdr:clientData` — Client Data (§20.5.2.3).
     pub client_data: Option<Box<CT_AnchorClientData>>,
@@ -1226,14 +1226,14 @@ impl XmlWrite for CT_PictureNonVisual {
 
 /// Content Part (ECMA-376 Part 1 §20.5.2.12).
 ///
-/// This element specifies a reference to XML content in a format not defined by ECMA-376. \[Note: This part allows the native use of other commonly used interchange formats, such as:  MathML (http://www.w3.org/TR/MathML2/)  SMIL (http://www.w3.org/TR/REC-smil/)  SVG (http://www.w3.org/TR/SVG11/) end note\] The relationship type of the explicit relationship specified by this element shall be http://purl.oclc.org/ooxml/officeDocument/relationships/customXml and have a TargetMode attribute value of Internal. If an application cannot process content of the content type specified by the targeted part, then it
+/// This element specifies a reference to XML content in a format not defined by ECMA-376. \[Note: This part allows the native use of other commonly used interchange formats, such as:  MathML (<http://www.w3.org/TR/MathML2/>)  SMIL (<http://www.w3.org/TR/REC-smil/>)  SVG (<http://www.w3.org/TR/SVG11/>) end note\] The relationship type of the explicit relationship specified by this element shall be <http://purl.oclc.org/ooxml/officeDocument/relationships/customXml> and have a TargetMode attribute value of Internal. If an application cannot process content of the content type specified by the targeted part, then it
 ///
 /// Schema type `CT_Rel`, used by:
 ///
 /// * `xdr:contentPart` — Content Part (§20.5.2.12)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Rel {
-    /// `r:id` — Relationship to Part. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a content part. Required by the schema.
+    /// `r:id` — Relationship to Part. Specifies the relationship ID to a content part. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -1502,7 +1502,7 @@ pub struct CT_TwoCellAnchor {
     pub from: Option<Box<CT_Marker>>,
     /// `xdr:to` — Ending Anchor Point (§20.5.2.32).
     pub to: Option<Box<CT_Marker>>,
-    /// Child elements of choice [`CT_TwoCellAnchor_Choice`].
+    /// Child elements of choice [`CT_TwoCellAnchor_Choice`](crate::dml_spreadsheet_drawing::CT_TwoCellAnchor_Choice).
     pub choice: Option<CT_TwoCellAnchor_Choice>,
     /// `xdr:clientData` — Client Data (§20.5.2.3).
     pub client_data: Option<Box<CT_AnchorClientData>>,

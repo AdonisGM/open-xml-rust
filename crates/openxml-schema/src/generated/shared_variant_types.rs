@@ -297,7 +297,7 @@ pub struct CT_Array {
     pub u_bounds: Option<i32>,
     /// `baseType` — Array Base Type. The baseType attribute specifies the base variant type of an array. Required by the schema.
     pub base_type: Option<ST_ArrayBaseType>,
-    /// Child elements of choice [`CT_Array_Choice`].
+    /// Child elements of choice [`CT_Array_Choice`](crate::shared_variant_types::CT_Array_Choice).
     pub choice: Vec<CT_Array_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -474,7 +474,7 @@ impl XmlWrite for CT_Null {
 /// * `vt:variant` — Variant (§22.4.2.32)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Variant {
-    /// Child elements of choice [`CT_Variant_Choice`].
+    /// Child elements of choice [`CT_Variant_Choice`](crate::shared_variant_types::CT_Variant_Choice).
     pub choice: Option<CT_Variant_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -569,7 +569,7 @@ pub struct CT_Vector {
     pub base_type: Option<ST_VectorBaseType>,
     /// `size` — Vector Size. Specifies the number of elements in the vector. Required by the schema.
     pub size: Option<u32>,
-    /// Child elements of choice [`CT_Vector_Choice`].
+    /// Child elements of choice [`CT_Vector_Choice`](crate::shared_variant_types::CT_Vector_Choice).
     pub choice: Vec<CT_Vector_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,

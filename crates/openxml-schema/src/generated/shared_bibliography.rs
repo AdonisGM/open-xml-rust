@@ -142,7 +142,7 @@ impl std::fmt::Display for ST_SourceType {
 /// * `b:Author` — Contributors List (§22.6.2.4)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_AuthorType {
-    /// Child elements of choice [`CT_AuthorType_Choice`].
+    /// Child elements of choice [`CT_AuthorType_Choice`](crate::shared_bibliography::CT_AuthorType_Choice).
     pub choice: Vec<CT_AuthorType_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -276,7 +276,7 @@ impl XmlWrite for CT_NameListType {
 /// * `b:Performer` — Performer (§22.6.2.48)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_NameOrCorporateType {
-    /// Child elements of choice [`CT_NameOrCorporateType_Choice`].
+    /// Child elements of choice [`CT_NameOrCorporateType_Choice`](crate::shared_bibliography::CT_NameOrCorporateType_Choice).
     pub choice: Option<CT_NameOrCorporateType_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -511,7 +511,7 @@ impl XmlWrite for CT_PersonType {
 /// * `b:Source` — Source (§22.6.2.59)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_SourceType {
-    /// Child elements of choice [`CT_SourceType_Choice`].
+    /// Child elements of choice [`CT_SourceType_Choice`](crate::shared_bibliography::CT_SourceType_Choice).
     pub choice: Vec<CT_SourceType_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,

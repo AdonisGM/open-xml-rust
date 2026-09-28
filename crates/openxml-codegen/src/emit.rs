@@ -79,7 +79,11 @@ pub fn emit_crate(krate: &Crate) -> Vec<(String, String)> {
     );
     for m in &krate.modules {
         for c in &m.complex_types {
-            let _ = writeln!(root, "        ({:?}, {:?}) => rt::<{}::{}>(xml),", m.name, c.name, m.name, c.name);
+            let _ = writeln!(
+                root,
+                "        ({:?}, {:?}) => rt::<{}::{}>(xml),",
+                m.name, c.name, m.name, c.name
+            );
         }
     }
     root.push_str("        _ => return None,\n    })\n}\n");

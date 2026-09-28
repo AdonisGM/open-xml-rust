@@ -99,13 +99,28 @@ pub fn unique(candidate: String, taken: &mut Vec<String>, camel_case: bool) -> S
     name
 }
 
-/// Escapes text for use inside a `///` doc comment.
+/// Escapes text for use inside a `///` doc comment. Bare URLs become autolinks.
 pub fn doc_text(s: &str) -> String {
-    s.replace('\n', " ")
+    let escaped = s
+        .replace('\n', " ")
         .replace('[', "\\[")
         .replace(']', "\\]")
         .replace('<', "&lt;")
-        .replace('>', "&gt;")
+        .replace('>', "&gt;");
+    escaped
+        .split(' ')
+        .map(
+            |word| match word.find("http://").or_else(|| word.find("https://")) {
+                Some(i) => {
+                    let (prefix, rest) = word.split_at(i);
+                    let url = rest.trim_end_matches(['.', ',', ';', ':', ')']);
+                    format!("{prefix}<{url}>{}", &rest[url.len()..])
+                }
+                None => word.to_owned(),
+            },
+        )
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 #[cfg(test)]
@@ -172,5 +187,10 @@ mod tests {
     #[test]
     fn doc_escaping() {
         assert_eq!(doc_text("a [b] <c>\nd"), "a \\[b\\] &lt;c&gt; d");
+        assert_eq!(
+            doc_text("see http://example.com/x."),
+            "see <http://example.com/x>."
+        );
+        assert_eq!(doc_text("(https://a.b/c)"), "(<https://a.b/c>)");
     }
 }

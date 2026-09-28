@@ -6813,7 +6813,7 @@ impl XmlWrite for CT_AdjPoint2D {
 /// * `a:ahLst` — List of Shape Adjust Handles (§20.1.9.1)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_AdjustHandleList {
-    /// Child elements of choice [`CT_AdjustHandleList_Choice`].
+    /// Child elements of choice [`CT_AdjustHandleList_Choice`](crate::dml::CT_AdjustHandleList_Choice).
     pub choice: Vec<CT_AdjustHandleList_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -7003,7 +7003,7 @@ impl XmlWrite for CT_AlphaFloorEffect {
 /// * `a:alphaInv` — Alpha Inverse Effect (§20.1.8.4)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_AlphaInverseEffect {
-    /// Child elements of choice [`EG_ColorChoice`].
+    /// Child elements of choice [`EG_ColorChoice`](crate::dml::EG_ColorChoice).
     pub color_choice: Option<EG_ColorChoice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -7579,7 +7579,7 @@ impl XmlWrite for CT_AnimationDgmElement {
 /// Schema complex type `CT_AnimationElementChoice`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_AnimationElementChoice {
-    /// Child elements of choice [`CT_AnimationElementChoice_Choice`].
+    /// Child elements of choice [`CT_AnimationElementChoice_Choice`](crate::dml::CT_AnimationElementChoice_Choice).
     pub choice: Option<CT_AnimationElementChoice_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -7631,7 +7631,7 @@ impl XmlWrite for CT_AnimationElementChoice {
 /// Schema complex type `CT_AnimationGraphicalObjectBuildProperties`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_AnimationGraphicalObjectBuildProperties {
-    /// Child elements of choice [`CT_AnimationGraphicalObjectBuildProperties_Choice`].
+    /// Child elements of choice [`CT_AnimationGraphicalObjectBuildProperties_Choice`](crate::dml::CT_AnimationGraphicalObjectBuildProperties_Choice).
     pub choice: Option<CT_AnimationGraphicalObjectBuildProperties_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -7839,7 +7839,7 @@ impl XmlWrite for CT_AudioCDTime {
 /// * `a:audioFile` — Audio from File (§20.1.3.2)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_AudioFile {
-    /// `r:link` — Linked Relationship ID. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the identification information for a linked object. Required by the schema.
+    /// `r:link` — Linked Relationship ID. Specifies the identification information for a linked object. Required by the schema.
     pub r_link: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `contentType` — Content Type of Linked Audio File. Specifies the content type for the external file that is referenced by this element.
     pub content_type: Option<String>,
@@ -8018,7 +8018,7 @@ impl XmlWrite for CT_Backdrop {
 /// * `a:bgFillStyleLst` — Background Fill Style List (§20.1.4.1.7)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_BackgroundFillStyleList {
-    /// Child elements of choice [`EG_FillProperties`].
+    /// Child elements of choice [`EG_FillProperties`](crate::dml::EG_FillProperties).
     pub fill_properties: Vec<EG_FillProperties>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -8075,9 +8075,9 @@ impl XmlWrite for CT_BackgroundFillStyleList {
 /// Schema complex type `CT_BackgroundFormatting`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_BackgroundFormatting {
-    /// Child elements of choice [`EG_FillProperties`].
+    /// Child elements of choice [`EG_FillProperties`](crate::dml::EG_FillProperties).
     pub fill_properties: Option<EG_FillProperties>,
-    /// Child elements of choice [`EG_EffectProperties`].
+    /// Child elements of choice [`EG_EffectProperties`](crate::dml::EG_EffectProperties).
     pub effect_properties: Option<EG_EffectProperties>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -8532,13 +8532,13 @@ impl XmlWrite for CT_BlendEffect {
 /// * `a:blip` — Blip (§20.1.8.13)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Blip {
-    /// `r:embed` — Embedded Picture Reference. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the identification information for an embedded picture. Default: ``.
+    /// `r:embed` — Embedded Picture Reference. Specifies the identification information for an embedded picture. Default: ``.
     pub r_embed: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `r:link` attribute. Default: ``.
     pub r_link: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `cstate` — Compression State. Specifies the compression state with which the picture is stored. Default: `none`.
     pub cstate: Option<ST_BlipCompression>,
-    /// Child elements of choice [`CT_Blip_Choice`].
+    /// Child elements of choice [`CT_Blip_Choice`](crate::dml::CT_Blip_Choice).
     pub choice: Vec<CT_Blip_Choice>,
     /// `a:extLst` — Extension List (§20.1.2.2.15).
     pub ext_lst: Option<Box<CT_OfficeArtExtensionList>>,
@@ -8657,7 +8657,7 @@ pub struct CT_BlipFillProperties {
     pub blip: Option<Box<CT_Blip>>,
     /// `a:srcRect` — Source Rectangle (§20.1.8.55).
     pub src_rect: Option<Box<CT_RelativeRect>>,
-    /// Child elements of choice [`EG_FillModeProperties`].
+    /// Child elements of choice [`EG_FillModeProperties`](crate::dml::EG_FillModeProperties).
     pub fill_mode_properties: Option<EG_FillModeProperties>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -9140,7 +9140,7 @@ impl XmlWrite for CT_ClipboardStyleSheet {
 /// * `a:buClr` — Color Specified (§21.1.2.4.4)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Color {
-    /// Child elements of choice [`EG_ColorChoice`].
+    /// Child elements of choice [`EG_ColorChoice`](crate::dml::EG_ColorChoice).
     pub color_choice: Option<EG_ColorChoice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -9281,7 +9281,7 @@ impl XmlWrite for CT_ColorChangeEffect {
 /// Schema complex type `CT_ColorMRU`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_ColorMRU {
-    /// Child elements of choice [`EG_ColorChoice`].
+    /// Child elements of choice [`EG_ColorChoice`](crate::dml::EG_ColorChoice).
     pub color_choice: Vec<EG_ColorChoice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -9507,7 +9507,7 @@ impl XmlWrite for CT_ColorMapping {
 /// Schema complex type `CT_ColorMappingOverride`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_ColorMappingOverride {
-    /// Child elements of choice [`CT_ColorMappingOverride_Choice`].
+    /// Child elements of choice [`CT_ColorMappingOverride_Choice`](crate::dml::CT_ColorMappingOverride_Choice).
     pub choice: Option<CT_ColorMappingOverride_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -9565,7 +9565,7 @@ impl XmlWrite for CT_ColorMappingOverride {
 /// * `a:clrRepl` — Solid Color Replacement (§20.1.8.18)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_ColorReplaceEffect {
-    /// Child elements of choice [`EG_ColorChoice`].
+    /// Child elements of choice [`EG_ColorChoice`](crate::dml::EG_ColorChoice).
     pub color_choice: Option<EG_ColorChoice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -10536,7 +10536,7 @@ impl XmlWrite for CT_ContentPartLocking {
 pub struct CT_CustomColor {
     /// `name` — Name. The name of the color shown in the color picker. Default: ``.
     pub name: Option<String>,
-    /// Child elements of choice [`EG_ColorChoice`].
+    /// Child elements of choice [`EG_ColorChoice`](crate::dml::EG_ColorChoice).
     pub color_choice: Option<EG_ColorChoice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -11036,7 +11036,7 @@ impl XmlWrite for CT_DefaultShapeDefinition {
 /// * `a:duotone` — Duotone Effect (§20.1.8.23)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_DuotoneEffect {
-    /// Child elements of choice [`EG_ColorChoice`].
+    /// Child elements of choice [`EG_ColorChoice`](crate::dml::EG_ColorChoice).
     pub color_choice: Vec<EG_ColorChoice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -11103,7 +11103,7 @@ pub struct CT_EffectContainer {
     pub type_: Option<ST_EffectContainerType>,
     /// `name` — Name. Specifies an optional name for this list of effects, so that it can be referred to later.
     pub name: Option<String>,
-    /// Child elements of choice [`EG_Effect`].
+    /// Child elements of choice [`EG_Effect`](crate::dml::EG_Effect).
     pub effect: Vec<EG_Effect>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -11360,7 +11360,7 @@ impl XmlWrite for CT_EffectList {
 /// * `a:effect` — Effect (§20.1.4.2.7)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_EffectProperties {
-    /// Child elements of choice [`EG_EffectProperties`].
+    /// Child elements of choice [`EG_EffectProperties`](crate::dml::EG_EffectProperties).
     pub effect_properties: Option<EG_EffectProperties>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -11470,7 +11470,7 @@ impl XmlWrite for CT_EffectReference {
 /// * `a:effectStyle` — Effect Style (§20.1.4.1.11)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_EffectStyleItem {
-    /// Child elements of choice [`EG_EffectProperties`].
+    /// Child elements of choice [`EG_EffectProperties`](crate::dml::EG_EffectProperties).
     pub effect_properties: Option<EG_EffectProperties>,
     /// `a:scene3d` — 3D Scene Properties (§20.1.4.1.26).
     pub scene3d: Option<Box<CT_Scene3D>>,
@@ -11618,7 +11618,7 @@ impl XmlWrite for CT_EffectStyleList {
 /// * `a:wavAudioFile` — Audio from WAV File (§20.1.3.7)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_EmbeddedWAVAudioFile {
-    /// `r:embed` — Embedded Audio File Relationship ID. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the identification information for an embedded audio file. Required by the schema.
+    /// `r:embed` — Embedded Audio File Relationship ID. Specifies the identification information for an embedded audio file. Required by the schema.
     pub r_embed: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `name` — Sound Name. Specifies the original name or given short name for the corresponding sound. Default: ``.
     pub name: Option<String>,
@@ -11720,7 +11720,7 @@ impl XmlWrite for CT_EmptyElement {
 /// * `a:fill` — Fill (§20.1.8.28)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_FillEffect {
-    /// Child elements of choice [`EG_FillProperties`].
+    /// Child elements of choice [`EG_FillProperties`](crate::dml::EG_FillProperties).
     pub fill_properties: Option<EG_FillProperties>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -11785,7 +11785,7 @@ impl XmlWrite for CT_FillEffect {
 pub struct CT_FillOverlayEffect {
     /// `blend` — Blend. Specifies how to blend the fill with the base effect. Required by the schema.
     pub blend: Option<ST_BlendMode>,
-    /// Child elements of choice [`EG_FillProperties`].
+    /// Child elements of choice [`EG_FillProperties`](crate::dml::EG_FillProperties).
     pub fill_properties: Option<EG_FillProperties>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -11858,7 +11858,7 @@ impl XmlWrite for CT_FillOverlayEffect {
 /// * `a:fill` — Fill (§20.1.4.2.9)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_FillProperties {
-    /// Child elements of choice [`EG_FillProperties`].
+    /// Child elements of choice [`EG_FillProperties`](crate::dml::EG_FillProperties).
     pub fill_properties: Option<EG_FillProperties>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -11921,7 +11921,7 @@ impl XmlWrite for CT_FillProperties {
 /// * `a:fillStyleLst` — Fill Style List (§20.1.4.1.13)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_FillStyleList {
-    /// Child elements of choice [`EG_FillProperties`].
+    /// Child elements of choice [`EG_FillProperties`](crate::dml::EG_FillProperties).
     pub fill_properties: Vec<EG_FillProperties>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -12209,7 +12209,7 @@ impl XmlWrite for CT_FontCollection {
 pub struct CT_FontReference {
     /// `idx` — Identifier. Specifies the identifier of the font to reference. Required by the schema.
     pub idx: Option<ST_FontCollectionIndex>,
-    /// Child elements of choice [`EG_ColorChoice`].
+    /// Child elements of choice [`EG_ColorChoice`](crate::dml::EG_ColorChoice).
     pub color_choice: Option<EG_ColorChoice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -12624,7 +12624,7 @@ impl XmlWrite for CT_GeomRect {
 pub struct CT_GlowEffect {
     /// `rad` — Radius. Specifies the radius of the glow. Default: `0`.
     pub rad: Option<ST_PositiveCoordinate>,
-    /// Child elements of choice [`EG_ColorChoice`].
+    /// Child elements of choice [`EG_ColorChoice`](crate::dml::EG_ColorChoice).
     pub color_choice: Option<EG_ColorChoice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -12703,7 +12703,7 @@ pub struct CT_GradientFillProperties {
     pub rot_with_shape: Option<bool>,
     /// `a:gsLst` — Gradient Stop List (§20.1.8.37).
     pub gs_lst: Option<Box<CT_GradientStopList>>,
-    /// Child elements of choice [`EG_ShadeProperties`].
+    /// Child elements of choice [`EG_ShadeProperties`](crate::dml::EG_ShadeProperties).
     pub shade_properties: Option<EG_ShadeProperties>,
     /// `a:tileRect` — Tile Rectangle (§20.1.8.59).
     pub tile_rect: Option<Box<CT_RelativeRect>>,
@@ -12806,7 +12806,7 @@ impl XmlWrite for CT_GradientFillProperties {
 pub struct CT_GradientStop {
     /// `pos` — Position. Specifies where this gradient stop should appear in the color band. Required by the schema.
     pub pos: Option<ST_PositiveFixedPercentage>,
-    /// Child elements of choice [`EG_ColorChoice`].
+    /// Child elements of choice [`EG_ColorChoice`](crate::dml::EG_ColorChoice).
     pub color_choice: Option<EG_ColorChoice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -13428,9 +13428,9 @@ pub struct CT_GroupShapeProperties {
     pub bw_mode: Option<ST_BlackWhiteMode>,
     /// `a:xfrm` — 2D Transform for Grouped Objects (§20.1.7.5).
     pub xfrm: Option<Box<CT_GroupTransform2D>>,
-    /// Child elements of choice [`EG_FillProperties`].
+    /// Child elements of choice [`EG_FillProperties`](crate::dml::EG_FillProperties).
     pub fill_properties: Option<EG_FillProperties>,
-    /// Child elements of choice [`EG_EffectProperties`].
+    /// Child elements of choice [`EG_EffectProperties`](crate::dml::EG_EffectProperties).
     pub effect_properties: Option<EG_EffectProperties>,
     /// `a:scene3d` — 3D Scene Properties (§20.1.4.1.26).
     pub scene3d: Option<Box<CT_Scene3D>>,
@@ -14033,7 +14033,7 @@ pub struct CT_GvmlGroupShape {
     pub nv_grp_sp_pr: Option<Box<CT_GvmlGroupShapeNonVisual>>,
     /// `a:grpSpPr` — Visual Group Shape Properties (§20.1.2.2.22).
     pub grp_sp_pr: Option<Box<CT_GroupShapeProperties>>,
-    /// Child elements of choice [`CT_GvmlGroupShape_Choice`].
+    /// Child elements of choice [`CT_GvmlGroupShape_Choice`](crate::dml::CT_GvmlGroupShape_Choice).
     pub choice: Vec<CT_GvmlGroupShape_Choice>,
     /// `a:extLst` — Extension List (§20.1.2.2.15).
     pub ext_lst: Option<Box<CT_OfficeArtExtensionList>>,
@@ -14580,7 +14580,7 @@ impl XmlWrite for CT_GvmlShapeNonVisual {
 pub struct CT_GvmlTextShape {
     /// `a:txBody` — Shape Text Body (§20.1.2.2.40).
     pub tx_body: Option<Box<CT_TextBody>>,
-    /// Child elements of choice [`CT_GvmlTextShape_Choice`].
+    /// Child elements of choice [`CT_GvmlTextShape_Choice`](crate::dml::CT_GvmlTextShape_Choice).
     pub choice: Option<CT_GvmlTextShape_Choice>,
     /// `a:extLst` — Extension List (§20.1.2.2.15).
     pub ext_lst: Option<Box<CT_OfficeArtExtensionList>>,
@@ -14846,7 +14846,7 @@ pub struct CT_HslColor {
     pub sat: Option<ST_Percentage>,
     /// `lum` — Luminance. Specifies the luminance referring to the lightness or darkness of the color. Required by the schema.
     pub lum: Option<ST_Percentage>,
-    /// Child elements of choice [`EG_ColorTransform`].
+    /// Child elements of choice [`EG_ColorTransform`](crate::dml::EG_ColorTransform).
     pub color_transform: Vec<EG_ColorTransform>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -14957,7 +14957,7 @@ impl XmlWrite for CT_HslColor {
 /// * `a:hlinkMouseOver` — Mouse-Over Hyperlink (§21.1.2.3.6)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Hyperlink {
-    /// `r:id` — Drawing Object Hyperlink Target. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship id that when looked up in this slides relationship file contains the target of this hyperlink.
+    /// `r:id` — Drawing Object Hyperlink Target. Specifies the relationship id that when looked up in this slides relationship file contains the target of this hyperlink.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `invalidUrl` — Invalid URL. Specifies the URL when it has been determined by the generating application that the URL is invalid. Default: ``.
     pub invalid_url: Option<String>,
@@ -15110,7 +15110,7 @@ pub struct CT_InnerShadowEffect {
     pub dist: Option<ST_PositiveCoordinate>,
     /// `dir` — Direction. Specifies the direction to offset the shadow. Default: `0`.
     pub dir: Option<ST_PositiveFixedAngle>,
-    /// Child elements of choice [`EG_ColorChoice`].
+    /// Child elements of choice [`EG_ColorChoice`](crate::dml::EG_ColorChoice).
     pub color_choice: Option<EG_ColorChoice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -15574,11 +15574,11 @@ pub struct CT_LineProperties {
     pub cmpd: Option<ST_CompoundLine>,
     /// `algn` — Stroke Alignment. Specifies the alignment to be used for the underline stroke.
     pub algn: Option<ST_PenAlignment>,
-    /// Child elements of choice [`EG_LineFillProperties`].
+    /// Child elements of choice [`EG_LineFillProperties`](crate::dml::EG_LineFillProperties).
     pub line_fill_properties: Option<EG_LineFillProperties>,
-    /// Child elements of choice [`EG_LineDashProperties`].
+    /// Child elements of choice [`EG_LineDashProperties`](crate::dml::EG_LineDashProperties).
     pub line_dash_properties: Option<EG_LineDashProperties>,
-    /// Child elements of choice [`EG_LineJoinProperties`].
+    /// Child elements of choice [`EG_LineJoinProperties`](crate::dml::EG_LineJoinProperties).
     pub line_join_properties: Option<EG_LineJoinProperties>,
     /// `a:headEnd` — Line Head/End Style (§20.1.8.38).
     pub head_end: Option<Box<CT_LineEndProperties>>,
@@ -16952,7 +16952,7 @@ pub struct CT_OuterShadowEffect {
     pub algn: Option<ST_RectAlignment>,
     /// `rotWithShape` — Rotate With Shape. Specifies whether the shadow rotates with the shape if the shape is rotated. Default: `true`.
     pub rot_with_shape: Option<bool>,
-    /// Child elements of choice [`EG_ColorChoice`].
+    /// Child elements of choice [`EG_ColorChoice`](crate::dml::EG_ColorChoice).
     pub color_choice: Option<EG_ColorChoice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -17091,7 +17091,7 @@ pub struct CT_Path2D {
     pub stroke: Option<bool>,
     /// `extrusionOk` — 3D Extrusion Allowed. Specifies that the use of 3D extrusions are possible on this path. Default: `true`.
     pub extrusion_ok: Option<bool>,
-    /// Child elements of choice [`CT_Path2D_Choice`].
+    /// Child elements of choice [`CT_Path2D_Choice`](crate::dml::CT_Path2D_Choice).
     pub choice: Vec<CT_Path2D_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -18459,7 +18459,7 @@ impl XmlWrite for CT_PositiveSize2D {
 pub struct CT_PresetColor {
     /// `val` — Value. Specifies the actual preset color value. Required by the schema.
     pub val: Option<ST_PresetColorVal>,
-    /// Child elements of choice [`EG_ColorTransform`].
+    /// Child elements of choice [`EG_ColorTransform`](crate::dml::EG_ColorTransform).
     pub color_transform: Vec<EG_ColorTransform>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -18682,7 +18682,7 @@ pub struct CT_PresetShadowEffect {
     pub dist: Option<ST_PositiveCoordinate>,
     /// `dir` — Direction. Specifies the direction to offset the shadow. Default: `0`.
     pub dir: Option<ST_PositiveFixedAngle>,
-    /// Child elements of choice [`EG_ColorChoice`].
+    /// Child elements of choice [`EG_ColorChoice`](crate::dml::EG_ColorChoice).
     pub color_choice: Option<EG_ColorChoice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -18832,14 +18832,14 @@ impl XmlWrite for CT_PresetTextShape {
 
 /// QuickTime from File (ECMA-376 Part 1 §20.1.3.4).
 ///
-/// This element specifies the existence of a QuickTime file, as defined in the 2007-09-04 version of the QuickTime File Format Specification: http://developer.apple.com/documentation/QuickTime/QTFF/qtff.pdf. \[Note: For more information on the QuickTime format: http://developer.apple.com/reference/QuickTime/. end note\]. This element is specified within the non-visual properties of an object. The QuickTime file shall be attached to an object as this is how it is represented within the document.
+/// This element specifies the existence of a QuickTime file, as defined in the 2007-09-04 version of the QuickTime File Format Specification: <http://developer.apple.com/documentation/QuickTime/QTFF/qtff.pdf>. \[Note: For more information on the QuickTime format: <http://developer.apple.com/reference/QuickTime/>. end note\]. This element is specified within the non-visual properties of an object. The QuickTime file shall be attached to an object as this is how it is represented within the document.
 ///
 /// Schema type `CT_QuickTimeFile`, used by:
 ///
 /// * `a:quickTimeFile` — QuickTime from File (§20.1.3.4)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_QuickTimeFile {
-    /// `r:link` — Linked Relationship ID. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the identification information for a linked object. Required by the schema.
+    /// `r:link` — Linked Relationship ID. Specifies the identification information for a linked object. Required by the schema.
     pub r_link: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `a:extLst` — Extension List (§20.1.2.2.15).
     pub ext_lst: Option<Box<CT_OfficeArtExtensionList>>,
@@ -19360,7 +19360,7 @@ impl XmlWrite for CT_RelativeRect {
 pub struct CT_SRgbColor {
     /// `val` — Value. The actual color value. Required by the schema.
     pub val: Option<crate::shared_types::ST_HexColorRGB>,
-    /// Child elements of choice [`EG_ColorTransform`].
+    /// Child elements of choice [`EG_ColorTransform`](crate::dml::EG_ColorTransform).
     pub color_transform: Vec<EG_ColorTransform>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -19461,7 +19461,7 @@ pub struct CT_ScRgbColor {
     pub g: Option<ST_Percentage>,
     /// `b` — Blue. Specifies the percentage of blue. Required by the schema.
     pub b: Option<ST_Percentage>,
-    /// Child elements of choice [`EG_ColorTransform`].
+    /// Child elements of choice [`EG_ColorTransform`](crate::dml::EG_ColorTransform).
     pub color_transform: Vec<EG_ColorTransform>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -19738,7 +19738,7 @@ impl XmlWrite for CT_Scene3D {
 pub struct CT_SchemeColor {
     /// `val` — Value. Specifies the desired scheme. Required by the schema.
     pub val: Option<ST_SchemeColorVal>,
-    /// Child elements of choice [`EG_ColorTransform`].
+    /// Child elements of choice [`EG_ColorTransform`](crate::dml::EG_ColorTransform).
     pub color_transform: Vec<EG_ColorTransform>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -20150,13 +20150,13 @@ pub struct CT_ShapeProperties {
     pub bw_mode: Option<ST_BlackWhiteMode>,
     /// `a:xfrm` — 2D Transform for Individual Objects (§20.1.7.6).
     pub xfrm: Option<Box<CT_Transform2D>>,
-    /// Child elements of choice [`EG_Geometry`].
+    /// Child elements of choice [`EG_Geometry`](crate::dml::EG_Geometry).
     pub geometry: Option<EG_Geometry>,
-    /// Child elements of choice [`EG_FillProperties`].
+    /// Child elements of choice [`EG_FillProperties`](crate::dml::EG_FillProperties).
     pub fill_properties: Option<EG_FillProperties>,
     /// `a:ln` — Outline (§20.1.2.2.24).
     pub ln: Option<Box<CT_LineProperties>>,
-    /// Child elements of choice [`EG_EffectProperties`].
+    /// Child elements of choice [`EG_EffectProperties`](crate::dml::EG_EffectProperties).
     pub effect_properties: Option<EG_EffectProperties>,
     /// `a:scene3d` — 3D Scene Properties (§20.1.4.1.26).
     pub scene3d: Option<Box<CT_Scene3D>>,
@@ -20471,7 +20471,7 @@ impl XmlWrite for CT_SoftEdgesEffect {
 /// * `a:solidFill` — Solid Fill (§20.1.8.54)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_SolidColorFillProperties {
-    /// Child elements of choice [`EG_ColorChoice`].
+    /// Child elements of choice [`EG_ColorChoice`](crate::dml::EG_ColorChoice).
     pub color_choice: Option<EG_ColorChoice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -20778,7 +20778,7 @@ impl XmlWrite for CT_StyleMatrix {
 pub struct CT_StyleMatrixReference {
     /// `idx` — Style Matrix Index. Specifies the style matrix index of the style referred to. Required by the schema.
     pub idx: Option<ST_StyleMatrixColumnIndex>,
-    /// Child elements of choice [`EG_ColorChoice`].
+    /// Child elements of choice [`EG_ColorChoice`](crate::dml::EG_ColorChoice).
     pub color_choice: Option<EG_ColorChoice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -20916,7 +20916,7 @@ pub struct CT_SystemColor {
     pub val: Option<ST_SystemColorVal>,
     /// `lastClr` — Last Color. Specifies the color value that was last computed by the generating application.
     pub last_clr: Option<crate::shared_types::ST_HexColorRGB>,
-    /// Child elements of choice [`EG_ColorTransform`].
+    /// Child elements of choice [`EG_ColorTransform`](crate::dml::EG_ColorTransform).
     pub color_transform: Vec<EG_ColorTransform>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -21107,9 +21107,9 @@ impl XmlWrite for CT_Table {
 /// * `a:tblBg` — Table Background (§20.1.4.2.25)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TableBackgroundStyle {
-    /// Child elements of choice [`EG_ThemeableFillStyle`].
+    /// Child elements of choice [`EG_ThemeableFillStyle`](crate::dml::EG_ThemeableFillStyle).
     pub themeable_fill_style: Option<EG_ThemeableFillStyle>,
-    /// Child elements of choice [`EG_ThemeableEffectStyle`].
+    /// Child elements of choice [`EG_ThemeableEffectStyle`](crate::dml::EG_ThemeableEffectStyle).
     pub themeable_effect_style: Option<EG_ThemeableEffectStyle>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -21514,7 +21514,7 @@ pub struct CT_TableCellProperties {
     pub ln_bl_to_tr: Option<Box<CT_LineProperties>>,
     /// `a:cell3D` — Cell 3-D (§21.1.3.1).
     pub cell3_d: Option<Box<CT_Cell3D>>,
-    /// Child elements of choice [`EG_FillProperties`].
+    /// Child elements of choice [`EG_FillProperties`](crate::dml::EG_FillProperties).
     pub fill_properties: Option<EG_FillProperties>,
     /// `a:headers` — Header Cells Associated With Table Cell (§21.1.3.4).
     pub headers: Option<Box<CT_Headers>>,
@@ -21977,11 +21977,11 @@ pub struct CT_TableProperties {
     pub band_row: Option<bool>,
     /// `bandCol` — Banded Columns. Enables or disables the banded column formatting for a table style. Default: `false`.
     pub band_col: Option<bool>,
-    /// Child elements of choice [`EG_FillProperties`].
+    /// Child elements of choice [`EG_FillProperties`](crate::dml::EG_FillProperties).
     pub fill_properties: Option<EG_FillProperties>,
-    /// Child elements of choice [`EG_EffectProperties`].
+    /// Child elements of choice [`EG_EffectProperties`](crate::dml::EG_EffectProperties).
     pub effect_properties: Option<EG_EffectProperties>,
-    /// Child elements of choice [`CT_TableProperties_Choice`].
+    /// Child elements of choice [`CT_TableProperties_Choice`](crate::dml::CT_TableProperties_Choice).
     pub choice: Option<CT_TableProperties_Choice>,
     /// `a:extLst` — Extension List (§20.1.2.2.15).
     pub ext_lst: Option<Box<CT_OfficeArtExtensionList>>,
@@ -22499,7 +22499,7 @@ impl XmlWrite for CT_TableStyle {
 pub struct CT_TableStyleCellStyle {
     /// `a:tcBdr` — Table Cell Borders (§20.1.4.2.28).
     pub tc_bdr: Option<Box<CT_TableCellBorderStyle>>,
-    /// Child elements of choice [`EG_ThemeableFillStyle`].
+    /// Child elements of choice [`EG_ThemeableFillStyle`](crate::dml::EG_ThemeableFillStyle).
     pub themeable_fill_style: Option<EG_ThemeableFillStyle>,
     /// `a:cell3D` — Cell 3-D (§21.1.3.1).
     pub cell3_d: Option<Box<CT_Cell3D>>,
@@ -22660,9 +22660,9 @@ pub struct CT_TableStyleTextStyle {
     pub b: Option<ST_OnOffStyleType>,
     /// `i` — Italic. Specifies if the text is to be italicized. Default: `def`.
     pub i: Option<ST_OnOffStyleType>,
-    /// Child elements of choice [`EG_ThemeableFontStyles`].
+    /// Child elements of choice [`EG_ThemeableFontStyles`](crate::dml::EG_ThemeableFontStyles).
     pub themeable_font_styles: Option<EG_ThemeableFontStyles>,
-    /// Child elements of choice [`EG_ColorChoice`].
+    /// Child elements of choice [`EG_ColorChoice`](crate::dml::EG_ColorChoice).
     pub color_choice: Option<EG_ColorChoice>,
     /// `a:extLst` — Extension List (§20.1.2.2.15).
     pub ext_lst: Option<Box<CT_OfficeArtExtensionList>>,
@@ -23017,11 +23017,11 @@ pub struct CT_TextBodyProperties {
     pub compat_ln_spc: Option<bool>,
     /// `a:prstTxWarp` — Preset Text Warp (§20.1.9.19).
     pub prst_tx_warp: Option<Box<CT_PresetTextShape>>,
-    /// Child elements of choice [`EG_TextAutofit`].
+    /// Child elements of choice [`EG_TextAutofit`](crate::dml::EG_TextAutofit).
     pub text_autofit: Option<EG_TextAutofit>,
     /// `a:scene3d` — 3D Scene Properties (§20.1.4.1.26).
     pub scene3d: Option<Box<CT_Scene3D>>,
-    /// Child elements of choice [`EG_Text3D`].
+    /// Child elements of choice [`EG_Text3D`](crate::dml::EG_Text3D).
     pub text3_d: Option<EG_Text3D>,
     /// `a:extLst` — Extension List (§20.1.2.2.15).
     pub ext_lst: Option<Box<CT_OfficeArtExtensionList>>,
@@ -23583,15 +23583,15 @@ pub struct CT_TextCharacterProperties {
     pub bmk: Option<String>,
     /// `a:ln` — Outline (§20.1.2.2.24).
     pub ln: Option<Box<CT_LineProperties>>,
-    /// Child elements of choice [`EG_FillProperties`].
+    /// Child elements of choice [`EG_FillProperties`](crate::dml::EG_FillProperties).
     pub fill_properties: Option<EG_FillProperties>,
-    /// Child elements of choice [`EG_EffectProperties`].
+    /// Child elements of choice [`EG_EffectProperties`](crate::dml::EG_EffectProperties).
     pub effect_properties: Option<EG_EffectProperties>,
     /// `a:highlight` — Highlight Color (§21.1.2.3.4).
     pub highlight: Option<Box<CT_Color>>,
-    /// Child elements of choice [`EG_TextUnderlineLine`].
+    /// Child elements of choice [`EG_TextUnderlineLine`](crate::dml::EG_TextUnderlineLine).
     pub text_underline_line: Option<EG_TextUnderlineLine>,
-    /// Child elements of choice [`EG_TextUnderlineFill`].
+    /// Child elements of choice [`EG_TextUnderlineFill`](crate::dml::EG_TextUnderlineFill).
     pub text_underline_fill: Option<EG_TextUnderlineFill>,
     /// `a:latin` — Latin Font (§21.1.2.3.7).
     pub latin: Option<Box<CT_TextFont>>,
@@ -24554,7 +24554,7 @@ impl XmlWrite for CT_TextNormalAutofit {
 pub struct CT_TextParagraph {
     /// `a:pPr` — Text Paragraph Properties (§21.1.2.2.7).
     pub p_pr: Option<Box<CT_TextParagraphProperties>>,
-    /// Child elements of choice [`EG_TextRun`].
+    /// Child elements of choice [`EG_TextRun`](crate::dml::EG_TextRun).
     pub text_run: Vec<EG_TextRun>,
     /// `a:endParaRPr` — End Paragraph Run Properties (§21.1.2.2.3).
     pub end_para_r_pr: Option<Box<CT_TextCharacterProperties>>,
@@ -24675,13 +24675,13 @@ pub struct CT_TextParagraphProperties {
     pub spc_bef: Option<Box<CT_TextSpacing>>,
     /// `a:spcAft` — Space After (§21.1.2.2.9).
     pub spc_aft: Option<Box<CT_TextSpacing>>,
-    /// Child elements of choice [`EG_TextBulletColor`].
+    /// Child elements of choice [`EG_TextBulletColor`](crate::dml::EG_TextBulletColor).
     pub text_bullet_color: Option<EG_TextBulletColor>,
-    /// Child elements of choice [`EG_TextBulletSize`].
+    /// Child elements of choice [`EG_TextBulletSize`](crate::dml::EG_TextBulletSize).
     pub text_bullet_size: Option<EG_TextBulletSize>,
-    /// Child elements of choice [`EG_TextBulletTypeface`].
+    /// Child elements of choice [`EG_TextBulletTypeface`](crate::dml::EG_TextBulletTypeface).
     pub text_bullet_typeface: Option<EG_TextBulletTypeface>,
-    /// Child elements of choice [`EG_TextBullet`].
+    /// Child elements of choice [`EG_TextBullet`](crate::dml::EG_TextBullet).
     pub text_bullet: Option<EG_TextBullet>,
     /// `a:tabLst` — Tab List (§21.1.2.2.14).
     pub tab_lst: Option<Box<CT_TextTabStopList>>,
@@ -24975,7 +24975,7 @@ impl XmlWrite for CT_TextShapeAutofit {
 /// * `a:spcBef` — Space Before (§21.1.2.2.10)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TextSpacing {
-    /// Child elements of choice [`CT_TextSpacing_Choice`].
+    /// Child elements of choice [`CT_TextSpacing_Choice`](crate::dml::CT_TextSpacing_Choice).
     pub choice: Option<CT_TextSpacing_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -25299,7 +25299,7 @@ impl XmlWrite for CT_TextUnderlineFillFollowText {
 /// * `a:uFill` — Underline Fill (§21.1.2.3.12)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TextUnderlineFillGroupWrapper {
-    /// Child elements of choice [`EG_FillProperties`].
+    /// Child elements of choice [`EG_FillProperties`](crate::dml::EG_FillProperties).
     pub fill_properties: Option<EG_FillProperties>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -25409,7 +25409,7 @@ impl XmlWrite for CT_TextUnderlineLineFollowText {
 /// * `a:tr2bl` — Top Right to Bottom Left Border (§20.1.4.2.33)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_ThemeableLineStyle {
-    /// Child elements of choice [`CT_ThemeableLineStyle_Choice`].
+    /// Child elements of choice [`CT_ThemeableLineStyle_Choice`](crate::dml::CT_ThemeableLineStyle_Choice).
     pub choice: Option<CT_ThemeableLineStyle_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -25970,7 +25970,7 @@ impl XmlWrite for CT_VideoFile {
 pub struct CT_WholeE2oFormatting {
     /// `a:ln` — Outline (§20.1.2.2.24).
     pub ln: Option<Box<CT_LineProperties>>,
-    /// Child elements of choice [`EG_EffectProperties`].
+    /// Child elements of choice [`EG_EffectProperties`](crate::dml::EG_EffectProperties).
     pub effect_properties: Option<EG_EffectProperties>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,

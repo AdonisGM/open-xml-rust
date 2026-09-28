@@ -1607,7 +1607,7 @@
     {
      "name": "id",
      "title": "Relationship to Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a specified part."
+     "description": "Specifies the relationship ID to a specified part."
     }
    ]
   },
@@ -1679,7 +1679,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -1819,7 +1819,7 @@
     {
      "name": "id",
      "title": "Relationship to Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi Specifies the relationship ID to a specified part."
+     "description": "Specifies the relationship ID to a specified part."
     }
    ]
   },
@@ -2064,7 +2064,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -4311,12 +4311,12 @@
     {
      "name": "bottomLeft",
      "title": "Custom Defined Bottom Left Border Relationship Reference",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the relationship which contains the custom bottom left border image for the parent element."
+     "description": "Specifies the relationship ID for the relationship which contains the custom bottom left border image for the parent element."
     },
     {
      "name": "bottomRight",
      "title": "Custom Defined Bottom Right Border Relationship Reference",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the relationship which contains the custom bottom right border image for the parent element."
+     "description": "Specifies the relationship ID for the relationship which contains the custom bottom right border image for the parent element."
     },
     {
      "name": "color",
@@ -4331,7 +4331,7 @@
     {
      "name": "id",
      "title": "Custom Defined Border Relationship Reference",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the relationship which contains the custom border image for the parent element."
+     "description": "Specifies the relationship ID for the relationship which contains the custom border image for the parent element."
     },
     {
      "name": "shadow",
@@ -4734,7 +4734,7 @@
     {
      "name": "id",
      "title": "Relationship to Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a specified part."
+     "description": "Specifies the relationship ID to a specified part."
     }
    ]
   },
@@ -4761,7 +4761,7 @@
     {
      "name": "id",
      "title": "Custom Defined Border Relationship Reference",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the relationship which contains the custom border image for the parent element."
+     "description": "Specifies the relationship ID for the relationship which contains the custom border image for the parent element."
     },
     {
      "name": "shadow",
@@ -4947,7 +4947,7 @@
     {
      "name": "id",
      "title": "Custom Defined Border Relationship Reference",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the relationship which contains the custom border image for the parent element."
+     "description": "Specifies the relationship ID for the relationship which contains the custom border image for the parent element."
     },
     {
      "name": "shadow",
@@ -5633,7 +5633,7 @@
     {
      "name": "id",
      "title": "Relationship to Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a specified part."
+     "description": "Specifies the relationship ID to a specified part."
     },
     {
      "name": "subsetted",
@@ -5660,7 +5660,7 @@
     {
      "name": "id",
      "title": "Relationship to Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi Specifies the relationship ID to a specified part."
+     "description": "Specifies the relationship ID to a specified part."
     },
     {
      "name": "subsetted",
@@ -6406,7 +6406,7 @@
     {
      "name": "id",
      "title": "Relationship to Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a specified part."
+     "description": "Specifies the relationship ID to a specified part."
     },
     {
      "name": "type",
@@ -6450,7 +6450,7 @@
     {
      "name": "id",
      "title": "Relationship to Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a specified part."
+     "description": "Specifies the relationship ID to a specified part."
     },
     {
      "name": "type",
@@ -8437,7 +8437,7 @@
     {
      "name": "id",
      "title": "Relationship to Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a specified part."
+     "description": "Specifies the relationship ID to a specified part."
     }
    ]
   },
@@ -8532,7 +8532,7 @@
     {
      "name": "id",
      "title": "Relationship to Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a specified part."
+     "description": "Specifies the relationship ID to a specified part."
     }
    ]
   },
@@ -8706,7 +8706,7 @@
     {
      "name": "id",
      "title": "Relationship to Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a specified part."
+     "description": "Specifies the relationship ID to a specified part."
     }
    ]
   },
@@ -8734,7 +8734,7 @@
     {
      "name": "id",
      "title": "Relationship to Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a specified part."
+     "description": "Specifies the relationship ID to a specified part."
     }
    ]
   },
@@ -8932,7 +8932,7 @@
     {
      "name": "id",
      "title": "Relationship to Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a specified part."
+     "description": "Specifies the relationship ID to a specified part."
     }
    ]
   },
@@ -10041,7 +10041,7 @@
     {
      "name": "id",
      "title": "XSL Transformation Location",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies an explicit relationship to the location of the XSL Transformation which shall be applied."
+     "description": "Specifies an explicit relationship to the location of the XSL Transformation which shall be applied."
     },
     {
      "name": "solutionID",
@@ -10705,7 +10705,7 @@
     {
      "name": "id",
      "title": "Relationship to Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a specified part."
+     "description": "Specifies the relationship ID to a specified part."
     }
    ]
   },
@@ -10941,7 +10941,7 @@
     {
      "name": "id",
      "title": "Relationship to Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a specified part."
+     "description": "Specifies the relationship ID to a specified part."
     }
    ]
   },
@@ -11252,7 +11252,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -11433,7 +11433,7 @@
     {
      "name": "id",
      "title": "Hyperlink Target",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the ID of the relationship whose target shall be used as the target for this hyperlink."
+     "description": "Specifies the ID of the relationship whose target shall be used as the target for this hyperlink."
     },
     {
      "name": "tgtFrame",
@@ -11460,7 +11460,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -11657,7 +11657,7 @@
     {
      "name": "id",
      "title": "Relationship to Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a specified part."
+     "description": "Specifies the relationship ID to a specified part."
     }
    ]
   },
@@ -11674,7 +11674,7 @@
     {
      "name": "id",
      "title": "Relationship to Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a specified part containing alternate content for import."
+     "description": "Specifies the relationship ID to a specified part containing alternate content for import."
     }
    ]
   },
@@ -16842,7 +16842,7 @@
     {
      "name": "Xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.org /XML/1998/namesp ace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -16887,7 +16887,7 @@
     {
      "name": "id",
      "title": "Relationship Id",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies a unique identifier that is used to identify a relationship to another part in the file."
+     "description": "Specifies a unique identifier that is used to identify a relationship to another part in the file."
     }
    ]
   },
@@ -17093,7 +17093,7 @@
     {
      "name": "id",
      "title": "Relationship Id",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc Specifies the identifier to a pivot cache definition part where cached data is stored."
+     "description": "Specifies the identifier to a pivot cache definition part where cached data is stored."
     }
    ]
   },
@@ -17121,7 +17121,7 @@
     {
      "name": "id",
      "title": "Relationship Id",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the identifier of the sheet part where the definition for this sheet is stored."
+     "description": "Specifies the identifier of the sheet part where the definition for this sheet is stored."
     },
     {
      "name": "name",
@@ -18090,7 +18090,7 @@
     {
      "name": "id",
      "title": "Relationship Id",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps This relationship ID references an Embedded Control Data part which contains control- specific properties and state information about this particular embedded control."
+     "description": "This relationship ID references an Embedded Control Data part which contains control- specific properties and state information about this particular embedded control."
     },
     {
      "name": "name",
@@ -18147,7 +18147,7 @@
     {
      "name": "id",
      "title": "Relationship ID for Embedded Control Properties",
-     "description": "Namespace: http://purl.oclc.or Specifies the relationship ID for the relationship which contains the properties for this embedded control."
+     "description": "Specifies the relationship ID for the relationship which contains the properties for this embedded control."
     },
     {
      "name": "linkedCell",
@@ -18210,7 +18210,7 @@
     {
      "name": "id",
      "title": "Relationship Id",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps This relationship references the binary part containing the specified custom properties."
+     "description": "This relationship references the binary part containing the specified custom properties."
     },
     {
      "name": "name",
@@ -18456,7 +18456,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.org /XML/1998/namesp ace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -18473,7 +18473,7 @@
     {
      "name": "id",
      "title": "relationship Id",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Used only when the source range is external to this workbook."
+     "description": "Used only when the source range is external to this workbook."
     },
     {
      "name": "name",
@@ -18649,7 +18649,7 @@
     {
      "name": "id",
      "title": "Relationship id",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Relationship Id referencing a part containing drawingML definitions for this worksheet."
+     "description": "Relationship Id referencing a part containing drawingML definitions for this worksheet."
     }
    ]
   },
@@ -18696,7 +18696,7 @@
     {
      "name": "id",
      "title": "Relationship ID for Embedded Control Properties",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the relationship to the DrawingML part that contains the drawing objects used in the header and footer."
+     "description": "Specifies the relationship ID for the relationship to the DrawingML part that contains the drawing objects used in the header and footer."
     },
     {
      "name": "lfe",
@@ -18773,7 +18773,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.org /XML/1998/namesp ace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -18790,7 +18790,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -18862,7 +18862,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.org /XML/1998/namesp ace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -18879,7 +18879,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -18896,7 +18896,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -18913,7 +18913,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -18930,7 +18930,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -18947,7 +18947,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -18996,7 +18996,7 @@
     {
      "name": "id",
      "title": "Relationship Id",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Relationship Id in this sheet's relationships part, expressing the target location of the resource."
+     "description": "Relationship Id in this sheet's relationships part, expressing the target location of the resource."
     },
     {
      "name": "location",
@@ -19255,7 +19255,7 @@
     {
      "name": "id",
      "title": "Relationship ID to Embedded Object Data",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the relationship which targets the Embedded Object Part containing the embedded object data."
+     "description": "Specifies the relationship ID for the relationship which targets the Embedded Object Part containing the embedded object data."
     },
     {
      "name": "locked",
@@ -19292,7 +19292,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -19309,7 +19309,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -19336,7 +19336,7 @@
     {
      "name": "id",
      "title": "Relationship Id",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Relationship Id of the relationship pointing to the object persistence part."
+     "description": "Relationship Id of the relationship pointing to the object persistence part."
     },
     {
      "name": "link",
@@ -19503,7 +19503,7 @@
     {
      "name": "id",
      "title": "Id",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Relationship Id of the devMode printer settings part."
+     "description": "Relationship Id of the devMode printer settings part."
     },
     {
      "name": "orientation",
@@ -19620,7 +19620,7 @@
     {
      "name": "id",
      "title": "Id",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Relationship Id of the devMode printer settings part."
+     "description": "Relationship Id of the devMode printer settings part."
     },
     {
      "name": "orientation",
@@ -19736,7 +19736,7 @@
     {
      "name": "id",
      "title": "Relationship Id",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Relationship Id pointing to the image part."
+     "description": "Relationship Id pointing to the image part."
     }
    ]
   },
@@ -19865,7 +19865,7 @@
     {
      "name": "id",
      "title": "Relationship Id",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Relationship Id pointing to the particular PivotTable Part corresponding to this selection."
+     "description": "Relationship Id pointing to the particular PivotTable Part corresponding to this selection."
     },
     {
      "name": "label",
@@ -20778,7 +20778,7 @@
     {
      "name": "id",
      "title": "Relationship Id",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc This relationship Id is used to locate a particular table definition part."
+     "description": "This relationship Id is used to locate a particular table definition part."
     }
    ]
   },
@@ -20812,7 +20812,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -21368,7 +21368,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -21424,7 +21424,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -21878,7 +21878,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -25438,7 +25438,7 @@
     {
      "name": "id",
      "title": "Relationship Identifier",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the unique identifier that corresponds to the related pivotCacheRecords part."
+     "description": "Specifies the unique identifier that corresponds to the related pivotCacheRecords part."
     },
     {
      "name": "invalid",
@@ -26396,7 +26396,7 @@
     {
      "name": "id",
      "title": "Relationship Id",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the unique identifier of the Workbook part where the range set is stored."
+     "description": "Specifies the unique identifier of the Workbook part where the range set is stored."
     },
     {
      "name": "name",
@@ -26832,7 +26832,7 @@
     {
      "name": "id",
      "title": "Relationship Id",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the identifier to the Sheet part whose data is stored in the cache."
+     "description": "Specifies the identifier to the Sheet part whose data is stored in the cache."
     },
     {
      "name": "name",
@@ -27022,7 +27022,7 @@
     {
      "name": "id",
      "title": "Relationship ID",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps This is the ID that is used to find the corresponding log record of the changes made for this header."
+     "description": "This is the ID that is used to find the corresponding log record of the changes made for this header."
     },
     {
      "name": "maxRId",
@@ -29058,7 +29058,7 @@
     {
      "name": "id",
      "title": "Object Link Relationship",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Relationship ID that references a link in the relationships collection."
+     "description": "Relationship ID that references a link in the relationships collection."
     },
     {
      "name": "progId",
@@ -33203,7 +33203,7 @@
     {
      "name": "id",
      "title": "Relationship Identifier",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location of this embedded font that is referenced in a presentation."
+     "description": "Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location of this embedded font that is referenced in a presentation."
     }
    ]
   },
@@ -33220,7 +33220,7 @@
     {
      "name": "id",
      "title": "Relationship Identifier",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location of this embedded font that is referenced in a presentation."
+     "description": "Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location of this embedded font that is referenced in a presentation."
     }
    ]
   },
@@ -33396,7 +33396,7 @@
     {
      "name": "typeface",
      "title": "Text Typeface",
-     "description": "Namespace: http://purl.oclc.org/ooxml/drawingml/main Specifies the typeface, or name of the font that is to be used."
+     "description": "Specifies the typeface, or name of the font that is to be used."
     }
    ]
   },
@@ -33413,7 +33413,7 @@
     {
      "name": "id",
      "title": "Relationship Identifier",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the handoutMaster element defining this handout master."
+     "description": "Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the handoutMaster element defining this handout master."
     }
    ]
   },
@@ -33441,7 +33441,7 @@
     {
      "name": "id",
      "title": "Relationship Identifier",
-     "description": "Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location of this embedded font that is referenced in a Attributes Description Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps presentation."
+     "description": "Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location of this embedded font that is referenced in a Attributes Description  The possible values for this attribute are defined by the ST_RelationshipId simple type (§22.8.2.1)."
     }
    ]
   },
@@ -33534,7 +33534,7 @@
     {
      "name": "id",
      "title": "Relationship Identifier",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the notesMaster element defining this notes master."
+     "description": "Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the notesMaster element defining this notes master."
     }
    ]
   },
@@ -33562,12 +33562,12 @@
     {
      "name": "cx",
      "title": "Extent Length",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the length of the extents rectangle in EMUs."
+     "description": "Specifies the length of the extents rectangle in EMUs."
     },
     {
      "name": "cy",
      "title": "Extent Width",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the width of the extents rectangle in EMUs."
+     "description": "Specifies the width of the extents rectangle in EMUs."
     }
    ]
   },
@@ -33753,7 +33753,7 @@
     {
      "name": "id",
      "title": "Relationship Identifier",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location of this embedded font that is referenced in a presentation."
+     "description": "Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location of this embedded font that is referenced in a presentation."
     }
    ]
   },
@@ -33802,7 +33802,7 @@
     {
      "name": "id",
      "title": "Relationship ID",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps This attribute specifies the relationship id that is used to reference to the actual slide XML file that contains all the information to the slide listed within the slide list."
+     "description": "This attribute specifies the relationship id that is used to reference to the actual slide XML file that contains all the information to the slide listed within the slide list."
     }
    ]
   },
@@ -33830,7 +33830,7 @@
     {
      "name": "id",
      "title": "Relationship Identifier",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the sld element defining this slide."
+     "description": "Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the sld element defining this slide."
     },
     {
      "name": "id",
@@ -33874,7 +33874,7 @@
     {
      "name": "id",
      "title": "Relationship Identifier",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the sldMaster element defining this slide master."
+     "description": "Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the sldMaster element defining this slide master."
     },
     {
      "name": "id",
@@ -33956,7 +33956,7 @@
     {
      "name": "id",
      "title": "Relationship Identifier",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location of this smart tag."
+     "description": "Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location of this smart tag."
     }
    ]
   },
@@ -34017,12 +34017,12 @@
     {
      "name": "cx",
      "title": "Extent Length",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the length of the extents rectangle in EMUs."
+     "description": "Specifies the length of the extents rectangle in EMUs."
     },
     {
      "name": "cy",
      "title": "Extent Width",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the width of the extents rectangle in EMUs."
+     "description": "Specifies the width of the extents rectangle in EMUs."
     }
    ]
   },
@@ -34131,12 +34131,12 @@
     {
      "name": "x",
      "title": "X-Axis Coordinate",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a coordinate on the x-axis."
+     "description": "Specifies a coordinate on the x-axis."
     },
     {
      "name": "y",
      "title": "Y-Axis Coordinate",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a coordinate on the x-axis."
+     "description": "Specifies a coordinate on the x-axis."
     }
    ]
   },
@@ -34219,7 +34219,7 @@
     {
      "name": "id",
      "title": "Relationship Identifier",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location of this presentation slide within a presentation."
+     "description": "Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location of this presentation slide within a presentation."
     }
    ]
   },
@@ -34331,7 +34331,7 @@
     {
      "name": "idx",
      "title": "Style Matrix Index",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the style matrix index of the style referred to."
+     "description": "Specifies the style matrix index of the style referred to."
     }
    ]
   },
@@ -34348,7 +34348,7 @@
     {
      "name": "dpi",
      "title": "DPI Setting",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the DPI (dots per inch) used to calculate the size of the blip."
+     "description": "Specifies the DPI (dots per inch) used to calculate the size of the blip."
     },
     {
      "name": "rotWithShape",
@@ -34381,62 +34381,62 @@
     {
      "name": "accent1",
      "title": "Accent 1",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a color defined which is associated as the accent 1 color."
+     "description": "Specifies a color defined which is associated as the accent 1 color."
     },
     {
      "name": "accent2",
      "title": "Accent 2",
-     "description": "Namespace: http://purl.oclc.or Specifies a color defined which is associated as the accent 2 color."
+     "description": "Specifies a color defined which is associated as the accent 2 color."
     },
     {
      "name": "accent3",
      "title": "Accent 3",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a color defined which is associated as the accent 3 color."
+     "description": "Specifies a color defined which is associated as the accent 3 color."
     },
     {
      "name": "accent4",
      "title": "Accent 4",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a color defined which is associated as the accent 4 color."
+     "description": "Specifies a color defined which is associated as the accent 4 color."
     },
     {
      "name": "accent5",
      "title": "Accent 5",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a color defined which is associated as the accent 5 color."
+     "description": "Specifies a color defined which is associated as the accent 5 color."
     },
     {
      "name": "accent6",
      "title": "Accent 6",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a color defined which is associated as the accent 6 color."
+     "description": "Specifies a color defined which is associated as the accent 6 color."
     },
     {
      "name": "bg1",
      "title": "Background 1",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main A color defined which is associated as the first background color."
+     "description": "A color defined which is associated as the first background color."
     },
     {
      "name": "bg2",
      "title": "Background 2",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a color defined which is associated as the second background color."
+     "description": "Specifies a color defined which is associated as the second background color."
     },
     {
      "name": "folHlink",
      "title": "Followed Hyperlink",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing Specifies a color defined which is associated as the color for a followed hyperlink."
+     "description": "Specifies a color defined which is associated as the color for a followed hyperlink."
     },
     {
      "name": "hlink",
      "title": "Hyperlink",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a color defined which is associated as the color for a hyperlink."
+     "description": "Specifies a color defined which is associated as the color for a hyperlink."
     },
     {
      "name": "tx1",
      "title": "Text 1",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a color defined which is associated as the first text color."
+     "description": "Specifies a color defined which is associated as the first text color."
     },
     {
      "name": "tx2",
      "title": "Text 2",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a color defined which is associated as the second text color."
+     "description": "Specifies a color defined which is associated as the second text color."
     }
    ]
   },
@@ -34497,7 +34497,7 @@
     {
      "name": "ze",
      "title": "Relative Resize Preferred",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies if the user interface should show the resizing of the picture based on the picture's current size or its original size."
+     "description": "Specifies if the user interface should show the resizing of the picture based on the picture's current size or its original size."
     }
    ]
   },
@@ -34514,27 +34514,27 @@
     {
      "name": "descr",
      "title": "Alternative Text for Object",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies alternative text for the current DrawingML object, for use by assistive technologies or applications which do not display the current object."
+     "description": "Specifies alternative text for the current DrawingML object, for use by assistive technologies or applications which do not display the current object."
     },
     {
      "name": "hidden",
      "title": "Hidden",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies whether this DrawingML object is displayed."
+     "description": "Specifies whether this DrawingML object is displayed."
     },
     {
      "name": "id",
      "title": "Unique Identifier",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a unique identifier for the current DrawingML object within the current document."
+     "description": "Specifies a unique identifier for the current DrawingML object within the current document."
     },
     {
      "name": "name",
      "title": "Name",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the name of the object."
+     "description": "Specifies the name of the object."
     },
     {
      "name": "title",
      "title": "Title",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the title (caption) of the current DrawingML object."
+     "description": "Specifies the title (caption) of the current DrawingML object."
     }
    ]
   },
@@ -34551,7 +34551,7 @@
     {
      "name": "txBox",
      "title": "Text Box",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies that the corresponding shape is a text box and thus should be treated as such by the generating application."
+     "description": "Specifies that the corresponding shape is a text box and thus should be treated as such by the generating application."
     }
    ]
   },
@@ -34607,7 +34607,7 @@
     {
      "name": "id",
      "title": "Relationship ID",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps This attribute specifies the relationship id for referencing other resources outside the scope of the current PresentationML file."
+     "description": "This attribute specifies the relationship id for referencing other resources outside the scope of the current PresentationML file."
     }
    ]
   },
@@ -34691,7 +34691,7 @@
     {
      "name": "bwMode",
      "title": "Black and White Mode",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies that the group shape should be rendered using only black and white coloring."
+     "description": "Specifies that the group shape should be rendered using only black and white coloring."
     }
    ]
   },
@@ -34983,7 +34983,7 @@
     {
      "name": "id",
      "title": "ID Tag",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship id value that the generating application can use to resolve which slide layout is used in the creation of the slide."
+     "description": "Specifies the relationship id value that the generating application can use to resolve which slide layout is used in the creation of the slide."
     },
     {
      "name": "id",
@@ -35089,7 +35089,7 @@
     {
      "name": "id",
      "title": "Relationship ID",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps This attribute specifies the relationship identifier for the customer data tag."
+     "description": "This attribute specifies the relationship identifier for the customer data tag."
     }
    ]
   },
@@ -35177,17 +35177,17 @@
     {
      "name": "flipH",
      "title": "Horizontal Flip",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a horizontal flip."
+     "description": "Specifies a horizontal flip."
     },
     {
      "name": "flipV",
      "title": "Vertical Flip",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a vertical flip."
+     "description": "Specifies a vertical flip."
     },
     {
      "name": "rot",
      "title": "Rotation",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the rotation of the Graphic Frame."
+     "description": "Specifies the rotation of the Graphic Frame."
     }
    ]
   },
@@ -35204,7 +35204,7 @@
     {
      "name": "id",
      "title": "Relationship ID",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship id that is used to identify this Embedded object from within a slide."
+     "description": "Specifies the relationship id that is used to identify this Embedded object from within a slide."
     },
     {
      "name": "imgH",
@@ -35275,7 +35275,7 @@
     {
      "name": "id",
      "title": "Relationship ID",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship id that is used to identify this Embedded object from within a slide."
+     "description": "Specifies the relationship id that is used to identify this Embedded object from within a slide."
     },
     {
      "name": "imgH",
@@ -35436,12 +35436,12 @@
     {
      "name": "x",
      "title": "X-Axis Coordinate",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a coordinate on the x-axis."
+     "description": "Specifies a coordinate on the x-axis."
     },
     {
      "name": "y",
      "title": "Y-Axis Coordinate",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing Specifies a coordinate on the y-axis."
+     "description": "Specifies a coordinate on the y-axis."
     }
    ]
   },
@@ -36850,12 +36850,12 @@
     {
      "name": "embed",
      "title": "Embedded Audio File Relationship ID",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the identification information for an embedded audio file."
+     "description": "Specifies the identification information for an embedded audio file."
     },
     {
      "name": "name",
      "title": "Sound Name",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the original name or given short name for the corresponding sound."
+     "description": "Specifies the original name or given short name for the corresponding sound."
     }
    ]
   },
@@ -36883,12 +36883,12 @@
     {
      "name": "embed",
      "title": "Embedded Audio File Relationship ID",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the identification information for an embedded audio file."
+     "description": "Specifies the identification information for an embedded audio file."
     },
     {
      "name": "name",
      "title": "Sound Name",
-     "description": "Namespace: http://purl.oclc.or Specifies the original name or given short name for the corresponding sound."
+     "description": "Specifies the original name or given short name for the corresponding sound."
     }
    ]
   },
@@ -39023,7 +39023,7 @@
     {
      "name": "id",
      "title": "Drawing Object Hyperlink Target",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship id that when looked up in this slides relationship file contains the target of this hyperlink."
+     "description": "Specifies the relationship id that when looked up in this slides relationship file contains the target of this hyperlink."
     },
     {
      "name": "invalidUrl",
@@ -39220,7 +39220,7 @@
     {
      "name": "embed",
      "title": "Embedded Audio File Relationship ID",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the identification information for an embedded audio file."
+     "description": "Specifies the identification information for an embedded audio file."
     },
     {
      "name": "name",
@@ -40093,7 +40093,7 @@
     {
      "name": "link",
      "title": "Linked Relationship ID",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the identification information for a linked object."
+     "description": "Specifies the identification information for a linked object."
     }
    ]
   },
@@ -40132,7 +40132,7 @@
     {
      "name": "link",
      "title": "Linked Relationship ID",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the identification information for a linked object."
+     "description": "Specifies the identification information for a linked object."
     }
    ]
   },
@@ -40188,7 +40188,7 @@
     {
      "name": "embed",
      "title": "Embedded Audio File Relationship ID",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the identification information for an embedded audio file."
+     "description": "Specifies the identification information for an embedded audio file."
     },
     {
      "name": "name",
@@ -41858,7 +41858,7 @@
     {
      "name": "embed",
      "title": "Embedded Picture Reference",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the identification information for an embedded picture."
+     "description": "Specifies the identification information for an embedded picture."
     }
    ]
   },
@@ -47391,12 +47391,12 @@
     {
      "name": "dpi",
      "title": "DPI Setting",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the DPI (dots per inch) used to calculate the size of the blip."
+     "description": "Specifies the DPI (dots per inch) used to calculate the size of the blip."
     },
     {
      "name": "rotWithShape",
      "title": "Rotate With Shape",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies that the fill should rotate with the shape."
+     "description": "Specifies that the fill should rotate with the shape."
     }
    ]
   },
@@ -47413,7 +47413,7 @@
     {
      "name": "ze",
      "title": "Relative Resize Preferred",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies if the user interface should show the resizing of the picture based on the picture's current size or its original size."
+     "description": "Specifies if the user interface should show the resizing of the picture based on the picture's current size or its original size."
     }
    ]
   },
@@ -47430,22 +47430,22 @@
     {
      "name": "descr",
      "title": "Alternative Text for Object",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies alternative text for the current DrawingML object, for use by assistive technologies or applications which do not display the current object."
+     "description": "Specifies alternative text for the current DrawingML object, for use by assistive technologies or applications which do not display the current object."
     },
     {
      "name": "hidden",
      "title": "Hidden",
-     "description": "Namespace: http://purl.oclc.or Specifies whether this DrawingML object is displayed."
+     "description": "Specifies whether this DrawingML object is displayed."
     },
     {
      "name": "id",
      "title": "Unique Identifier",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a unique identifier for the current DrawingML object within the current document."
+     "description": "Specifies a unique identifier for the current DrawingML object within the current document."
     },
     {
      "name": "name",
      "title": "Name",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the name of the object."
+     "description": "Specifies the name of the object."
     },
     {
      "name": "title",
@@ -47489,7 +47489,7 @@
     {
      "name": "bwMode",
      "title": "Black and White Mode",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies that the picture should be rendered using only black and white coloring."
+     "description": "Specifies that the picture should be rendered using only black and white coloring."
     }
    ]
   },
@@ -47617,12 +47617,12 @@
     {
      "name": "descr",
      "title": "Alternative Text for Object",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies alternative text for the current DrawingML object, for use by assistive technologies or applications which do not display the current object."
+     "description": "Specifies alternative text for the current DrawingML object, for use by assistive technologies or applications which do not display the current object."
     },
     {
      "name": "hidden",
      "title": "Hidden",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies whether this DrawingML object is displayed."
+     "description": "Specifies whether this DrawingML object is displayed."
     },
     {
      "name": "id",
@@ -47632,12 +47632,12 @@
     {
      "name": "name",
      "title": "Name",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the name of the object."
+     "description": "Specifies the name of the object."
     },
     {
      "name": "title",
      "title": "Title",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the title (caption) of the current DrawingML object."
+     "description": "Specifies the title (caption) of the current DrawingML object."
     }
    ]
   },
@@ -47686,12 +47686,12 @@
     {
      "name": "cx",
      "title": "Extent Length",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the length of the extents rectangle in EMUs."
+     "description": "Specifies the length of the extents rectangle in EMUs."
     },
     {
      "name": "cy",
      "title": "Extent Width",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the width of the extents rectangle in EMUs."
+     "description": "Specifies the width of the extents rectangle in EMUs."
     }
    ]
   },
@@ -47740,12 +47740,12 @@
     {
      "name": "x",
      "title": "X-Axis Coordinate",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a coordinate on the x-axis."
+     "description": "Specifies a coordinate on the x-axis."
     },
     {
      "name": "y",
      "title": "Y-Axis Coordinate",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a coordinate on the x-axis."
+     "description": "Specifies a coordinate on the x-axis."
     }
    ]
   },
@@ -47807,12 +47807,12 @@
     {
      "name": "x",
      "title": "X-Axis Coordinate",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a coordinate on the x-axis."
+     "description": "Specifies a coordinate on the x-axis."
     },
     {
      "name": "y",
      "title": "Y-Axis Coordinate",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a coordinate on the x-axis."
+     "description": "Specifies a coordinate on the x-axis."
     }
    ]
   },
@@ -47829,12 +47829,12 @@
     {
      "name": "x",
      "title": "X-Axis Coordinate",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a coordinate on the x-axis."
+     "description": "Specifies a coordinate on the x-axis."
     },
     {
      "name": "y",
      "title": "Y-Axis Coordinate",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a coordinate on the x-axis."
+     "description": "Specifies a coordinate on the x-axis."
     }
    ]
   },
@@ -48098,7 +48098,7 @@
     {
      "name": "isComment",
      "title": "Is a Comment",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies whether the content part is a comment or an annotation."
+     "description": "Specifies whether the content part is a comment or an annotation."
     }
    ]
   },
@@ -48136,17 +48136,17 @@
     {
      "name": "descr",
      "title": "Alternative Text for Object",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing Specifies alternative text for the current DrawingML object, for use by assistive technologies or applications that do not display the current object."
+     "description": "Specifies alternative text for the current DrawingML object, for use by assistive technologies or applications that do not display the current object."
     },
     {
      "name": "hidden",
      "title": "Hidden",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies whether this DrawingML object is displayed."
+     "description": "Specifies whether this DrawingML object is displayed."
     },
     {
      "name": "id",
      "title": "Unique Identifier",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a unique identifier for the current DrawingML object within the current document."
+     "description": "Specifies a unique identifier for the current DrawingML object within the current document."
     },
     {
      "name": "name",
@@ -48156,7 +48156,7 @@
     {
      "name": "title",
      "title": "Title",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the title (caption) of the current DrawingML object."
+     "description": "Specifies the title (caption) of the current DrawingML object."
     }
    ]
   },
@@ -48172,7 +48172,7 @@
     {
      "name": "txBox",
      "title": "Text Box",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies that the corresponding shape is a text box and thus should be treated as such by the generating application."
+     "description": "Specifies that the corresponding shape is a text box and thus should be treated as such by the generating application."
     }
    ]
   },
@@ -48194,7 +48194,7 @@
     {
      "name": "id",
      "title": "Relationship to Part",
-     "description": "Namespace: http://purl.oclc.org/ ooxml/officeDocum ent/relationships Specifies the relationship ID to a specified part."
+     "description": "Specifies the relationship ID to a specified part."
     }
    ]
   },
@@ -48241,7 +48241,7 @@
     {
      "name": "bwMode",
      "title": "Black and White Mode",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies that the group shape should be rendered using only black and white coloring."
+     "description": "Specifies that the group shape should be rendered using only black and white coloring."
     }
    ]
   },
@@ -48278,7 +48278,7 @@
     {
      "name": "bwMode",
      "title": "Black and White Mode",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies that the picture should be rendered using only black and white coloring."
+     "description": "Specifies that the picture should be rendered using only black and white coloring."
     }
    ]
   },
@@ -48377,7 +48377,7 @@
     {
      "name": "flipH",
      "title": "Horizontal Flip",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a horizontal flip."
+     "description": "Specifies a horizontal flip."
     },
     {
      "name": "flipV",
@@ -48387,7 +48387,7 @@
     {
      "name": "rot",
      "title": "Rotation",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the rotation of the Graphic Frame."
+     "description": "Specifies the rotation of the Graphic Frame."
     }
    ]
   },
@@ -48652,7 +48652,7 @@
     {
      "name": "rotWithShape",
      "title": "Rotate With Shape",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies that the fill should rotate with the shape."
+     "description": "Specifies that the fill should rotate with the shape."
     }
    ]
   },
@@ -48724,7 +48724,7 @@
     {
      "name": "ze",
      "title": "Relative Resize Preferred",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies if the user interface should show the resizing of the picture based on the picture's current size or its original size."
+     "description": "Specifies if the user interface should show the resizing of the picture based on the picture's current size or its original size."
     }
    ]
   },
@@ -48741,7 +48741,7 @@
     {
      "name": "descr",
      "title": "Alternative Text for Object",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies alternative text for the current DrawingML object, for use by assistive technologies or applications which do not display the current object."
+     "description": "Specifies alternative text for the current DrawingML object, for use by assistive technologies or applications which do not display the current object."
     },
     {
      "name": "hidden",
@@ -48751,12 +48751,12 @@
     {
      "name": "id",
      "title": "Unique Identifier",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a unique identifier for the current DrawingML object within the current document."
+     "description": "Specifies a unique identifier for the current DrawingML object within the current document."
     },
     {
      "name": "name",
      "title": "Name",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the name of the object."
+     "description": "Specifies the name of the object."
     },
     {
      "name": "title",
@@ -48778,7 +48778,7 @@
     {
      "name": "txBox",
      "title": "Text Box",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies that the corresponding shape is a text box and thus should be treated as such by the generating application."
+     "description": "Specifies that the corresponding shape is a text box and thus should be treated as such by the generating application."
     }
    ]
   },
@@ -48817,7 +48817,7 @@
     {
      "name": "id",
      "title": "Relationship to Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID to a content part."
+     "description": "Specifies the relationship ID to a content part."
     }
    ]
   },
@@ -48856,12 +48856,12 @@
     {
      "name": "cx",
      "title": "Extent Length",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the length of the extents rectangle in EMUs."
+     "description": "Specifies the length of the extents rectangle in EMUs."
     },
     {
      "name": "cy",
      "title": "Extent Width",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the width of the extents rectangle in EMUs."
+     "description": "Specifies the width of the extents rectangle in EMUs."
     }
    ]
   },
@@ -48917,7 +48917,7 @@
     {
      "name": "bwMode",
      "title": "Black and White Mode",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies that the group shape should be rendered using only black and white coloring."
+     "description": "Specifies that the group shape should be rendered using only black and white coloring."
     }
    ]
   },
@@ -49022,12 +49022,12 @@
     {
      "name": "x",
      "title": "X-Axis Coordinate",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a coordinate on the x-axis."
+     "description": "Specifies a coordinate on the x-axis."
     },
     {
      "name": "y",
      "title": "Y-Axis Coordinate",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a coordinate on the x-axis."
+     "description": "Specifies a coordinate on the x-axis."
     }
    ]
   },
@@ -49098,7 +49098,7 @@
     {
      "name": "bwMode",
      "title": "Black and White Mode",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies that the picture should be rendered using only black and white coloring."
+     "description": "Specifies that the picture should be rendered using only black and white coloring."
     }
    ]
   },
@@ -49176,17 +49176,17 @@
     {
      "name": "flipH",
      "title": "Horizontal Flip",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a horizontal flip."
+     "description": "Specifies a horizontal flip."
     },
     {
      "name": "flipV",
      "title": "Vertical Flip",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a vertical flip."
+     "description": "Specifies a vertical flip."
     },
     {
      "name": "rot",
      "title": "Rotation",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the rotation of the Graphic Frame."
+     "description": "Specifies the rotation of the Graphic Frame."
     }
    ]
   },
@@ -50007,7 +50007,7 @@
     {
      "name": "id",
      "title": "Drawing Object Hyperlink Target",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship id that when looked up in this slides relationship file contains the target of this hyperlink."
+     "description": "Specifies the relationship id that when looked up in this slides relationship file contains the target of this hyperlink."
     },
     {
      "name": "invalidUrl",
@@ -50059,7 +50059,7 @@
     {
      "name": "id",
      "title": "Drawing Object Hyperlink Target",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship id that when looked up in this slides relationship file contains the target of this hyperlink."
+     "description": "Specifies the relationship id that when looked up in this slides relationship file contains the target of this hyperlink."
     },
     {
      "name": "invalidUrl",
@@ -51936,7 +51936,7 @@
     {
      "name": "id",
      "title": "Relationship Reference",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the relationship for this Chart or Chart Drawing part."
+     "description": "Specifies the relationship ID for the relationship for this Chart or Chart Drawing part."
     }
    ]
   },
@@ -51992,12 +51992,12 @@
     {
      "name": "accent1",
      "title": "Accent 1",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a color defined which is associated as the accent 1 color."
+     "description": "Specifies a color defined which is associated as the accent 1 color."
     },
     {
      "name": "accent2",
      "title": "Accent 2",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a color defined which is associated as the accent 2 color."
+     "description": "Specifies a color defined which is associated as the accent 2 color."
     },
     {
      "name": "accent3",
@@ -52007,32 +52007,32 @@
     {
      "name": "accent4",
      "title": "Accent 4",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a color defined which is associated as the accent 4 color."
+     "description": "Specifies a color defined which is associated as the accent 4 color."
     },
     {
      "name": "accent5",
      "title": "Accent 5",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a color defined which is associated as the accent 5 color."
+     "description": "Specifies a color defined which is associated as the accent 5 color."
     },
     {
      "name": "accent6",
      "title": "Accent 6",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a color defined which is associated as the accent 6 color."
+     "description": "Specifies a color defined which is associated as the accent 6 color."
     },
     {
      "name": "bg1",
      "title": "Background 1",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main A color defined which is associated as the first background color."
+     "description": "A color defined which is associated as the first background color."
     },
     {
      "name": "bg2",
      "title": "Background 2",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a color defined which is associated as the second background color."
+     "description": "Specifies a color defined which is associated as the second background color."
     },
     {
      "name": "folHlink",
      "title": "Followed Hyperlink",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a color defined which is associated as the color for a followed hyperlink."
+     "description": "Specifies a color defined which is associated as the color for a followed hyperlink."
     },
     {
      "name": "hlink",
@@ -52042,12 +52042,12 @@
     {
      "name": "tx1",
      "title": "Text 1",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a color defined which is associated as the first text color."
+     "description": "Specifies a color defined which is associated as the first text color."
     },
     {
      "name": "tx2",
      "title": "Text 2",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a color defined which is associated as the second text color."
+     "description": "Specifies a color defined which is associated as the second text color."
     }
    ]
   },
@@ -52468,7 +52468,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -52485,7 +52485,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -52536,7 +52536,7 @@
     {
      "name": "id",
      "title": "Relationship Reference",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the relationship for this chart."
+     "description": "Specifies the relationship ID for the relationship for this chart."
     }
    ]
   },
@@ -52574,7 +52574,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -52591,7 +52591,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -53442,7 +53442,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -53459,7 +53459,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -54594,7 +54594,7 @@
     {
      "name": "bwMode",
      "title": "Black and White Mode",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies that the picture should be rendered using only black and white coloring."
+     "description": "Specifies that the picture should be rendered using only black and white coloring."
     }
    ]
   },
@@ -56445,12 +56445,12 @@
     {
      "name": "dpi",
      "title": "DPI Setting",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the DPI (dots per inch) used to calculate the size of the blip."
+     "description": "Specifies the DPI (dots per inch) used to calculate the size of the blip."
     },
     {
      "name": "rotWithShape",
      "title": "Rotate With Shape",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies that the fill should rotate with the shape."
+     "description": "Specifies that the fill should rotate with the shape."
     }
    ]
   },
@@ -56517,27 +56517,27 @@
     {
      "name": "descr",
      "title": "Alternative Text for Object",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies alternative text for the current DrawingML object, for use by assistive technologies or applications which do not display the current object."
+     "description": "Specifies alternative text for the current DrawingML object, for use by assistive technologies or applications which do not display the current object."
     },
     {
      "name": "hidden",
      "title": "Hidden",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies whether this DrawingML object is displayed."
+     "description": "Specifies whether this DrawingML object is displayed."
     },
     {
      "name": "id",
      "title": "Unique Identifier",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a unique identifier for the current DrawingML object within the current document."
+     "description": "Specifies a unique identifier for the current DrawingML object within the current document."
     },
     {
      "name": "name",
      "title": "Name",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the name of the object."
+     "description": "Specifies the name of the object."
     },
     {
      "name": "title",
      "title": "Title",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the title (caption) of the current DrawingML object."
+     "description": "Specifies the title (caption) of the current DrawingML object."
     }
    ]
   },
@@ -56593,12 +56593,12 @@
     {
      "name": "cx",
      "title": "Extent Length",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the length of the extents rectangle in EMUs."
+     "description": "Specifies the length of the extents rectangle in EMUs."
     },
     {
      "name": "cy",
      "title": "Extent Width",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the width of the extents rectangle in EMUs."
+     "description": "Specifies the width of the extents rectangle in EMUs."
     }
    ]
   },
@@ -56659,7 +56659,7 @@
     {
      "name": "bwMode",
      "title": "Black and White Mode",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies that the group shape should be rendered using only black and white coloring."
+     "description": "Specifies that the group shape should be rendered using only black and white coloring."
     }
    ]
   },
@@ -56796,7 +56796,7 @@
     {
      "name": "bwMode",
      "title": "Black and White Mode",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies that the picture should be rendered using only black and white coloring."
+     "description": "Specifies that the picture should be rendered using only black and white coloring."
     }
    ]
   },
@@ -56857,17 +56857,17 @@
     {
      "name": "flipH",
      "title": "Horizontal Flip",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a horizontal flip."
+     "description": "Specifies a horizontal flip."
     },
     {
      "name": "flipV",
      "title": "Vertical Flip",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies a vertical flip."
+     "description": "Specifies a vertical flip."
     },
     {
      "name": "rot",
      "title": "Rotation",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies the rotation of the Graphic Frame."
+     "description": "Specifies the rotation of the Graphic Frame."
     }
    ]
   },
@@ -57452,7 +57452,7 @@
     {
      "name": "cs",
      "title": "Explicit Relationship to Diagram Colors Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the explicit relationship to the Diagram Colors part used by this diagram."
+     "description": "Specifies the relationship ID for the explicit relationship to the Diagram Colors part used by this diagram."
     },
     {
      "name": "dm",
@@ -57462,12 +57462,12 @@
     {
      "name": "lo",
      "title": "Explicit Relationship to Diagram Layout Definition Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the explicit relationship to the Diagram Layout Definition part used by this diagram."
+     "description": "Specifies the relationship ID for the explicit relationship to the Diagram Layout Definition part used by this diagram."
     },
     {
      "name": "qs",
      "title": "Explicit Relationship to Style Definition Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the explicit relationship to the Diagram Style part used by this diagram."
+     "description": "Specifies the relationship ID for the explicit relationship to the Diagram Style part used by this diagram."
     }
    ]
   },
@@ -57576,7 +57576,7 @@
     {
      "name": "blip",
      "title": "Relationship to Image Part",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID of the explicit relationship to an image which shall be used as the image for the contents of this shape."
+     "description": "Specifies the relationship ID of the explicit relationship to an image which shall be used as the image for the contents of this shape."
     },
     {
      "name": "blipPhldr",
@@ -57948,7 +57948,7 @@
     {
      "name": "bwMode",
      "title": "Black and White Mode",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Specifies that the picture should be rendered using only black and white coloring."
+     "description": "Specifies that the picture should be rendered using only black and white coloring."
     }
    ]
   },
@@ -58350,22 +58350,22 @@
     {
      "name": "contourW",
      "title": "Contour Width",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Defines the width of the contour on the shape."
+     "description": "Defines the width of the contour on the shape."
     },
     {
      "name": "extrusionH",
      "title": "Extrusion Height",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Defines the height of the extrusion applied to the shape."
+     "description": "Defines the height of the extrusion applied to the shape."
     },
     {
      "name": "prstMaterial",
      "title": "Preset Material Type",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Defines the preset material which is combined with the lighting properties to give the final look and feel of a shape."
+     "description": "Defines the preset material which is combined with the lighting properties to give the final look and feel of a shape."
     },
     {
      "name": "z",
      "title": "Shape Depth",
-     "description": "Namespace: http://purl.oclc.or g/ooxml/drawing ml/main Defines the z coordinate for the 3D shape."
+     "description": "Defines the z coordinate for the 3D shape."
     }
    ]
   },
@@ -62679,7 +62679,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },
@@ -64132,7 +64132,7 @@
     {
      "name": "xml:space",
      "title": "Content Contains Significant Whitespace",
-     "description": "Namespace: http://www.w3.or g/XML/1998/nam espace Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
+     "description": "Specifies how white space should be handled for the contents of this element using the W3C space preservation rules."
     }
    ]
   },

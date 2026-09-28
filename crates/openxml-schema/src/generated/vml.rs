@@ -724,7 +724,7 @@ pub struct CT_Arc {
     pub start_angle: Option<f64>,
     /// `endAngle` attribute.
     pub end_angle: Option<f64>,
-    /// Child elements of choice [`EG_ShapeElements`].
+    /// Child elements of choice [`EG_ShapeElements`](crate::vml::EG_ShapeElements).
     pub shape_elements: Vec<EG_ShapeElements>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -1418,7 +1418,7 @@ pub struct CT_Curve {
     pub control2: Option<String>,
     /// `to` attribute.
     pub to: Option<String>,
-    /// Child elements of choice [`EG_ShapeElements`].
+    /// Child elements of choice [`EG_ShapeElements`](crate::vml::EG_ShapeElements).
     pub shape_elements: Vec<EG_ShapeElements>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -2371,7 +2371,7 @@ pub struct CT_Group {
     pub o_tableproperties: Option<String>,
     /// `o:tablelimits` attribute.
     pub o_tablelimits: Option<String>,
-    /// Child elements of choice [`CT_Group_Choice`].
+    /// Child elements of choice [`CT_Group_Choice`](crate::vml::CT_Group_Choice).
     pub choice: Vec<CT_Group_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -3031,7 +3031,7 @@ pub struct CT_Image {
     pub grayscale: Option<crate::shared_types::ST_TrueFalse>,
     /// `bilevel` attribute.
     pub bilevel: Option<crate::shared_types::ST_TrueFalse>,
-    /// Child elements of choice [`EG_ShapeElements`].
+    /// Child elements of choice [`EG_ShapeElements`](crate::vml::EG_ShapeElements).
     pub shape_elements: Vec<EG_ShapeElements>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -3912,7 +3912,7 @@ pub struct CT_Line {
     pub from: Option<String>,
     /// `to` attribute.
     pub to: Option<String>,
-    /// Child elements of choice [`EG_ShapeElements`].
+    /// Child elements of choice [`EG_ShapeElements`](crate::vml::EG_ShapeElements).
     pub shape_elements: Vec<EG_ShapeElements>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -4480,7 +4480,7 @@ pub struct CT_Oval {
     pub o_cliptowrap: Option<crate::shared_types::ST_TrueFalse>,
     /// `o:clip` attribute.
     pub o_clip: Option<crate::shared_types::ST_TrueFalse>,
-    /// Child elements of choice [`EG_ShapeElements`].
+    /// Child elements of choice [`EG_ShapeElements`](crate::vml::EG_ShapeElements).
     pub shape_elements: Vec<EG_ShapeElements>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -5208,7 +5208,7 @@ pub struct CT_PolyLine {
     pub o_clip: Option<crate::shared_types::ST_TrueFalse>,
     /// `points` attribute.
     pub points: Option<String>,
-    /// Child elements of choice [`CT_PolyLine_Choice`].
+    /// Child elements of choice [`CT_PolyLine_Choice`](crate::vml::CT_PolyLine_Choice).
     pub choice: Vec<CT_PolyLine_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -5769,7 +5769,7 @@ pub struct CT_Rect {
     pub o_cliptowrap: Option<crate::shared_types::ST_TrueFalse>,
     /// `o:clip` attribute.
     pub o_clip: Option<crate::shared_types::ST_TrueFalse>,
-    /// Child elements of choice [`EG_ShapeElements`].
+    /// Child elements of choice [`EG_ShapeElements`](crate::vml::EG_ShapeElements).
     pub shape_elements: Vec<EG_ShapeElements>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -6325,7 +6325,7 @@ pub struct CT_RoundRect {
     pub o_clip: Option<crate::shared_types::ST_TrueFalse>,
     /// `arcsize` attribute.
     pub arcsize: Option<String>,
-    /// Child elements of choice [`EG_ShapeElements`].
+    /// Child elements of choice [`EG_ShapeElements`](crate::vml::EG_ShapeElements).
     pub shape_elements: Vec<EG_ShapeElements>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -7032,7 +7032,7 @@ pub struct CT_Shape {
     pub o_gfxdata: Option<Base64Binary>,
     /// `equationxml` attribute.
     pub equationxml: Option<String>,
-    /// Child elements of choice [`CT_Shape_Choice`].
+    /// Child elements of choice [`CT_Shape_Choice`](crate::vml::CT_Shape_Choice).
     pub choice: Vec<CT_Shape_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -7629,7 +7629,7 @@ pub struct CT_Shapetype {
     pub path: Option<String>,
     /// `o:master` attribute.
     pub o_master: Option<String>,
-    /// Child elements of choice [`EG_ShapeElements`].
+    /// Child elements of choice [`EG_ShapeElements`](crate::vml::EG_ShapeElements).
     pub shape_elements: Vec<EG_ShapeElements>,
     /// `o:complex` element.
     pub complex: Option<Box<crate::vml_office::CT_Complex>>,
@@ -8603,7 +8603,7 @@ pub struct CT_Textbox {
     pub o_singleclick: Option<crate::shared_types::ST_TrueFalse>,
     /// `o:insetmode` attribute. Default: `custom`.
     pub o_insetmode: Option<crate::vml_office::ST_InsetMode>,
-    /// Child elements of choice [`CT_Textbox_Choice`].
+    /// Child elements of choice [`CT_Textbox_Choice`](crate::vml::CT_Textbox_Choice).
     pub choice: Option<CT_Textbox_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,

@@ -376,7 +376,7 @@ pub struct CT_Anchor {
     pub extent: Option<Box<crate::dml::CT_PositiveSize2D>>,
     /// `wp:effectExtent` — Object Extents Including Effects (§20.4.2.6).
     pub effect_extent: Option<Box<CT_EffectExtent>>,
-    /// Child elements of choice [`CT_Anchor_Choice`].
+    /// Child elements of choice [`CT_Anchor_Choice`](crate::dml_wordprocessing_drawing::CT_Anchor_Choice).
     pub choice: Option<CT_Anchor_Choice>,
     /// `wp:docPr` — Drawing Object Non-Visual Properties (§20.4.2.5).
     pub doc_pr: Option<Box<crate::dml::CT_NonVisualDrawingProps>>,
@@ -1041,7 +1041,7 @@ impl XmlWrite for CT_LinkedTextboxInformation {
 pub struct CT_PosH {
     /// `relativeFrom` — Horizontal Position Relative Base. Specifies the base to which the relative horizontal positioning of this object shall be calculated. Required by the schema.
     pub relative_from: Option<ST_RelFromH>,
-    /// Child elements of choice [`CT_PosH_Choice`].
+    /// Child elements of choice [`CT_PosH_Choice`](crate::dml_wordprocessing_drawing::CT_PosH_Choice).
     pub choice: Option<CT_PosH_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -1111,7 +1111,7 @@ impl XmlWrite for CT_PosH {
 pub struct CT_PosV {
     /// `relativeFrom` — Vertical Position Relative Base. Specifies the base to which the relative vertical positioning of this object shall be calculated. Required by the schema.
     pub relative_from: Option<ST_RelFromV>,
-    /// Child elements of choice [`CT_PosV_Choice`].
+    /// Child elements of choice [`CT_PosV_Choice`](crate::dml_wordprocessing_drawing::CT_PosV_Choice).
     pub choice: Option<CT_PosV_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -1257,7 +1257,7 @@ impl XmlWrite for CT_TextboxInfo {
 /// Schema complex type `CT_TxbxContent`.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TxbxContent {
-    /// Child elements of choice [`EG_BlockLevelElts`].
+    /// Child elements of choice [`EG_BlockLevelElts`](crate::wml::EG_BlockLevelElts).
     pub block_level_elts: Vec<crate::wml::EG_BlockLevelElts>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -1342,7 +1342,7 @@ pub struct CT_WordprocessingCanvas {
     pub bg: Option<Box<crate::dml::CT_BackgroundFormatting>>,
     /// `wp:whole` — Whole E2O Formatting (§20.4.2.40).
     pub whole: Option<Box<crate::dml::CT_WholeE2oFormatting>>,
-    /// Child elements of choice [`CT_WordprocessingCanvas_Choice`].
+    /// Child elements of choice [`CT_WordprocessingCanvas_Choice`](crate::dml_wordprocessing_drawing::CT_WordprocessingCanvas_Choice).
     pub choice: Vec<CT_WordprocessingCanvas_Choice>,
     /// `wp:extLst` — Extension List (§20.4.2.30).
     pub ext_lst: Option<Box<crate::dml::CT_OfficeArtExtensionList>>,
@@ -1437,7 +1437,7 @@ impl XmlWrite for CT_WordprocessingCanvas {
 
 /// Content Part (ECMA-376 Part 1 §20.4.2.29).
 ///
-/// This element specifies a reference to XML content in a format not defined by ECMA-376. \[Note: This part allows the native use of other commonly used interchange formats, such as:  MathML (http://www.w3.org/TR/MathML2/)  SMIL (http://www.w3.org/TR/REC-smil/)  SVG (http://www.w3.org/TR/SVG11/) end note\] The relationship type of the explicit relationship specified by this element shall be http://purl.oclc.org/ooxml/officeDocument/relationships/customXml and have a TargetMode attribute value of Internal. If an application cannot process content of the content type specified by the targeted part, then it
+/// This element specifies a reference to XML content in a format not defined by ECMA-376. \[Note: This part allows the native use of other commonly used interchange formats, such as:  MathML (<http://www.w3.org/TR/MathML2/>)  SMIL (<http://www.w3.org/TR/REC-smil/>)  SVG (<http://www.w3.org/TR/SVG11/>) end note\] The relationship type of the explicit relationship specified by this element shall be <http://purl.oclc.org/ooxml/officeDocument/relationships/customXml> and have a TargetMode attribute value of Internal. If an application cannot process content of the content type specified by the targeted part, then it
 ///
 /// Schema type `CT_WordprocessingContentPart`, used by:
 ///
@@ -1446,7 +1446,7 @@ impl XmlWrite for CT_WordprocessingCanvas {
 pub struct CT_WordprocessingContentPart {
     /// `bwMode` — Black and White Mode. Specifies how to interpret color information contained within a content part to achieve a color, black and white, or grayscale rendering of the content part.
     pub bw_mode: Option<crate::dml::ST_BlackWhiteMode>,
-    /// `r:id` — Relationship to Part. Namespace: http://purl.oclc.org/ ooxml/officeDocum ent/relationships Specifies the relationship ID to a specified part. Required by the schema.
+    /// `r:id` — Relationship to Part. Specifies the relationship ID to a specified part. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `wp:nvContentPartPr` element.
     pub nv_content_part_pr: Option<Box<CT_WordprocessingContentPartNonVisual>>,
@@ -1617,7 +1617,7 @@ pub struct CT_WordprocessingGroup {
     pub c_nv_grp_sp_pr: Option<Box<crate::dml::CT_NonVisualGroupDrawingShapeProps>>,
     /// `wp:grpSpPr` — Group Shape Properties (§20.4.2.33).
     pub grp_sp_pr: Option<Box<crate::dml::CT_GroupShapeProperties>>,
-    /// Child elements of choice [`CT_WordprocessingGroup_Choice`].
+    /// Child elements of choice [`CT_WordprocessingGroup_Choice`](crate::dml_wordprocessing_drawing::CT_WordprocessingGroup_Choice).
     pub choice: Vec<CT_WordprocessingGroup_Choice>,
     /// `wp:extLst` — Extension List (§20.4.2.30).
     pub ext_lst: Option<Box<crate::dml::CT_OfficeArtExtensionList>>,
@@ -1727,7 +1727,7 @@ pub struct CT_WordprocessingShape {
     pub normal_east_asian_flow: Option<bool>,
     /// `wp:cNvPr` — Non-Visual Drawing Properties (§20.4.2.27).
     pub c_nv_pr: Option<Box<crate::dml::CT_NonVisualDrawingProps>>,
-    /// Child elements of choice [`CT_WordprocessingShape_Choice`].
+    /// Child elements of choice [`CT_WordprocessingShape_Choice`](crate::dml_wordprocessing_drawing::CT_WordprocessingShape_Choice).
     pub choice: Option<CT_WordprocessingShape_Choice>,
     /// `wp:spPr` — Shape Properties (§20.4.2.35).
     pub sp_pr: Option<Box<crate::dml::CT_ShapeProperties>>,
@@ -1735,7 +1735,7 @@ pub struct CT_WordprocessingShape {
     pub style: Option<Box<crate::dml::CT_ShapeStyle>>,
     /// `wp:extLst` — Extension List (§20.4.2.30).
     pub ext_lst: Option<Box<crate::dml::CT_OfficeArtExtensionList>>,
-    /// Child elements of choice [`CT_WordprocessingShape_Choice2`].
+    /// Child elements of choice [`CT_WordprocessingShape_Choice2`](crate::dml_wordprocessing_drawing::CT_WordprocessingShape_Choice2).
     pub choice_2: Option<CT_WordprocessingShape_Choice2>,
     /// `wp:bodyPr` — Body Properties (§20.4.2.22).
     pub body_pr: Option<Box<crate::dml::CT_TextBodyProperties>>,

@@ -11,7 +11,9 @@ use openxml_codegen::xsd::{AttrItem, Content, ElementRef, Particle, Schema};
 use openxml_xml::Ns;
 
 fn canonical(uri: &str) -> String {
-    Ns::from_uri(uri).map(|n| n.uri().to_owned()).unwrap_or_else(|| uri.to_owned())
+    Ns::from_uri(uri)
+        .map(|n| n.uri().to_owned())
+        .unwrap_or_else(|| uri.to_owned())
 }
 
 fn particle_elements(p: &Particle, out: &mut BTreeSet<String>) {
@@ -38,7 +40,11 @@ struct Summary {
 }
 
 fn summarize(schemas: &[Schema]) -> Summary {
-    let mut s = Summary { types: HashMap::new(), elements: BTreeSet::new(), simple: BTreeSet::new() };
+    let mut s = Summary {
+        types: HashMap::new(),
+        elements: BTreeSet::new(),
+        simple: BTreeSet::new(),
+    };
     for schema in schemas {
         let ns = canonical(&schema.target_ns);
         for ct in &schema.complex_types {
@@ -46,9 +52,12 @@ fn summarize(schemas: &[Schema]) -> Summary {
             let mut attrs = BTreeSet::new();
             match &ct.content {
                 Content::Particle(p) => particle_elements(p, &mut elems),
-                Content::Extension { particle: Some(p), .. } | Content::Restriction { particle: Some(p), .. } => {
-                    particle_elements(p, &mut elems)
+                Content::Extension {
+                    particle: Some(p), ..
                 }
+                | Content::Restriction {
+                    particle: Some(p), ..
+                } => particle_elements(p, &mut elems),
                 _ => {}
             }
             for a in &ct.attributes {
@@ -69,7 +78,8 @@ fn summarize(schemas: &[Schema]) -> Summary {
             if let Some(p) = &g.particle {
                 particle_elements(p, &mut elems);
             }
-            s.types.insert((ns.clone(), g.name.clone()), (elems, BTreeSet::new()));
+            s.types
+                .insert((ns.clone(), g.name.clone()), (elems, BTreeSet::new()));
         }
         for e in &schema.elements {
             s.elements.insert((ns.clone(), e.name.clone()));
@@ -107,6 +117,15 @@ fn strict_is_a_subset_of_transitional() {
     for t in strict.simple.difference(&transitional.simple) {
         problems.push(format!("simple type {t:?} missing"));
     }
-    assert!(strict.types.len() > 1000, "sanity: {} strict types", strict.types.len());
-    assert!(problems.is_empty(), "{} differences:\n{}", problems.len(), problems.join("\n"));
+    assert!(
+        strict.types.len() > 1000,
+        "sanity: {} strict types",
+        strict.types.len()
+    );
+    assert!(
+        problems.is_empty(),
+        "{} differences:\n{}",
+        problems.len(),
+        problems.join("\n")
+    );
 }

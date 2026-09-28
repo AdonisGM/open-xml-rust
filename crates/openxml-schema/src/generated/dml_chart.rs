@@ -2613,7 +2613,7 @@ impl XmlWrite for CT_AreaSer {
 /// * `c:xVal` — X Values (§21.2.2.234)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_AxDataSource {
-    /// Child elements of choice [`CT_AxDataSource_Choice`].
+    /// Child elements of choice [`CT_AxDataSource_Choice`](crate::dml_chart::CT_AxDataSource_Choice).
     pub choice: Option<CT_AxDataSource_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -4294,7 +4294,7 @@ pub struct CT_CatAx {
     pub tx_pr: Option<Box<crate::dml::CT_TextBody>>,
     /// `c:crossAx` — Crossing Axis ID (§21.2.2.31).
     pub cross_ax: Option<Box<CT_UnsignedInt>>,
-    /// Child elements of choice [`CT_CatAx_Choice`].
+    /// Child elements of choice [`CT_CatAx_Choice`](crate::dml_chart::CT_CatAx_Choice).
     pub choice: Option<CT_CatAx_Choice>,
     /// `c:auto` — Automatic Category Axis (§21.2.2.6).
     pub auto: Option<Box<CT_Boolean>>,
@@ -5314,7 +5314,7 @@ impl XmlWrite for CT_CustSplit {
 pub struct CT_DLbl {
     /// `c:idx` — Index (§21.2.2.84).
     pub idx: Option<Box<CT_UnsignedInt>>,
-    /// Child elements of choice [`CT_DLbl_Choice`].
+    /// Child elements of choice [`CT_DLbl_Choice`](crate::dml_chart::CT_DLbl_Choice).
     pub choice: Vec<CT_DLbl_Choice>,
     /// `c:extLst` — Chart Extensibility (§21.2.2.64).
     pub ext_lst: Option<Box<CT_ExtensionList>>,
@@ -5464,7 +5464,7 @@ impl XmlWrite for CT_DLblPos {
 pub struct CT_DLbls {
     /// `c:dLbl` — Data Label (§21.2.2.47).
     pub d_lbl: Vec<CT_DLbl>,
-    /// Child elements of choice [`CT_DLbls_Choice`].
+    /// Child elements of choice [`CT_DLbls_Choice`](crate::dml_chart::CT_DLbls_Choice).
     pub choice: Vec<CT_DLbls_Choice>,
     /// `c:extLst` — Chart Extensibility (§21.2.2.64).
     pub ext_lst: Option<Box<CT_ExtensionList>>,
@@ -5889,7 +5889,7 @@ pub struct CT_DateAx {
     pub tx_pr: Option<Box<crate::dml::CT_TextBody>>,
     /// `c:crossAx` — Crossing Axis ID (§21.2.2.31).
     pub cross_ax: Option<Box<CT_UnsignedInt>>,
-    /// Child elements of choice [`CT_DateAx_Choice`].
+    /// Child elements of choice [`CT_DateAx_Choice`](crate::dml_chart::CT_DateAx_Choice).
     pub choice: Option<CT_DateAx_Choice>,
     /// `c:auto` — Automatic Category Axis (§21.2.2.6).
     pub auto: Option<Box<CT_Boolean>>,
@@ -6331,7 +6331,7 @@ impl XmlWrite for CT_DispBlanksAs {
 /// * `c:dispUnits` — Display Units (§21.2.2.45)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_DispUnits {
-    /// Child elements of choice [`CT_DispUnits_Choice`].
+    /// Child elements of choice [`CT_DispUnits_Choice`](crate::dml_chart::CT_DispUnits_Choice).
     pub choice: Option<CT_DispUnits_Choice>,
     /// `c:dispUnitsLbl` — Display Units Label (§21.2.2.46).
     pub disp_units_lbl: Option<Box<CT_DispUnitsLbl>>,
@@ -7166,7 +7166,7 @@ impl XmlWrite for CT_ExtensionList {
 /// * `c:externalData` — External Data Relationship (§21.2.2.63)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_ExternalData {
-    /// `r:id` — Relationship Reference. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the relationship for this chart. Required by the schema.
+    /// `r:id` — Relationship Reference. Specifies the relationship ID for the relationship for this chart. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `c:autoUpdate` — Update Automatically (§21.2.2.8).
     pub auto_update: Option<Box<CT_Boolean>>,
@@ -8103,7 +8103,7 @@ impl XmlWrite for CT_Legend {
 pub struct CT_LegendEntry {
     /// `c:idx` — Index (§21.2.2.84).
     pub idx: Option<Box<CT_UnsignedInt>>,
-    /// Child elements of choice [`CT_LegendEntry_Choice`].
+    /// Child elements of choice [`CT_LegendEntry_Choice`](crate::dml_chart::CT_LegendEntry_Choice).
     pub choice: Option<CT_LegendEntry_Choice>,
     /// `c:extLst` — Chart Extensibility (§21.2.2.64).
     pub ext_lst: Option<Box<CT_ExtensionList>>,
@@ -9627,7 +9627,7 @@ impl XmlWrite for CT_NumData {
 /// * `c:yVal` — Y Values (§21.2.2.237)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_NumDataSource {
-    /// Child elements of choice [`CT_NumDataSource_Choice`].
+    /// Child elements of choice [`CT_NumDataSource_Choice`](crate::dml_chart::CT_NumDataSource_Choice).
     pub choice: Option<CT_NumDataSource_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -11580,9 +11580,9 @@ impl XmlWrite for CT_PivotSource {
 pub struct CT_PlotArea {
     /// `c:layout` — Layout (§21.2.2.88).
     pub layout: Option<Box<CT_Layout>>,
-    /// Child elements of choice [`CT_PlotArea_Choice`].
+    /// Child elements of choice [`CT_PlotArea_Choice`](crate::dml_chart::CT_PlotArea_Choice).
     pub choice: Vec<CT_PlotArea_Choice>,
-    /// Child elements of choice [`CT_PlotArea_Choice2`].
+    /// Child elements of choice [`CT_PlotArea_Choice2`](crate::dml_chart::CT_PlotArea_Choice2).
     pub choice_2: Vec<CT_PlotArea_Choice2>,
     /// `c:dTable` — Data Table (§21.2.2.54).
     pub d_table: Option<Box<CT_DTable>>,
@@ -12307,7 +12307,7 @@ impl XmlWrite for CT_RadarStyle {
 /// * `c:userShapes` — Reference to Chart Drawing Part (§21.2.2.221)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_RelId {
-    /// `r:id` — Relationship Reference. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the relationship for this Chart or Chart Drawing part. Required by the schema.
+    /// `r:id` — Relationship Reference. Specifies the relationship ID for the relationship for this Chart or Chart Drawing part. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -13078,7 +13078,7 @@ pub struct CT_SerAx {
     pub tx_pr: Option<Box<crate::dml::CT_TextBody>>,
     /// `c:crossAx` — Crossing Axis ID (§21.2.2.31).
     pub cross_ax: Option<Box<CT_UnsignedInt>>,
-    /// Child elements of choice [`CT_SerAx_Choice`].
+    /// Child elements of choice [`CT_SerAx_Choice`](crate::dml_chart::CT_SerAx_Choice).
     pub choice: Option<CT_SerAx_Choice>,
     /// `c:tickLblSkip` — Tick Label Skip (§21.2.2.208).
     pub tick_lbl_skip: Option<Box<CT_Skip>>,
@@ -13346,7 +13346,7 @@ impl XmlWrite for CT_SerAx {
 /// * `c:tx` — Series Text (§21.2.2.215)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_SerTx {
-    /// Child elements of choice [`CT_SerTx_Choice`].
+    /// Child elements of choice [`CT_SerTx_Choice`](crate::dml_chart::CT_SerTx_Choice).
     pub choice: Option<CT_SerTx_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -15335,7 +15335,7 @@ impl XmlWrite for CT_TrendlineType {
 /// * `c:tx` — Chart Text (§21.2.2.214)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_Tx {
-    /// Child elements of choice [`CT_Tx_Choice`].
+    /// Child elements of choice [`CT_Tx_Choice`](crate::dml_chart::CT_Tx_Choice).
     pub choice: Option<CT_Tx_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -15639,7 +15639,7 @@ pub struct CT_ValAx {
     pub tx_pr: Option<Box<crate::dml::CT_TextBody>>,
     /// `c:crossAx` — Crossing Axis ID (§21.2.2.31).
     pub cross_ax: Option<Box<CT_UnsignedInt>>,
-    /// Child elements of choice [`CT_ValAx_Choice`].
+    /// Child elements of choice [`CT_ValAx_Choice`](crate::dml_chart::CT_ValAx_Choice).
     pub choice: Option<CT_ValAx_Choice>,
     /// `c:crossBetween` — Cross Between (§21.2.2.32).
     pub cross_between: Option<Box<CT_CrossBetween>>,

@@ -5288,7 +5288,7 @@ pub struct CT_Colors {
     pub meth: Option<ST_ClrAppMethod>,
     /// `hueDir` — Hue Direction. The direction around the color wheel the hue shift (if defined) occurs. Default: `cw`.
     pub hue_dir: Option<ST_HueDir>,
-    /// Child elements of choice [`EG_ColorChoice`].
+    /// Child elements of choice [`EG_ColorChoice`](crate::dml::EG_ColorChoice).
     pub color_choice: Vec<crate::dml::EG_ColorChoice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -6770,7 +6770,7 @@ pub struct CT_ForEach {
     pub cnt: Option<ST_UnsignedInts>,
     /// `step` — Step. Specifies the step to use in a data set. Default: `1`.
     pub step: Option<ST_Ints>,
-    /// Child elements of choice [`CT_ForEach_Choice`].
+    /// Child elements of choice [`CT_ForEach_Choice`](crate::dml_diagram::CT_ForEach_Choice).
     pub choice: Vec<CT_ForEach_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -6954,7 +6954,7 @@ pub struct CT_LayoutNode {
     pub ch_order: Option<ST_ChildOrderType>,
     /// `moveWith` — Move With. Reference to another layout node that this layout node moves with. Default: ``.
     pub move_with: Option<String>,
-    /// Child elements of choice [`CT_LayoutNode_Choice`].
+    /// Child elements of choice [`CT_LayoutNode_Choice`](crate::dml_diagram::CT_LayoutNode_Choice).
     pub choice: Vec<CT_LayoutNode_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -7461,7 +7461,7 @@ impl XmlWrite for CT_OrgChart {
 pub struct CT_Otherwise {
     /// `name` — Name. A unique name associated with the choose statement. Default: ``.
     pub name: Option<String>,
-    /// Child elements of choice [`CT_Otherwise_Choice`].
+    /// Child elements of choice [`CT_Otherwise_Choice`](crate::dml_diagram::CT_Otherwise_Choice).
     pub choice: Vec<CT_Otherwise_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -7905,11 +7905,11 @@ impl XmlWrite for CT_PtList {
 pub struct CT_RelIds {
     /// `r:dm` — Explicit Relationship to Diagram Data Part. Specifies the relationship ID for the explicit relationship to the Diagram Data part used by this diagram. Required by the schema. Default: ``.
     pub r_dm: Option<crate::shared_relationship_reference::ST_RelationshipId>,
-    /// `r:lo` — Explicit Relationship to Diagram Layout Definition Part. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the explicit relationship to the Diagram Layout Definition part used by this diagram. Required by the schema. Default: ``.
+    /// `r:lo` — Explicit Relationship to Diagram Layout Definition Part. Specifies the relationship ID for the explicit relationship to the Diagram Layout Definition part used by this diagram. Required by the schema. Default: ``.
     pub r_lo: Option<crate::shared_relationship_reference::ST_RelationshipId>,
-    /// `r:qs` — Explicit Relationship to Style Definition Part. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the explicit relationship to the Diagram Style part used by this diagram. Required by the schema. Default: ``.
+    /// `r:qs` — Explicit Relationship to Style Definition Part. Specifies the relationship ID for the explicit relationship to the Diagram Style part used by this diagram. Required by the schema. Default: ``.
     pub r_qs: Option<crate::shared_relationship_reference::ST_RelationshipId>,
-    /// `r:cs` — Explicit Relationship to Diagram Colors Part. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID for the explicit relationship to the Diagram Colors part used by this diagram. Required by the schema. Default: ``.
+    /// `r:cs` — Explicit Relationship to Diagram Colors Part. Specifies the relationship ID for the explicit relationship to the Diagram Colors part used by this diagram. Required by the schema. Default: ``.
     pub r_cs: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -8415,7 +8415,7 @@ pub struct CT_Shape {
     pub rot: Option<f64>,
     /// `type` — Shape Type. Specifies the type of shape. Default: `none`.
     pub type_: Option<ST_LayoutShapeType>,
-    /// `r:blip` — Relationship to Image Part. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship ID of the explicit relationship to an image which shall be used as the image for the contents of this shape. Default: ``.
+    /// `r:blip` — Relationship to Image Part. Specifies the relationship ID of the explicit relationship to an image which shall be used as the image for the contents of this shape. Default: ``.
     pub r_blip: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `zOrderOff` — Z-Order Offset. Offsets the shape from its default z-order stacking, which is based on the order the layout nodes appear in the XML. Default: `0`.
     pub z_order_off: Option<i32>,
@@ -9030,7 +9030,7 @@ impl XmlWrite for CT_StyleLabel {
 /// * `dgm:txPr` — Text Properties (§21.4.5.12)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TextProps {
-    /// Child elements of choice [`EG_Text3D`].
+    /// Child elements of choice [`EG_Text3D`](crate::dml::EG_Text3D).
     pub text3_d: Option<crate::dml::EG_Text3D>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -9110,7 +9110,7 @@ pub struct CT_When {
     pub op: Option<ST_FunctionOperator>,
     /// `val` — Value. An absolute value. Required by the schema.
     pub val: Option<ST_FunctionValue>,
-    /// Child elements of choice [`CT_When_Choice`].
+    /// Child elements of choice [`CT_When_Choice`](crate::dml_diagram::CT_When_Choice).
     pub choice: Vec<CT_When_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,

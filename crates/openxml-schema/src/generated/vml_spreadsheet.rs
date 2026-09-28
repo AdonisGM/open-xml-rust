@@ -147,7 +147,7 @@ impl std::fmt::Display for ST_ObjectType {
 pub struct CT_ClientData {
     /// `ObjectType` attribute. Required by the schema.
     pub object_type: Option<ST_ObjectType>,
-    /// Child elements of choice [`CT_ClientData_Choice`].
+    /// Child elements of choice [`CT_ClientData_Choice`](crate::vml_spreadsheet::CT_ClientData_Choice).
     pub choice: Vec<CT_ClientData_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,

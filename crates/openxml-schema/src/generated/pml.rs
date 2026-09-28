@@ -2948,7 +2948,7 @@ pub struct CT_ApplicationNonVisualDrawingProps {
     pub user_drawn: Option<bool>,
     /// `p:ph` — Placeholder Shape (§19.3.1.36).
     pub ph: Option<Box<CT_Placeholder>>,
-    /// Child elements of choice [`EG_Media`].
+    /// Child elements of choice [`EG_Media`](crate::dml::EG_Media).
     pub media: Option<crate::dml::EG_Media>,
     /// `p:custDataLst` — Customer Data List (§19.3.1.18).
     pub cust_data_lst: Option<Box<CT_CustomerDataList>>,
@@ -3069,7 +3069,7 @@ impl XmlWrite for CT_ApplicationNonVisualDrawingProps {
 pub struct CT_Background {
     /// `bwMode` — Black and White Mode. Specifies that the background should be rendered using only black and white coloring. Default: `white`.
     pub bw_mode: Option<crate::dml::ST_BlackWhiteMode>,
-    /// Child elements of choice [`EG_Background`].
+    /// Child elements of choice [`EG_Background`](crate::pml::EG_Background).
     pub background: Option<EG_Background>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -3139,9 +3139,9 @@ impl XmlWrite for CT_Background {
 pub struct CT_BackgroundProperties {
     /// `shadeToTitle` — Shade to Title. Specifies whether the background of the slide is of a shade to title background type. Default: `false`.
     pub shade_to_title: Option<bool>,
-    /// Child elements of choice [`EG_FillProperties`].
+    /// Child elements of choice [`EG_FillProperties`](crate::dml::EG_FillProperties).
     pub fill_properties: Option<crate::dml::EG_FillProperties>,
-    /// Child elements of choice [`EG_EffectProperties`].
+    /// Child elements of choice [`EG_EffectProperties`](crate::dml::EG_EffectProperties).
     pub effect_properties: Option<crate::dml::EG_EffectProperties>,
     /// `p:extLst` — Extension List (§19.2.1.12).
     pub ext_lst: Option<Box<CT_ExtensionList>>,
@@ -3242,7 +3242,7 @@ impl XmlWrite for CT_BackgroundProperties {
 /// * `p:bldLst` — Build List (§19.5.14)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_BuildList {
-    /// Child elements of choice [`CT_BuildList_Choice`].
+    /// Child elements of choice [`CT_BuildList_Choice`](crate::pml::CT_BuildList_Choice).
     pub choice: Vec<CT_BuildList_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -4150,7 +4150,7 @@ pub struct CT_Control {
     pub name: Option<String>,
     /// `showAsIcon` — Show Embedded Object As Icon. Specifies whether the Embedded object shows as an icon or using its native representation. Default: `false`.
     pub show_as_icon: Option<bool>,
-    /// `r:id` — Relationship ID. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship id that is used to identify this Embedded object from within a slide.
+    /// `r:id` — Relationship ID. Specifies the relationship id that is used to identify this Embedded object from within a slide.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `imgW` — Image Width. Specifies the width of the embedded control.
     pub img_w: Option<crate::dml::ST_PositiveCoordinate32>,
@@ -4592,7 +4592,7 @@ impl XmlWrite for CT_CustomShowList {
 /// * `p:custData` — Customer Data (§19.3.1.17)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_CustomerData {
-    /// `r:id` — Relationship ID. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps This attribute specifies the relationship id for referencing other resources outside the scope of the current PresentationML file. Required by the schema.
+    /// `r:id` — Relationship ID. This attribute specifies the relationship id for referencing other resources outside the scope of the current PresentationML file. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -4775,7 +4775,7 @@ impl XmlWrite for CT_EightDirectionTransition {
 /// * `p:regular` — Regular Embedded Font (§19.2.1.29)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_EmbeddedFontDataId {
-    /// `r:id` — Relationship Identifier. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location of this embedded font that is referenced in a presentation. Required by the schema.
+    /// `r:id` — Relationship Identifier. Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location of this embedded font that is referenced in a presentation. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -5458,7 +5458,7 @@ pub struct CT_GroupShape {
     pub nv_grp_sp_pr: Option<Box<CT_GroupShapeNonVisual>>,
     /// `p:grpSpPr` — Group Shape Properties (§19.3.1.23).
     pub grp_sp_pr: Option<Box<crate::dml::CT_GroupShapeProperties>>,
-    /// Child elements of choice [`CT_GroupShape_Choice`].
+    /// Child elements of choice [`CT_GroupShape_Choice`](crate::pml::CT_GroupShape_Choice).
     pub choice: Vec<CT_GroupShape_Choice>,
     /// `p:extLst` — Extension List with Modification Flag (§19.3.1.20).
     pub ext_lst: Option<Box<CT_ExtensionListModify>>,
@@ -5924,7 +5924,7 @@ impl XmlWrite for CT_HandoutMasterIdList {
 /// * `p:handoutMasterId` — Handout Master ID (§19.2.1.14)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_HandoutMasterIdListEntry {
-    /// `r:id` — Relationship Identifier. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the handoutMaster element defining this handout master. Required by the schema.
+    /// `r:id` — Relationship Identifier. Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the handoutMaster element defining this handout master. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `p:extLst` — Extension List (§19.2.1.12).
     pub ext_lst: Option<Box<CT_ExtensionList>>,
@@ -6093,7 +6093,7 @@ pub struct CT_HtmlPublishProperties {
     pub title: Option<String>,
     /// `r:id` attribute. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
-    /// Child elements of choice [`EG_SlideListChoice`].
+    /// Child elements of choice [`EG_SlideListChoice`](crate::pml::EG_SlideListChoice).
     pub slide_list_choice: Option<EG_SlideListChoice>,
     /// `p:extLst` — Extension List (§19.2.1.12).
     pub ext_lst: Option<Box<CT_ExtensionList>>,
@@ -6941,7 +6941,7 @@ impl XmlWrite for CT_NotesMasterIdList {
 /// * `p:notesMasterId` — Notes Master ID (§19.2.1.20)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_NotesMasterIdListEntry {
-    /// `r:id` — Relationship Identifier. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the notesMaster element defining this notes master. Required by the schema.
+    /// `r:id` — Relationship Identifier. Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the notesMaster element defining this notes master. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `p:extLst` — Extension List (§19.2.1.12).
     pub ext_lst: Option<Box<CT_ExtensionList>>,
@@ -7268,7 +7268,7 @@ pub struct CT_OleObject {
     pub name: Option<String>,
     /// `showAsIcon` — Show Embedded Object As Icon. Specifies whether the Embedded object shows as an icon or using its native representation. Default: `false`.
     pub show_as_icon: Option<bool>,
-    /// `r:id` — Relationship ID. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship id that is used to identify this Embedded object from within a slide.
+    /// `r:id` — Relationship ID. Specifies the relationship id that is used to identify this Embedded object from within a slide.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `imgW` — Image Width. Specifies the width of the embedded control.
     pub img_w: Option<crate::dml::ST_PositiveCoordinate32>,
@@ -7276,7 +7276,7 @@ pub struct CT_OleObject {
     pub img_h: Option<crate::dml::ST_PositiveCoordinate32>,
     /// `progId` — Embedded Object ProgID. Specifies the progid for an Embedded object.
     pub prog_id: Option<String>,
-    /// Child elements of choice [`CT_OleObject_Choice`].
+    /// Child elements of choice [`CT_OleObject_Choice`](crate::pml::CT_OleObject_Choice).
     pub choice: Option<CT_OleObject_Choice>,
     /// `p:pic` — Picture (§19.3.1.37).
     pub pic: Option<Box<CT_Picture>>,
@@ -7734,7 +7734,7 @@ impl XmlWrite for CT_OutlineViewProperties {
 /// * `p:sld` — Presentation Slide (§19.2.2.14)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_OutlineViewSlideEntry {
-    /// `r:id` — Relationship Identifier. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location of this presentation slide within a presentation. Required by the schema.
+    /// `r:id` — Relationship Identifier. Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location of this presentation slide within a presentation. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `collapse` — Collapsed. Specifies whether this presentation slide is to be shown as collapsed within outline view. Default: `false`.
     pub collapse: Option<bool>,
@@ -8866,7 +8866,7 @@ impl XmlWrite for CT_PrintProperties {
 
 /// Content Part (ECMA-376 Part 1 §19.3.1.14).
 ///
-/// This element specifies a reference to XML content in a format not defined by ECMA-376. \[Note: This part allows the native use of other commonly used interchange formats, such as:  MathML (http://www.w3.org/TR/MathML2/)  SMIL (http://www.w3.org/TR/REC-smil/)  SVG (http://www.w3.org/TR/SVG11/) end note\] The relationship type of the explicit relationship specified by this element shall be http://purl.oclc.org/ooxml/officeDocument/relationships/customXml and have a TargetMode attribute value of Internal. If an application cannot process content of the content type specified by the targeted part, then it
+/// This element specifies a reference to XML content in a format not defined by ECMA-376. \[Note: This part allows the native use of other commonly used interchange formats, such as:  MathML (<http://www.w3.org/TR/MathML2/>)  SMIL (<http://www.w3.org/TR/REC-smil/>)  SVG (<http://www.w3.org/TR/SVG11/>) end note\] The relationship type of the explicit relationship specified by this element shall be <http://purl.oclc.org/ooxml/officeDocument/relationships/customXml> and have a TargetMode attribute value of Internal. If an application cannot process content of the content type specified by the targeted part, then it
 ///
 /// Schema type `CT_Rel`, used by:
 ///
@@ -9249,9 +9249,9 @@ pub struct CT_ShowProperties {
     pub show_animation: Option<bool>,
     /// `useTimings` — Use Timings in Slide Show. Specifies whether slide transition timings should be used to advance slides when presenting. Default: `true`.
     pub use_timings: Option<bool>,
-    /// Child elements of choice [`EG_ShowType`].
+    /// Child elements of choice [`EG_ShowType`](crate::pml::EG_ShowType).
     pub show_type: Option<EG_ShowType>,
-    /// Child elements of choice [`EG_SlideListChoice`].
+    /// Child elements of choice [`EG_SlideListChoice`](crate::pml::EG_SlideListChoice).
     pub slide_list_choice: Option<EG_SlideListChoice>,
     /// `p:penClr` — Pen Color for Slide Show (§19.2.1.23).
     pub pen_clr: Option<Box<crate::dml::CT_Color>>,
@@ -9632,9 +9632,9 @@ impl XmlWrite for CT_SlideIdList {
 /// * `p:sldId` — Slide ID (§19.2.1.33)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_SlideIdListEntry {
-    /// `id` — Relationship Identifier. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the sld element defining this slide. Required by the schema.
+    /// `id` — Relationship Identifier. Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the sld element defining this slide. Required by the schema.
     pub id: Option<ST_SlideId>,
-    /// `r:id` — Relationship Identifier. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the sld element defining this slide. Required by the schema.
+    /// `r:id` — Relationship Identifier. Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the sld element defining this slide. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `p:extLst` — Extension List (§19.2.1.12).
     pub ext_lst: Option<Box<CT_ExtensionList>>,
@@ -9957,9 +9957,9 @@ impl XmlWrite for CT_SlideLayoutIdList {
 /// * `p:sldLayoutId` — Slide Layout Id (§19.3.1.40)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_SlideLayoutIdListEntry {
-    /// `id` — ID Tag. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship id value that the generating application can use to resolve which slide layout is used in the creation of the slide.
+    /// `id` — ID Tag. Specifies the relationship id value that the generating application can use to resolve which slide layout is used in the creation of the slide.
     pub id: Option<ST_SlideLayoutId>,
-    /// `r:id` — ID Tag. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship id value that the generating application can use to resolve which slide layout is used in the creation of the slide. Required by the schema.
+    /// `r:id` — ID Tag. Specifies the relationship id value that the generating application can use to resolve which slide layout is used in the creation of the slide. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `p:extLst` — Extension List (§19.2.1.12).
     pub ext_lst: Option<Box<CT_ExtensionList>>,
@@ -10265,9 +10265,9 @@ impl XmlWrite for CT_SlideMasterIdList {
 /// * `p:sldMasterId` — Slide Master ID (§19.2.1.36)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_SlideMasterIdListEntry {
-    /// `id` — Relationship Identifier. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the sldMaster element defining this slide master.
+    /// `id` — Relationship Identifier. Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the sldMaster element defining this slide master.
     pub id: Option<ST_SlideMasterId>,
-    /// `r:id` — Relationship Identifier. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the sldMaster element defining this slide master. Required by the schema.
+    /// `r:id` — Relationship Identifier. Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location within a presentation of the sldMaster element defining this slide master. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// `p:extLst` — Extension List (§19.2.1.12).
     pub ext_lst: Option<Box<CT_ExtensionList>>,
@@ -10505,7 +10505,7 @@ impl XmlWrite for CT_SlideRelationshipList {
 /// * `p:sld` — Presentation Slide (§19.2.1.31)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_SlideRelationshipListEntry {
-    /// `r:id` — Relationship ID. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps This attribute specifies the relationship id that is used to reference to the actual slide XML file that contains all the information to the slide listed within the slide list. Required by the schema.
+    /// `r:id` — Relationship ID. This attribute specifies the relationship id that is used to reference to the actual slide XML file that contains all the information to the slide listed within the slide list. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -10896,7 +10896,7 @@ pub struct CT_SlideTransition {
     pub adv_click: Option<bool>,
     /// `advTm` — Advance after time. Specifies the time, in milliseconds, after which the transition should start.
     pub adv_tm: Option<u32>,
-    /// Child elements of choice [`CT_SlideTransition_Choice`].
+    /// Child elements of choice [`CT_SlideTransition_Choice`](crate::pml::CT_SlideTransition_Choice).
     pub choice: Option<CT_SlideTransition_Choice>,
     /// `p:sndAc` — Sound Action (§19.5.69).
     pub snd_ac: Option<Box<CT_TransitionSoundAction>>,
@@ -11098,7 +11098,7 @@ impl XmlWrite for CT_SlideViewProperties {
 /// * `p:smartTags` — Smart Tags (§19.2.1.40)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_SmartTags {
-    /// `r:id` — Relationship Identifier. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location of this smart tag. Required by the schema.
+    /// `r:id` — Relationship Identifier. Specifies the relationship identifier that is used in conjunction with a corresponding relationship file to resolve the location of this smart tag. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -11274,7 +11274,7 @@ impl XmlWrite for CT_StringTag {
 /// * `p:val` — Value (§19.5.92)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TLAnimVariant {
-    /// Child elements of choice [`CT_TLAnimVariant_Choice`].
+    /// Child elements of choice [`CT_TLAnimVariant_Choice`](crate::pml::CT_TLAnimVariant_Choice).
     pub choice: Option<CT_TLAnimVariant_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -12536,7 +12536,7 @@ impl XmlWrite for CT_TLBuildParagraph {
 /// * `p:by` — By (§19.5.20)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TLByAnimateColorTransform {
-    /// Child elements of choice [`CT_TLByAnimateColorTransform_Choice`].
+    /// Child elements of choice [`CT_TLByAnimateColorTransform_Choice`](crate::pml::CT_TLByAnimateColorTransform_Choice).
     pub choice: Option<CT_TLByAnimateColorTransform_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -13429,7 +13429,7 @@ pub struct CT_TLGraphicalObjectBuild {
     pub grp_id: Option<u32>,
     /// `uiExpand` — Expand UI. This attribute describes the view option indicating if the build should be displayed expanded. Default: `false`.
     pub ui_expand: Option<bool>,
-    /// Child elements of choice [`CT_TLGraphicalObjectBuild_Choice`].
+    /// Child elements of choice [`CT_TLGraphicalObjectBuild_Choice`](crate::pml::CT_TLGraphicalObjectBuild_Choice).
     pub choice: Option<CT_TLGraphicalObjectBuild_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -13515,7 +13515,7 @@ pub struct CT_TLIterateData {
     pub type_: Option<ST_IterateType>,
     /// `backwards` — Backwards. This attribute specifies whether to go backwards in the timeline to the previous node. Default: `false`.
     pub backwards: Option<bool>,
-    /// Child elements of choice [`CT_TLIterateData_Choice`].
+    /// Child elements of choice [`CT_TLIterateData_Choice`](crate::pml::CT_TLIterateData_Choice).
     pub choice: Option<CT_TLIterateData_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -14121,7 +14121,7 @@ impl XmlWrite for CT_TLSetBehavior {
 pub struct CT_TLShapeTargetElement {
     /// `spid` — Shape ID. This attribute specifies the shape identifier. Required by the schema.
     pub spid: Option<crate::dml::ST_DrawingElementId>,
-    /// Child elements of choice [`CT_TLShapeTargetElement_Choice`].
+    /// Child elements of choice [`CT_TLShapeTargetElement_Choice`](crate::pml::CT_TLShapeTargetElement_Choice).
     pub choice: Option<CT_TLShapeTargetElement_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -14377,7 +14377,7 @@ impl XmlWrite for CT_TLTemplateList {
 /// * `p:txEl` — Text Element (§19.5.91)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TLTextTargetElement {
-    /// Child elements of choice [`CT_TLTextTargetElement_Choice`].
+    /// Child elements of choice [`CT_TLTextTargetElement_Choice`](crate::pml::CT_TLTextTargetElement_Choice).
     pub choice: Option<CT_TLTextTargetElement_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -14580,7 +14580,7 @@ pub struct CT_TLTimeCondition {
     pub evt: Option<ST_TLTriggerEvent>,
     /// `delay` — Trigger Delay. This attribute describes the delay after an animation is triggered.
     pub delay: Option<ST_TLTime>,
-    /// Child elements of choice [`CT_TLTimeCondition_Choice`].
+    /// Child elements of choice [`CT_TLTimeCondition_Choice`](crate::pml::CT_TLTimeCondition_Choice).
     pub choice: Option<CT_TLTimeCondition_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -14951,7 +14951,7 @@ impl XmlWrite for CT_TLTimeNodeSequence {
 /// * `p:tgtEl` — Target Element (§19.5.81)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TLTimeTargetElement {
-    /// Child elements of choice [`CT_TLTimeTargetElement_Choice`].
+    /// Child elements of choice [`CT_TLTimeTargetElement_Choice`](crate::pml::CT_TLTimeTargetElement_Choice).
     pub choice: Option<CT_TLTimeTargetElement_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -15174,7 +15174,7 @@ impl XmlWrite for CT_TagList {
 /// * `p:tags` — Customer Data Tags (§19.3.1.47)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TagsData {
-    /// `r:id` — Relationship ID. Namespace: http://purl.oclc.or g/ooxml/officeDoc ument/relationshi ps This attribute specifies the relationship identifier for the customer data tag. Required by the schema.
+    /// `r:id` — Relationship ID. This attribute specifies the relationship identifier for the customer data tag. Required by the schema.
     pub r_id: Option<crate::shared_relationship_reference::ST_RelationshipId>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -15228,7 +15228,7 @@ impl XmlWrite for CT_TagsData {
 /// * `p:tnLst` — Time Node List (§19.5.87)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TimeNodeList {
-    /// Child elements of choice [`CT_TimeNodeList_Choice`].
+    /// Child elements of choice [`CT_TimeNodeList_Choice`](crate::pml::CT_TimeNodeList_Choice).
     pub choice: Vec<CT_TimeNodeList_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
@@ -15297,7 +15297,7 @@ impl XmlWrite for CT_TimeNodeList {
 /// * `p:sndAc` — Sound Action (§19.5.69)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CT_TransitionSoundAction {
-    /// Child elements of choice [`CT_TransitionSoundAction_Choice`].
+    /// Child elements of choice [`CT_TransitionSoundAction_Choice`](crate::pml::CT_TransitionSoundAction_Choice).
     pub choice: Option<CT_TransitionSoundAction_Choice>,
     /// Attributes not described by the schema, including namespace declarations.
     pub extra_attrs: Vec<RawAttribute>,
