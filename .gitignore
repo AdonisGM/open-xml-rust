@@ -6,3 +6,5 @@
 # Scratch output of tests and examples.
 /out
 *.tmp
+# Local agent worktrees and settings
+/.claude/

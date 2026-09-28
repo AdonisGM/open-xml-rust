@@ -10,6 +10,8 @@ members = [
     "crates/openxml-docx",
     "crates/openxml-xlsx",
     "crates/openxml-pptx",
+    "crates/openxml",
+    "crates/openxml-cli",
 ]
 
 [workspace.package]

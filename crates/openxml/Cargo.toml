@@ -1,0 +1,23 @@
+[package]
+name = "openxml"
+description = "Office Open XML (ECMA-376) for Rust: Word, Excel and PowerPoint documents, typed schemas and packaging"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+openxml-core = { workspace = true }
+openxml-docx = { workspace = true }
+openxml-opc = { workspace = true }
+openxml-pptx = { workspace = true }
+openxml-schema = { workspace = true }
+openxml-xlsx = { workspace = true }
+openxml-xml = { workspace = true }
+
+[dev-dependencies]
+openxml-testkit = { workspace = true }
+
+[lints]
+workspace = true
