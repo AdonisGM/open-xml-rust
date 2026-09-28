@@ -247,6 +247,9 @@ pub struct XmlReader<'i> {
     inner: NsReader<&'i [u8]>,
     pending: Option<Event<'i>>,
     depth: usize,
+    /// Recently classified namespace URIs; documents use few namespaces, so
+    /// this avoids matching every element's URI against the whole registry.
+    ns_cache: Vec<(Box<str>, Ns)>,
 }
 
 impl<'i> XmlReader<'i> {
@@ -261,6 +264,7 @@ impl<'i> XmlReader<'i> {
             inner,
             pending: None,
             depth: 0,
+            ns_cache: Vec::new(),
         }
     }
 
@@ -269,10 +273,11 @@ impl<'i> XmlReader<'i> {
         self.depth
     }
 
-    fn resolve_start(&self, raw: BytesStart<'i>, empty: bool) -> Result<StartTag<'i>> {
+    fn resolve_start(&mut self, raw: BytesStart<'i>, empty: bool) -> Result<StartTag<'i>> {
         let resolver = self.inner.resolver();
+        let cache = &mut self.ns_cache;
         let (res, _) = resolver.resolve_element(raw.name());
-        let (ns, uri) = classify(res)?;
+        let (ns, uri) = classify(cache, res)?;
         let mut attrs = Vec::new();
         let text = raw.attributes_raw();
         for attr in raw.attributes() {
@@ -296,7 +301,7 @@ impl<'i> XmlReader<'i> {
                     let (res, _) = resolver.resolve_attribute(QName(key));
                     let (ns, uri) = match res {
                         ResolveResult::Unbound => (Ns::NONE, None),
-                        other => classify(other)?,
+                        other => classify(cache, other)?,
                     };
                     let value = attr.normalized_value(XmlVersion::Implicit1_0)?;
                     (ns, uri, slot_for(text, value))
@@ -472,14 +477,27 @@ fn slot_for(text: &str, value: Cow<'_, str>) -> Slot {
     }
 }
 
-fn classify(res: ResolveResult<'_>) -> Result<(Ns, Option<Box<str>>)> {
+const NS_CACHE_SIZE: usize = 8;
+
+fn classify(cache: &mut Vec<(Box<str>, Ns)>, res: ResolveResult<'_>) -> Result<(Ns, Option<Box<str>>)> {
     match res {
         ResolveResult::Unbound => Ok((Ns::NONE, None)),
         ResolveResult::Bound(ns) => {
             let uri = ns.0;
-            match Ns::from_uri(uri) {
-                Some(known) => Ok((known, None)),
-                None => Ok((Ns::OTHER, Some(uri.into()))),
+            let known = match cache.iter().find(|(u, _)| &**u == uri) {
+                Some((_, n)) => *n,
+                None => {
+                    let n = Ns::from_uri(uri).unwrap_or(Ns::OTHER);
+                    if cache.len() == NS_CACHE_SIZE {
+                        cache.remove(0);
+                    }
+                    cache.push((uri.into(), n));
+                    n
+                }
+            };
+            match known {
+                Ns::OTHER => Ok((Ns::OTHER, Some(uri.into()))),
+                n => Ok((n, None)),
             }
         }
         ResolveResult::Unknown(prefix) => {
