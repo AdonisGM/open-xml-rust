@@ -50,7 +50,7 @@ side by side with the PDF.
 
 ## Layer 1 — `openxml-xml`
 
-* **`Ns`** — a compact `u16` identifier for each of the 38 namespaces in
+* **`Ns`** — a compact `u16` identifier for each of the 36 namespaces in
   play (all ECMA-376 namespaces, VML, markup compatibility, OPC, Dublin
   Core). Generated code matches on `(Ns, &str)` pairs instead of comparing
   URIs. `Ns::NONE` is "no namespace", `Ns::OTHER` a namespace outside the

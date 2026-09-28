@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>open-xml-rust</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --paper: #f4f6f9;
+  --surface: #ffffff;
+  --sunk: #eaeef3;
+  --ink: #16202c;
+  --muted: #5a6678;
+  --rule: #d6dce5;
+  --accent: #0c6b78;
+  --accent-soft: #dcefF1;
+  --word: #2a5699;
+  --excel: #1c6b3f;
+  --ppt: #b8431f;
+  --ok: #1c6b3f;
+  --warn: #9a5b00;
+  --code-bg: #eef1f5;
+  --display: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --body: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #0f141b;
+    --surface: #161d27;
+    --sunk: #1b2330;
+    --ink: #e4e9f0;
+    --muted: #95a1b2;
+    --rule: #273041;
+    --accent: #4bb5c1;
+    --accent-soft: #15333a;
+    --word: #7fa8e8;
+    --excel: #63be8a;
+    --ppt: #ee8a68;
+    --ok: #63be8a;
+    --warn: #e0a84a;
+    --code-bg: #131a23;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #0f141b;
+  --surface: #161d27;
+  --sunk: #1b2330;
+  --ink: #e4e9f0;
+  --muted: #95a1b2;
+  --rule: #273041;
+  --accent: #4bb5c1;
+  --accent-soft: #15333a;
+  --word: #7fa8e8;
+  --excel: #63be8a;
+  --ppt: #ee8a68;
+  --ok: #63be8a;
+  --warn: #e0a84a;
+  --code-bg: #131a23;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 16px/1.65 var(--body);
+  padding-inline: 20px;
+  padding-block: 0 64px;
+}
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
+code, pre, .mono { font-family: var(--mono); font-size: 0.86em; }
+code { background: var(--code-bg); padding: 0.08em 0.35em; border-radius: 4px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.2; margin: 0; }
+h2 { font-size: clamp(1.6rem, 1.2rem + 1.4vw, 2.1rem); font-weight: 700; }
+h3 { font-size: 1.2rem; font-weight: 600; }
+p { margin: 0; }
+
+.page {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 56px;
+}
+@media (max-width: 900px) { .page { grid-template-columns: minmax(0, 1fr); gap: 0; } }
+
+/* Table of contents */
+.toc {
+  position: sticky;
+  top: calc(env(safe-area-inset-top, 0px) + 24px);
+  align-self: start;
+  padding-top: 40px;
+  font-size: 0.88rem;
+}
+.toc .label, .eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.toc ol { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 2px; counter-reset: toc; }
+.toc li { counter-increment: toc; }
+.toc a {
+  display: grid;
+  grid-template-columns: 1.6em 1fr;
+  padding: 5px 8px;
+  border-radius: 6px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.toc a::before { content: counter(toc); color: var(--muted); font-variant-numeric: tabular-nums; }
+.toc a:hover { background: var(--sunk); }
+@media (max-width: 900px) {
+  .toc { position: static; padding-top: 24px; }
+  .toc ol { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+}
+
+main { min-width: 0; }
+section { padding-top: 64px; display: grid; gap: 20px; }
+.prose { max-width: 70ch; display: grid; gap: 14px; }
+.lede { font-size: 1.08rem; color: var(--ink); }
+.muted { color: var(--muted); }
+
+/* Hero */
+.hero { padding-top: 48px; display: grid; gap: 18px; }
+.hero h1 { font-size: clamp(2.4rem, 1.6rem + 3.2vw, 3.8rem); font-weight: 700; letter-spacing: -0.01em; }
+.hero h1 .dot { color: var(--accent); }
+.thesis { font-size: 1.18rem; max-width: 62ch; }
+.facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  margin-top: 8px;
+}
+.fact { padding: 16px; display: grid; gap: 2px; align-content: start; border-left: 1px solid var(--rule); }
+.fact:nth-child(3n+1) { border-left: 0; padding-left: 0; }
+.fact:nth-child(n+4) { border-top: 1px solid var(--rule); }
+@media (max-width: 700px) {
+  .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fact:nth-child(3n+1) { border-left: 1px solid var(--rule); padding-left: 16px; }
+  .fact:nth-child(2n+1) { border-left: 0; padding-left: 0; }
+  .fact:nth-child(n+3) { border-top: 1px solid var(--rule); }
+}
+.fact b { font: 700 1.7rem/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.fact span { font-size: 0.82rem; color: var(--muted); line-height: 1.35; }
+
+/* Journey */
+.journey { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; counter-reset: step; }
+.journey li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px 0;
+  border-top: 1px solid var(--rule);
+}
+.journey li::before {
+  content: counter(step);
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+  border: 1.5px solid var(--accent);
+  color: var(--accent);
+  border-radius: 50%;
+  font: 600 0.9rem var(--mono);
+}
+.journey h3 { margin-bottom: 4px; }
+.journey .meta { font-size: 0.8rem; color: var(--muted); font-family: var(--mono); margin-top: 6px; }
+
+/* Layer diagram */
+.figure { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 20px; overflow-x: auto; }
+.figure figcaption { font-size: 0.85rem; color: var(--muted); margin-top: 14px; }
+figure { margin: 0; }
+.layers { display: grid; gap: 8px; min-width: 620px; }
+.layer { display: grid; grid-template-columns: 130px 1fr; gap: 12px; align-items: stretch; }
+.layer .tier { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 600; align-self: center; }
+.boxes { display: grid; gap: 8px; grid-auto-flow: column; grid-auto-columns: 1fr; }
+.box {
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--paper);
+  display: grid;
+  gap: 2px;
+}
+.box b { font-family: var(--mono); font-size: 0.86rem; font-weight: 600; }
+.box span { font-size: 0.8rem; color: var(--muted); line-height: 1.35; }
+.box.word { border-top: 3px solid var(--word); }
+.box.excel { border-top: 3px solid var(--excel); }
+.box.ppt { border-top: 3px solid var(--ppt); }
+.box.spec { background: var(--accent-soft); border-color: var(--accent); }
+.box.spec b { color: var(--accent); }
+.arrow-note { font-size: 0.8rem; color: var(--muted); text-align: right; }
+
+/* Pipeline */
+.pipeline { display: flex; align-items: stretch; gap: 0; min-width: 760px; }
+.stage { flex: 1; display: grid; gap: 4px; align-content: start; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); }
+.stage b { font-family: var(--mono); font-size: 0.84rem; }
+.stage span { font-size: 0.8rem; color: var(--muted); line-height: 1.4; }
+.stage.io { background: var(--accent-soft); border-color: var(--accent); }
+.stage.io b { color: var(--accent); }
+.connector { width: 26px; display: grid; place-items: center; color: var(--muted); flex: none; }
+.side-input { margin-top: 10px; min-width: 760px; display: flex; gap: 10px; align-items: center; font-size: 0.82rem; color: var(--muted); }
+.side-input .pill { font-family: var(--mono); background: var(--sunk); border-radius: 999px; padding: 3px 10px; color: var(--ink); }
+
+/* Decisions */
+.decisions { display: grid; gap: 14px; }
+.decision {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 20px 22px;
+  display: grid;
+  gap: 12px;
+}
+.decision header { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; justify-content: space-between; }
+.tag { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.decision dl { margin: 0; display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 8px 18px; }
+.decision dt { font-size: 0.82rem; font-weight: 600; color: var(--muted); padding-top: 2px; }
+.decision dd { margin: 0; max-width: 72ch; }
+@media (max-width: 640px) { .decision dl { grid-template-columns: minmax(0, 1fr); gap: 2px; } .decision dd { margin-bottom: 8px; } }
+
+/* Code comparison */
+.compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 860px) { .compare { grid-template-columns: minmax(0, 1fr); } }
+.code { background: var(--code-bg); border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; display: grid; }
+.code .head { font-size: 0.75rem; color: var(--muted); padding: 8px 14px; border-bottom: 1px solid var(--rule); display: flex; justify-content: space-between; gap: 10px; }
+.code pre { margin: 0; padding: 14px; overflow-x: auto; line-height: 1.55; font-size: 0.8rem; }
+.c-k { color: var(--accent); font-weight: 600; }
+.c-c { color: var(--muted); }
+.c-s { color: var(--excel); }
+
+/* Tables */
+.table-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; background: var(--sunk); }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; font-family: var(--mono); font-size: 0.85rem; }
+.status { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--ok); white-space: nowrap; }
+
+/* API cards */
+.apis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 900px) { .apis { grid-template-columns: minmax(0, 1fr); } }
+.api { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px; display: grid; gap: 10px; align-content: start; }
+.api h3 { font-family: var(--mono); font-size: 1rem; }
+.api.word h3 { color: var(--word); }
+.api.excel h3 { color: var(--excel); }
+.api.ppt h3 { color: var(--ppt); }
+.api ul { margin: 0; padding-left: 1.1em; display: grid; gap: 4px; font-size: 0.92rem; }
+.api .count { font-size: 0.8rem; color: var(--muted); font-family: var(--mono); }
+
+.callout { border-left: 3px solid var(--accent); background: var(--surface); padding: 14px 18px; border-radius: 0 8px 8px 0; max-width: 78ch; display: grid; gap: 8px; }
+.callout b { color: var(--accent); }
+
+ul.plain { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; max-width: 74ch; }
+details { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 18px; }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 10px; }
+footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--rule); font-size: 0.82rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="page">
+  <nav class="toc" aria-label="Mục lục">
+    <div class="label">Mục lục</div>
+    <ol>
+      <li><a href="#bai-toan">Bài toán</a></li>
+      <li><a href="#hanh-trinh">Hành trình</a></li>
+      <li><a href="#kien-truc">Kiến trúc tổng thể</a></li>
+      <li><a href="#quyet-dinh">Quyết định và lý do</a></li>
+      <li><a href="#bo-sinh-code">Bên trong bộ sinh code</a></li>
+      <li><a href="#giu-nguyen">Giữ nguyên dữ liệu</a></li>
+      <li><a href="#api">API Word, Excel, PowerPoint</a></li>
+      <li><a href="#kiem-chung">Kiểm chứng</a></li>
+      <li><a href="#gioi-han">Giới hạn hiện tại</a></li>
+      <li><a href="#ma-nguon">Bản đồ mã nguồn</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Báo cáo kiến trúc · ECMA-376 · Rust</div>
+      <h1>open-xml-rust<span class="dot">.</span></h1>
+      <p class="thesis">Office Open XML cho Rust, sinh trực tiếp từ bộ XML Schema chính thức của ECMA-376: từng element, từng attribute, từng giá trị enum của đặc tả đều trở thành một kiểu Rust, và mọi tài liệu đọc vào rồi ghi ra đều không mất dữ liệu.</p>
+      <div class="facts" role="list">
+        <div class="fact" role="listitem"><b>1.431</b><span>kiểu phức (struct) sinh từ XSD</span></div>
+        <div class="fact" role="listitem"><b>4.077</b><span>attribute, đủ 100%</span></div>
+        <div class="fact" role="listitem"><b>3.262</b><span>giá trị enum, đủ 100%</span></div>
+        <div class="fact" role="listitem"><b>545</b><span>file Office thật, 0 lỗi, 0 khác biệt</span></div>
+        <div class="fact" role="listitem"><b>478/479</b><span>ví dụ XML trong PDF đặc tả round-trip đúng</span></div>
+        <div class="fact" role="listitem"><b>385</b><span>test tự động, tất cả đều qua</span></div>
+      </div>
+    </header>
+
+    <section id="bai-toan">
+      <div class="eyebrow">1 · Bài toán</div>
+      <h2>Từ một yêu cầu đến bốn ràng buộc</h2>
+      <div class="prose">
+        <p class="lede">Yêu cầu ban đầu: chuyển toàn bộ OpenXML trong tài liệu đặc tả thành Rust, rồi xây phần hiện thực cho Docx, Xlsx và Pptx trên nền đó. Tự xây từ đầu, có test đầy đủ và chuẩn chỉ, và làm xong mới dừng.</p>
+        <p>Trước khi viết dòng code nào, các câu hỏi có thể làm thay đổi hướng đi được hỏi một lần và chốt lại:</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Câu hỏi</th><th>Trả lời</th><th>Ảnh hưởng tới thiết kế</th></tr></thead>
+          <tbody>
+            <tr><td>Nguồn schema máy đọc được lấy từ đâu?</td><td>XSD kèm theo đặc tả (bạn đặt vào <code>docs/</code>)</td><td>Bộ sinh code đọc XSD. PDF Part 1 chỉ chứa Strict, nên Part 4 (Transitional) và Part 2 (OPC) được tải bổ sung từ trang chính thức của Ecma.</td></tr>
+            <tr><td>"Từ đầu" có gồm tự viết XML parser và ZIP không?</td><td>Được dùng crate nền phổ biến</td><td><code>quick-xml</code> và <code>zip</code> lo phần cú pháp và nén; toàn bộ tầng OOXML (namespace, OPC, schema, API) tự viết.</td></tr>
+            <tr><td>API mức cao cho định dạng nào?</td><td>Docx, Xlsx, Pptx</td><td>Ba crate song song, cùng một khuôn thiết kế.</td></tr>
+            <tr><td>Có dùng git không?</td><td>Có, commit theo mốc</td><td>20 commit, mỗi mốc là một tầng đã test xong.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="hanh-trinh">
+      <div class="eyebrow">2 · Hành trình</div>
+      <h2>Thứ tự xây dựng, từ ý tưởng đến kết quả</h2>
+      <p class="prose muted">Mỗi bước chỉ bắt đầu khi bước trước đã có test chứng minh. Thứ tự này đi từ dưới lên: tầng trên luôn đứng trên một nền đã kiểm chứng.</p>
+      <ol class="journey">
+        <li>
+          <div>
+            <h3>Chuẩn bị đầu vào từ đặc tả</h3>
+            <p>Giải nén XSD của Part 1, 2, 4. Viết <code>tools/spec_index.py</code> trích 5.039 trang PDF thành <code>spec-index.json</code>: 2.862 mục (element và simple type) kèm số mục, tiêu đề, đoạn mô tả đầu tiên và tên kiểu schema. Chỉ mục này về sau thành doc comment của code sinh ra.</p>
+            <div class="meta">schemas/ · tools/spec_index.py</div>
+          </div>
+        </li>
+        <li>
+          <div>
+            <h3>Nền móng: XML và đóng gói</h3>
+            <p><code>openxml-xml</code>: bảng 36 namespace, reader/writer có namespace, nút XML thô, so sánh XML theo ngữ nghĩa. <code>openxml-opc</code>: tên part, content types, relationships, core properties, gói ZIP. Hai tầng này không biết gì về Word, Excel hay PowerPoint.</p>
+            <div class="meta">commit 00ecde4 · 88 test</div>
+          </div>
+        </li>
+        <li>
+          <div>
+            <h3>Bộ sinh code và mô hình kiểu</h3>
+            <p><code>openxml-codegen</code> đọc 26 file XSD Transitional và sinh <code>openxml-schema</code>: 27 module, khoảng 214 nghìn dòng Rust. Toàn bộ biên dịch ngay lần đầu, không có cảnh báo. Chạy round-trip trên corpus 545 file thật và phát hiện một lỗi thật: <code>mc:AlternateContent</code> nằm xen giữa các <code>xf</code> bị dời xuống cuối, làm lệch chỉ số style. Lỗi được sửa bằng neo vị trí theo cặp (field, chỉ số phần tử).</p>
+            <div class="meta">commit 2228b10</div>
+          </div>
+        </li>
+        <li>
+          <div>
+            <h3>Kiểm chứng sâu tầng schema</h3>
+            <p>Trích 479 ví dụ XML in trong PDF làm dữ liệu test. Chứng minh Strict là tập con của Transitional. Sinh thêm validator viết bằng Rust. Thêm test đột biến dữ liệu: 2.000 part bị làm hỏng mà không có panic nào.</p>
+            <div class="meta">commit c712c9c · 67b5544 · 168000b</div>
+          </div>
+        </li>
+        <li>
+          <div>
+            <h3>Tầng dùng chung và ba API song song</h3>
+            <p><code>openxml-core</code> gom phần chung: kiểu lỗi, đọc/ghi part có kiểu, đơn vị đo, nhận diện ảnh. Sau đó ba API docx, xlsx, pptx được xây đồng thời, mỗi API trên một git worktree riêng và chỉ sửa crate của mình, rồi merge lại mà không có xung đột.</p>
+            <div class="meta">commit 816aada → acdf496 · d49f25f · 59350cb</div>
+          </div>
+        </li>
+        <li>
+          <div>
+            <h3>Tích hợp và hoàn thiện</h3>
+            <p>CLI <code>openxml</code> (info, cat, text, roundtrip, validate), crate tổng hợp <code>openxml</code>, ví dụ chạy được, README, ARCHITECTURE, <code>scripts/check.sh</code>. Cuối cùng là một test độc lập kiểm tra độ phủ 100% so với XSD.</p>
+            <div class="meta">commit 66123c8 · 4e3889a</div>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section id="kien-truc">
+      <div class="eyebrow">3 · Kiến trúc tổng thể</div>
+      <h2>Năm tầng, phụ thuộc một chiều</h2>
+      <p class="prose">Mỗi tầng chỉ dùng các tầng bên dưới. Tầng thấp không biết gì về Word, Excel hay PowerPoint; phần mang đặc thù định dạng chỉ nằm ở tầng API trên cùng.</p>
+      <figure class="figure">
+        <div class="layers">
+          <div class="layer">
+            <div class="tier">Ứng dụng</div>
+            <div class="boxes">
+              <div class="box"><b>openxml</b><span>Crate tổng hợp, re-export mọi tầng</span></div>
+              <div class="box"><b>openxml-cli</b><span>info · cat · text · roundtrip · validate</span></div>
+            </div>
+          </div>
+          <div class="layer">
+            <div class="tier">API tài liệu</div>
+            <div class="boxes">
+              <div class="box word"><b>openxml-docx</b><span>Word: đoạn văn, run, bảng, ảnh, danh sách</span></div>
+              <div class="box excel"><b>openxml-xlsx</b><span>Excel: ô, công thức, style, ngày, stream</span></div>
+              <div class="box ppt"><b>openxml-pptx</b><span>PowerPoint: slide, layout, text box, bảng</span></div>
+            </div>
+          </div>
+          <div class="layer">
+            <div class="tier">Dùng chung</div>
+            <div class="boxes">
+              <div class="box"><b>openxml-core</b><span>Error, part có kiểu, Length (EMU/twip/pt), nhận diện ảnh</span></div>
+            </div>
+          </div>
+          <div class="layer">
+            <div class="tier">Mô hình kiểu</div>
+            <div class="boxes">
+              <div class="box spec"><b>openxml-schema</b><span>27 module sinh tự động: wml, sml, pml, dml, vml, math…</span></div>
+              <div class="box spec"><b>openxml-codegen</b><span>XSD → Rust, chạy khoảng 4 giây</span></div>
+            </div>
+          </div>
+          <div class="layer">
+            <div class="tier">Đóng gói</div>
+            <div class="boxes">
+              <div class="box"><b>openxml-opc</b><span>ZIP, [Content_Types].xml, _rels, docProps/core.xml</span></div>
+            </div>
+          </div>
+          <div class="layer">
+            <div class="tier">XML</div>
+            <div class="boxes">
+              <div class="box"><b>openxml-xml</b><span>Ns, reader, writer, nút thô, so sánh ngữ nghĩa, validator</span></div>
+              <div class="box"><b>quick-xml · zip</b><span>Crate nền bên ngoài</span></div>
+            </div>
+          </div>
+        </div>
+        <figcaption>Viền màu phân biệt ba định dạng; nền xanh cổ vịt đánh dấu phần sinh từ đặc tả. <code>openxml-testkit</code> (xác thực XSD bằng xmllint) chỉ dùng trong test.</figcaption>
+      </figure>
+    </section>
+
+    <section id="quyet-dinh">
+      <div class="eyebrow">4 · Quyết định và lý do</div>
+      <h2>Mỗi lựa chọn, các phương án đã cân nhắc, và cái giá phải trả</h2>
+      <div class="decisions">
+
+        <article class="decision">
+          <header><h3>Sinh code từ XSD thay vì viết tay</h3><span class="tag">Nền tảng</span></header>
+          <dl>
+            <dt>Đã cân nhắc</dt><dd>Viết tay từng kiểu theo PDF. Dùng lại metadata JSON của Open XML SDK (.NET) hoặc fork crate <code>ooxmlsdk</code>.</dd>
+            <dt>Lý do chọn</dt><dd>Đặc tả có 1.431 kiểu phức và hơn 4.000 attribute. Viết tay chắc chắn sẽ sót hoặc lệch đặc tả. XSD là dạng máy đọc được của chính đặc tả, nên sinh từ nó bảo đảm đủ và đúng. Bạn yêu cầu tự xây từ đầu, nên không dựa vào dữ liệu của SDK khác.</dd>
+            <dt>Cái giá</dt><dd>Phải viết một bộ sinh code khoảng 4.400 dòng. Đổi lại, khi schema thay đổi chỉ cần chạy lại, và có test chứng minh độ phủ 100%.</dd>
+          </dl>
+        </article>
+
+        <article class="decision">
+          <header><h3>Một mô hình Transitional, đọc được cả Strict</h3><span class="tag">Mô hình</span></header>
+          <dl>
+            <dt>Đã cân nhắc</dt><dd>Sinh từ Strict (bộ có sẵn trong <code>docs/</code>). Sinh hai mô hình riêng cho Strict và Transitional.</dd>
+            <dt>Lý do chọn</dt><dd>Word, Excel và PowerPoint ghi file ở dạng Transitional. Transitional chứa mọi thứ của Strict; test <code>strict_subset</code> đã kiểm tra điều này trên từng kiểu, element, attribute và simple type. URI namespace của Strict được đổi sang Transitional ngay khi đọc.</dd>
+            <dt>Cái giá</dt><dd>File Strict sau khi lưu lại sẽ thành Transitional.</dd>
+          </dl>
+        </article>
+
+        <article class="decision">
+          <header><h3>Field theo thứ tự schema, choice thành enum</h3><span class="tag">Ánh xạ</span></header>
+          <dl>
+            <dt>Đã cân nhắc</dt><dd>Cách của Open XML SDK: mọi phần tử con nằm chung một danh sách không có kiểu cụ thể.</dd>
+            <dt>Lý do chọn</dt><dd>Có kiểu mạnh: <code>p.p_pr</code> là <code>Option&lt;Box&lt;CT_PPr&gt;&gt;</code>. Khi ghi, field đi đúng thứ tự schema, điều mà Word và Excel đòi hỏi nghiêm ngặt. Nhóm lựa chọn có tên (ví dụ <code>EG_PContent</code>) thành một enum dùng chung ở mọi nơi nhóm đó xuất hiện.</dd>
+            <dt>Cái giá</dt><dd>Một số chỗ thành <code>Vec&lt;enum&gt;</code>, ví dụ thuộc tính của run. Tầng API mức cao bọc lại cho dễ dùng.</dd>
+          </dl>
+        </article>
+
+        <article class="decision">
+          <header><h3>Đọc dễ dãi, ghi chuẩn, không bao giờ mất dữ liệu</h3><span class="tag">Độ trung thực</span></header>
+          <dl>
+            <dt>Đã cân nhắc</dt><dd>Chỉ giữ những gì schema mô tả; báo lỗi khi gặp thứ lạ.</dd>
+            <dt>Lý do chọn</dt><dd>File thật chứa <code>mc:AlternateContent</code>, phần mở rộng <code>w14</code>/<code>x14</code> của Microsoft, và các phần tử sai thứ tự. Attribute lạ vào <code>extra_attrs</code>. Element lạ vào biến thể <code>Other</code> của choice, hoặc vào <code>extra_children</code> kèm neo vị trí. Giá trị sai kiểu được giữ nguyên dạng thô.</dd>
+            <dt>Cái giá</dt><dd>Mỗi struct có thêm hai vector (rỗng trong trường hợp thường gặp).</dd>
+          </dl>
+        </article>
+
+        <article class="decision">
+          <header><h3>Attribute đều là Option; tính "bắt buộc" do validator kiểm</h3><span class="tag">Kiểm tra</span></header>
+          <dl>
+            <dt>Đã cân nhắc</dt><dd>Attribute bắt buộc thành kiểu không-Option, thiếu thì từ chối đọc.</dd>
+            <dt>Lý do chọn</dt><dd>File thật có thể thiếu hoặc sai giá trị. Ép kiểu bắt buộc thì không mở được những file đó. Thay vào đó, validator sinh từ XSD báo rõ vị trí và phân biệt "thiếu" với "sai giá trị".</dd>
+            <dt>Cái giá</dt><dd>Khi dựng tài liệu bằng kiểu thô phải tự điền attribute bắt buộc; API mức cao làm việc này hộ.</dd>
+          </dl>
+        </article>
+
+        <article class="decision">
+          <header><h3>Giữ nguyên tên trong schema và gắn số mục đặc tả</h3><span class="tag">Tra cứu</span></header>
+          <dl>
+            <dt>Đã cân nhắc</dt><dd>Đặt tên thân thiện như <code>Paragraph</code>, <code>Run</code>.</dd>
+            <dt>Lý do chọn</dt><dd>Một kiểu thường dùng cho nhiều element (<code>CT_OnOff</code> dùng cho <code>w:b</code>, <code>w:i</code> và hàng chục element khác), nên tên thân thiện dễ gây hiểu nhầm. Giữ <code>CT_P</code>, <code>ST_Jc</code> giúp tra 1–1 với PDF, và doc comment ghi sẵn "Paragraph (§17.3.1.22)".</dd>
+            <dt>Cái giá</dt><dd>Tên không theo quy ước CamelCase của Rust. Tên thân thiện nằm ở tầng API.</dd>
+          </dl>
+        </article>
+
+        <article class="decision">
+          <header><h3>Package giữ byte; chỉ ghi lại part đã sửa</h3><span class="tag">Đóng gói</span></header>
+          <dl>
+            <dt>Đã cân nhắc</dt><dd>Phân tích toàn bộ part khi mở và ghi lại tất cả khi lưu.</dd>
+            <dt>Lý do chọn</dt><dd>File không sửa gì khi lưu ra giống hệt từng byte. Những part API chưa hiểu (VBA, ActiveX, customXml, printer settings) không bị động tới. Ghi ZIP tất định: thời điểm cố định, thứ tự ổn định.</dd>
+            <dt>Cái giá</dt><dd>Mỗi API phải theo dõi part nào đã thay đổi (cờ "dirty").</dd>
+          </dl>
+        </article>
+
+        <article class="decision">
+          <header><h3>Namespace là số, prefix do writer tự quản</h3><span class="tag">XML</span></header>
+          <dl>
+            <dt>Đã cân nhắc</dt><dd>So chuỗi URI ở mỗi element; prefix cố định.</dd>
+            <dt>Lý do chọn</dt><dd>So khớp <code>(Ns, "p")</code> nhanh hơn so chuỗi dài. Writer tái dùng khai báo đang có, tự khai báo khi thiếu, tránh trùng prefix, và giữ nguyên khai báo <code>xmlns</code> gốc, vì <code>mc:Ignorable="w14 wp14"</code> tham chiếu prefix bằng giá trị chuỗi.</dd>
+            <dt>Cái giá</dt><dd>Phải duy trì một bảng namespace (36 mục) đồng bộ với schema; có test kiểm tra.</dd>
+          </dl>
+        </article>
+
+        <article class="decision">
+          <header><h3>Commit code sinh ra, kèm test "còn mới"</h3><span class="tag">Quy trình</span></header>
+          <dl>
+            <dt>Đã cân nhắc</dt><dd>Sinh code trong <code>build.rs</code> mỗi lần biên dịch.</dd>
+            <dt>Lý do chọn</dt><dd>Người dùng không cần chạy generator hay rustfmt; biên dịch nhanh; thay đổi của code sinh ra xem được qua diff. Test <code>up_to_date</code> báo lỗi nếu code trong repo lệch với đầu ra của generator.</dd>
+            <dt>Cái giá</dt><dd>Repo nặng thêm khoảng 8 MB mã nguồn.</dd>
+          </dl>
+        </article>
+
+        <article class="decision">
+          <header><h3>Nhiều lớp kiểm chứng độc lập</h3><span class="tag">Chất lượng</span></header>
+          <dl>
+            <dt>Đã cân nhắc</dt><dd>Chỉ test đơn vị trên dữ liệu tự tạo.</dd>
+            <dt>Lý do chọn</dt><dd>Bạn yêu cầu test đầy đủ và chuẩn chỉ, và máy không có Microsoft Office để mở thử. Vì vậy mỗi lớp dùng một nguồn sự thật khác nhau: file do Office tạo, ví dụ in trong đặc tả, XSD qua xmllint, validator Rust, test đột biến, và trình đọc độc lập của macOS.</dd>
+            <dt>Cái giá</dt><dd>Bộ test chạy lâu hơn (vài phút cho toàn bộ, kể cả corpus).</dd>
+          </dl>
+        </article>
+
+      </div>
+    </section>
+
+    <section id="bo-sinh-code">
+      <div class="eyebrow">5 · Bên trong bộ sinh code</div>
+      <h2>Từ XSD đến struct Rust</h2>
+      <figure class="figure">
+        <div class="pipeline">
+          <div class="stage io"><b>26 file XSD</b><span>Transitional, ECMA-376 Part 4</span></div>
+          <div class="connector" aria-hidden="true">→</div>
+          <div class="stage"><b>xsd.rs</b><span>Parse thành mô hình cú pháp: kiểu, nhóm, attribute group, element</span></div>
+          <div class="connector" aria-hidden="true">→</div>
+          <div class="stage"><b>registry.rs</b><span>Chỉ mục theo tên đầy đủ để resolve tham chiếu</span></div>
+          <div class="connector" aria-hidden="true">→</div>
+          <div class="stage"><b>lower.rs</b><span>Làm phẳng content model thành field và enum; gộp kế thừa</span></div>
+          <div class="connector" aria-hidden="true">→</div>
+          <div class="stage"><b>emit.rs</b><span>In Rust: struct, enum, XmlRead, XmlWrite, Validate</span></div>
+          <div class="connector" aria-hidden="true">→</div>
+          <div class="stage io"><b>openxml-schema</b><span>27 module, rustfmt, commit vào repo</span></div>
+        </div>
+        <div class="side-input"><span class="pill">spec-index.json</span><span>2.862 mục trích từ PDF, đi vào bước lower để tạo doc comment có số mục đặc tả</span></div>
+      </figure>
+
+      <div class="prose">
+        <p>Quy tắc chính khi làm phẳng: sequence ở cấp ngoài cùng tách thành các field theo đúng thứ tự; sequence lồng không lặp được gộp vào cha; element xuất hiện tối đa một lần thành <code>Option</code>, lặp lại thành <code>Vec</code>; mọi thứ có thể xuất hiện theo thứ tự tuỳ ý thành một enum gồm mọi element có thể có. Ví dụ với đoạn văn của Word:</p>
+      </div>
+      <div class="compare">
+        <div class="code">
+          <div class="head"><span>schemas/transitional/wml.xsd</span><span>đầu vào</span></div>
+<pre><span class="c-k">&lt;xsd:complexType</span> name=<span class="c-s">"CT_P"</span><span class="c-k">&gt;</span>
+  <span class="c-k">&lt;xsd:sequence&gt;</span>
+    <span class="c-k">&lt;xsd:element</span> name=<span class="c-s">"pPr"</span> type=<span class="c-s">"CT_PPr"</span>
+                 minOccurs=<span class="c-s">"0"</span>/<span class="c-k">&gt;</span>
+    <span class="c-k">&lt;xsd:group</span> ref=<span class="c-s">"EG_PContent"</span>
+               minOccurs=<span class="c-s">"0"</span> maxOccurs=<span class="c-s">"unbounded"</span>/<span class="c-k">&gt;</span>
+  <span class="c-k">&lt;/xsd:sequence&gt;</span>
+  <span class="c-k">&lt;xsd:attribute</span> name=<span class="c-s">"rsidRPr"</span> type=<span class="c-s">"ST_LongHexNumber"</span>/<span class="c-k">&gt;</span>
+  <span class="c-k">&lt;xsd:attribute</span> name=<span class="c-s">"rsidR"</span> type=<span class="c-s">"ST_LongHexNumber"</span>/<span class="c-k">&gt;</span>
+  <span class="c-c">&lt;!-- rsidDel, rsidP, rsidRDefault --&gt;</span>
+<span class="c-k">&lt;/xsd:complexType&gt;</span></pre>
+        </div>
+        <div class="code">
+          <div class="head"><span>openxml-schema/src/generated/wml.rs</span><span>đầu ra</span></div>
+<pre><span class="c-c">/// Paragraph (ECMA-376 Part 1 §17.3.1.22).</span>
+<span class="c-k">pub struct</span> CT_P {
+    <span class="c-c">/// `w:rsidR` — Revision Identifier for Paragraph.</span>
+    <span class="c-k">pub</span> rsid_r: Option&lt;ST_LongHexNumber&gt;,
+    <span class="c-c">// … 4 attribute rsid* còn lại</span>
+    <span class="c-c">/// `w:pPr` — Paragraph Properties (§17.3.1.26).</span>
+    <span class="c-k">pub</span> p_pr: Option&lt;Box&lt;CT_PPr&gt;&gt;,
+    <span class="c-c">/// Child elements of choice EG_PContent.</span>
+    <span class="c-k">pub</span> p_content: Vec&lt;EG_PContent&gt;,
+    <span class="c-k">pub</span> extra_attrs: Vec&lt;RawAttribute&gt;,
+    <span class="c-k">pub</span> extra_children: Vec&lt;ExtraChild&gt;,
+}
+<span class="c-k">pub enum</span> EG_PContent {
+    R(Box&lt;CT_R&gt;), Hyperlink(Box&lt;CT_Hyperlink&gt;),
+    BookmarkStart(Box&lt;CT_Bookmark&gt;), <span class="c-c">/* … 34 loại */</span>
+    Other(RawElement),
+}</pre>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>XML Schema</th><th>Rust</th></tr></thead>
+          <tbody>
+            <tr><td><code>simpleType</code> có <code>enumeration</code></td><td><code>enum</code> + <code>as_str()</code>, <code>ALL</code>, <code>XmlValue</code>, <code>Display</code></td></tr>
+            <tr><td><code>union</code> (vd. <code>ST_OnOff</code> = boolean | on/off)</td><td><code>enum</code> một biến thể cho mỗi thành viên; khi đọc thử thành viên không phải chuỗi trước</td></tr>
+            <tr><td><code>list</code></td><td><code>XmlList&lt;T&gt;</code></td></tr>
+            <tr><td>kiểu có sẵn</td><td><code>String</code>, <code>bool</code>, <code>i8…u64</code>, <code>f32/f64</code>, <code>HexBinary</code>, <code>Base64Binary</code></td></tr>
+            <tr><td>element tối đa một lần / lặp lại</td><td><code>Option&lt;Box&lt;T&gt;&gt;</code> / <code>Vec&lt;T&gt;</code></td></tr>
+            <tr><td><code>choice</code>, sequence lặp, nhóm lựa chọn</td><td>choice enum (<code>Option&lt;E&gt;</code> hoặc <code>Vec&lt;E&gt;</code>), dùng chung theo tên nhóm</td></tr>
+            <tr><td><code>simpleContent</code> (vd. <code>w:t</code>)</td><td>field <code>value: T</code> cùng các attribute</td></tr>
+            <tr><td><code>xsd:any</code>, <code>mixed</code></td><td><code>RawElement</code> / <code>Vec&lt;RawNode&gt;</code>, chuyển sang kiểu cụ thể bằng <code>to_typed()</code></td></tr>
+            <tr><td>element toàn cục</td><td>hằng <code>elements::DOCUMENT: ElementDef&lt;CT_Document&gt;</code> để parse và ghi cả part</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="giu-nguyen">
+      <div class="eyebrow">6 · Giữ nguyên dữ liệu</div>
+      <h2>Phần tử lạ vẫn nằm đúng chỗ khi ghi lại</h2>
+      <div class="prose">
+        <p>Khi đọc, mỗi phần tử con được đưa vào field của nó bất kể thứ tự. Phần tử không có trong schema được ghi nhớ kèm một neo: nó đứng trước field nào, và trước phần tử thứ mấy của field đó nếu field lặp lại. Khi ghi, field đi theo thứ tự schema, còn phần tử lạ được chèn lại đúng tại neo.</p>
+      </div>
+      <div class="callout">
+        <b>Lỗi thật tìm ra nhờ corpus</b>
+        <p>Trong <code>style-alternate-content.xlsx</code>, một <code>mc:AlternateContent</code> nằm giữa các <code>&lt;xf&gt;</code> trong <code>cellXfs</code>. Phiên bản đầu chỉ neo theo field, nên phần tử này bị dời xuống sau mọi <code>xf</code>. Hậu quả là chỉ số style của các ô phía sau bị lệch, tức là sai dữ liệu. Neo được mở rộng thành cặp (field, chỉ số phần tử), và corpus trở về 0 khác biệt.</p>
+      </div>
+      <ul class="plain">
+        <li>Thuộc tính <code>xmlns</code> gốc được giữ, nên prefix trong <code>mc:Ignorable</code> vẫn hợp lệ.</li>
+        <li>Giá trị sai kiểu (ví dụ <code>w:jc w:val="sideways"</code>) được giữ nguyên chuỗi và ghi ra y như cũ.</li>
+        <li>File sai thứ tự (do công cụ khác tạo) được sửa về đúng thứ tự schema khi ghi.</li>
+        <li>Trong SpreadsheetML, <code>xml:space="preserve"</code> được tự thêm khi text có khoảng trắng ở đầu hoặc cuối, giống cách Excel làm.</li>
+      </ul>
+    </section>
+
+    <section id="api">
+      <div class="eyebrow">7 · API Word, Excel, PowerPoint</div>
+      <h2>Ba API, một khuôn thiết kế</h2>
+      <div class="prose">
+        <p>Cả ba đều sở hữu toàn bộ package, chỉ ghi lại part đã sửa, cung cấp view đọc và view sửa bọc quanh kiểu sinh ra, và luôn mở lối thoát xuống kiểu gốc (<code>raw_mut()</code>, <code>document_mut()</code>, <code>package_mut()</code>). Tài liệu mới tạo đều hợp lệ theo XSD.</p>
+      </div>
+      <div class="apis">
+        <div class="api word">
+          <h3>openxml-docx</h3>
+          <ul>
+            <li>Đoạn văn, run (đậm, nghiêng, gạch chân, cỡ, màu, font, highlight)</li>
+            <li>Heading và style dựng sẵn, tự khớp với style có sẵn trong tài liệu</li>
+            <li>Danh sách bullet và đánh số</li>
+            <li>Bảng: style, độ rộng, merge, tô nền</li>
+            <li>Ảnh, hyperlink, header/footer, khổ giấy</li>
+            <li>Trích text, thay thế text</li>
+          </ul>
+          <div class="count">65 test · 18 file POI byte-identical</div>
+        </div>
+        <div class="api excel">
+          <h3>openxml-xlsx</h3>
+          <ul>
+            <li>Giá trị ô: chuỗi (shared strings), số, bool, lỗi, công thức có kết quả cache</li>
+            <li>Ngày ở cả hệ 1900 và 1904, kể cả ngày ảo 29/02/1900</li>
+            <li>Style với khử trùng lặp font, fill, border, number format</li>
+            <li>Merge, độ rộng cột, chiều cao hàng, freeze pane, named range</li>
+            <li>Ghi và đọc theo từng hàng cho file lớn</li>
+          </ul>
+          <div class="count">93 test · 317/317 workbook đọc được trong corpus</div>
+        </div>
+        <div class="api ppt">
+          <h3>openxml-pptx</h3>
+          <ul>
+            <li>Template 16:9: slide master, 6 layout, theme Office</li>
+            <li>Thêm, xoá, di chuyển slide</li>
+            <li>Placeholder tiêu đề, phụ đề, nội dung nhiều cấp</li>
+            <li>Text box có định dạng, ảnh, bảng</li>
+            <li>Ghi chú người thuyết trình, màu nền, trích text</li>
+          </ul>
+          <div class="count">58 test · 13 deck POI byte-identical</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="kiem-chung">
+      <div class="eyebrow">8 · Kiểm chứng</div>
+      <h2>Mỗi lớp test dùng một nguồn sự thật khác nhau</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Lớp</th><th>Nguồn sự thật</th><th>Kết quả</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Độ phủ</td><td>XSD, resolve độc lập với generator</td><td class="num">1.431 kiểu · 5.240 vị trí element con · 4.077 attribute · 3.262 giá trị enum · 146 root</td><td><span class="status">100%</span></td></tr>
+            <tr><td>Corpus thật</td><td>545 file do Office và công cụ khác tạo (Apache POI)</td><td class="num">6.024 part XML · 5.292 có schema · 0 lỗi · 0 khác biệt</td><td><span class="status">Đạt</span></td></tr>
+            <tr><td>Ví dụ trong đặc tả</td><td>XML in trong PDF Part 1</td><td class="num">478/479 round-trip đúng (1 là element kiểu đơn giản)</td><td><span class="status">Đạt</span></td></tr>
+            <tr><td>Strict ⊂ Transitional</td><td>Hai bộ XSD chính thức</td><td class="num">Không thiếu kiểu, element, attribute nào</td><td><span class="status">Đạt</span></td></tr>
+            <tr><td>Xác thực XSD</td><td>xmllint (libxml2) với XSD ECMA</td><td class="num">Mọi part do API tạo ra đều hợp lệ</td><td><span class="status">Đạt</span></td></tr>
+            <tr><td>Validator Rust</td><td>Sinh từ XSD</td><td class="num">708 part fixture; 6 báo cáo, đều là lỗi thật của file nguồn</td><td><span class="status">Đạt</span></td></tr>
+            <tr><td>Độ bền</td><td>2.000 part và 300 package bị làm hỏng</td><td class="num">Chỉ trả lỗi, không panic</td><td><span class="status">Đạt</span></td></tr>
+            <tr><td>Trình đọc độc lập</td><td>textutil và Quick Look của macOS</td><td class="num">Đọc đủ text docx kể cả bullet; hiển thị đúng cả ba định dạng</td><td><span class="status">Đạt</span></td></tr>
+            <tr><td>Code sinh ra</td><td>Chạy lại generator</td><td class="num">Khớp từng byte với code trong repo</td><td><span class="status">Đạt</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="prose muted">Hiệu năng (release build, một luồng): đọc 65–95 MB/s, ghi 230–340 MB/s; một worksheet 1 triệu ô được đọc trong khoảng 0,5 giây. Toàn bộ kiểm tra chạy bằng <code>scripts/check.sh</code>: rustfmt, clippy với <code>-D warnings</code>, độ mới của code sinh ra và 385 test.</p>
+    </section>
+
+    <section id="gioi-han">
+      <div class="eyebrow">9 · Giới hạn hiện tại</div>
+      <h2>Những gì chưa có</h2>
+      <ul class="plain">
+        <li>Chưa mở thử bằng Microsoft Office thật vì máy không cài Office. Độ tương thích dựa trên XSD, trình đọc của macOS và việc làm theo quy ước của Office.</li>
+        <li>Phần mở rộng riêng của Microsoft (<code>w14</code>, <code>x14</code>, <code>p14</code>…) không thuộc ECMA-376 nên chưa có kiểu; chúng được giữ nguyên dạng thô.</li>
+        <li>Validator chưa kiểm facet của simple type (pattern, giới hạn min/max, độ dài).</li>
+        <li>Nội dung <code>xsd:all</code> (chỉ gặp ở <code>docProps/app.xml</code>) được ghi theo thứ tự schema thay vì thứ tự gốc; vẫn hợp lệ.</li>
+        <li>API mức cao chưa có: footnote, comment (docx); chart, ảnh, comment (xlsx); chart, animation (pptx). Nội dung loại này vẫn được giữ khi mở rồi lưu và sửa được qua kiểu gốc.</li>
+        <li>Chữ ký số OPC (Part 2 §10) chưa được hiện thực.</li>
+      </ul>
+    </section>
+
+    <section id="ma-nguon">
+      <div class="eyebrow">10 · Bản đồ mã nguồn</div>
+      <h2>Crate và kích thước</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Crate</th><th>Vai trò</th><th>Dòng viết tay</th></tr></thead>
+          <tbody>
+            <tr><td><code>openxml-xml</code></td><td>Namespace, reader, writer, nút thô, so sánh, validator</td><td class="num">3.544</td></tr>
+            <tr><td><code>openxml-opc</code></td><td>Package, part name, content types, relationships</td><td class="num">2.438</td></tr>
+            <tr><td><code>openxml-codegen</code></td><td>Bộ sinh code và các test độ phủ</td><td class="num">4.417</td></tr>
+            <tr><td><code>openxml-schema</code></td><td>Kiểu sinh ra (214.468 dòng) cùng test corpus, ví dụ đặc tả, độ bền</td><td class="num">951</td></tr>
+            <tr><td><code>openxml-core</code></td><td>Lỗi, part có kiểu, đơn vị, ảnh</td><td class="num">887</td></tr>
+            <tr><td><code>openxml-docx</code></td><td>API Word</td><td class="num">5.641</td></tr>
+            <tr><td><code>openxml-xlsx</code></td><td>API Excel</td><td class="num">7.264</td></tr>
+            <tr><td><code>openxml-pptx</code></td><td>API PowerPoint</td><td class="num">5.306</td></tr>
+            <tr><td><code>openxml</code>, <code>openxml-cli</code>, <code>openxml-testkit</code></td><td>Tổng hợp, dòng lệnh, hỗ trợ test</td><td class="num">782</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details>
+        <summary>Lệnh thường dùng</summary>
+<pre class="mono">scripts/check.sh                                   # toàn bộ kiểm tra
+cargo run -p openxml-codegen                       # sinh lại openxml-schema
+cargo run -p openxml --example all_formats -- out/ # tạo docx, xlsx, pptx mẫu
+cargo run -p openxml-cli -- text report.docx       # trích text
+cargo run -p openxml-cli -- validate report.docx   # xác thực XSD
+OPENXML_CORPUS=~/docs cargo test --release -p openxml-schema --test corpus -- --ignored --nocapture</pre>
+      </details>
+    </section>
+
+    <footer>open-xml-rust · đặc tả ECMA-376 Part 1, 2, 4 (ấn bản 5) · tài liệu thử nghiệm từ Apache POI (Apache License 2.0)</footer>
+  </main>
+</div>
+</body>
+</html>
