@@ -75,6 +75,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "openxml-chart"
+version = "0.1.0"
+dependencies = [
+ "openxml-core",
+ "openxml-opc",
+ "openxml-schema",
+ "openxml-testkit",
+ "openxml-xlsx",
+ "openxml-xml",
+]
+
+[[package]]
 name = "openxml-cli"
 version = "0.1.0"
 dependencies = [

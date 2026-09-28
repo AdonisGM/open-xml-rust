@@ -7,6 +7,7 @@ members = [
     "crates/openxml-schema",
     "crates/openxml-testkit",
     "crates/openxml-core",
+    "crates/openxml-chart",
     "crates/openxml-docx",
     "crates/openxml-xlsx",
     "crates/openxml-pptx",
@@ -27,6 +28,7 @@ openxml-opc = { path = "crates/openxml-opc" }
 openxml-schema = { path = "crates/openxml-schema" }
 openxml-testkit = { path = "crates/openxml-testkit" }
 openxml-core = { path = "crates/openxml-core" }
+openxml-chart = { path = "crates/openxml-chart" }
 openxml-docx = { path = "crates/openxml-docx" }
 openxml-xlsx = { path = "crates/openxml-xlsx" }
 openxml-pptx = { path = "crates/openxml-pptx" }

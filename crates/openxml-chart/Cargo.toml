@@ -1,0 +1,21 @@
+[package]
+name = "openxml-chart"
+description = "DrawingML charts (ECMA-376 Part 1 §21.2) shared by the Word, Excel and PowerPoint APIs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+openxml-core = { workspace = true }
+openxml-opc = { workspace = true }
+openxml-schema = { workspace = true }
+openxml-xml = { workspace = true }
+
+[dev-dependencies]
+openxml-testkit = { workspace = true }
+openxml-xlsx = { workspace = true }
+
+[lints]
+workspace = true
