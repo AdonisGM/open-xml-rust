@@ -172,6 +172,7 @@ dependencies = [
 name = "openxml-xlsx"
 version = "0.1.0"
 dependencies = [
+ "openxml-chart",
  "openxml-core",
  "openxml-opc",
  "openxml-schema",

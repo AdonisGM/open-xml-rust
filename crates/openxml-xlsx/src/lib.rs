@@ -71,6 +71,7 @@
 mod book;
 pub mod calc;
 pub mod cell_ref;
+mod chart;
 pub mod comments;
 pub mod conditional;
 pub mod date;
@@ -81,6 +82,7 @@ pub mod hyperlink;
 pub mod layout;
 mod parts;
 pub mod print;
+mod properties;
 pub mod protection;
 pub mod rich_text;
 pub mod shared_strings;
@@ -123,3 +125,7 @@ pub use workbook::{APPLICATION_NAME, DefinedName, Workbook, validate_sheet_name}
 pub use worksheet::{Row, SheetKind, Worksheet, WorksheetMut};
 
 pub use openxml_core::{Error, Length, Result};
+
+pub use chart::formula_sheet_name;
+pub use openxml_chart::{Chart, ChartInfo, ChartKind, Grouping, LegendPosition, Series};
+pub use openxml_core::properties::PropertyValue;
