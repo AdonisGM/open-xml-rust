@@ -71,11 +71,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "openxml-core"
+version = "0.1.0"
+dependencies = [
+ "openxml-opc",
+ "openxml-schema",
+ "openxml-xml",
+]
+
+[[package]]
+name = "openxml-docx"
+version = "0.1.0"
+dependencies = [
+ "openxml-core",
+ "openxml-opc",
+ "openxml-schema",
+ "openxml-testkit",
+ "openxml-xml",
+]
+
+[[package]]
 name = "openxml-opc"
 version = "0.1.0"
 dependencies = [
  "openxml-xml",
  "zip",
+]
+
+[[package]]
+name = "openxml-pptx"
+version = "0.1.0"
+dependencies = [
+ "openxml-core",
+ "openxml-opc",
+ "openxml-schema",
+ "openxml-testkit",
+ "openxml-xml",
 ]
 
 [[package]]
@@ -92,6 +123,17 @@ name = "openxml-testkit"
 version = "0.1.0"
 dependencies = [
  "openxml-opc",
+ "openxml-xml",
+]
+
+[[package]]
+name = "openxml-xlsx"
+version = "0.1.0"
+dependencies = [
+ "openxml-core",
+ "openxml-opc",
+ "openxml-schema",
+ "openxml-testkit",
  "openxml-xml",
 ]
 

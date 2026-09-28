@@ -1,0 +1,16 @@
+[package]
+name = "openxml-core"
+description = "Shared building blocks of the Office Open XML document APIs (errors, typed parts, units, images)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+openxml-opc = { workspace = true }
+openxml-schema = { workspace = true }
+openxml-xml = { workspace = true }
+
+[lints]
+workspace = true

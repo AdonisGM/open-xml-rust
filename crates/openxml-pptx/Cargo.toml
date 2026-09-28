@@ -1,0 +1,20 @@
+[package]
+name = "openxml-pptx"
+description = "PresentationML (.pptx) presentations: read, create and edit PowerPoint files"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+openxml-core = { workspace = true }
+openxml-opc = { workspace = true }
+openxml-schema = { workspace = true }
+openxml-xml = { workspace = true }
+
+[dev-dependencies]
+openxml-testkit = { workspace = true }
+
+[lints]
+workspace = true

@@ -6,6 +6,10 @@ members = [
     "crates/openxml-codegen",
     "crates/openxml-schema",
     "crates/openxml-testkit",
+    "crates/openxml-core",
+    "crates/openxml-docx",
+    "crates/openxml-xlsx",
+    "crates/openxml-pptx",
 ]
 
 [workspace.package]
@@ -20,6 +24,10 @@ openxml-xml = { path = "crates/openxml-xml" }
 openxml-opc = { path = "crates/openxml-opc" }
 openxml-schema = { path = "crates/openxml-schema" }
 openxml-testkit = { path = "crates/openxml-testkit" }
+openxml-core = { path = "crates/openxml-core" }
+openxml-docx = { path = "crates/openxml-docx" }
+openxml-xlsx = { path = "crates/openxml-xlsx" }
+openxml-pptx = { path = "crates/openxml-pptx" }
 quick-xml = "0.42"
 zip = { version = "8.6", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 roxmltree = "0.21"
