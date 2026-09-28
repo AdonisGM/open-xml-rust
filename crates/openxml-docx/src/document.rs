@@ -4,7 +4,7 @@ use std::io::{Cursor, Read, Seek, Write};
 use std::path::Path;
 
 use openxml_core::part::{read_part, read_related, write_part};
-use openxml_core::{Error, Length, Result, sniff_image};
+use openxml_core::{Error, Length, Result};
 use openxml_opc::known::{content_types as ct, rel_types};
 use openxml_opc::{CoreProperties, Package, PartName, w3cdtf_now};
 use openxml_schema::shared_extended_properties as ep;
@@ -45,9 +45,70 @@ pub(crate) struct Shared {
     pub next_drawing_id: u32,
     pub bullet_list: Option<i64>,
     pub numbered_list: Option<i64>,
+    pub settings: Option<Typed<wml::CT_Settings>>,
+    pub comments: Option<Typed<wml::CT_Comments>>,
+    pub footnotes: Option<Typed<wml::CT_Footnotes>>,
+    pub endnotes: Option<Typed<wml::CT_Endnotes>>,
+    /// Last identifier handed out for annotations (comments, bookmarks,
+    /// revisions, content controls); new ones are allocated above it.
+    pub last_id: i64,
+}
+
+/// Returns the typed part in `slot`, creating the part (named `name`, or
+/// after `pattern` when taken) and its relationship from `source` first.
+/// The part is marked as modified.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn ensure_part<'a, T>(
+    package: &mut Package,
+    source: &PartName,
+    slot: &'a mut Option<Typed<T>>,
+    name: &str,
+    pattern: &str,
+    content_type: &str,
+    rel_type: &str,
+    init: impl FnOnce() -> T,
+) -> Result<&'a mut T> {
+    if slot.is_none() {
+        let preferred = PartName::new(name)?;
+        let name = if package.contains(&preferred) {
+            package.next_part_name(pattern)?
+        } else {
+            preferred
+        };
+        package.add_part(name.clone(), content_type, Vec::new())?;
+        package.add_relationship(Some(source), rel_type, &name)?;
+        *slot = Some(Typed {
+            name,
+            value: init(),
+            dirty: true,
+        });
+    }
+    let typed = slot.as_mut().expect("created above");
+    typed.dirty = true;
+    Ok(&mut typed.value)
 }
 
 impl Shared {
+    /// Allocates a new annotation identifier.
+    pub(crate) fn new_id(&mut self) -> i64 {
+        self.last_id += 1;
+        self.last_id
+    }
+
+    /// Returns the settings part, creating a default one if the package has none.
+    pub(crate) fn settings_mut(&mut self) -> Result<&mut wml::CT_Settings> {
+        ensure_part(
+            &mut self.package,
+            &self.main_part,
+            &mut self.settings,
+            "/word/settings.xml",
+            "/word/settings{}.xml",
+            ct::WML_SETTINGS,
+            rel_types::SETTINGS,
+            template::default_settings,
+        )
+    }
+
     /// Returns the styles part, creating an empty one if the package has none.
     pub(crate) fn styles_mut(&mut self) -> Result<&mut wml::CT_Styles> {
         if self.styles.is_none() {
@@ -170,27 +231,7 @@ impl Shared {
         image: &[u8],
         width: Length,
     ) -> Result<wml::CT_Drawing> {
-        let info = sniff_image(image).ok_or(Error::UnsupportedImage)?;
-        if width.as_emu() <= 0 {
-            return Err(Error::InvalidArgument("picture width must be positive".into()));
-        }
-        let (width, height) = info.size_for_width(width);
-        let pattern = format!("/word/media/image{{}}.{}", info.format.extension());
-        let name = self.package.next_part_name(&pattern)?;
-        self.package
-            .add_part(name.clone(), info.format.content_type(), image.to_vec())?;
-        let rel_id = self
-            .package
-            .add_relationship(Some(part), rel_types::IMAGE, &name)?;
-        self.next_drawing_id += 1;
-        let id = self.next_drawing_id;
-        Ok(picture::inline_picture(
-            &rel_id,
-            id,
-            name.file_name(),
-            width,
-            height,
-        ))
+        self.add_picture_with(part, image, &crate::drawing::PictureOptions::new(width))
     }
 }
 
@@ -267,13 +308,7 @@ impl Document {
             package.add_relationship(Some(&main_part), rel_types::STYLES, &styles_part)?;
 
             let settings = PartName::new("/word/settings.xml")?;
-            write_part(
-                &mut package,
-                &settings,
-                ct::WML_SETTINGS,
-                &wml::elements::SETTINGS,
-                &template::default_settings(),
-            )?;
+            package.add_part(settings.clone(), ct::WML_SETTINGS, Vec::new())?;
             package.add_relationship(Some(&main_part), rel_types::SETTINGS, &settings)?;
 
             let fonts = PartName::new("/word/fontTable.xml")?;
@@ -321,6 +356,15 @@ impl Document {
                     next_drawing_id: 0,
                     bullet_list: None,
                     numbered_list: None,
+                    settings: Some(Typed {
+                        name: settings,
+                        value: template::default_settings(),
+                        dirty: true,
+                    }),
+                    comments: None,
+                    footnotes: None,
+                    endnotes: None,
+                    last_id: 0,
                 },
                 main,
                 main_dirty: true,
@@ -367,8 +411,33 @@ impl Document {
             value,
             dirty: false,
         });
+        let settings = read_typed(
+            &package,
+            &main_part,
+            rel_types::SETTINGS,
+            &wml::elements::SETTINGS,
+        )?;
+        let comments = read_typed(
+            &package,
+            &main_part,
+            rel_types::COMMENTS,
+            &wml::elements::COMMENTS,
+        )?;
+        let footnotes = read_typed(
+            &package,
+            &main_part,
+            rel_types::FOOTNOTES,
+            &wml::elements::FOOTNOTES,
+        )?;
+        let endnotes = read_typed(
+            &package,
+            &main_part,
+            rel_types::ENDNOTES,
+            &wml::elements::ENDNOTES,
+        )?;
         let mut headers = Vec::new();
         let mut max_id = 0;
+        let mut last_id = 0;
         for (kind, rel_type, def) in [
             (HeaderFooterKind::Header, rel_types::HEADER, &wml::elements::HDR),
             (HeaderFooterKind::Footer, rel_types::FOOTER, &wml::elements::FTR),
@@ -395,6 +464,7 @@ impl Document {
                 .starts_with("application/vnd.openxmlformats-officedocument.wordprocessingml.")
             {
                 max_id = max_id.max(picture::max_drawing_id(part.data()));
+                last_id = last_id.max(crate::walk::max_numeric_id(part.data()));
             }
         }
         Ok(Document {
@@ -406,6 +476,11 @@ impl Document {
                 next_drawing_id: max_id,
                 bullet_list: None,
                 numbered_list: None,
+                settings,
+                comments,
+                footnotes,
+                endnotes,
+                last_id,
             },
             main,
             main_dirty: false,
@@ -460,6 +535,30 @@ impl Document {
             ct::WML_NUMBERING,
             &wml::elements::NUMBERING,
         )?;
+        flush_typed(
+            pkg,
+            &mut self.shared.settings,
+            ct::WML_SETTINGS,
+            &wml::elements::SETTINGS,
+        )?;
+        flush_typed(
+            pkg,
+            &mut self.shared.comments,
+            ct::WML_COMMENTS,
+            &wml::elements::COMMENTS,
+        )?;
+        flush_typed(
+            pkg,
+            &mut self.shared.footnotes,
+            ct::WML_FOOTNOTES,
+            &wml::elements::FOOTNOTES,
+        )?;
+        flush_typed(
+            pkg,
+            &mut self.shared.endnotes,
+            ct::WML_ENDNOTES,
+            &wml::elements::ENDNOTES,
+        )?;
         for h in &mut self.headers {
             if h.part.dirty {
                 let (ty, def) = match h.kind {
@@ -473,8 +572,8 @@ impl Document {
         Ok(())
     }
 
-    /// Marks every typed part (main document, styles, numbering, headers and
-    /// footers) as modified, so that the next save re-serializes them in
+    /// Marks every typed part (main document, styles, numbering, settings,
+    /// comments, notes, headers and footers) as modified, so that the next save re-serializes them in
     /// canonical schema order.
     pub fn normalize(&mut self) {
         self.main_dirty = true;
@@ -482,6 +581,18 @@ impl Document {
             s.dirty = true;
         }
         if let Some(n) = self.shared.numbering.as_mut() {
+            n.dirty = true;
+        }
+        if let Some(n) = self.shared.settings.as_mut() {
+            n.dirty = true;
+        }
+        if let Some(n) = self.shared.comments.as_mut() {
+            n.dirty = true;
+        }
+        if let Some(n) = self.shared.footnotes.as_mut() {
+            n.dirty = true;
+        }
+        if let Some(n) = self.shared.endnotes.as_mut() {
             n.dirty = true;
         }
         for h in &mut self.headers {
@@ -569,6 +680,16 @@ impl Document {
     /// The numbering part, if the document has one.
     pub fn numbering(&self) -> Option<&wml::CT_Numbering> {
         self.shared.numbering.as_ref().map(|s| &s.value)
+    }
+
+    /// The document settings part, if the document has one.
+    pub fn settings(&self) -> Option<&wml::CT_Settings> {
+        self.shared.settings.as_ref().map(|s| &s.value)
+    }
+
+    /// Mutable document settings (the part is created if missing).
+    pub fn settings_mut(&mut self) -> Result<&mut wml::CT_Settings> {
+        self.shared.settings_mut()
     }
 
     /// Ids of the styles defined in the styles part.
@@ -809,6 +930,22 @@ impl Document {
         }
         count
     }
+}
+
+/// Reads the part related from `source` with `rel_type`, if present.
+fn read_typed<T: openxml_xml::XmlRead>(
+    package: &Package,
+    source: &PartName,
+    rel_type: &str,
+    def: &ElementDef<T>,
+) -> Result<Option<Typed<T>>> {
+    Ok(
+        read_related(package, Some(source), rel_type, def)?.map(|(name, value)| Typed {
+            name,
+            value,
+            dirty: false,
+        }),
+    )
 }
 
 fn flush_typed<T: openxml_xml::XmlWrite>(

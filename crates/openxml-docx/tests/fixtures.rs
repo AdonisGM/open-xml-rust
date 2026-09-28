@@ -75,6 +75,10 @@ fn normalized_documents_are_semantically_equal() {
                 rel_types::NUMBERING,
                 rel_types::HEADER,
                 rel_types::FOOTER,
+                rel_types::SETTINGS,
+                rel_types::COMMENTS,
+                rel_types::FOOTNOTES,
+                rel_types::ENDNOTES,
             ] {
                 v.extend(
                     original

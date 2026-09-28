@@ -32,6 +32,20 @@ macro_rules! heading_xml {
     };
 }
 
+macro_rules! toc_xml {
+    ($level:literal, $indent:literal) => {
+        concat!(
+            r#"<w:style w:type="paragraph" w:styleId="TOC"#,
+            $level,
+            r#""><w:name w:val="toc "#,
+            $level,
+            r#""/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:autoRedefine/><w:uiPriority w:val="39"/><w:unhideWhenUsed/><w:pPr><w:spacing w:after="100"/><w:ind w:left=""#,
+            $indent,
+            r#""/></w:pPr></w:style>"#
+        )
+    };
+}
+
 /// Built-in styles as `(style id, XML of the w:style element)`.
 ///
 /// The names follow the names Word uses for its built-in styles so that the
@@ -86,6 +100,47 @@ pub(crate) const BUILTIN_STYLES: &[(&str, &str)] = &[
     (
         "Hyperlink",
         r#"<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:basedOn w:val="DefaultParagraphFont"/><w:uiPriority w:val="99"/><w:unhideWhenUsed/><w:rPr><w:color w:val="0563C1"/><w:u w:val="single"/></w:rPr></w:style>"#,
+    ),
+    (
+        "CommentText",
+        r#"<w:style w:type="paragraph" w:styleId="CommentText"><w:name w:val="annotation text"/><w:basedOn w:val="Normal"/><w:uiPriority w:val="99"/><w:unhideWhenUsed/><w:pPr><w:spacing w:line="240" w:lineRule="auto"/></w:pPr><w:rPr><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr></w:style>"#,
+    ),
+    (
+        "CommentReference",
+        r#"<w:style w:type="character" w:styleId="CommentReference"><w:name w:val="annotation reference"/><w:basedOn w:val="DefaultParagraphFont"/><w:uiPriority w:val="99"/><w:semiHidden/><w:unhideWhenUsed/><w:rPr><w:sz w:val="16"/><w:szCs w:val="16"/></w:rPr></w:style>"#,
+    ),
+    (
+        "FootnoteText",
+        r#"<w:style w:type="paragraph" w:styleId="FootnoteText"><w:name w:val="footnote text"/><w:basedOn w:val="Normal"/><w:uiPriority w:val="99"/><w:semiHidden/><w:unhideWhenUsed/><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:rPr><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr></w:style>"#,
+    ),
+    (
+        "FootnoteReference",
+        r#"<w:style w:type="character" w:styleId="FootnoteReference"><w:name w:val="footnote reference"/><w:basedOn w:val="DefaultParagraphFont"/><w:uiPriority w:val="99"/><w:semiHidden/><w:unhideWhenUsed/><w:rPr><w:vertAlign w:val="superscript"/></w:rPr></w:style>"#,
+    ),
+    (
+        "EndnoteText",
+        r#"<w:style w:type="paragraph" w:styleId="EndnoteText"><w:name w:val="endnote text"/><w:basedOn w:val="Normal"/><w:uiPriority w:val="99"/><w:semiHidden/><w:unhideWhenUsed/><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:rPr><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr></w:style>"#,
+    ),
+    (
+        "EndnoteReference",
+        r#"<w:style w:type="character" w:styleId="EndnoteReference"><w:name w:val="endnote reference"/><w:basedOn w:val="DefaultParagraphFont"/><w:uiPriority w:val="99"/><w:semiHidden/><w:unhideWhenUsed/><w:rPr><w:vertAlign w:val="superscript"/></w:rPr></w:style>"#,
+    ),
+    (
+        "TOCHeading",
+        r#"<w:style w:type="paragraph" w:styleId="TOCHeading"><w:name w:val="TOC Heading"/><w:basedOn w:val="Heading1"/><w:next w:val="Normal"/><w:uiPriority w:val="39"/><w:unhideWhenUsed/><w:qFormat/><w:pPr><w:outlineLvl w:val="9"/></w:pPr></w:style>"#,
+    ),
+    ("TOC1", toc_xml!(1, "0")),
+    ("TOC2", toc_xml!(2, "220")),
+    ("TOC3", toc_xml!(3, "440")),
+    ("TOC4", toc_xml!(4, "660")),
+    ("TOC5", toc_xml!(5, "880")),
+    ("TOC6", toc_xml!(6, "1100")),
+    ("TOC7", toc_xml!(7, "1320")),
+    ("TOC8", toc_xml!(8, "1540")),
+    ("TOC9", toc_xml!(9, "1760")),
+    (
+        "Caption",
+        r#"<w:style w:type="paragraph" w:styleId="Caption"><w:name w:val="caption"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="35"/><w:unhideWhenUsed/><w:qFormat/><w:pPr><w:spacing w:after="200" w:line="240" w:lineRule="auto"/></w:pPr><w:rPr><w:i/><w:iCs/><w:color w:val="44546A"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:style>"#,
     ),
     (
         "TableGrid",
