@@ -235,23 +235,22 @@ fn every_type_element_attribute_and_value_is_generated() {
                 problems.push(format!("{}: simple type {} not generated", schema.file, st.name));
                 continue;
             };
-            if let SimpleBody::Restriction { enumerations, .. } = &st.body {
-                if !enumerations.is_empty() {
-                    values += enumerations.len();
-                    match &def.kind {
-                        SimpleKind::Enum(v) => {
-                            let got: Vec<&str> = v.iter().map(|e| e.value.as_str()).collect();
-                            let want: Vec<&str> = enumerations.iter().map(String::as_str).collect();
-                            if got != want {
-                                problems
-                                    .push(format!("{}: {} values {got:?} != {want:?}", schema.file, st.name));
-                            }
+            if let SimpleBody::Restriction { enumerations, .. } = &st.body
+                && !enumerations.is_empty()
+            {
+                values += enumerations.len();
+                match &def.kind {
+                    SimpleKind::Enum(v) => {
+                        let got: Vec<&str> = v.iter().map(|e| e.value.as_str()).collect();
+                        let want: Vec<&str> = enumerations.iter().map(String::as_str).collect();
+                        if got != want {
+                            problems.push(format!("{}: {} values {got:?} != {want:?}", schema.file, st.name));
                         }
-                        other => problems.push(format!(
-                            "{}: {} is {other:?}, expected an enum",
-                            schema.file, st.name
-                        )),
                     }
+                    other => problems.push(format!(
+                        "{}: {} is {other:?}, expected an enum",
+                        schema.file, st.name
+                    )),
                 }
             }
         }
