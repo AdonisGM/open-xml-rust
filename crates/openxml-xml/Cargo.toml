@@ -1,5 +1,6 @@
 [package]
 name = "openxml-xml"
+description = "Namespace-aware XML reader/writer and raw nodes for the Office Open XML toolkit"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

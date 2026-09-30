@@ -57,6 +57,10 @@ macro_rules! namespaces {
                 _ => None,
             }
         }
+
+        /// Every constant with its name, so tests can check the explicit indices.
+        #[cfg(test)]
+        static CONSTANTS: &[(&str, Ns)] = &[$( (stringify!($id), Ns::$id), )*];
     };
     (@opt) => { None };
     (@opt $v:literal) => { Some($v) };
@@ -248,9 +252,10 @@ mod tests {
 
     #[test]
     fn table_indices_match_constants() {
-        for (i, info) in TABLE.iter().enumerate() {
-            let ns = Ns(i as u16);
-            assert_eq!(ns.ident(), info.ident, "index {i} is out of order");
+        // Each constant's explicit index must point at its own row of TABLE.
+        assert_eq!(CONSTANTS.len(), TABLE.len());
+        for (name, ns) in CONSTANTS {
+            assert_eq!(ns.ident(), *name, "Ns::{name} points at the wrong row of TABLE");
         }
     }
 

@@ -199,7 +199,9 @@ mod tests {
             required: None,
         };
         let mut v = Validator::new("w:root");
-        Box::new(p).validate(&mut v);
+        // Through the `Box<T>` impl.
+        let boxed = Box::new(p);
+        boxed.validate(&mut v);
         let issues = v.into_issues();
         assert_eq!(issues.len(), 2);
         assert_eq!(issues[0].path, "/w:root/w:leaf[2]");

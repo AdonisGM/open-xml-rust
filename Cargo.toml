@@ -20,7 +20,7 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/open-xml-rust/open-xml-rust"
+repository = "https://github.com/AdonisGM/open-xml-rust"
 
 [workspace.dependencies]
 openxml-xml = { path = "crates/openxml-xml" }
