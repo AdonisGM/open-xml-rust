@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1.1 Cargo.toml &amp; workspace · Học Rust qua open-xml-rust</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/vendor/highlight.min.js" defer></script>
+<script src="assets/app.js" defer></script>
+</head>
+<body data-lesson="p1-1">
+<main class="content">
+
+<header>
+  <p class="crumb">Phần 1 · Cấu trúc dự án Rust</p>
+  <h1>1.1 Cargo.toml &amp; workspace</h1>
+  <p class="lead">Mở repo ra, thứ đầu tiên Cargo đọc là file <code>Cargo.toml</code> ở gốc — chỉ 43 dòng nhưng quyết định cả dự án 12 crate được biên dịch thế nào. Bài này mình mổ xẻ từng dòng của nó, rồi đi qua <code>Cargo.toml</code> của từng crate con để bạn đọc được bất kỳ file cấu hình Rust nào.</p>
+  <div class="meta"><span>⏱ ~50 phút</span><span>Cargo.toml (gốc)</span><span>crates/*/Cargo.toml</span><span>Cargo.lock</span></div>
+</header>
+
+<section class="goals">
+  <h3>🎯 Học xong bài này bạn sẽ</h3>
+  <ul>
+    <li>Phân biệt được <strong>package</strong>, <strong>crate</strong>, <strong>workspace</strong> — ba chữ hay bị dùng lẫn.</li>
+    <li>Đọc hiểu từng mục của <code>Cargo.toml</code> gốc: <code>[workspace]</code>, <code>[workspace.package]</code>, <code>[workspace.dependencies]</code>, <code>[workspace.lints]</code>, <code>[profile]</code>.</li>
+    <li>Hiểu cách crate con <em>kế thừa</em> cấu hình bằng <code>xxx.workspace = true</code> và <code>{ workspace = true }</code>.</li>
+    <li>Đọc được chuỗi phiên bản semver (<code>"0.42"</code>, <code>"8.6"</code>), biết feature flag là gì và vì sao dự án tắt feature mặc định của <code>zip</code>.</li>
+    <li>Biết <code>unsafe</code> là gì ở mức sơ khởi và khác nhau giữa <code>forbid</code> / <code>deny</code> / <code>warn</code>.</li>
+    <li>Tự dựng một workspace mini hai crate giống cấu trúc của dự án.</li>
+  </ul>
+</section>
+
+<h2 id="thuat-ngu">1. Package, crate, workspace — gỡ rối ba chữ</h2>
+<p>Khi đọc tài liệu Rust bạn sẽ gặp ba từ này liên tục, và nhiều người (kể cả tài liệu chính thức lúc nói nhanh) dùng lẫn chúng. Mình chốt nghĩa trước để cả bài dùng cho nhất quán:</p>
+<dl class="glossary">
+  <dt>crate</dt><dd>Đơn vị biên dịch nhỏ nhất của Rust — thứ mà trình biên dịch <code>rustc</code> nhận vào và biến thành một thư viện (<em>library crate</em>, file <code>.rlib</code>) hoặc một chương trình chạy được (<em>binary crate</em>). Mỗi crate có một file gốc: <code>src/lib.rs</code> cho thư viện, <code>src/main.rs</code> cho chương trình.</dd>
+  <dt>package</dt><dd>Một thư mục có file <code>Cargo.toml</code> chứa mục <code>[package]</code>. Một package chứa <strong>tối đa một</strong> library crate và bao nhiêu binary crate tuỳ ý (cộng thêm test, example…). Thực tế người ta hay gọi package là "crate" luôn — ví dụ "crate <code>openxml-docx</code>".</dd>
+  <dt>workspace</dt><dd>Một nhóm package được quản lý chung: dùng chung <strong>một</strong> file <code>Cargo.lock</code>, chung <strong>một</strong> thư mục <code>target/</code>, và có thể chia sẻ cấu hình (phiên bản, dependency, lint).</dd>
+</dl>
+<p>Dự án open-xml-rust là một workspace gồm 12 package, mỗi package nằm trong một thư mục con của <code>crates/</code>. Từ đây, để đỡ rườm rà, mình sẽ gọi mỗi package là "một crate" như cách cộng đồng vẫn nói.</p>
+
+<figure class="code">
+  <figcaption>Cấu trúc thư mục (rút gọn)</figcaption>
+<pre class="diagram"><code>open-xml-rust/
+├── Cargo.toml          ← manifest của WORKSPACE (không có [package])
+├── Cargo.lock          ← khoá phiên bản cho cả 12 crate
+├── target/             ← nơi build ra, dùng chung (không commit)
+└── crates/
+    ├── openxml-xml/
+    │   ├── Cargo.toml  ← manifest của PACKAGE openxml-xml
+    │   └── src/lib.rs  ← gốc của library crate
+    ├── openxml-cli/
+    │   ├── Cargo.toml
+    │   └── src/main.rs ← gốc của binary crate
+    └── ... (10 crate khác)</code></pre>
+</figure>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — "virtual manifest"</span>
+  <p><code>Cargo.toml</code> ở gốc repo <strong>không có mục <code>[package]</code></strong>, chỉ có <code>[workspace]</code>. Cargo gọi loại file này là <em>virtual manifest</em> (manifest ảo): bản thân thư mục gốc không phải một crate, nó chỉ "quản lý" các crate thành viên. Cách khác là để gốc repo vừa là workspace vừa là một package (ví dụ đặt crate <code>openxml</code> ngay ở gốc). Dự án chọn virtual manifest để 12 crate bình đẳng, cùng nằm trong <code>crates/</code> — dễ nhìn hơn nhiều khi số crate lớn.</p>
+</div>
+
+<h2 id="toan-canh">2. Toàn cảnh Cargo.toml gốc</h2>
+<p>Đây là toàn bộ file. Cú pháp là <strong>TOML</strong> (Tom's Obvious Minimal Language): <code>[tên]</code> mở một "bảng" (table), bên dưới là các cặp <code>khoá = giá trị</code>. Tên có dấu chấm như <code>[workspace.package]</code> nghĩa là bảng <code>package</code> nằm <em>bên trong</em> bảng <code>workspace</code>.</p>
+<figure class="code">
+  <figcaption data-src="Cargo.toml#L1-L43">Cargo.toml:1–43</figcaption>
+<pre><code class="language-toml">[workspace]
+resolver = "3"
+members = [
+    "crates/openxml-xml",
+    "crates/openxml-opc",
+    "crates/openxml-codegen",
+    "crates/openxml-schema",
+    "crates/openxml-testkit",
+    "crates/openxml-core",
+    "crates/openxml-chart",
+    "crates/openxml-docx",
+    "crates/openxml-xlsx",
+    "crates/openxml-pptx",
+    "crates/openxml",
+    "crates/openxml-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/open-xml-rust/open-xml-rust"
+
+[workspace.dependencies]
+openxml-xml = { path = "crates/openxml-xml" }
+openxml-opc = { path = "crates/openxml-opc" }
+openxml-schema = { path = "crates/openxml-schema" }
+openxml-testkit = { path = "crates/openxml-testkit" }
+openxml-core = { path = "crates/openxml-core" }
+openxml-chart = { path = "crates/openxml-chart" }
+openxml-docx = { path = "crates/openxml-docx" }
+openxml-xlsx = { path = "crates/openxml-xlsx" }
+openxml-pptx = { path = "crates/openxml-pptx" }
+quick-xml = "0.42"
+zip = { version = "8.6", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+roxmltree = "0.21"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[profile.dev.package."*"]
+opt-level = 1</code></pre>
+</figure>
+<p>Năm bảng, năm việc khác nhau:</p>
+<div class="table-wrap"><table>
+  <tr><th>Bảng</th><th>Trả lời câu hỏi</th><th>Mục</th></tr>
+  <tr><td><code>[workspace]</code></td><td>Workspace gồm những crate nào? Dùng thuật toán giải phụ thuộc nào?</td><td><a href="#workspace">3</a></td></tr>
+  <tr><td><code>[workspace.package]</code></td><td>Metadata chung (phiên bản, edition, giấy phép…) mà crate con có thể kế thừa</td><td><a href="#workspace-package">4</a></td></tr>
+  <tr><td><code>[workspace.dependencies]</code></td><td>Danh mục dependency dùng chung — khai báo phiên bản một lần</td><td><a href="#workspace-deps">5</a>–<a href="#features">7</a></td></tr>
+  <tr><td><code>[workspace.lints.rust]</code></td><td>Luật kiểm tra code áp cho mọi crate</td><td><a href="#lints">8</a></td></tr>
+  <tr><td><code>[profile.dev.package."*"]</code></td><td>Tối ưu hoá lúc build dev cho dependency bên ngoài</td><td><a href="#profile">9</a></td></tr>
+</table></div>
+
+<h2 id="workspace">3. <code>[workspace]</code>: resolver và members</h2>
+
+<h3 id="members">3.1 <code>members</code> — danh sách thành viên</h3>
+<p><code>members</code> là một mảng đường dẫn (tương đối so với thư mục chứa <code>Cargo.toml</code> gốc) tới các crate thuộc workspace. Mỗi đường dẫn phải trỏ tới một thư mục có <code>Cargo.toml</code> riêng. Cargo cũng chấp nhận glob như <code>members = ["crates/*"]</code>; dự án liệt kê tường minh từng crate.</p>
+<p>Để ý <strong>thứ tự</strong>: từ <code>openxml-xml</code> (tầng thấp nhất) lên <code>openxml</code> và <code>openxml-cli</code> (tầng cao nhất). Cargo <em>không</em> dùng thứ tự này để quyết định build cái nào trước — nó tự tính từ đồ thị phụ thuộc. Thứ tự ở đây chỉ để con người đọc: nhìn danh sách là thấy luôn kiến trúc từ dưới lên (bài <a href="p1-3-kien-truc-phan-tang.html">1.3</a> sẽ vẽ đồ thị đó).</p>
+<p>Khi đứng ở gốc repo, các lệnh <code>cargo</code> tác động lên cả workspace hoặc một crate cụ thể qua cờ <code>-p</code> (<em>package</em>):</p>
+<figure class="code">
+  <figcaption>Terminal — làm việc với workspace</figcaption>
+<pre><code class="language-bash">cargo build                    # build mọi thành viên (virtual manifest ⇒ mặc định là tất cả)
+cargo test -p openxml-xml      # chỉ test một crate
+cargo run -p openxml-cli -- info fixtures/poi/sample.docx
+cargo tree -p openxml-opc      # xem cây phụ thuộc của một crate</code></pre>
+</figure>
+
+<h3 id="resolver">3.2 <code>resolver = "3"</code></h3>
+<p><strong>Resolver</strong> (bộ giải phụ thuộc) là thuật toán Cargo dùng để chọn <em>phiên bản cụ thể</em> của từng dependency và <em>bật những feature nào</em>. Có ba thế hệ:</p>
+<div class="table-wrap"><table>
+  <tr><th>Resolver</th><th>Mặc định cho</th><th>Điểm chính</th></tr>
+  <tr><td><code>"1"</code></td><td>edition 2015/2018</td><td>Gộp feature của một crate ở mọi nơi nó xuất hiện — kể cả từ dev-dependency hay build script.</td></tr>
+  <tr><td><code>"2"</code></td><td>edition 2021</td><td>Tách feature theo ngữ cảnh: feature bật cho dev-dependency/build script/nền tảng khác không "rò" vào bản build thường.</td></tr>
+  <tr><td><code>"3"</code></td><td>edition 2024</td><td>Như "2", cộng thêm <strong>nhận biết MSRV</strong>: khi chọn phiên bản dependency, ưu tiên bản tương thích với <code>rust-version</code> của dự án.</td></tr>
+</table></div>
+<p>Thường thì resolver được suy ra từ <code>edition</code> của package. Nhưng virtual manifest <em>không có</em> <code>[package]</code> nên không có edition để suy ra — vì vậy phải ghi <code>resolver</code> tường minh. Nếu bỏ dòng này, Cargo sẽ rơi về resolver cũ nhất và in cảnh báo (mình đã thử thật):</p>
+<figure class="code">
+  <figcaption>Terminal — workspace thiếu dòng resolver</figcaption>
+<pre><code class="language-bash">warning: virtual workspace defaulting to `resolver = "1"` despite one or more workspace members being on edition 2024 which implies `resolver = "3"`</code></pre>
+</figure>
+
+<div class="callout tip">
+  <span class="callout-title">💡 MSRV là gì?</span>
+  <p><strong>MSRV</strong> = <em>Minimum Supported Rust Version</em>, phiên bản Rust thấp nhất mà dự án cam kết biên dịch được. Ở dự án này là <code>rust-version = "1.88"</code> (mục 4). Resolver 3 sẽ tránh kéo về một bản <code>quick-xml</code> mới đòi Rust 1.90 chẳng hạn, nếu còn bản cũ hơn thoả điều kiện.</p>
+</div>
+
+<h2 id="workspace-package">4. <code>[workspace.package]</code> và kế thừa metadata</h2>
+<p><code>[workspace.package]</code> là kho metadata dùng chung. Bản thân nó <strong>không tự áp</strong> cho crate nào — mỗi crate con phải chủ động "xin" từng trường. Xem crate <code>openxml-opc</code>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-opc/Cargo.toml#L1-L15">crates/openxml-opc/Cargo.toml:1–15</figcaption>
+<pre><code class="language-toml">[package]
+name = "openxml-opc"
+description = "Open Packaging Conventions (ECMA-376 Part 2) for Office Open XML packages"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+openxml-xml = { workspace = true }
+zip = { workspace = true }
+
+[lints]
+workspace = true</code></pre>
+</figure>
+<p>Từng dòng:</p>
+<ul>
+  <li><code>name = "openxml-opc"</code> — tên package. Trường này <strong>không kế thừa được</strong> (mỗi crate phải có tên riêng, hợp lý thôi). Tên có dấu gạch ngang; khi viết code Rust bạn sẽ gọi nó là <code>openxml_opc</code> — lý do ở bài <a href="p1-3-kien-truc-phan-tang.html#facade">1.3</a>.</li>
+  <li><code>description</code> — mô tả một câu, hiện trên crates.io và docs.rs. Ghi riêng vì mỗi crate một nội dung (dù về kỹ thuật <code>description</code> cũng kế thừa được).</li>
+  <li><code>version.workspace = true</code> — "lấy <code>version</code> từ <code>[workspace.package]</code>", tức <code>0.1.0</code>. Cú pháp khoá có dấu chấm của TOML: dòng này tương đương <code>version = { workspace = true }</code>.</li>
+  <li><code>edition.workspace = true</code> → <code>edition = "2024"</code>. <strong>Edition</strong> là "phiên bản ngôn ngữ" của Rust (2015, 2018, 2021, 2024): mỗi edition có thể thay đổi một số quy tắc cú pháp mà không làm hỏng code cũ, vì mỗi crate tự khai báo edition của mình. Crate edition 2021 vẫn dùng chung được với crate edition 2024.</li>
+  <li><code>rust-version.workspace = true</code> → <code>"1.88"</code>. Nếu ai build bằng Rust cũ hơn, Cargo báo lỗi rõ ràng ngay từ đầu thay vì để trình biên dịch văng lỗi khó hiểu giữa chừng.</li>
+  <li><code>license</code>, <code>repository</code> — giấy phép và link mã nguồn (metadata; Cargo không kiểm tra link có đúng hay không).</li>
+</ul>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Vì sao là 1.88?</span>
+  <p>Dự án không ghi lý do, nhưng có một manh mối: code dùng <strong>let chains</strong> — viết <code>if let Some(a) = x &amp;&amp; let Some(b) = y { … }</code> — một cú pháp chỉ ổn định từ Rust 1.88 và chỉ trong edition 2024. Chạy <code>grep -rn "&amp;&amp; let " crates --include=*.rs</code> (bỏ qua thư mục <code>generated</code>) bạn sẽ thấy khoảng 40 chỗ, ví dụ trong <code>crates/openxml-pptx/src/clone.rs</code>. Bạn chưa cần hiểu cú pháp này bây giờ; chỉ cần thấy rằng <code>rust-version</code> phải khớp với tính năng ngôn ngữ mà code thật sự dùng.</p>
+</div>
+
+<h3 id="license">4.1 <code>license = "MIT OR Apache-2.0"</code></h3>
+<p>Chuỗi này là một <strong>biểu thức SPDX</strong> — chuẩn đặt tên giấy phép mà crates.io hiểu. <code>OR</code> nghĩa là <em>người dùng được chọn</em> một trong hai: MIT (rất ngắn, dễ dãi) hoặc Apache-2.0 (có thêm điều khoản về bằng sáng chế). Đây là "giấy phép đôi" truyền thống của hệ sinh thái Rust — chính Rust và phần lớn crate phổ biến dùng đúng chuỗi này, nên thư viện của bạn ghép vào dự án của người khác mà không vướng pháp lý.</p>
+
+<div class="callout warn">
+  <span class="callout-title">⚠️ Chỗ hay nhầm</span>
+  <p>Viết <code>version.workspace = true</code> ở crate con nhưng quên khai báo <code>version</code> trong <code>[workspace.package]</code> thì Cargo báo lỗi. Ngược lại, khai báo trong <code>[workspace.package]</code> mà crate con không ghi <code>.workspace = true</code> thì crate đó <strong>không</strong> nhận giá trị (Cargo chỉ dùng mặc định của nó). Kế thừa luôn là <em>opt-in</em> — từng trường, từng crate.</p>
+</div>
+
+<h2 id="workspace-deps">5. <code>[workspace.dependencies]</code> — danh mục dependency dùng chung</h2>
+<p>Vấn đề: có 12 crate, crate nào cũng cần <code>openxml-xml</code>; hai crate cần <code>roxmltree</code>… Nếu mỗi crate tự ghi phiên bản, sớm muộn sẽ có chỗ ghi <code>"0.41"</code> chỗ ghi <code>"0.42"</code> — và Cargo sẽ phải build <em>hai</em> bản cùng một thư viện. Giải pháp: khai báo mọi thứ <strong>một lần</strong> ở <code>[workspace.dependencies]</code>, crate con chỉ việc trỏ tới.</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-chart/Cargo.toml#L10-L18">crates/openxml-chart/Cargo.toml:10–18</figcaption>
+<pre><code class="language-toml">[dependencies]
+openxml-core = { workspace = true }
+openxml-opc = { workspace = true }
+openxml-schema = { workspace = true }
+openxml-xml = { workspace = true }
+
+[dev-dependencies]
+openxml-testkit = { workspace = true }
+openxml-xlsx = { workspace = true }</code></pre>
+</figure>
+<p><code>openxml-xml = { workspace = true }</code> nghĩa là "dùng đúng khai báo <code>openxml-xml</code> trong bảng của workspace" — tức <code>{ path = "crates/openxml-xml" }</code>. Crate con được phép <em>thêm</em> feature (<code>{ workspace = true, features = ["x"] }</code>) hoặc đánh dấu <code>optional = true</code>, nhưng không được đổi phiên bản hay đường dẫn.</p>
+<p>Để ý <code>{ … }</code> là một <strong>inline table</strong> của TOML — một bảng viết gọn trên một dòng. <code>openxml-xml = { workspace = true }</code> và cách viết nhiều dòng dưới đây là một:</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — hai cách viết tương đương</figcaption>
+<pre><code class="language-toml">[dependencies]
+openxml-xml = { workspace = true }
+
+# tương đương:
+[dependencies.openxml-xml]
+workspace = true</code></pre>
+</figure>
+
+<h3 id="path-dep">5.1 Path dependency</h3>
+<p>Chín dòng đầu của bảng là <strong>path dependency</strong>: dependency lấy từ một thư mục trên đĩa, không phải tải về từ crates.io. Đường dẫn tương đối so với file <code>Cargo.toml</code> chứa nó (ở đây là gốc repo). Mọi crate nội bộ đều được nối với nhau theo cách này — sửa <code>openxml-xml</code> là <code>openxml-docx</code> thấy thay đổi ngay ở lần build sau, không cần "phát hành" gì cả.</p>
+<p>Để ý danh sách này có 9 crate, thiếu 3: <code>openxml-codegen</code>, <code>openxml</code> và <code>openxml-cli</code>. Lý do đơn giản: <strong>không crate nào phụ thuộc vào chúng</strong>. <code>openxml-codegen</code> là công cụ sinh code, <code>openxml</code> là cửa ngõ cho người dùng bên ngoài, <code>openxml-cli</code> là chương trình — cả ba đều ở "ngọn" của đồ thị.</p>
+
+<div class="callout warn">
+  <span class="callout-title">⚠️ Khi publish lên crates.io</span>
+  <p>crates.io không biết thư mục trên máy bạn, nên một path dependency muốn publish phải kèm cả phiên bản, ví dụ <code>openxml-xml = { path = "crates/openxml-xml", version = "0.1.0" }</code>: lúc build tại chỗ Cargo dùng <code>path</code>, lúc đăng lên thì dùng <code>version</code>. Khai báo hiện tại chỉ có <code>path</code> — dự án đang ở 0.1.0 và chưa lên crates.io, nên chưa cần.</p>
+</div>
+
+<h3 id="dep-rieng">5.2 Dependency không nằm trong bảng chung</h3>
+<p>Không bắt buộc mọi dependency đều phải qua bảng workspace. Crate sinh code khai báo thẳng hai thư viện chỉ nó dùng:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-codegen/Cargo.toml#L1-L18">crates/openxml-codegen/Cargo.toml:1–18</figcaption>
+<pre><code class="language-toml">[package]
+name = "openxml-codegen"
+description = "Generates the openxml-schema crate from the ECMA-376 XML Schemas"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+openxml-xml = { workspace = true }
+roxmltree = { workspace = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[lints]
+workspace = true</code></pre>
+</figure>
+<p><code>serde</code> và <code>serde_json</code> được ghi trực tiếp (có phiên bản ngay tại chỗ). <code>serde_json = "1"</code> còn xuất hiện lần nữa trong <code>[dev-dependencies]</code> của <code>openxml-schema</code>. Hai chỗ cùng ghi <code>"1"</code> nên Cargo vẫn chỉ dùng một bản. Còn <code>roxmltree</code> nằm trong bảng chung dù chỉ codegen dùng — có lẽ để mọi dependency "thật" của thư viện đều hiện ra ở một chỗ. Cả hai cách đều hợp lệ; dự án lớn thường dồn hết vào bảng chung cho nhất quán.</p>
+
+<h2 id="semver">6. Phiên bản semver: <code>"0.42"</code> và <code>"8.6"</code> nghĩa là gì?</h2>
+<p>Crate trên crates.io đánh số theo <strong>Semantic Versioning</strong> (semver): <code>MAJOR.MINOR.PATCH</code>, ví dụ <code>8.6.0</code>.</p>
+<ul>
+  <li>Tăng <strong>PATCH</strong> (8.6.0 → 8.6.1): sửa lỗi, không đổi API.</li>
+  <li>Tăng <strong>MINOR</strong> (8.6 → 8.7): thêm tính năng, code cũ vẫn chạy.</li>
+  <li>Tăng <strong>MAJOR</strong> (8 → 9): có thay đổi phá vỡ (breaking change).</li>
+</ul>
+<p>Khi bạn viết <code>zip = "8.6"</code>, Cargo hiểu là <code>"^8.6"</code> — dấu mũ <code>^</code> ("caret", tương thích) là toán tử <strong>mặc định</strong>: "bất kỳ bản nào ≥ 8.6.0 mà <em>không</em> đổi số khác 0 đầu tiên". Với crate đã qua 1.0, đó là "cùng MAJOR". Với crate còn ở <code>0.x</code>, quy ước là số <em>MINOR</em> đóng vai MAJOR — vì trước 1.0, mỗi lần tăng minor đều có thể phá API.</p>
+<div class="table-wrap"><table>
+  <tr><th>Khai báo trong dự án</th><th>Nghĩa là</th><th>Bản đang khoá trong Cargo.lock</th></tr>
+  <tr><td><code>quick-xml = "0.42"</code></td><td><code>&gt;=0.42.0, &lt;0.43.0</code></td><td>0.42.0</td></tr>
+  <tr><td><code>zip = { version = "8.6", … }</code></td><td><code>&gt;=8.6.0, &lt;9.0.0</code></td><td>8.6.0</td></tr>
+  <tr><td><code>roxmltree = "0.21"</code></td><td><code>&gt;=0.21.0, &lt;0.22.0</code></td><td>0.21.1</td></tr>
+  <tr><td><code>serde = { version = "1", … }</code></td><td><code>&gt;=1.0.0, &lt;2.0.0</code></td><td>1.0.229</td></tr>
+  <tr><td><code>serde_json = "1"</code></td><td><code>&gt;=1.0.0, &lt;2.0.0</code></td><td>1.0.151</td></tr>
+</table></div>
+<p>Các toán tử khác ít gặp hơn: <code>"~0.42.1"</code> (chỉ cho tăng patch), <code>"=0.42.0"</code> (đúng bản đó), <code>"&gt;=0.40, &lt;0.43"</code> (khoảng tuỳ ý), <code>"*"</code> (bất kỳ — crates.io không cho publish crate dùng cái này).</p>
+
+<div class="callout warn">
+  <span class="callout-title">⚠️ Chỗ hay nhầm</span>
+  <p><code>"0.42"</code> <strong>không</strong> có nghĩa "đúng bản 0.42". Nó là một <em>khoảng</em>. Cái quyết định bản cụ thể được dùng là <code>Cargo.lock</code> (mục 10). Lệnh <code>cargo update</code> sẽ nâng lên bản mới nhất còn nằm trong khoảng, ví dụ 0.42.3 nếu có — nhưng không bao giờ tự nhảy lên 0.43.</p>
+</div>
+
+<h2 id="features">7. Feature flag và <code>default-features = false</code></h2>
+<p>Dòng dài nhất của file:</p>
+<figure class="code">
+  <figcaption data-src="Cargo.toml#L36-L36">Cargo.toml:36</figcaption>
+<pre><code class="language-toml">zip = { version = "8.6", default-features = false, features = ["deflate-flate2-zlib-rs"] }</code></pre>
+</figure>
+
+<h3 id="feature-la-gi">7.1 Feature là gì?</h3>
+<p>Một thư viện lớn thường có nhiều phần mà không phải ai cũng cần. <strong>Feature</strong> (tính năng tuỳ chọn) là công tắc do tác giả crate định nghĩa để bật/tắt những phần đó <em>lúc biên dịch</em>. Phần bị tắt không được biên dịch, và các dependency chỉ phần đó cần cũng không bị kéo về. Trong code, tác giả đánh dấu bằng <code>#[cfg(feature = "…")]</code>:</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — một crate tự định nghĩa feature</figcaption>
+<pre><code class="language-toml"># Cargo.toml của một crate "nen" tưởng tượng
+[features]
+default = ["gzip"]          # bật sẵn nếu người dùng không nói gì
+gzip = ["dep:flate2"]       # bật "gzip" ⇒ kéo thêm dependency flate2
+zstd = ["dep:zstd"]
+
+[dependencies]
+flate2 = { version = "1", optional = true }
+zstd = { version = "0.13", optional = true }</code></pre>
+</figure>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — code chỉ tồn tại khi feature được bật</figcaption>
+<pre><code class="language-rust">#[cfg(feature = "zstd")]
+pub fn nen_zstd(du_lieu: &amp;[u8]) -&gt; Vec&lt;u8&gt; {
+    // ... chỉ được biên dịch khi người dùng bật feature "zstd"
+    todo!()
+}</code></pre>
+</figure>
+
+<h3 id="zip-features">7.2 Feature của crate <code>zip</code></h3>
+<p>Mình mở <code>Cargo.toml</code> của chính crate <code>zip</code> 8.6.0 (nằm trong <code>~/.cargo/registry/src/…/zip-8.6.0/</code> sau khi build) để xem nó bật sẵn những gì:</p>
+<figure class="code">
+  <figcaption>~/.cargo/registry/src/…/zip-8.6.0/Cargo.toml (trích mục [features])</figcaption>
+<pre><code class="language-toml">default = [
+    "aes-crypto",
+    "bzip2",
+    "deflate64",
+    "deflate",
+    "lzma",
+    "ppmd",
+    "time",
+    "zstd",
+    "xz",
+]
+deflate = [
+    "deflate-zopfli",
+    "deflate-flate2-zlib-rs",
+]
+deflate-flate2-zlib-rs = [
+    "deflate-flate2",
+    "flate2/zlib-rs",
+]</code></pre>
+</figure>
+<p>Mặc định <code>zip</code> hỗ trợ đủ thứ: mã hoá AES, nén bzip2, deflate64, lzma, ppmd, zstd, xz… mỗi thứ kéo theo một hoặc vài crate (có cái là binding tới thư viện C). Dự án nói hai điều:</p>
+<ol>
+  <li><code>default-features = false</code> — "đừng bật gì sẵn cả".</li>
+  <li><code>features = ["deflate-flate2-zlib-rs"]</code> — "chỉ bật đúng thuật toán <strong>Deflate</strong>, cài đặt bằng <code>flate2</code> với backend <code>zlib-rs</code>" (một bản zlib viết hoàn toàn bằng Rust, không cần trình biên dịch C).</li>
+</ol>
+<p>Kiểm chứng bằng <code>cargo build -p openxml-docx --timings</code> (mình chạy thật, báo cáo HTML nằm trong <code>target/cargo-timings/</code>): cột "Features" của dòng <code>zip v8.6.0</code> chỉ có <code>_deflate-any, deflate-flate2, deflate-flate2-zlib-rs</code>. Và <code>cargo tree -p openxml-opc</code> cho thấy toàn bộ cây phụ thuộc của tầng đóng gói chỉ có vài crate nhỏ:</p>
+<figure class="code">
+  <figcaption>Terminal — cargo tree -p openxml-opc -e normal (output thật)</figcaption>
+<pre><code class="language-bash">openxml-opc v0.1.0 (/home/user/open-xml-rust/crates/openxml-opc)
+├── openxml-xml v0.1.0 (/home/user/open-xml-rust/crates/openxml-xml)
+│   └── quick-xml v0.42.0
+│       └── memchr v2.8.3
+└── zip v8.6.0
+    ├── crc32fast v1.5.2
+    │   └── cfg-if v1.0.5
+    ├── flate2 v1.1.10
+    │   └── zlib-rs v0.6.8
+    ├── indexmap v2.14.2
+    │   ├── equivalent v1.0.2
+    │   └── hashbrown v0.17.1
+    ├── memchr v2.8.3
+    └── typed-path v0.12.3</code></pre>
+</figure>
+<p>Vì sao tắt? Ba lý do: <strong>build nhanh hơn</strong> (ít crate phải biên dịch), <strong>ít rủi ro hơn</strong> (ít code của bên thứ ba, không phụ thuộc thư viện C), và quan trọng nhất — <strong>chuẩn OPC không cần những thứ kia</strong> (xem Góc OpenXML ngay dưới).</p>
+
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — ZIP của OPC là ZIP "khó tính"</span>
+  <p>ECMA-376 Part 2 (Open Packaging Conventions) không cho phép dùng mọi tính năng của định dạng ZIP. Phụ lục về ZIP của Part 2 chỉ chấp nhận item được lưu <strong>không nén</strong> (Stored) hoặc nén <strong>Deflate</strong>; mã hoá ZIP cũng không nằm trong phạm vi chuẩn. Nói cách khác, một file .docx dùng bzip2 hay zstd thì Word sẽ không mở — nên bật những feature đó chỉ tốn công biên dịch.</p>
+  <p>Và đúng thế, khi ghi gói, <code>openxml-opc</code> luôn chọn Deflate:</p>
+  <figure class="code">
+    <figcaption data-src="crates/openxml-opc/src/package.rs#L214-L219">crates/openxml-opc/src/package.rs:214–219</figcaption>
+<pre><code class="language-rust">    /// Writes the package as a ZIP container.
+    pub fn save&lt;W: Write + Seek&gt;(&amp;self, writer: W) -&gt; Result&lt;W&gt; {
+        let mut zip = zip::ZipWriter::new(writer);
+        let options = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated)
+            .last_modified_time(zip::DateTime::default());</code></pre>
+  </figure>
+  <p>Dòng cuối cũng thú vị: mọi item được gán cùng một thời điểm "mặc định" thay vì giờ hiện tại, nên lưu cùng một tài liệu hai lần cho ra hai file giống nhau từng byte (ARCHITECTURE.md gọi là <em>deterministic saving</em>). Cú pháp <code>&lt;W: Write + Seek&gt;</code> là generic — bạn sẽ học ở <a href="p2-6-xml-value.html">bài 2.6</a>.</p>
+</div>
+
+<div class="callout warn">
+  <span class="callout-title">⚠️ Feature là "cộng dồn"</span>
+  <p>Nếu trong cùng một bản build, crate A bật <code>zip</code> với feature <code>deflate</code> còn crate B bật <code>zip</code> với <code>zstd</code>, Cargo không build hai bản <code>zip</code> — nó build <strong>một</strong> bản với <em>hợp</em> của hai tập feature (<em>feature unification</em>). Vì vậy tác giả crate luôn thiết kế feature để chỉ <em>thêm</em> chứ không <em>bớt</em> chức năng. Và <code>default-features = false</code> của bạn có thể "mất tác dụng" nếu một crate khác trong đồ thị lại dùng <code>zip</code> với feature mặc định.</p>
+</div>
+
+<h2 id="lints">8. <code>unsafe_code = "forbid"</code> — lint cho cả workspace</h2>
+<figure class="code">
+  <figcaption data-src="Cargo.toml#L39-L40">Cargo.toml:39–40</figcaption>
+<pre><code class="language-toml">[workspace.lints.rust]
+unsafe_code = "forbid"</code></pre>
+</figure>
+
+<h3 id="unsafe">8.1 <code>unsafe</code> là gì (mức sơ khởi)</h3>
+<p>Trình biên dịch Rust kiểm tra rất gắt để đảm bảo chương trình không bao giờ đọc vùng nhớ đã giải phóng, không có hai luồng ghi cùng lúc vào một biến, v.v. Nhưng có những việc trình biên dịch <em>không thể</em> tự chứng minh là an toàn: gọi hàm viết bằng C, đọc/ghi qua con trỏ thô (raw pointer), thao tác trực tiếp với phần cứng… Với những việc này, Rust có từ khoá <code>unsafe</code>:</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ</figcaption>
+<pre><code class="language-rust">let x = 5;
+let p = &amp;x as *const i32;   // tạo con trỏ thô: an toàn, được phép
+let y = unsafe { *p };      // đọc qua con trỏ thô: phải nằm trong khối unsafe</code></pre>
+</figure>
+<p><code>unsafe { … }</code> <strong>không tắt</strong> kiểm tra của Rust; nó chỉ mở khoá vài thao tác đặc biệt và nói "lập trình viên chịu trách nhiệm chứng minh chỗ này đúng". Một thư viện đọc/ghi file XML và ZIP hoàn toàn không cần những thao tác đó — nên dự án cấm hẳn.</p>
+
+<h3 id="lint-level">8.2 Lint và bốn mức độ</h3>
+<p><strong>Lint</strong> là một luật kiểm tra code (tên lấy từ công cụ "lint" của C). Mỗi lint có một mức:</p>
+<div class="table-wrap"><table>
+  <tr><th>Mức</th><th>Vi phạm thì</th><th>Code bên trong có tự hạ mức được không?</th></tr>
+  <tr><td><code>allow</code></td><td>im lặng</td><td>—</td></tr>
+  <tr><td><code>warn</code></td><td>cảnh báo, vẫn build được</td><td>được (<code>#[allow(…)]</code>)</td></tr>
+  <tr><td><code>deny</code></td><td>lỗi, không build</td><td>được (<code>#[allow(…)]</code> tại chỗ)</td></tr>
+  <tr><td><code>forbid</code></td><td>lỗi, không build</td><td><strong>không</strong> — mọi <code>#[allow]</code> đều bị từ chối</td></tr>
+</table></div>
+<p>Mình dựng một workspace thử với đúng dòng <code>unsafe_code = "forbid"</code> rồi viết một khối <code>unsafe</code>. Output thật:</p>
+<figure class="code">
+  <figcaption>Terminal — vi phạm lint forbid</figcaption>
+<pre><code class="language-bash">error: usage of an `unsafe` block
+ --&gt; crates/mini-app/src/lib.rs:4:14
+  |
+4 | pub fn f() { unsafe { } }
+  |              ^^^^^^^^^^
+  |
+  = note: requested on the command line with `-F unsafe-code`</code></pre>
+</figure>
+<p>Thử "lách" bằng <code>#[allow(unsafe_code)]</code> ngay trên hàm:</p>
+<figure class="code">
+  <figcaption>Terminal — forbid không cho hạ mức</figcaption>
+<pre><code class="language-bash">error[E0453]: allow(unsafe_code) incompatible with previous forbid
+ --&gt; crates/mini-app/src/lib.rs:4:9
+  |
+4 | #[allow(unsafe_code)]
+  |         ^^^^^^^^^^^ overruled by previous forbid
+  |
+  = note: `forbid` lint level was set on command line</code></pre>
+</figure>
+<p>Nếu dùng <code>deny</code>, dòng <code>#[allow]</code> kia sẽ được chấp nhận. <code>forbid</code> biến "không có unsafe" thành một <strong>cam kết</strong> của cả dự án: muốn thêm unsafe, người ta phải sửa <code>Cargo.toml</code> gốc — một thay đổi ai review cũng thấy. (Dòng <code>-F unsafe-code</code> trong note cho thấy cách Cargo cài đặt: nó truyền cờ <code>-F</code> = forbid cho <code>rustc</code>.)</p>
+
+<h3 id="lints-optin">8.3 <code>[lints] workspace = true</code> — lại là opt-in</h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/Cargo.toml#L1-L13">crates/openxml-xml/Cargo.toml:1–13</figcaption>
+<pre><code class="language-toml">[package]
+name = "openxml-xml"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+quick-xml = { workspace = true }
+
+[lints]
+workspace = true</code></pre>
+</figure>
+<p>Giống metadata, lint của workspace chỉ áp cho crate nào ghi <code>[lints] workspace = true</code>. Cả 12 crate của dự án đều có hai dòng này (kiểm tra: <code>grep -c lints crates/*/Cargo.toml</code>). Lint chỉ áp cho <strong>code của dự án</strong>; các dependency như <code>zlib-rs</code> vẫn được dùng unsafe bên trong — đó là trách nhiệm của tác giả chúng.</p>
+
+<div class="callout tip">
+  <span class="callout-title">💡 Có một lint không nằm ở đây</span>
+  <p>Mở <code>crates/openxml-xml/src/lib.rs</code> bạn sẽ thấy <code>#![warn(missing_docs)]</code> — lint "thiếu tài liệu" được bật <em>trong code</em> của từng crate thay vì trong <code>Cargo.toml</code>. Hai cách tương đương nhau; ở đây nó cho phép crate <code>openxml-schema</code> (code sinh tự động) không bật. Bài <a href="p1-2-crate-module.html#attribute">1.2</a> giải thích cú pháp <code>#![…]</code>.</p>
+</div>
+
+<div class="callout warn">
+  <span class="callout-title">⚠️ Một điểm lệch nhỏ</span>
+  <p><code>crates/openxml-xml/Cargo.toml</code> là crate duy nhất <strong>không có</strong> dòng <code>description</code>. Build hay test thì không sao, nhưng crates.io từ chối publish crate thiếu description. Để ý những chi tiết như vậy khi đọc cấu hình — nó giúp bạn đọc code "có phản biện".</p>
+</div>
+
+<h2 id="profile">9. <code>[profile.dev.package."*"] opt-level = 1</code></h2>
+<p><strong>Profile</strong> là bộ thiết lập biên dịch. Hai profile hay dùng nhất:</p>
+<ul>
+  <li><code>dev</code> — dùng cho <code>cargo build</code>, <code>cargo test</code>, <code>cargo run</code>: <code>opt-level = 0</code> (không tối ưu), biên dịch nhanh, dễ debug.</li>
+  <li><code>release</code> — dùng khi thêm <code>--release</code>: <code>opt-level = 3</code>, chạy nhanh nhưng biên dịch lâu.</li>
+</ul>
+<figure class="code">
+  <figcaption data-src="Cargo.toml#L42-L43">Cargo.toml:42–43</figcaption>
+<pre><code class="language-toml">[profile.dev.package."*"]
+opt-level = 1</code></pre>
+</figure>
+<p>Đọc từ trái sang: trong profile <code>dev</code>, với các package khớp mẫu <code>"*"</code>, dùng <code>opt-level = 1</code>. Mẫu <code>"*"</code> có nghĩa đặc biệt: <strong>mọi package không phải thành viên workspace</strong> — tức <code>quick-xml</code>, <code>zip</code>, <code>zlib-rs</code>, <code>memchr</code>… Code của dự án vẫn <code>opt-level = 0</code>.</p>
+<p>Vì sao? Test của dự án đọc/ghi hàng trăm file Office thật trong <code>fixtures/</code>; phần việc nặng — phân tích XML, giải nén Deflate — nằm trong <code>quick-xml</code> và <code>zlib-rs</code>. Để hai crate này ở mức 0 thì test chạy rất chậm. Dependency bên ngoài chỉ biên dịch <em>một lần</em> rồi được cache (bạn hiếm khi sửa chúng), nên trả thêm chút thời gian biên dịch để chúng chạy nhanh là lời. Code của mình thì sửa liên tục — giữ mức 0 để vòng "sửa → build → test" nhanh nhất.</p>
+
+<div class="callout pattern">
+  <span class="callout-title">🧩 Kỹ thuật: tối ưu có chọn lọc cho dependency</span>
+  <p>Đây là một "công thức" phổ biến trong dự án Rust mà vòng test đụng nhiều tới thư viện nặng (parser, nén, xử lý ảnh). Biến thể mạnh hơn là <code>opt-level = 3</code> cho dependency; dự án chọn mức 1 — tối ưu cơ bản, đủ nhanh mà biên dịch không lâu.</p>
+</div>
+
+<h2 id="cargo-lock">10. <code>Cargo.lock</code> — có nên commit?</h2>
+<p><code>Cargo.toml</code> nói "tôi chấp nhận khoảng phiên bản nào"; <code>Cargo.lock</code> ghi lại "lần giải gần nhất đã chọn <em>chính xác</em> bản nào, kèm checksum". File do Cargo tự sinh:</p>
+<figure class="code">
+  <figcaption data-src="Cargo.lock#L1-L9">Cargo.lock:1–9</figcaption>
+<pre><code class="language-toml"># This file is automatically @generated by Cargo.
+# It is not intended for manual editing.
+version = 4
+
+[[package]]
+name = "cfg-if"
+version = "1.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600"</code></pre>
+</figure>
+<p><code>version = 4</code> ở đây là phiên bản <em>định dạng file lock</em>, không liên quan tới dự án. Workspace chỉ có <strong>một</strong> <code>Cargo.lock</code> ở gốc cho cả 12 crate — đó là một trong những lợi ích lớn của workspace: mọi crate chắc chắn dùng cùng một bản <code>quick-xml</code>.</p>
+<p><strong>Có commit không?</strong> Dự án commit (<code>git ls-files Cargo.lock</code> có kết quả, <code>.gitignore</code> chỉ bỏ <code>/target</code>). Quy tắc thực tế:</p>
+<ul>
+  <li>Dự án có <strong>chương trình chạy được</strong> (ở đây là <code>openxml-cli</code>) — <strong>luôn commit</strong>, để ai clone về cũng build ra đúng thứ bạn đã test.</li>
+  <li>Thư viện thuần — trước đây cộng đồng khuyên không commit; từ 2023 Cargo khuyên <em>commit theo mặc định</em> cho mọi loại dự án. Điều quan trọng cần hiểu: khi crate của bạn được dùng làm dependency trong dự án khác, <code>Cargo.lock</code> của bạn <strong>bị bỏ qua</strong>, dự án kia tự giải theo <code>Cargo.toml</code>. Nên commit lock không "ép" gì người dùng thư viện cả.</li>
+</ul>
+
+<h2 id="rieng-tung-crate">11. Những mảnh riêng của từng crate</h2>
+
+<h3 id="dev-deps">11.1 <code>[dev-dependencies]</code></h3>
+<p><strong>Dev-dependency</strong> chỉ được dùng khi biên dịch test, example và benchmark — <em>không</em> có mặt trong thư viện thật mà người dùng nhận được. Quay lại <code>openxml-chart</code> ở mục 5: nó có hai dev-dependency là <code>openxml-testkit</code> (công cụ kiểm tra XSD dùng chung cho test) và <code>openxml-xlsx</code>.</p>
+<p>Cái thứ hai rất đáng chú ý: <code>openxml-xlsx</code> <strong>phụ thuộc vào</strong> <code>openxml-chart</code> (Excel cần vẽ biểu đồ). Nếu <code>openxml-chart</code> cũng phụ thuộc thường vào <code>openxml-xlsx</code>, ta có vòng tròn — Cargo cấm. Nhưng qua <code>[dev-dependencies]</code> thì được: test tích hợp trong <code>crates/openxml-chart/tests/charts.rs</code> được biên dịch thành một crate riêng, nên nó dùng được cả hai. Bài <a href="p1-3-kien-truc-phan-tang.html#vong">1.3</a> sẽ nói kỹ hệ quả của luật cấm vòng.</p>
+
+<h3 id="publish">11.2 <code>publish = false</code></h3>
+<p>Hai crate có dòng này: <code>openxml-codegen</code> (mục 5.2) và <code>openxml-testkit</code>. Nó chặn <code>cargo publish</code> — một lớp bảo vệ để không ai lỡ tay đăng lên crates.io những crate chỉ dùng <em>nội bộ</em>: một công cụ sinh code chạy trên máy lập trình viên và một bộ tiện ích test gọi <code>xmllint</code>.</p>
+
+<h3 id="bin">11.3 <code>[[bin]]</code> trong openxml-cli</h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-cli/Cargo.toml#L1-L12">crates/openxml-cli/Cargo.toml:1–12</figcaption>
+<pre><code class="language-toml">[package]
+name = "openxml-cli"
+description = "Command-line tool to inspect, round-trip and validate Office Open XML packages"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "openxml"
+path = "src/main.rs"</code></pre>
+</figure>
+<p>Cặp ngoặc vuông kép <code>[[bin]]</code> là cú pháp TOML cho <strong>mảng các bảng</strong> — một package có thể khai báo nhiều <code>[[bin]]</code> liên tiếp, mỗi cái là một chương trình. Nếu không khai báo, Cargo tự coi <code>src/main.rs</code> là một binary <em>tên trùng tên package</em> — tức lệnh sẽ tên là <code>openxml-cli</code>. Khai báo <code>name = "openxml"</code> đổi tên file chạy thành <code>openxml</code> ngắn gọn, còn tên package vẫn là <code>openxml-cli</code> (vì tên <code>openxml</code> đã thuộc về crate facade). Kết quả:</p>
+<figure class="code">
+  <figcaption>Terminal</figcaption>
+<pre><code class="language-bash">cargo run -p openxml-cli -- info fixtures/poi/sample.docx   # -p dùng TÊN PACKAGE
+ls target/debug/openxml                                     # file chạy mang TÊN BIN</code></pre>
+</figure>
+<p>Dấu <code>--</code> tách tham số của <code>cargo</code> với tham số truyền cho chương trình.</p>
+
+<h3 id="bang-12-crate">11.4 Bức tranh 12 crate qua Cargo.toml</h3>
+<div class="table-wrap"><table>
+  <tr><th>Crate</th><th>Loại</th><th>publish</th><th>Dependency ngoài (normal)</th><th>description (rút gọn)</th></tr>
+  <tr><td><code>openxml-xml</code></td><td>lib</td><td>✓</td><td><code>quick-xml</code></td><td>(không có)</td></tr>
+  <tr><td><code>openxml-opc</code></td><td>lib</td><td>✓</td><td><code>zip</code></td><td>Open Packaging Conventions (Part 2)</td></tr>
+  <tr><td><code>openxml-codegen</code></td><td>lib + bin</td><td>✗</td><td><code>roxmltree</code>, <code>serde</code>, <code>serde_json</code></td><td>Sinh <code>openxml-schema</code> từ XSD</td></tr>
+  <tr><td><code>openxml-schema</code></td><td>lib</td><td>✓</td><td>—</td><td>Kiểu schema có kiểu mạnh, sinh từ XSD</td></tr>
+  <tr><td><code>openxml-testkit</code></td><td>lib</td><td>✗</td><td>—</td><td>Tiện ích test (kiểm tra schema, duyệt corpus)</td></tr>
+  <tr><td><code>openxml-core</code></td><td>lib</td><td>✓</td><td>—</td><td>Lỗi, part có kiểu, đơn vị, ảnh</td></tr>
+  <tr><td><code>openxml-chart</code></td><td>lib</td><td>✓</td><td>—</td><td>Biểu đồ DrawingML (§21.2) dùng chung</td></tr>
+  <tr><td><code>openxml-docx</code> / <code>-xlsx</code> / <code>-pptx</code></td><td>lib</td><td>✓</td><td>—</td><td>API Word / Excel / PowerPoint</td></tr>
+  <tr><td><code>openxml</code></td><td>lib</td><td>✓</td><td>—</td><td>Facade gom mọi tầng</td></tr>
+  <tr><td><code>openxml-cli</code></td><td>bin <code>openxml</code></td><td>✓</td><td>—</td><td>Công cụ dòng lệnh</td></tr>
+</table></div>
+<p>(<code>openxml-codegen</code> vừa có <code>src/lib.rs</code> vừa có <code>src/main.rs</code> — một package, hai crate: thư viện để test gọi được, chương trình để chạy <code>cargo run -p openxml-codegen</code>.)</p>
+
+<h2 id="goc-openxml">12. Góc OpenXML: chỉ hai crate chạm vào thế giới bên ngoài</h2>
+<p>Nhìn cột "Dependency ngoài" ở bảng trên và nhớ lại <a href="p0-1-openxml-la-gi.html#bon-khai-niem">bài 0.1</a>: một file Office là <em>ZIP chứa XML</em>. Hai bài toán kỹ thuật cần thư viện bên ngoài, và mỗi bài toán được giao đúng cho một crate:</p>
+<div class="table-wrap"><table>
+  <tr><th>Bài toán</th><th>Phần chuẩn</th><th>Thư viện ngoài</th><th>Crate duy nhất dùng nó</th></tr>
+  <tr><td>Đọc/ghi XML có namespace (<code>w:p</code>, <code>a:graphic</code>…)</td><td>XML của Part 1 &amp; Part 4, MCE của Part 3</td><td><code>quick-xml</code></td><td><code>openxml-xml</code></td></tr>
+  <tr><td>Mở/đóng gói ZIP, part, relationship</td><td>Part 2 — OPC</td><td><code>zip</code></td><td><code>openxml-opc</code></td></tr>
+</table></div>
+<p>Kiểm chứng bằng grep: <code>quick_xml</code> chỉ xuất hiện trong <code>crates/openxml-xml/src/</code>, <code>zip::</code> chỉ xuất hiện trong <code>crates/openxml-opc/src/</code>. Mọi crate phía trên (schema, core, chart, docx…) <strong>không có một dependency ngoài nào</strong> — chúng chỉ dùng API của hai tầng dưới. Ngoại lệ duy nhất là công cụ <code>openxml-codegen</code> (dùng <code>roxmltree</code> để đọc file <code>.xsd</code>, <code>serde</code>/<code>serde_json</code> để đọc <code>schemas/spec-index.json</code>) — nhưng nó không phải một phần của thư viện người dùng nhận, và <code>openxml-schema</code> chỉ dùng <code>serde_json</code> trong <code>[dev-dependencies]</code> cho test.</p>
+<p>Lợi ích: nếu mai kia muốn thay <code>quick-xml</code> bằng parser khác, chỉ một crate phải sửa. Tầng <code>openxml-xml</code> còn "dịch" lỗi của <code>quick-xml</code> sang kiểu lỗi của riêng nó, để tầng trên không bao giờ thấy tên <code>quick_xml</code>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/error.rs#L53-L62">crates/openxml-xml/src/error.rs:53–62</figcaption>
+<pre><code class="language-rust">impl From&lt;quick_xml::Error&gt; for Error {
+    fn from(e: quick_xml::Error) -&gt; Self {
+        match e {
+            quick_xml::Error::Syntax(quick_xml::errors::SyntaxError::UnclosedTag)
+            | quick_xml::Error::Syntax(quick_xml::errors::SyntaxError::UnclosedComment)
+            | quick_xml::Error::Syntax(quick_xml::errors::SyntaxError::UnclosedCData) =&gt; Error::UnexpectedEof,
+            other =&gt; Error::Syntax(other.to_string()),
+        }
+    }
+}</code></pre>
+</figure>
+<p>Bạn chưa cần hiểu <code>impl From</code> — <a href="p2-3-xu-ly-loi.html">bài 2.3</a> dành riêng cho nó. Chỉ cần thấy ý đồ: thư viện ngoài bị "nhốt" trong đúng một crate.</p>
+
+<div class="callout pattern">
+  <span class="callout-title">🧩 Design pattern: cô lập dependency (Adapter / "anti-corruption layer")</span>
+  <p>Bọc thư viện bên thứ ba sau API của chính mình và chỉ cho một module/crate biết đến nó. Cấu hình Cargo giúp <em>ép</em> điều này: crate nào không khai báo <code>zip</code> trong <code>Cargo.toml</code> thì không thể <code>use zip::…</code>, dù <code>zip</code> vẫn nằm trong đồ thị build (qua <code>openxml-opc</code>). Dependency trong Rust <strong>không bắc cầu về mặt tên gọi</strong>: phụ thuộc gián tiếp thì được biên dịch, nhưng không được gọi trực tiếp.</p>
+</div>
+
+<section class="exercise">
+  <h3>🛠 Bài tập</h3>
+  <ol>
+    <li><strong>Workspace mini hai crate.</strong> Làm ngoài repo, ví dụ trong <code>~/tmp</code>:
+<figure class="code">
+  <figcaption>Terminal — dựng khung (mình đã chạy thử với cargo 1.94)</figcaption>
+<pre><code class="language-bash">mkdir mini-ws &amp;&amp; cd mini-ws
+cat &gt; Cargo.toml &lt;&lt;'EOF'
+[workspace]
+resolver = "3"
+members = []
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
+[workspace.dependencies]
+mini-core = { path = "crates/mini-core" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+EOF
+cargo new --lib crates/mini-core
+cargo new --lib crates/mini-app
+cat Cargo.toml crates/mini-core/Cargo.toml</code></pre>
+</figure>
+    Quan sát: <code>cargo new</code> tự thêm crate vào <code>members</code>, và tự điền <code>version.workspace = true</code>, <code>edition.workspace = true</code>, <code>[lints] workspace = true</code> vào <code>Cargo.toml</code> con. Sau đó thêm <code>mini-core = { workspace = true }</code> vào <code>[dependencies]</code> của <code>mini-app</code>, viết trong <code>crates/mini-app/src/lib.rs</code> một hàm gọi <code>mini_core::add(2, 3)</code>, chạy <code>cargo build</code> và <code>cargo test</code>. Để ý chỉ có một <code>Cargo.lock</code> và một <code>target/</code> ở gốc.</li>
+    <li><strong>Chạm vào lint.</strong> Trong <code>mini-app</code>, thêm <code>pub fn f() { unsafe { } }</code> và build — đọc lỗi. Rồi thử <code>#[allow(unsafe_code)]</code> phía trên hàm. Sau đó đổi <code>"forbid"</code> thành <code>"deny"</code> ở gốc và build lại: lần này <code>#[allow]</code> có tác dụng không?</li>
+    <li><strong>Đọc cây phụ thuộc thật.</strong> Trong repo, chạy <code>cargo tree -p openxml-xml</code>, <code>cargo tree -p openxml-opc</code> và <code>cargo tree -p openxml-docx -e normal</code>. Crate ngoài nào xuất hiện trong cây của <code>openxml-docx</code>? Chúng "đi vào" qua crate nội bộ nào?</li>
+    <li><strong>Semver.</strong> Không mở tài liệu, viết ra khoảng phiên bản mà <code>"0.21"</code>, <code>"1"</code>, <code>"~1.2.3"</code> và <code>"2.0.5"</code> chấp nhận. Rồi kiểm tra bằng cách đọc mục "Specifying Dependencies" trong <em>The Cargo Book</em>.</li>
+  </ol>
+</section>
+
+<section>
+  <h2 id="tu-kiem-tra">Tự kiểm tra</h2>
+  <details><summary>1. Vì sao <code>Cargo.toml</code> gốc phải ghi <code>resolver = "3"</code> tường minh?</summary>
+    <div class="answer">Vì nó là virtual manifest — không có <code>[package]</code> nên không có <code>edition</code> để Cargo suy ra resolver. Không ghi thì Cargo dùng resolver "1" cũ và cảnh báo. Resolver 3 (mặc định của edition 2024) còn chọn phiên bản dependency tương thích với <code>rust-version</code>.</div></details>
+  <details><summary>2. Khai báo <code>quick-xml = "0.42"</code> chấp nhận những phiên bản nào? Bản nào đang thực sự được dùng, và thông tin đó nằm ở đâu?</summary>
+    <div class="answer"><code>&gt;=0.42.0, &lt;0.43.0</code> (toán tử <code>^</code> mặc định; với 0.x thì số minor đóng vai major). Bản thực sự dùng là 0.42.0, ghi trong <code>Cargo.lock</code>.</div></details>
+  <details><summary>3. Nếu bỏ <code>default-features = false</code> khỏi dòng <code>zip</code>, chuyện gì thay đổi? Có ảnh hưởng tới file .docx được ghi ra không?</summary>
+    <div class="answer">Cargo sẽ bật thêm mọi feature mặc định của <code>zip</code> (AES, bzip2, deflate64, lzma, ppmd, zstd, xz, time…), kéo thêm nhiều crate, build lâu hơn. File ghi ra thì không đổi, vì <code>Package::save</code> luôn chọn <code>CompressionMethod::Deflated</code> — và OPC cũng chỉ chấp nhận Stored/Deflate.</div></details>
+  <details><summary>4. Khác nhau giữa <code>deny</code> và <code>forbid</code>?</summary>
+    <div class="answer">Cả hai biến vi phạm thành lỗi biên dịch. Với <code>deny</code>, code vẫn có thể ghi <code>#[allow(…)]</code> tại chỗ để hạ mức; với <code>forbid</code> thì không — mọi <code>#[allow]</code> đều bị báo lỗi E0453.</div></details>
+  <details><summary>5. <code>[profile.dev.package."*"] opt-level = 1</code> có làm code của <code>openxml-docx</code> được tối ưu không?</summary>
+    <div class="answer">Không. <code>"*"</code> chỉ khớp các package <em>không phải thành viên</em> workspace (quick-xml, zip, zlib-rs…). Code của dự án vẫn ở <code>opt-level = 0</code> trong profile dev.</div></details>
+  <details><summary>6. Vì sao <code>openxml-chart</code> được phép dev-depend vào <code>openxml-xlsx</code> trong khi <code>openxml-xlsx</code> lại depend vào <code>openxml-chart</code>?</summary>
+    <div class="answer">Dev-dependency chỉ dùng cho test/example/bench. Test tích hợp trong <code>tests/</code> được biên dịch thành crate riêng, nên thư viện <code>openxml-chart</code> vẫn không phụ thuộc vào <code>openxml-xlsx</code> — không có vòng trong đồ thị build thật. Nếu là <code>[dependencies]</code> thường thì Cargo báo lỗi "cyclic package dependency".</div></details>
+</section>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Bài sau</span>
+  <p>Giờ bạn đã biết Cargo nhìn thấy những <em>crate</em> nào. Bài 1.2 mình chui vào bên trong một crate — <code>openxml-xml</code> — để xem nó chia thành <strong>module</strong> ra sao, và vì sao có cái <code>pub</code> cái không.</p>
+</div>
+
+</main>
+</body>
+</html>

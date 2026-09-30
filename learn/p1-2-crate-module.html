@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1.2 Crate, module &amp; pub · Học Rust qua open-xml-rust</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/vendor/highlight.min.js" defer></script>
+<script src="assets/app.js" defer></script>
+</head>
+<body data-lesson="p1-2">
+<main class="content">
+
+<header>
+  <p class="crumb">Phần 1 · Cấu trúc dự án Rust</p>
+  <h1>1.2 Crate, module &amp; pub</h1>
+  <p class="lead">Bài trước nhìn dự án từ ngoài vào: 12 crate. Bài này chui vào <em>bên trong</em> một crate. File <code>lib.rs</code> của <code>openxml-xml</code> chỉ 33 dòng, nhưng nó cho thấy gần như mọi thứ về hệ thống module của Rust: cái gì được giấu, cái gì được lộ ra, và lộ ra dưới cái tên nào.</p>
+  <div class="meta"><span>⏱ ~55 phút</span><span>crates/openxml-xml/src/lib.rs</span><span>crates/openxml-docx/src/lib.rs</span><span>crates/openxml-schema/src/</span><span>crates/openxml/</span></div>
+</header>
+
+<section class="goals">
+  <h3>🎯 Học xong bài này bạn sẽ</h3>
+  <ul>
+    <li>Hiểu <strong>cây module</strong> của một crate và quy tắc "một file = một module".</li>
+    <li>Phân biệt <code>mod x;</code> với <code>pub mod x;</code>, và dùng <code>pub use</code> để dựng một API "phẳng".</li>
+    <li>Đọc được đường dẫn <code>crate::</code>, <code>super::</code>, <code>self</code> và các mức hiển thị <code>pub(crate)</code>.</li>
+    <li>Biết vì sao có <code>#[doc(hidden)] pub mod rt</code> — một API "công khai mà không cam kết".</li>
+    <li>Phân biệt <code>//!</code> với <code>///</code>, <code>#![…]</code> với <code>#[…]</code>.</li>
+    <li>Biết nơi đặt unit test, integration test (<code>tests/</code>), example (<code>examples/</code>) và doc-test.</li>
+    <li>Thấy module của <code>openxml-schema</code> khớp từng file XSD của ECMA-376 ra sao.</li>
+  </ul>
+</section>
+
+<h2 id="cay-module">1. Crate root và cây module</h2>
+<p>Hãy hình dung bạn viết một thư viện 3.500 dòng. Nhét hết vào một file thì không ai đọc nổi; tách ra nhiều file thì cần một cách nói "file này thuộc về đâu, ai được dùng gì của nó". Rust giải bài toán này bằng <strong>module</strong> (mô-đun): mỗi module là một "ngăn" chứa hàm, struct, enum, hằng… và có thể chứa module con. Tất cả tạo thành một <strong>cây</strong>.</p>
+<p>Gốc của cây là <strong>crate root</strong> — file mà <code>rustc</code> bắt đầu đọc: <code>src/lib.rs</code> cho thư viện, <code>src/main.rs</code> cho chương trình. Mọi module khác chỉ tồn tại nếu được khai báo (trực tiếp hay gián tiếp) từ crate root. Một file <code>.rs</code> nằm trong <code>src/</code> mà không ai khai báo thì trình biên dịch <strong>bỏ qua hoàn toàn</strong>, kể cả khi nó có lỗi cú pháp.</p>
+<p>Đây là crate root của <code>openxml-xml</code>, toàn bộ file:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/lib.rs#L1-L33">crates/openxml-xml/src/lib.rs:1–33</figcaption>
+<pre><code class="language-rust">//! XML infrastructure for the Open XML toolkit.
+//!
+//! This crate provides the pieces every higher layer builds on:
+//!
+//! * [`Ns`] — the registry of namespaces used by Office Open XML, including
+//!   the mapping of Strict-conformance URIs onto their Transitional twins;
+//! * [`XmlReader`] — a namespace-aware pull parser (built on `quick-xml`);
+//! * [`XmlWriter`] — a writer that manages namespace prefixes automatically;
+//! * [`RawElement`] and friends — schema-less nodes used to preserve content
+//!   the typed model does not describe;
+//! * [`XmlValue`], [`XmlRead`], [`XmlWrite`] — the traits implemented by the
+//!   generated schema types.
+
+#![warn(missing_docs)]
+
+pub mod compare;
+mod element;
+mod error;
+mod ns;
+mod raw;
+mod reader;
+pub mod validate;
+mod value;
+mod writer;
+
+pub use element::{ElementDef, XmlRead, XmlWrite, read_document, rt};
+pub use error::{Error, Result};
+pub use ns::Ns;
+pub use raw::{ExtraChild, RawAttribute, RawElement, RawName, RawNode};
+pub use reader::{Attr, Event, MAX_DEPTH, StartTag, XmlReader, decode_xml_bytes, root_name};
+pub use validate::{Issue, Validate, Validator};
+pub use value::{Base64Binary, HexBinary, XmlList, XmlValue};
+pub use writer::{XML_DECLARATION, XmlWriter, escape_attr, escape_text, needs_space_preserve};</code></pre>
+</figure>
+<p>Ba khối rõ ràng: <strong>tài liệu</strong> (dòng 1–14), <strong>khai báo module</strong> (16–24), <strong>re-export</strong> (26–33). File này gần như không chứa code "làm việc" nào — nó là <em>mục lục</em> của crate. Đó là một phong cách phổ biến: <code>lib.rs</code> mỏng, việc thật nằm trong các module.</p>
+<figure class="code">
+  <figcaption>Cây module của openxml-xml</figcaption>
+<pre class="diagram"><code>crate  (src/lib.rs)
+├── pub compare   (src/compare.rs)    ── mod tests   [chỉ khi test]
+├──     element   (src/element.rs)
+│       └── pub rt   (khai báo ngay trong element.rs, #[doc(hidden)])
+├──     error     (src/error.rs)
+├──     ns        (src/ns.rs)
+├──     raw       (src/raw.rs)
+├──     reader    (src/reader.rs)
+├── pub validate  (src/validate.rs)
+├──     value     (src/value.rs)
+└──     writer    (src/writer.rs)</code></pre>
+</figure>
+
+<h2 id="file-module">2. <code>mod x;</code> — một file là một module</h2>
+<p>Dòng <code>mod element;</code> nghĩa là: "crate này có một module con tên <code>element</code>, <strong>nội dung của nó nằm ở file khác</strong>". Cargo/rustc tìm file theo quy tắc:</p>
+<ul>
+  <li>Khai báo trong <code>src/lib.rs</code> → tìm <code>src/element.rs</code>, hoặc <code>src/element/mod.rs</code>.</li>
+  <li>Khai báo trong <code>src/foo.rs</code> (module <code>foo</code>) → tìm <code>src/foo/element.rs</code>, hoặc <code>src/foo/element/mod.rs</code>.</li>
+</ul>
+<p>Điểm quan trọng mà người mới hay hiểu ngược: <strong>file không tự trở thành module</strong>. Không giống Python hay JavaScript (mỗi file tự động là một module có thể import), trong Rust bạn phải <em>khai báo</em> bằng <code>mod</code> ở module cha. <code>mod</code> không phải là "import" — nó là "định nghĩa module con ở đây, nội dung lấy từ file kia".</p>
+
+<h3 id="mod-rs">2.1 Hai kiểu đặt file: <code>x.rs</code> và <code>x/mod.rs</code></h3>
+<p><code>openxml-xml</code> dùng kiểu mới <code>src/element.rs</code>. Kiểu cũ <code>mod.rs</code> vẫn hợp lệ và dự án có dùng ở hai chỗ:</p>
+<ul>
+  <li><code>crates/openxml-schema/src/lib.rs</code> có <code>mod generated;</code> → file <code>src/generated/mod.rs</code>, trong đó lại khai báo 26 module con <code>pub mod wml;</code>… nằm cạnh nó (<code>src/generated/wml.rs</code>…). Khi một module có <em>nhiều</em> module con, gom chúng vào một thư mục cho gọn.</li>
+  <li><code>crates/openxml-docx/tests/common/mod.rs</code> — mẹo của integration test, xem <a href="#tests-dir">mục 10.2</a>.</li>
+</ul>
+
+<h3 id="inline-module">2.2 Module viết ngay tại chỗ</h3>
+<p>Module không nhất thiết phải có file riêng. Viết <code>mod tên { … }</code> với dấu ngoặc nhọn là định nghĩa luôn nội dung tại chỗ (<em>inline module</em>). Dự án dùng cách này cho module test (mục 10) và cho những nhóm nhỏ, ví dụ trong file sinh tự động <code>wml.rs</code>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-schema/src/generated/wml.rs#L45128-L45133">crates/openxml-schema/src/generated/wml.rs:45128–45133</figcaption>
+<pre><code class="language-rust">/// Global elements of this schema. Each can be the root of a document part.
+pub mod elements {
+    use super::*;
+
+    /// `w:recipients` — Inclusion/Exclusion Data for Data Source (§17.14.29).
+    pub const RECIPIENTS: ElementDef&lt;CT_Recipients&gt; = ElementDef::new(Ns::W, "recipients", &amp;[Ns::W]);</code></pre>
+</figure>
+<p>Nhờ module con <code>elements</code>, người dùng viết <code>wml::elements::DOCUMENT</code> — tách bạch "danh sách phần tử gốc" khỏi hàng trăm kiểu <code>CT_…</code> cùng nằm trong <code>wml</code>. (Đúng, file này dài hơn 45.000 dòng — code sinh tự động, bài <a href="#goc-openxml">mục 12</a>.)</p>
+
+<h2 id="pub-mod">3. Riêng tư mặc định: <code>mod</code> vs <code>pub mod</code></h2>
+<p>Quy tắc số một của hệ thống module Rust: <strong>mọi thứ đều riêng tư (private) trừ khi bạn nói khác</strong>. Một item riêng tư chỉ được thấy trong module chứa nó và các module con của module đó. Từ khoá <code>pub</code> mở nó ra cho module cha (và xa hơn, nếu cha cũng mở).</p>
+<figure class="code">
+  <figcaption>Tự viết — privacy theo cây</figcaption>
+<pre><code class="language-rust">mod bep {
+    pub fn nau_com() -&gt; &amp;'static str { vo_gao(); "cơm" }
+    fn vo_gao() {}               // private: chỉ trong `bep` (và con của nó) gọi được
+}
+
+fn main() {
+    println!("{}", bep::nau_com());  // OK: nau_com là pub, bep là "anh em" cùng cha
+    // bep::vo_gao();            // lỗi E0603: function `vo_gao` is private
+}</code></pre>
+</figure>
+<p>Áp vào <code>lib.rs</code> ở trên: trong 9 module, chỉ <code>compare</code> và <code>validate</code> là <code>pub mod</code>. Bảy module còn lại là private — người dùng crate <strong>không thể</strong> viết <code>openxml_xml::element::XmlRead</code>. Mình thử thật trong một crate nháp phụ thuộc vào <code>openxml-xml</code>:</p>
+<figure class="code">
+  <figcaption>Terminal — dùng đường dẫn qua module private (output thật)</figcaption>
+<pre><code class="language-bash">error[E0603]: module `element` is private
+  --&gt; src/main.rs:1:18
+   |
+ 1 | use openxml_xml::element::XmlRead;
+   |                  ^^^^^^^ private module
+   |
+note: the module `element` is defined here
+  --&gt; /home/user/open-xml-rust/crates/openxml-xml/src/lib.rs:17:1
+   |
+17 | mod element;
+   | ^^^^^^^^^^^
+help: consider importing this trait instead</code></pre>
+</figure>
+<p>Trình biên dịch còn gợi ý đường đúng: <code>use openxml_xml::XmlRead;</code> — nhờ dòng <code>pub use</code> ở mục 4.</p>
+
+<h3 id="vi-sao-pub-mod">3.1 Vì sao <code>compare</code> và <code>validate</code> lại là <code>pub mod</code>?</h3>
+<p>Hai trường hợp khác nhau:</p>
+<ul>
+  <li><strong><code>compare</code></strong> chứa <code>DiffKind</code>, <code>Difference</code>, <code>values_equivalent</code>, <code>semantic_diff</code> — và <strong>không cái nào</strong> được re-export ở gốc. Muốn dùng phải đi qua tên module: <code>use openxml_xml::compare::{DiffKind, semantic_diff};</code> (đúng dòng này có trong <code>crates/openxml-cli/src/main.rs</code> và nhiều file test). Tên module ở đây đóng vai "họ": nó nói rõ đây là <em>công cụ so sánh</em> dùng cho test và CLI, tách khỏi API đọc/ghi cốt lõi. Viết <code>use openxml_xml::semantic_diff;</code> sẽ lỗi E0432 "no <code>semantic_diff</code> in the root".</li>
+  <li><strong><code>validate</code></strong> vừa là <code>pub mod</code> vừa được re-export (<code>pub use validate::{Issue, Validate, Validator};</code>). Kết quả: cả <code>openxml_xml::Validate</code> lẫn <code>openxml_xml::validate::Validate</code> đều dùng được và là <em>cùng một</em> trait. Module này còn có tài liệu cấp module (<code>//!</code> đầu file) giải thích phạm vi kiểm tra, nên để lộ module cũng giúp trang tài liệu có chỗ hiển thị đoạn giải thích đó. Code của dự án dùng đường phẳng.</li>
+</ul>
+
+<h2 id="pub-use">4. <code>pub use</code> — dựng API phẳng ("facade nhỏ")</h2>
+<p><code>use</code> đưa một tên vào phạm vi hiện tại cho gọn. <code>pub use</code> làm thêm một việc: tên đó <strong>trở thành một phần của module hiện tại</strong> với người bên ngoài — gọi là <strong>re-export</strong>.</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/lib.rs#L26-L28">crates/openxml-xml/src/lib.rs:26–28</figcaption>
+<pre><code class="language-rust">pub use element::{ElementDef, XmlRead, XmlWrite, read_document, rt};
+pub use error::{Error, Result};
+pub use ns::Ns;</code></pre>
+</figure>
+<p>Đọc dòng 28: "lấy <code>Ns</code> từ module private <code>ns</code>, công bố nó ở gốc crate". <code>Ns</code> vẫn được <em>định nghĩa</em> ở <code>src/ns.rs</code>, nhưng với thế giới bên ngoài, địa chỉ của nó là <code>openxml_xml::Ns</code>. Cặp ngoặc nhọn <code>{A, B, C}</code> chỉ là cách gom nhiều tên cùng module vào một dòng.</p>
+<p>Được gì?</p>
+<ol>
+  <li><strong>API phẳng, dễ nhớ.</strong> Người dùng chỉ cần <code>use openxml_xml::{Ns, XmlReader, XmlWriter};</code>, không phải biết <code>XmlReader</code> nằm ở file nào.</li>
+  <li><strong>Tự do sắp xếp bên trong.</strong> Mai kia tách <code>reader.rs</code> làm hai file, đổi tên module… người dùng không hề bị ảnh hưởng, vì đường dẫn công khai không chứa tên module private. Cấu trúc file là <em>chi tiết cài đặt</em>, không phải hợp đồng.</li>
+  <li><strong>Kiểm soát chính xác cái gì là công khai.</strong> Một item <code>pub</code> trong module private mà không được re-export thì người ngoài không với tới — nó chỉ "pub" trong nội bộ crate.</li>
+</ol>
+
+<div class="callout pattern">
+  <span class="callout-title">🧩 Design pattern: Facade (mặt tiền)</span>
+  <p><em>Facade</em> là một lớp mặt tiền đơn giản che đi một hệ thống con phức tạp phía sau. <code>lib.rs</code> ở đây là một facade <strong>ở cấp module</strong>: 9 module bên trong, một mặt phẳng duy nhất bên ngoài. Bài <a href="p1-3-kien-truc-phan-tang.html#facade">1.3</a> sẽ gặp cùng ý tưởng ở cấp <em>crate</em>: crate <code>openxml</code> gom cả 8 crate thư viện dưới một cái tên.</p>
+</div>
+
+<h3 id="use-as">4.1 Re-export kèm đổi tên: <code>as</code></h3>
+<p>Crate <code>openxml-docx</code> đẩy ý tưởng xa hơn: nó re-export cả những thứ <em>từ crate khác</em>, và đổi tên cho thân thiện:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-docx/src/lib.rs#L114-L122">crates/openxml-docx/src/lib.rs:114–122</figcaption>
+<pre><code class="language-rust">pub use openxml_core::{Error, FontSize, Length, Result};
+pub use openxml_opc::CoreProperties;
+pub use openxml_schema::shared_extended_properties::CT_Properties as AppProperties;
+pub use openxml_schema::wml::{
+    ST_HighlightColor as HighlightColor, ST_NumberFormat as NumberFormat, ST_Underline as UnderlineStyle,
+};
+pub use properties::{PropertyValue, Protection};
+
+pub use openxml_chart::{Chart, ChartInfo, ChartKind, Grouping, LegendPosition, Series};</code></pre>
+</figure>
+<p><code>CT_Properties as AppProperties</code>: kiểu sinh tự động mang tên đúng như trong spec (<code>CT_Properties</code> — "complex type Properties"), nhưng với người dùng Word thì <code>AppProperties</code> dễ hiểu hơn. Người dùng <code>openxml-docx</code> chỉ cần một dòng <code>use openxml_docx::{Document, Length, Chart};</code> mà không cần biết <code>Length</code> đến từ <code>openxml-core</code> hay <code>Chart</code> từ <code>openxml-chart</code>.</p>
+
+<h2 id="duong-dan">5. Đường dẫn: <code>crate::</code>, <code>super::</code>, <code>self</code></h2>
+<p>Trong một crate, bạn gọi tới item ở module khác bằng <strong>đường dẫn</strong>, phân tách bởi <code>::</code>. Ba từ khoá mở đầu đường dẫn:</p>
+<div class="table-wrap"><table>
+  <tr><th>Từ khoá</th><th>Nghĩa</th><th>Giống trong hệ thống file</th></tr>
+  <tr><td><code>crate::</code></td><td>bắt đầu từ gốc crate hiện tại</td><td>đường dẫn tuyệt đối <code>/…</code></td></tr>
+  <tr><td><code>super::</code></td><td>module cha</td><td><code>../</code></td></tr>
+  <tr><td><code>self</code></td><td>module hiện tại (hoặc chính module vừa nêu trong <code>use</code>)</td><td><code>./</code></td></tr>
+</table></div>
+<p>Còn đường dẫn bắt đầu bằng tên một crate (<code>std::</code>, <code>quick_xml::</code>, <code>openxml_core::</code>) là đi vào crate đó.</p>
+
+<h3 id="crate-path">5.1 <code>crate::</code> — tham chiếu module anh em</h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/compare.rs#L7-L11">crates/openxml-xml/src/compare.rs:7–11</figcaption>
+<pre><code class="language-rust">use std::collections::HashMap;
+use std::fmt;
+
+use crate::ns::Ns;
+use crate::raw::{RawElement, RawNode};</code></pre>
+</figure>
+<p>Module <code>compare</code> cần <code>Ns</code> và <code>RawElement</code>. Chúng nằm ở module anh em <code>ns</code> và <code>raw</code> — <em>private</em> với bên ngoài, nhưng <code>compare</code> ở cùng crate, là con của gốc, nên thấy được mọi module con của gốc. Để ý <code>compare</code> dùng đường "thật" <code>crate::ns::Ns</code> chứ không phải <code>crate::Ns</code> (bản re-export) — cả hai đều chạy, nhưng dùng đường thật thì đọc code biết ngay định nghĩa ở file nào.</p>
+
+<h3 id="super-path">5.2 <code>super::</code> — nhìn lên module cha</h3>
+<p>Mẫu gặp nhiều nhất là <code>use super::*;</code> — "đưa <em>mọi</em> tên của module cha vào đây" (dấu <code>*</code> là <em>glob import</em>). Module <code>rt</code> nằm trong <code>element.rs</code> và cần mọi thứ <code>element</code> đã import:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/element.rs#L161-L164">crates/openxml-xml/src/element.rs:161–164</figcaption>
+<pre><code class="language-rust">/// Runtime support for generated code. Not part of the stable API.
+#[doc(hidden)]
+pub mod rt {
+    use super::*;</code></pre>
+</figure>
+<p>Glob import tiện nhưng làm khó người đọc ("tên này từ đâu ra?"), nên thường chỉ dùng trong hai tình huống: module con kiểu này, và module test (mục 10).</p>
+
+<h3 id="self-path">5.3 <code>self</code> trong <code>use</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-docx/src/util.rs#L1-L12">crates/openxml-docx/src/util.rs:1–12</figcaption>
+<pre><code class="language-rust">//! Small conversions between high-level values and generated schema types.
+
+use openxml_core::{Error, Length, Result};
+use openxml_schema::shared_types::{ST_OnOff, ST_OnOff1, ST_TwipsMeasure};
+use openxml_schema::wml::{self, ST_HexColor, ST_HexColorAuto, ST_SignedTwipsMeasure};
+use openxml_xml::HexBinary;
+
+/// An on/off property that is on (`&lt;w:b/&gt;`).
+pub(crate) fn on() -&gt; Box&lt;wml::CT_OnOff&gt; {
+    Box::default()
+}
+</code></pre>
+</figure>
+<p>Dòng 5 đưa vào <em>cả</em> module <code>wml</code> (nhờ <code>self</code>) lẫn ba kiểu cụ thể. Thế là trong file có thể viết <code>wml::CT_OnOff</code> — giữ tiền tố <code>wml::</code> cho hàng trăm kiểu <code>CT_…</code> để đọc là biết "kiểu này của WordprocessingML" — mà vẫn gọi tắt được mấy kiểu dùng nhiều. Một dòng tương tự trong module <code>chart</code> của docx: <code>use crate::{text, walk};</code> — import <em>module</em> anh em để gọi <code>text::blocks(…)</code>, <code>walk::walk_blocks(…)</code>.</p>
+
+<h2 id="thu-tu-use">6. Thứ tự <code>use</code> và <code>use … as _</code></h2>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L1-L13">crates/openxml-xml/src/reader.rs:1–13</figcaption>
+<pre><code class="language-rust">//! Namespace-aware pull reader tailored to generated deserializers.
+
+use std::borrow::Cow;
+use std::ops::Range;
+
+use quick_xml::XmlVersion;
+use quick_xml::events::{BytesStart, Event as QEvent};
+use quick_xml::name::{QName, ResolveResult};
+use quick_xml::reader::NsReader;
+
+use crate::error::{Error, Result};
+use crate::ns::Ns;
+use crate::raw::{RawAttribute, RawName};</code></pre>
+</figure>
+<p>Ba nhóm cách nhau một dòng trống: <strong>thư viện chuẩn</strong> (<code>std</code>) → <strong>crate bên ngoài</strong> (<code>quick_xml</code>) → <strong>crate hiện tại</strong> (<code>crate::</code>). Đây là quy ước, không phải luật của trình biên dịch — nhưng toàn dự án theo đúng nó, và bạn nhìn khối <code>use</code> là biết ngay file dựa vào những gì. <code>rustfmt</code> (bản stable) sắp xếp theo thứ tự chữ cái <em>trong</em> từng nhóm, còn việc chia nhóm là do người viết.</p>
+<p>Dòng 7 có <code>Event as QEvent</code>: crate này tự định nghĩa một kiểu <code>Event</code> của riêng nó (được re-export ở <code>lib.rs</code>), nên <code>Event</code> của quick-xml phải đổi tên để khỏi trùng.</p>
+
+<h3 id="as-underscore">6.1 <code>use std::fmt::Write as _;</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/value.rs#L1-L3">crates/openxml-xml/src/value.rs:1–3</figcaption>
+<pre><code class="language-rust">//! Conversion between XML Schema simple-type lexical forms and Rust values.
+
+use std::fmt::Write as _;</code></pre>
+</figure>
+<p>Đổi tên thành <code>_</code> — "không tên"? Để hiểu phải biết trước một chút về <strong>trait</strong> (bạn sẽ học kỹ ở <a href="p2-6-xml-value.html">bài 2.6</a>): trait là một bộ phương thức mà nhiều kiểu cùng cài đặt. Luật của Rust: muốn gọi một phương thức của trait, trait đó phải <em>nằm trong phạm vi</em>. Macro <code>write!</code> bên dưới cần phương thức <code>write_fmt</code> của trait <code>std::fmt::Write</code> để ghi vào một <code>String</code>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/value.rs#L130-L134">crates/openxml-xml/src/value.rs:130–134</figcaption>
+<pre><code class="language-rust">    fn write_xml(&amp;self, out: &amp;mut String) {
+        for b in &amp;self.0 {
+            let _ = write!(out, "{b:02X}");
+        }
+    }</code></pre>
+</figure>
+<p>File không bao giờ gọi tên <code>Write</code> trực tiếp — nó chỉ cần trait "có mặt". <code>as _</code> đưa trait vào phạm vi <strong>mà không chiếm tên</strong> <code>Write</code>. Lợi ích thấy rõ ở <code>crates/openxml-cli/src/main.rs</code>, nơi có <code>use std::io::Write as _;</code>: nếu một file cần cả <code>std::fmt::Write</code> và <code>std::io::Write</code>, hai cái tên <code>Write</code> sẽ đụng nhau; với <code>as _</code> thì không.</p>
+
+<h2 id="pub-crate">7. Các mức hiển thị: <code>pub(crate)</code> và bạn bè</h2>
+<div class="table-wrap"><table>
+  <tr><th>Viết</th><th>Ai thấy được</th></tr>
+  <tr><td>(không có gì)</td><td>module hiện tại và các module con</td></tr>
+  <tr><td><code>pub(super)</code></td><td>thêm module cha</td></tr>
+  <tr><td><code>pub(crate)</code></td><td>mọi nơi trong crate hiện tại, không bao giờ ra ngoài</td></tr>
+  <tr><td><code>pub</code></td><td>mọi nơi mà các module cha cũng cho phép — có thể tới người dùng crate</td></tr>
+</table></div>
+<p>Grep toàn dự án (bỏ thư mục <code>generated</code>): có hơn 400 chỗ dùng <code>pub(crate)</code>, tập trung ở các crate API lớn (<code>openxml-xlsx/src/worksheet.rs</code> 33 chỗ, <code>openxml-pptx/src/shape.rs</code> 23 chỗ…). Không chỗ nào dùng <code>pub(super)</code>. Thú vị hơn: <code>openxml-xml</code> <strong>không có một <code>pub(crate)</code> nào</strong> — crate nhỏ, mọi module đã private, nên chỉ cần <code>pub</code> + chọn lọc bằng <code>pub use</code>.</p>
+<p>Còn ở <code>openxml-docx/src/util.rs</code> (mục 5.3), các hàm như <code>on()</code>, <code>off()</code>, <code>twips()</code> đều là <code>pub(crate)</code>. Module <code>util</code> vốn đã private nên viết <code>pub</code> hay <code>pub(crate)</code> ở đây cho kết quả như nhau — nhưng <code>pub(crate)</code> <strong>nói rõ ý đồ</strong>: "đây là tiện ích nội bộ, đừng bao giờ re-export". Nếu sau này ai đó lỡ tay viết <code>pub use util::on;</code> ở <code>lib.rs</code>, trình biên dịch sẽ báo lỗi vì không thể re-export công khai một thứ chỉ là <code>pub(crate)</code>.</p>
+
+<div class="callout warn">
+  <span class="callout-title">⚠️ Chỗ hay nhầm</span>
+  <p><code>pub(crate)</code> chỉ có nghĩa trong <strong>một crate</strong>. Vì dự án chia 12 crate, một hàm tiện ích ở <code>openxml-core</code> muốn cho <code>openxml-docx</code> dùng thì <em>bắt buộc</em> phải <code>pub</code> — và như vậy người dùng cuối cũng thấy. Đây là một cái giá của việc chia nhiều crate; mục 8 cho thấy dự án xử lý nó thế nào.</p>
+</div>
+
+<h2 id="doc-hidden">8. <code>#[doc(hidden)] pub mod rt</code> — công khai mà không cam kết</h2>
+<p>Vấn đề cụ thể: <code>openxml-schema</code> chứa ~215.000 dòng code sinh tự động. Code đó cần vài hàm hỗ trợ (đọc phần tử kiểu đơn giản, giữ lại phần tử lạ…) nằm ở <code>openxml-xml</code>. Khác crate ⇒ các hàm này <em>phải</em> <code>pub</code>. Nhưng tác giả không muốn chúng thành API chính thức mà người dùng dựa vào — vì chúng thay đổi theo nhu cầu của bộ sinh code.</p>
+<p>Lời giải là ba dòng đã thấy ở mục 5.2:</p>
+<ul>
+  <li><code>/// Runtime support for generated code. Not part of the stable API.</code> — nói thẳng bằng lời.</li>
+  <li><code>#[doc(hidden)]</code> — ẩn module khỏi trang tài liệu do <code>cargo doc</code> sinh ra. Người dùng duyệt docs sẽ không thấy <code>rt</code>.</li>
+  <li><code>pub mod rt</code> — vẫn công khai về mặt kỹ thuật, và còn được re-export ở <code>lib.rs</code> (<code>pub use element::{…, rt};</code>) để đường dẫn ngắn là <code>openxml_xml::rt</code>.</li>
+</ul>
+<p>Phía bên kia, <code>openxml-schema</code> gom mọi tên nó cần vào một module "prelude" nội bộ:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-schema/src/prelude.rs#L1-L6">crates/openxml-schema/src/prelude.rs:1–6</figcaption>
+<pre><code class="language-rust">//! Names used by the generated modules.
+
+pub(crate) use openxml_xml::{
+    Base64Binary, ElementDef, Error, Event, ExtraChild, HexBinary, Ns, RawAttribute, RawElement, RawNode,
+    Result, StartTag, Validate, Validator, XmlList, XmlRead, XmlReader, XmlValue, XmlWrite, XmlWriter, rt,
+};</code></pre>
+</figure>
+<p>Để ý <code>pub(crate) use</code> — re-export chỉ trong nội bộ crate. Mỗi file sinh ra mở đầu bằng <code>use crate::prelude::*;</code> rồi gọi thoải mái <code>rt::push_extra(…)</code> (chỉ riêng <code>wml.rs</code> đã có hơn 2.700 dòng gọi <code>rt::</code>). Đổi danh sách import chung chỉ cần sửa một file.</p>
+
+<div class="callout pattern">
+  <span class="callout-title">🧩 Kỹ thuật: "runtime module" ẩn cho code sinh ra</span>
+  <p>Đây là kỹ thuật chuẩn của các thư viện có code generation hoặc macro: API công khai về kỹ thuật (vì bắt buộc) nhưng ẩn khỏi docs và ghi rõ "không ổn định". Ví dụ nổi tiếng là <code>serde</code> với module <code>__private</code> mà code do <code>#[derive(Serialize)]</code> sinh ra gọi tới. Quy ước ngầm: <em>dùng thứ bị <code>doc(hidden)</code> là tự chịu rủi ro</em>, tác giả có quyền đổi nó ở bất kỳ phiên bản nào.</p>
+</div>
+
+<h2 id="attribute">9. Attribute và doc comment</h2>
+
+<h3 id="inner-outer">9.1 <code>#![…]</code> và <code>#[…]</code></h3>
+<p><strong>Attribute</strong> là "ghi chú cho trình biên dịch", đặt trong <code>#[…]</code>. Có hai dạng:</p>
+<ul>
+  <li><strong>Outer attribute</strong> <code>#[…]</code> — áp cho item <em>ngay sau</em> nó. Ví dụ <code>#[doc(hidden)]</code> áp cho <code>pub mod rt</code>; <code>#[cfg(test)]</code> áp cho <code>mod tests</code>; <code>#[derive(Debug)]</code> áp cho một struct.</li>
+  <li><strong>Inner attribute</strong> <code>#![…]</code> (thêm dấu <code>!</code>) — áp cho item <em>chứa</em> nó. Đặt ở đầu <code>lib.rs</code> thì nó áp cho <strong>cả crate</strong>.</li>
+</ul>
+<p><code>#![warn(missing_docs)]</code> ở dòng 14 của <code>lib.rs</code> bật lint "thiếu tài liệu" cho toàn crate <code>openxml-xml</code>: mọi item <em>công khai</em> không có doc comment sẽ bị cảnh báo. Tám crate thư viện có dòng này (xml, opc, core, chart, docx, xlsx, pptx, openxml) cộng với codegen. <code>openxml-schema</code> thì không — thay vào đó, mỗi file sinh ra tự mang inner attribute riêng:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-schema/src/generated/wml.rs#L1-L14">crates/openxml-schema/src/generated/wml.rs:1–14</figcaption>
+<pre><code class="language-rust">// @generated by openxml-codegen from the ECMA-376 Transitional schemas. Do not edit.
+//! Schema `wml.xsd`, target namespace `http://schemas.openxmlformats.org/wordprocessingml/2006/main`.
+//!
+//! Contains 110 simple types, 285 complex types, 24 choice enums and 14 global elements.
+#![allow(
+    non_camel_case_types,
+    unused_imports,
+    unused_mut,
+    unused_variables,
+    unused_assignments
+)]
+#![allow(clippy::all, clippy::pedantic)]
+
+use crate::prelude::*;</code></pre>
+</figure>
+<p>Ở đây <code>#![allow(…)]</code> nằm đầu file <code>wml.rs</code> nên áp cho <strong>module</strong> <code>wml</code>. <code>non_camel_case_types</code> phải tắt vì tên kiểu giữ nguyên cách viết trong spec (<code>CT_P</code>, <code>ST_Jc</code>) thay vì <code>CtP</code> kiểu Rust — để bạn tra thẳng được trong PDF của ECMA-376. Dòng 1 dùng <code>//</code> thường (không phải doc) — một chú thích cho con người và công cụ: "file sinh tự động, đừng sửa tay".</p>
+
+<h3 id="doc-comment">9.2 <code>//!</code> và <code>///</code></h3>
+<div class="table-wrap"><table>
+  <tr><th>Cú pháp</th><th>Tài liệu cho</th><th>Thực chất là</th></tr>
+  <tr><td><code>///</code></td><td>item <em>ngay sau</em> (hàm, struct, module…)</td><td><code>#[doc = "…"]</code> — outer attribute</td></tr>
+  <tr><td><code>//!</code></td><td>item <em>chứa</em> nó (đầu file ⇒ cả module/crate)</td><td><code>#![doc = "…"]</code> — inner attribute</td></tr>
+  <tr><td><code>//</code></td><td>không ai — chú thích thường, <code>cargo doc</code> bỏ qua</td><td>—</td></tr>
+</table></div>
+<p>Doc comment viết bằng Markdown. <code>[`Ns`]</code> trong <code>lib.rs</code> là <strong>intra-doc link</strong>: <code>cargo doc</code> tự biến nó thành link tới trang của <code>Ns</code> và báo lỗi nếu tên không tồn tại — tài liệu không thể "thối" khi đổi tên. Chạy <code>cargo doc -p openxml-xml --no-deps --open</code> để xem trang được sinh ra từ đúng những dòng <code>//!</code> đầu <code>lib.rs</code>.</p>
+
+<h2 id="test-example">10. Test, example, doc-test: code đặt ở đâu?</h2>
+<p>Một crate Rust có bốn "chỗ" chứa code chạy được, và mỗi chỗ nhìn crate từ một góc khác nhau:</p>
+<div class="table-wrap"><table>
+  <tr><th>Loại</th><th>Vị trí</th><th>Thấy được</th><th>Chạy bằng</th></tr>
+  <tr><td>Unit test</td><td>trong file, <code>#[cfg(test)] mod tests</code></td><td>mọi thứ, kể cả private</td><td><code>cargo test</code></td></tr>
+  <tr><td>Integration test</td><td><code>tests/*.rs</code></td><td>chỉ API <code>pub</code> (như người dùng)</td><td><code>cargo test</code></td></tr>
+  <tr><td>Example</td><td><code>examples/*.rs</code></td><td>chỉ API <code>pub</code></td><td><code>cargo run --example tên</code></td></tr>
+  <tr><td>Doc-test</td><td>khối <code>```</code> trong doc comment</td><td>chỉ API <code>pub</code></td><td><code>cargo test</code> (hoặc <code>--doc</code>)</td></tr>
+</table></div>
+
+<h3 id="unit-test">10.1 Unit test: <code>#[cfg(test)] mod tests { use super::*; }</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/compare.rs#L227-L236">crates/openxml-xml/src/compare.rs:227–236</figcaption>
+<pre><code class="language-rust">#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn diff(a: &amp;str, b: &amp;str) -&gt; Vec&lt;Difference&gt; {
+        semantic_diff(&amp;RawElement::parse(a).unwrap(), &amp;RawElement::parse(b).unwrap())
+    }
+
+    #[test]
+    fn equivalent_values() {</code></pre>
+</figure>
+<ul>
+  <li><code>#[cfg(test)]</code> — "chỉ biên dịch khối này khi build để test". Bản build thường không chứa một byte nào của test. (<code>cfg</code> = <em>conditional configuration</em>; cùng họ với <code>#[cfg(feature = "…")]</code> ở <a href="p1-1-cargo-workspace.html#features">bài 1.1</a>.)</li>
+  <li><code>mod tests</code> — một inline module con của <code>compare</code>. Vì là <em>con</em>, nó thấy được mọi item private của <code>compare</code> (quy tắc ở mục 3).</li>
+  <li><code>use super::*;</code> — kéo toàn bộ tên của <code>compare</code> (gồm cả những gì <code>compare</code> đã import như <code>RawElement</code>) vào để viết test cho gọn.</li>
+  <li><code>fn diff</code> không có <code>#[test]</code> — hàm trợ giúp bình thường; chỉ hàm có <code>#[test]</code> mới được test runner gọi.</li>
+</ul>
+<p>Mọi file trong <code>openxml-xml/src</code> trừ <code>lib.rs</code> và <code>error.rs</code> đều có một khối như vậy. <code>cargo test -p openxml-xml --lib</code> chạy tất cả: <code>test result: ok. 63 passed</code>.</p>
+
+<h3 id="tests-dir">10.2 Integration test: thư mục <code>tests/</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml/tests/facade.rs#L1-L12">crates/openxml/tests/facade.rs:1–12</figcaption>
+<pre><code class="language-rust">//! End-to-end checks through the facade: every format is created, saved,
+//! validated against the ECMA-376 schemas and read back, and the files
+//! produced by one API are readable by the lower layers.
+
+use openxml::docx::Document;
+use openxml::opc::Package;
+use openxml::pptx::{LayoutKind, Presentation};
+use openxml::xlsx::{CellValue, Workbook};
+use openxml_testkit::validate_package;
+
+#[test]
+fn word_round_trip_and_validation() {</code></pre>
+</figure>
+<p>Mỗi file trong <code>tests/</code> được biên dịch thành <strong>một crate riêng</strong> phụ thuộc vào crate đang test. Vì thế nó phải <code>use openxml::…</code> như người ngoài, và chỉ thấy API công khai — đúng thứ mà người dùng thật sẽ thấy. Nó cũng dùng được <code>[dev-dependencies]</code> (ở đây là <code>openxml_testkit</code>).</p>
+<p>Mẹo <code>tests/common/mod.rs</code> ở <code>openxml-docx</code>: nếu viết <code>tests/common.rs</code>, Cargo sẽ tưởng đó là một file test nữa và chạy nó. Đặt vào thư mục con <code>common/mod.rs</code> thì Cargo bỏ qua; các file test cần tiện ích chung chỉ việc khai báo <code>mod common;</code> (có trong <code>annotations.rs</code>, <code>charts.rs</code>, <code>layout.rs</code>).</p>
+
+<h3 id="examples">10.3 Example: thư mục <code>examples/</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml/examples/all_formats.rs#L1-L13">crates/openxml/examples/all_formats.rs:1–13</figcaption>
+<pre><code class="language-rust">//! Creates a Word document, an Excel workbook and a PowerPoint deck that
+//! share the same data, using the facade crate.
+//!
+//! ```text
+//! cargo run -p openxml --example all_formats -- out/
+//! ```
+
+use openxml::chart::{Chart, ChartKind, Series};
+use openxml::core::FontSize;
+use openxml::docx::{Document, ListKind};
+use openxml::pptx::{LayoutKind, Presentation};
+use openxml::xlsx::{Anchor, AnchorPoint, CellRef, CellStyle, EditAs, Workbook};
+use openxml::{Length, Result};</code></pre>
+</figure>
+<p>Mỗi file trong <code>examples/</code> là một chương trình nhỏ có <code>fn main()</code>, cũng chỉ thấy API công khai. Example là "tài liệu chạy được": <code>cargo test</code> biên dịch chúng (nên chúng không thể lỗi thời mà không ai hay), còn chạy thì phải gọi tên. Khối <code>```text</code> trong doc comment cho rustdoc biết đây là văn bản, <em>không</em> phải code Rust cần chạy thử.</p>
+
+<h3 id="doc-test">10.4 Doc-test và dòng <code># Ok::&lt;(), openxml::Error&gt;(())</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml/src/lib.rs#L16-L51">crates/openxml/src/lib.rs:16–51 (lược giữa)</figcaption>
+<pre><code class="language-rust">//! ```
+//! use openxml::docx::{Document, ListKind};
+//! use openxml::pptx::{LayoutKind, Presentation};
+//! use openxml::xlsx::{CellStyle, Workbook};
+//!
+//! let dir = std::env::temp_dir().join(format!("openxml-doc-{}", std::process::id()));
+//! std::fs::create_dir_all(&amp;dir)?;
+//!
+//! // ...
+//! // Reading
+//! let text = Document::open(dir.join("report.docx"))?.text();
+//! assert_eq!(text, "Quarterly report\nRevenue grew by 12%\nNew product line");
+//! # std::fs::remove_dir_all(&amp;dir)?;
+//! # Ok::&lt;(), openxml::Error&gt;(())
+//! ```</code></pre>
+</figure>
+<p>Mỗi khối <code>```</code> (không ghi ngôn ngữ ⇒ mặc định là Rust) trong doc comment được <code>cargo test</code> biên dịch và chạy như một chương trình riêng — gọi là <strong>doc-test</strong>. Output thật khi chạy <code>cargo test -p openxml</code> có ba phần: unit test (0 test), integration test <code>tests/facade.rs</code> (5 test), và:</p>
+<figure class="code">
+  <figcaption>Terminal — cargo test -p openxml (trích)</figcaption>
+<pre><code class="language-bash">   Doc-tests openxml
+test crates/openxml/src/lib.rs - (line 16) ... ok</code></pre>
+</figure>
+<p>Hai chi tiết lạ ở cuối:</p>
+<ul>
+  <li><strong>Dòng bắt đầu bằng <code># </code></strong> được biên dịch và chạy nhưng <strong>bị ẩn</strong> khi hiển thị trên trang tài liệu. Dọn thư mục tạm và "câu thần chú" kết thúc thì người đọc không cần thấy.</li>
+  <li><strong><code>Ok::&lt;(), openxml::Error&gt;(())</code></strong>: rustdoc bọc code của bạn vào một hàm. Code dùng <code>?</code> (toán tử "có lỗi thì trả lỗi ra ngoài", bài <a href="p2-3-xu-ly-loi.html">2.3</a>) chỉ hợp lệ trong hàm trả về <code>Result</code>. Kết thúc bằng một biểu thức <code>Ok(())</code> khiến rustdoc bọc code vào một hàm trả về <code>Result</code>; phần <code>::&lt;(), openxml::Error&gt;</code> (cú pháp "turbofish") nói rõ kiểu lỗi, vì trình biên dịch không tự đoán được <code>?</code> nên đổi lỗi sang kiểu nào.</li>
+</ul>
+<p>Mình thử bỏ dòng đó trong một doc-test có <code>?</code> — lỗi thật:</p>
+<figure class="code">
+  <figcaption>Terminal — doc-test dùng ? mà không có Ok::&lt;…&gt;(())</figcaption>
+<pre><code class="language-bash">error[E0277]: the `?` operator can only be used in a function that returns `Result` or `Option` (or another type that implements `FromResidual`)
+ --&gt; crates/mini-core/src/lib.rs:4:26
+  |
+3 | fn main() { #[allow(non_snake_case)] fn _doctest_main_crates_mini_core_src_lib_rs_3_0() {
+  |                                      -------------------------------------------------- this function should return `Result` or `Option` to accept `?`
+4 | let n: u32 = "42".parse()?;
+  |                          ^ cannot use the `?` operator in a function that returns `()`</code></pre>
+</figure>
+<p>Dòng số 3 cho thấy rõ rustdoc đã tự bọc code vào <code>fn main() { fn _doctest_main_…() { … } }</code>.</p>
+
+<div class="callout tip">
+  <span class="callout-title">💡 Doc-test là hợp đồng sống</span>
+  <p>Ví dụ trong README hay wiki có thể sai mà không ai biết. Ví dụ trong doc comment thì không: nó chạy trong mỗi lần <code>cargo test</code>, nên API đổi mà quên sửa ví dụ là test đỏ. Crate <code>openxml</code> gần như không có code (64 dòng) nhưng doc-test của nó chạy thử <em>cả ba</em> định dạng — một bài kiểm tra "khói" (smoke test) rất rẻ.</p>
+</div>
+
+<h2 id="docx-modules">11. So sánh với crate lớn: <code>openxml-docx</code></h2>
+<p><code>openxml-xml</code> có 9 module; <code>openxml-docx</code> (~14.400 dòng) có 25 — và <strong>tất cả đều private</strong>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-docx/src/lib.rs#L56-L86">crates/openxml-docx/src/lib.rs:56–86 (lược)</figcaption>
+<pre><code class="language-rust">#![warn(missing_docs)]
+
+mod bookmarks;
+mod chart;
+mod comments;
+mod document;
+mod drawing;
+mod fields;
+mod format;
+mod markup;
+mod math;
+mod notes;
+mod numbering;
+mod paragraph;
+mod picture;
+mod properties;
+mod revisions;
+mod run;
+mod sdt;
+mod section;
+mod styles;
+mod table;
+mod template;
+mod text;
+mod util;
+mod vml;
+mod walk;
+
+pub use bookmarks::Bookmark;
+pub use comments::{Comment, NewComment};
+pub use document::{Block, Document};
+// ...</code></pre>
+</figure>
+<p>Chia theo <strong>tính năng</strong> của Word, không theo loại code:</p>
+<div class="table-wrap"><table>
+  <tr><th>Nhóm</th><th>Module</th><th>Được re-export?</th></tr>
+  <tr><td>Khung tài liệu</td><td><code>document</code>, <code>paragraph</code>, <code>run</code>, <code>table</code>, <code>section</code></td><td>có — <code>Document</code>, <code>ParagraphMut</code>, <code>TableMut</code>…</td></tr>
+  <tr><td>Định dạng</td><td><code>format</code>, <code>styles</code>, <code>numbering</code></td><td>có</td></tr>
+  <tr><td>Chú thích, theo dõi</td><td><code>comments</code>, <code>notes</code>, <code>revisions</code>, <code>bookmarks</code>, <code>fields</code></td><td>có</td></tr>
+  <tr><td>Đối tượng</td><td><code>drawing</code>, <code>vml</code>, <code>math</code>, <code>sdt</code>, <code>markup</code>, <code>properties</code></td><td>có</td></tr>
+  <tr><td>Chỉ thêm phương thức</td><td><code>chart</code>, <code>picture</code></td><td>không — xem dưới</td></tr>
+  <tr><td>Nội bộ thuần</td><td><code>template</code>, <code>text</code>, <code>util</code>, <code>walk</code></td><td>không — toàn <code>pub(crate)</code></td></tr>
+</table></div>
+<p>Module <code>chart</code> không định nghĩa kiểu mới nào để re-export. Nó chỉ <strong>thêm phương thức</strong> cho kiểu đã có ở module khác:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-docx/src/chart.rs#L1-L16">crates/openxml-docx/src/chart.rs:1–16</figcaption>
+<pre><code class="language-rust">//! Charts in Word documents (DrawingML charts from `openxml-chart`).
+
+use openxml_chart::{Chart, ChartData, ChartInfo, chart_rel_id, graphic_data, insert_chart, read_chart};
+use openxml_core::{Error, Length, Result};
+use openxml_schema::wml;
+
+use crate::document::Document;
+use crate::drawing::{Floating, frames};
+use crate::paragraph::ParagraphMut;
+use crate::{text, walk};
+
+impl ParagraphMut&lt;'_&gt; {
+    /// Appends a chart, inline or floating. The chart data is stored in an
+    /// embedded workbook so that Word's "Edit Data" works. Returns the
+    /// drawing object id.
+    pub fn add_chart(</code></pre>
+</figure>
+<p>Trong Rust, một kiểu có thể có <strong>nhiều khối <code>impl</code></strong> rải ở nhiều module của cùng crate. Nhờ đó mọi code về biểu đồ — kể cả phương thức <code>ParagraphMut::add_chart</code> và <code>Document::add_chart</code> — nằm chung một file chưa tới 100 dòng, thay vì chen vào <code>paragraph.rs</code> và <code>document.rs</code> vốn đã dài. Người dùng vẫn gọi <code>p.add_chart(…)</code> bình thường. (Cú pháp <code>&lt;'_&gt;</code> là lifetime — tạm bỏ qua, Phần 2 sẽ giải thích.)</p>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — hai crate, cùng một khuôn</span>
+  <p>Đặt <code>lib.rs</code> của <code>openxml-xml</code> và <code>openxml-docx</code> cạnh nhau: cả hai đều <em>tài liệu → <code>#![warn(missing_docs)]</code> → khai báo <code>mod</code> → khối <code>pub use</code></em>. Đây là khuôn chung của mọi crate thư viện trong dự án (<code>openxml-opc</code>, <code>openxml-core</code>, <code>openxml-chart</code>… cũng vậy). Học đọc một cái là đọc được tất cả.</p>
+</div>
+
+<h2 id="goc-openxml">12. Góc OpenXML: mỗi module của <code>openxml-schema</code> là một file XSD</h2>
+<p>ECMA-376 định nghĩa từ vựng XML bằng <strong>XML Schema</strong> (file <code>.xsd</code>) — mỗi file mô tả các phần tử và kiểu của một namespace. Dự án vendor bộ schema Transitional vào <code>schemas/transitional/</code> (26 file), và <code>openxml-codegen</code> biến <strong>mỗi file thành đúng một module</strong>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-schema/src/generated/mod.rs#L1-L28">crates/openxml-schema/src/generated/mod.rs:1–28</figcaption>
+<pre><code class="language-rust">// @generated by openxml-codegen from the ECMA-376 Transitional schemas. Do not edit.
+
+pub mod dml;
+pub mod dml_chart;
+pub mod dml_chart_drawing;
+pub mod dml_diagram;
+pub mod dml_locked_canvas;
+pub mod dml_picture;
+pub mod dml_spreadsheet_drawing;
+pub mod dml_wordprocessing_drawing;
+pub mod pml;
+pub mod shared_additional_characteristics;
+pub mod shared_bibliography;
+pub mod shared_custom_properties;
+pub mod shared_custom_xml_data_properties;
+pub mod shared_custom_xml_schema_properties;
+pub mod shared_extended_properties;
+pub mod shared_math;
+pub mod shared_relationship_reference;
+pub mod shared_types;
+pub mod shared_variant_types;
+pub mod sml;
+pub mod vml;
+pub mod vml_office;
+pub mod vml_presentation;
+pub mod vml_spreadsheet;
+pub mod vml_wordprocessing;
+pub mod wml;</code></pre>
+</figure>
+<p>Rồi <code>lib.rs</code> của crate "làm phẳng" một tầng bằng glob re-export:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-schema/src/lib.rs#L34-L40">crates/openxml-schema/src/lib.rs:34–40</figcaption>
+<pre><code class="language-rust">#![allow(clippy::large_enum_variant)]
+
+mod generated;
+mod prelude;
+
+pub use generated::*;
+pub use openxml_xml as xml;</code></pre>
+</figure>
+<p><code>generated</code> là private, nhưng <code>pub use generated::*;</code> đưa cả 26 module lên gốc — nên người dùng viết <code>openxml_schema::wml</code> chứ không phải <code>openxml_schema::generated::wml</code>. Chữ "generated" là chi tiết cài đặt, bị giấu đi. (<code>pub use openxml_xml as xml;</code> là re-export <em>cả một crate</em> — bài 1.3 sẽ gặp lại nhiều.)</p>
+<p>Tên module được chọn bởi một hàm nhỏ trong bộ sinh code — file nào có tên "đẹp" sẵn thì chỉ đổi <code>-</code> thành <code>_</code>, file nào dài thì được rút gọn:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-codegen/src/lower.rs#L31-L50">crates/openxml-codegen/src/lower.rs:31–50</figcaption>
+<pre><code class="language-rust">/// Rust module name for a schema file.
+pub fn module_name(file: &amp;str) -&gt; String {
+    let stem = file.rsplit('/').next().unwrap_or(file).trim_end_matches(".xsd");
+    match stem {
+        "wml" =&gt; "wml".into(),
+        "sml" =&gt; "sml".into(),
+        "pml" =&gt; "pml".into(),
+        "dml-main" =&gt; "dml".into(),
+        "shared-commonSimpleTypes" =&gt; "shared_types".into(),
+        "shared-documentPropertiesCustom" =&gt; "shared_custom_properties".into(),
+        "shared-documentPropertiesExtended" =&gt; "shared_extended_properties".into(),
+        "shared-documentPropertiesVariantTypes" =&gt; "shared_variant_types".into(),
+        "vml-main" =&gt; "vml".into(),
+        "vml-officeDrawing" =&gt; "vml_office".into(),
+        "vml-wordprocessingDrawing" =&gt; "vml_wordprocessing".into(),
+        "vml-spreadsheetDrawing" =&gt; "vml_spreadsheet".into(),
+        "vml-presentationDrawing" =&gt; "vml_presentation".into(),
+        other =&gt; snake(other),
+    }
+}</code></pre>
+</figure>
+<p>Bảng đối chiếu những module quan trọng (namespace lấy từ dòng <code>//!</code> đầu mỗi file sinh ra; prefix là cách Office quen viết):</p>
+<div class="table-wrap"><table>
+  <tr><th>Module Rust</th><th>File XSD</th><th>Prefix quen dùng · Namespace</th><th>Dùng cho</th></tr>
+  <tr><td><code>wml</code></td><td><code>wml.xsd</code></td><td><code>w:</code> · …/wordprocessingml/2006/main</td><td>Word (§17)</td></tr>
+  <tr><td><code>sml</code></td><td><code>sml.xsd</code></td><td>(mặc định) · …/spreadsheetml/2006/main</td><td>Excel (§18)</td></tr>
+  <tr><td><code>pml</code></td><td><code>pml.xsd</code></td><td><code>p:</code> · …/presentationml/2006/main</td><td>PowerPoint (§19)</td></tr>
+  <tr><td><code>dml</code></td><td><code>dml-main.xsd</code></td><td><code>a:</code> · …/drawingml/2006/main</td><td>DrawingML lõi: hình, màu, text (§20)</td></tr>
+  <tr><td><code>dml_chart</code></td><td><code>dml-chart.xsd</code></td><td><code>c:</code> · …/drawingml/2006/chart</td><td>Biểu đồ (§21.2)</td></tr>
+  <tr><td><code>dml_picture</code></td><td><code>dml-picture.xsd</code></td><td><code>pic:</code> · …/drawingml/2006/picture</td><td>Ảnh</td></tr>
+  <tr><td><code>dml_wordprocessing_drawing</code></td><td><code>dml-wordprocessingDrawing.xsd</code></td><td><code>wp:</code></td><td>Khung hình trong Word (<code>wp:inline</code>, <code>wp:anchor</code>)</td></tr>
+  <tr><td><code>dml_spreadsheet_drawing</code></td><td><code>dml-spreadsheetDrawing.xsd</code></td><td><code>xdr:</code></td><td>Khung hình trong Excel</td></tr>
+  <tr><td><code>shared_math</code></td><td><code>shared-math.xsd</code></td><td><code>m:</code></td><td>Công thức toán (OMML)</td></tr>
+  <tr><td><code>shared_types</code></td><td><code>shared-commonSimpleTypes.xsd</code></td><td>…/officeDocument/2006/sharedTypes</td><td>Kiểu đơn giản dùng chung (<code>ST_OnOff</code>, <code>ST_TwipsMeasure</code>…)</td></tr>
+  <tr><td><code>vml</code>, <code>vml_office</code>…</td><td><code>vml-*.xsd</code></td><td><code>v:</code>, <code>o:</code> · urn:schemas-microsoft-com:vml…</td><td>VML — đồ hoạ "di sản" (Part 4)</td></tr>
+</table></div>
+<p>Kích thước cũng nói lên độ phức tạp của mỗi phần chuẩn: <code>sml.rs</code> ~50.200 dòng, <code>wml.rs</code> ~45.200, <code>dml.rs</code> ~31.200, <code>dml_chart.rs</code> ~19.400, <code>pml.rs</code> ~18.800. Test <code>crates/openxml-codegen/tests/up_to_date.rs</code> khẳng định bộ sinh code tạo ra đúng 27 file — "one module per schema file plus mod.rs" (26 + <code>mod.rs</code>); ARCHITECTURE.md ghi "27 modules" là theo cách đếm đó.</p>
+
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — vì sao phải biết module nào ứng với XSD nào?</span>
+  <p>Vì spec và code dùng <strong>cùng tên</strong>. Gặp <code>wml::CT_P</code> trong code → mở ECMA-376 Part 1, tìm <code>CT_P</code> (complex type của <code>w:p</code>, §17.3.1.22). Gặp <code>&lt;c:barChart&gt;</code> trong file .xlsx → biết ngay kiểu Rust nằm trong <code>openxml_schema::dml_chart</code>. Còn khi thấy một thẻ Word chứa hình ảnh, bạn sẽ đi qua <em>ba</em> module: <code>wml</code> (<code>w:drawing</code>) → <code>dml_wordprocessing_drawing</code> (<code>wp:inline</code>) → <code>dml</code> (<code>a:graphic</code>) → <code>dml_picture</code> (<code>pic:pic</code>). Cấu trúc module phản chiếu đúng cách các namespace lồng vào nhau trong file thật.</p>
+</div>
+
+<section class="exercise">
+  <h3>🛠 Bài tập</h3>
+  <ol>
+    <li><strong>Xem tài liệu được sinh ra.</strong> Chạy <code>cargo doc -p openxml-xml --no-deps --open</code>. Trang gốc có hiện module <code>compare</code>, <code>validate</code> không? Có thấy <code>rt</code> không? Tìm <code>XmlReader</code> — trang của nó ghi đường dẫn nào (<code>openxml_xml::XmlReader</code> hay <code>openxml_xml::reader::XmlReader</code>)?</li>
+    <li><strong>Thử quyền truy cập.</strong> Ngoài repo, tạo <code>cargo new vis</code>, thêm vào <code>[dependencies]</code>: <code>openxml-xml = { path = "/đường/dẫn/tới/open-xml-rust/crates/openxml-xml" }</code>. Trong <code>src/main.rs</code> lần lượt thử từng dòng và đoán trước kết quả:
+      <ul>
+        <li><code>use openxml_xml::element::XmlRead;</code></li>
+        <li><code>use openxml_xml::XmlRead;</code></li>
+        <li><code>use openxml_xml::semantic_diff;</code></li>
+        <li><code>use openxml_xml::compare::semantic_diff;</code></li>
+        <li><code>use openxml_xml::rt::write_simple;</code> — biên dịch được không? Vì sao dù bị <code>doc(hidden)</code>?</li>
+      </ul></li>
+    <li><strong>Tách module trong workspace mini.</strong> Quay lại <code>mini-ws</code> của bài 1.1. Trong <code>mini-core</code>, tạo <code>src/phep_tinh.rs</code> chứa <code>pub fn nhan(a: u64, b: u64) -&gt; u64</code> và một hàm private <code>fn kiem_tra(a: u64) -&gt; bool</code>. Khai báo <code>mod phep_tinh;</code> (private) trong <code>lib.rs</code> và <code>pub use phep_tinh::nhan;</code>. Viết một unit test trong <code>phep_tinh.rs</code> gọi được <code>kiem_tra</code>; rồi tạo <code>crates/mini-core/tests/ngoai.rs</code> và thử gọi <code>mini_core::nhan</code> (được) và <code>mini_core::phep_tinh::kiem_tra</code> (lỗi gì?).</li>
+    <li><strong>Viết một doc-test.</strong> Thêm doc comment <code>///</code> có khối <code>```</code> cho hàm <code>nhan</code>, dùng <code>assert_eq!</code>. Chạy <code>cargo test -p mini-core --doc</code>. Sau đó cố tình dùng <code>"7".parse::&lt;u64&gt;()?</code> trong doc-test: sửa cho nó chạy bằng một dòng ẩn <code># Ok::&lt;(), std::num::ParseIntError&gt;(())</code>.</li>
+  </ol>
+</section>
+
+<section>
+  <h2 id="tu-kiem-tra">Tự kiểm tra</h2>
+  <details><summary>1. Có file <code>src/foo.rs</code> nhưng không dòng nào viết <code>mod foo;</code>. Code trong <code>foo.rs</code> có được biên dịch không?</summary>
+    <div class="answer">Không. Module chỉ tồn tại khi được khai báo từ module cha (tính từ crate root). File không được khai báo bị bỏ qua hoàn toàn, kể cả khi có lỗi.</div></details>
+  <details><summary>2. <code>XmlReader</code> được định nghĩa trong module private <code>reader</code>. Vì sao người dùng vẫn dùng được, và bằng đường dẫn nào?</summary>
+    <div class="answer">Vì <code>lib.rs</code> có <code>pub use reader::{…, XmlReader, …};</code> — re-export ở gốc crate. Người dùng viết <code>openxml_xml::XmlReader</code>; đường <code>openxml_xml::reader::XmlReader</code> thì lỗi E0603 vì <code>reader</code> private.</div></details>
+  <details><summary>3. Khác nhau giữa <code>#![warn(missing_docs)]</code> và <code>#[warn(missing_docs)]</code>?</summary>
+    <div class="answer"><code>#![…]</code> là inner attribute — áp cho item chứa nó (đầu <code>lib.rs</code> ⇒ cả crate). <code>#[…]</code> là outer attribute — áp cho item ngay sau nó. Tương tự <code>//!</code> (tài liệu cho module chứa nó) và <code>///</code> (tài liệu cho item kế tiếp).</div></details>
+  <details><summary>4. Vì sao module <code>rt</code> phải <code>pub</code> mà không dùng <code>pub(crate)</code> được? Và <code>#[doc(hidden)]</code> thêm được gì?</summary>
+    <div class="answer">Code dùng <code>rt</code> nằm ở crate khác (<code>openxml-schema</code>), mà <code>pub(crate)</code> chỉ có nghĩa trong một crate. <code>#[doc(hidden)]</code> ẩn nó khỏi tài liệu và (cùng dòng doc "Not part of the stable API") báo cho người dùng rằng đây không phải API ổn định, có thể đổi bất kỳ lúc nào.</div></details>
+  <details><summary>5. Test trong <code>tests/facade.rs</code> có gọi được một hàm <code>pub(crate)</code> của crate <code>openxml</code> không? Còn unit test trong <code>src/</code>?</summary>
+    <div class="answer">Integration test là một crate riêng, nên không thấy <code>pub(crate)</code> hay private — chỉ thấy API <code>pub</code> được lộ ra. Unit test (<code>#[cfg(test)] mod tests</code> trong file) là module con cùng crate nên thấy cả <code>pub(crate)</code> lẫn item private của module cha.</div></details>
+  <details><summary>6. Người dùng viết <code>openxml_schema::dml_chart::CT_BarChart</code>. Kiểu này sinh ra từ file nào trong repo, và vì sao đường dẫn không có chữ <code>generated</code>?</summary>
+    <div class="answer">Từ <code>schemas/transitional/dml-chart.xsd</code>, được sinh vào <code>crates/openxml-schema/src/generated/dml_chart.rs</code>. Module <code>generated</code> là private, nhưng <code>lib.rs</code> có <code>pub use generated::*;</code> đưa cả 26 module lên gốc crate.</div></details>
+</section>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Bài sau</span>
+  <p>Bạn đã thấy <code>pub use</code> làm phẳng module bên trong một crate. Bài 1.3 nâng lên một tầng: 12 crate nối với nhau thành đồ thị thế nào, vì sao lại chia như vậy, và crate <code>openxml</code> dùng đúng chiêu <code>pub use</code> để gom tất cả lại thành một.</p>
+</div>
+
+</main>
+</body>
+</html>

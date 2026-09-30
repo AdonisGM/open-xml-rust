@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1.3 Kiến trúc phân tầng · Học Rust qua open-xml-rust</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/vendor/highlight.min.js" defer></script>
+<script src="assets/app.js" defer></script>
+</head>
+<body data-lesson="p1-3">
+<main class="content">
+
+<header>
+  <p class="crumb">Phần 1 · Cấu trúc dự án Rust</p>
+  <h1>1.3 Kiến trúc phân tầng</h1>
+  <p class="lead">Hai bài trước là "ngữ pháp": Cargo.toml, module, <code>pub</code>. Bài này là "bố cục": 12 crate được xếp thành các tầng ra sao, luật nào giữ chúng không rối vào nhau, và mỗi quyết định chia tách được gì, mất gì. Cuối bài mình soi một ví dụ rất OpenXML: vì sao biểu đồ có hẳn một crate riêng.</p>
+  <div class="meta"><span>⏱ ~50 phút</span><span>crates/*/Cargo.toml</span><span>crates/openxml/src/lib.rs</span><span>ARCHITECTURE.md</span><span>crates/openxml-chart/</span></div>
+</header>
+
+<section class="goals">
+  <h3>🎯 Học xong bài này bạn sẽ</h3>
+  <ul>
+    <li>Vẽ được đồ thị phụ thuộc thật giữa 12 crate và đọc nó bằng <code>cargo tree</code>.</li>
+    <li>Hiểu nguyên tắc "tầng dưới không biết tầng trên" và vì sao Rust cấm phụ thuộc vòng giữa crate lại là điều <em>tốt</em>.</li>
+    <li>Cân được lợi và hại của việc chia nhiều crate, có số liệu biên dịch thật.</li>
+    <li>Nhận ra các pattern: <strong>facade</strong>, <strong>layered architecture</strong>, <strong>separation of concerns</strong>, <strong>code generation as a build step</strong>, <strong>escape hatch</strong>.</li>
+    <li>Nối được 4 phần của ECMA-376 với các tầng, và hiểu một biểu đồ được "bọc" khác nhau thế nào trong Word, Excel, PowerPoint.</li>
+  </ul>
+</section>
+
+<h2 id="do-thi">1. Đồ thị phụ thuộc thật</h2>
+<p>Không đoán — mình đọc mục <code>[dependencies]</code> (chỉ dependency thường, không tính dev) của từng <code>Cargo.toml</code>:</p>
+<div class="table-wrap"><table>
+  <tr><th>Crate</th><th>Phụ thuộc nội bộ</th><th>Phụ thuộc ngoài</th></tr>
+  <tr><td><code>openxml-xml</code></td><td>—</td><td><code>quick-xml</code></td></tr>
+  <tr><td><code>openxml-opc</code></td><td>xml</td><td><code>zip</code></td></tr>
+  <tr><td><code>openxml-schema</code></td><td>xml</td><td>—</td></tr>
+  <tr><td><code>openxml-codegen</code></td><td>xml</td><td><code>roxmltree</code>, <code>serde</code>, <code>serde_json</code></td></tr>
+  <tr><td><code>openxml-testkit</code></td><td>opc, xml</td><td>—</td></tr>
+  <tr><td><code>openxml-core</code></td><td>opc, schema, xml</td><td>—</td></tr>
+  <tr><td><code>openxml-chart</code></td><td>core, opc, schema, xml</td><td>—</td></tr>
+  <tr><td><code>openxml-docx</code> / <code>-xlsx</code> / <code>-pptx</code></td><td>chart, core, opc, schema, xml</td><td>—</td></tr>
+  <tr><td><code>openxml</code></td><td>chart, core, docx, opc, pptx, schema, xlsx, xml</td><td>—</td></tr>
+  <tr><td><code>openxml-cli</code></td><td>docx, opc, pptx, xlsx, schema, xml</td><td>—</td></tr>
+</table></div>
+<p>Xếp theo "độ cao" (mỗi crate đặt ngay trên crate cao nhất mà nó phụ thuộc), ta được đồ thị:</p>
+<figure class="code">
+  <figcaption>Đồ thị phụ thuộc (mũi tên = "phụ thuộc vào"; chỉ vẽ cạnh chính, bỏ bớt cạnh tắt xuống thẳng xml/opc/schema)</figcaption>
+<pre class="diagram"><code>tầng 5   openxml (facade)                  openxml-cli (bin `openxml`)
+                 │                                  │
+                 ▼                                  ▼
+tầng 4   openxml-docx        openxml-xlsx        openxml-pptx
+                 └──────────────────┼──────────────────┘
+                                    ▼
+tầng 3                        openxml-chart
+                                    │
+                                    ▼
+tầng 2                        openxml-core
+                          ┌─────────┴─────────┐
+                          ▼                   ▼
+tầng 1              openxml-opc         openxml-schema ◀ ─ ─ ─ openxml-codegen
+                     │       │                │           (sinh file .rs, không
+                     │      zip               │            phải dependency)
+                     ▼                        ▼
+tầng 0              openxml-xml ◀─────────────┘
+                     │
+                  quick-xml
+
+ngoài luồng:   openxml-testkit ──▶ openxml-opc, openxml-xml   (chỉ được dùng làm dev-dependency)
+               openxml-codegen ──▶ openxml-xml, roxmltree, serde, serde_json</code></pre>
+</figure>
+<p>Và đây là cách Cargo tự in ra tầng trên cùng:</p>
+<figure class="code">
+  <figcaption>Terminal — cargo tree -p openxml --depth 1 -e normal (output thật)</figcaption>
+<pre><code class="language-bash">openxml v0.1.0 (/home/user/open-xml-rust/crates/openxml)
+├── openxml-chart v0.1.0 (/home/user/open-xml-rust/crates/openxml-chart)
+├── openxml-core v0.1.0 (/home/user/open-xml-rust/crates/openxml-core)
+├── openxml-docx v0.1.0 (/home/user/open-xml-rust/crates/openxml-docx)
+├── openxml-opc v0.1.0 (/home/user/open-xml-rust/crates/openxml-opc)
+├── openxml-pptx v0.1.0 (/home/user/open-xml-rust/crates/openxml-pptx)
+├── openxml-schema v0.1.0 (/home/user/open-xml-rust/crates/openxml-schema)
+├── openxml-xlsx v0.1.0 (/home/user/open-xml-rust/crates/openxml-xlsx)
+└── openxml-xml v0.1.0 (/home/user/open-xml-rust/crates/openxml-xml)</code></pre>
+</figure>
+<p>Cờ <code>-e normal</code> bỏ dev-dependency, <code>--depth 1</code> chỉ in một tầng. Thêm <code>-i</code> (<em>invert</em>) thì hỏi ngược "<em>ai</em> phụ thuộc vào crate này":</p>
+<figure class="code">
+  <figcaption>Terminal — cargo tree -i openxml-chart -e normal (output thật, trích)</figcaption>
+<pre><code class="language-bash">openxml-chart v0.1.0 (/home/user/open-xml-rust/crates/openxml-chart)
+├── openxml v0.1.0 (/home/user/open-xml-rust/crates/openxml)
+├── openxml-docx v0.1.0 (/home/user/open-xml-rust/crates/openxml-docx)
+│   ├── openxml v0.1.0 (/home/user/open-xml-rust/crates/openxml)
+│   └── openxml-cli v0.1.0 (/home/user/open-xml-rust/crates/openxml-cli)
+├── openxml-pptx v0.1.0 (/home/user/open-xml-rust/crates/openxml-pptx)
+│   ├── ...
+└── openxml-xlsx v0.1.0 (/home/user/open-xml-rust/crates/openxml-xlsx)
+    ├── ...</code></pre>
+</figure>
+
+<h3 id="quan-sat">1.1 Những điều đáng để ý</h3>
+<ul>
+  <li><strong><code>openxml-opc</code> và <code>openxml-schema</code> không biết nhau.</strong> Cả hai chỉ đứng trên <code>openxml-xml</code>. Tầng đóng gói (ZIP, part, relationship) không cần biết <code>w:p</code> là gì; tầng kiểu XML không cần biết file nằm trong ZIP. Chúng chỉ gặp nhau ở <code>openxml-core</code> — nơi "đọc một part trong gói thành một kiểu schema".</li>
+  <li><strong><code>openxml-codegen</code> không phụ thuộc <code>openxml-schema</code>, và ngược lại.</strong> Quan hệ giữa chúng là "<em>sinh ra file</em>" (đường chấm chấm), không phải dependency của Cargo. Bạn build <code>openxml-docx</code> mà không cần biên dịch codegen, <code>roxmltree</code> hay <code>serde</code>.</li>
+  <li><strong><code>openxml-testkit</code> chỉ xuất hiện trong <code>[dev-dependencies]</code></strong> của các crate khác. Người dùng thư viện không bao giờ nhận nó.</li>
+  <li><strong><code>openxml-cli</code> không khai báo <code>openxml-core</code> hay <code>openxml-chart</code>.</strong> Nó vẫn được biên dịch cùng (qua docx/xlsx/pptx), nhưng như đã nói ở <a href="p1-1-cargo-workspace.html#goc-openxml">bài 1.1</a>, không khai báo thì không <code>use</code> trực tiếp được.</li>
+  <li><strong>Không có mũi tên nào đi xuống rồi quay lên.</strong> Đồ thị là một <em>DAG</em> — đồ thị có hướng không chu trình (directed acyclic graph). Đây không phải may mắn; mục 3 giải thích vì sao Cargo bắt buộc điều đó.</li>
+</ul>
+
+<h2 id="nguyen-tac">2. Nguyên tắc: tầng dưới không biết tầng trên</h2>
+<figure class="code">
+  <figcaption data-src="ARCHITECTURE.md#L28-L29">ARCHITECTURE.md:28–29</figcaption>
+<pre><code class="language-plaintext">Each layer only depends on the layers below it. Lower layers never know
+about Word, Excel or PowerPoint.</code></pre>
+</figure>
+<p>Hai câu, hai luật. Luật thứ nhất ("chỉ phụ thuộc tầng dưới") thì Cargo kiểm tra hộ. Luật thứ hai ("không biết về Word/Excel/PowerPoint") là kỷ luật thiết kế — trình biên dịch không ép được, phải tự giữ. Ví dụ <code>openxml-opc</code> có module <code>known</code> chứa các <em>chuỗi</em> content type của Word, Excel… (tiện cho tầng trên dùng), nhưng không có dòng code nào <em>hiểu</em> hay xử lý nội dung của chúng — với nó, <code>/word/document.xml</code> chỉ là một dãy byte có tên.</p>
+<p>Cách dễ thấy nhất để kiểm chứng "ai biết ai" là nhìn <strong>kiểu lỗi</strong>. Mỗi tầng có <code>Error</code> riêng, và tầng trên <em>bọc</em> lỗi tầng dưới:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-opc/src/error.rs#L75-L79">crates/openxml-opc/src/error.rs:75–79</figcaption>
+<pre><code class="language-rust">impl From&lt;openxml_xml::Error&gt; for Error {
+    fn from(e: openxml_xml::Error) -&gt; Self {
+        Error::Xml(e)
+    }
+}</code></pre>
+</figure>
+<figure class="code">
+  <figcaption data-src="crates/openxml-core/src/error.rs#L3-L15">crates/openxml-core/src/error.rs:3–15</figcaption>
+<pre><code class="language-rust">/// Errors of the document-level APIs.
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum Error {
+    /// The package (ZIP container, content types, relationships) is invalid.
+    Package(openxml_opc::Error),
+    /// An XML part could not be parsed.
+    Xml {
+        /// Name of the part.
+        part: String,
+        /// Parser error.
+        source: openxml_xml::Error,
+    },</code></pre>
+</figure>
+<figure class="code">
+  <figcaption>Chuỗi lỗi theo tầng</figcaption>
+<pre class="diagram"><code>openxml_core::Error ──┬── Package(openxml_opc::Error) ── Xml(openxml_xml::Error)
+   (docx/xlsx/pptx     │                                 Zip(String) ◀ bọc zip::ZipError
+    dùng lại)          └── Xml { part, source: openxml_xml::Error }
+                                                          ◀ bọc quick_xml::Error</code></pre>
+</figure>
+<p><code>openxml_xml::Error</code> không nhắc tới OPC; <code>openxml_opc::Error</code> không nhắc tới "document". Thông tin chỉ chảy <strong>lên</strong>. (Cú pháp <code>impl From</code> và <code>#[non_exhaustive]</code> sẽ được mổ kỹ ở <a href="p2-3-xu-ly-loi.html">bài 2.3</a>.)</p>
+
+<h2 id="vong">3. Rust cấm phụ thuộc vòng giữa crate — và đó là điều tốt</h2>
+<p>Trong một crate, module A dùng module B và B dùng lại A là bình thường. Nhưng giữa các <strong>crate</strong>, Cargo từ chối thẳng. Lý do kỹ thuật: crate là đơn vị biên dịch — muốn biên dịch A phải có B đã biên dịch xong, và ngược lại, nên vòng tròn không có điểm bắt đầu. Mình thử trong workspace mini của bài 1.1, cho hai crate phụ thuộc lẫn nhau:</p>
+<figure class="code">
+  <figcaption>Terminal — output thật (rút gọn đường dẫn)</figcaption>
+<pre><code class="language-bash">error: cyclic package dependency: package `mini-app v0.1.0 (.../crates/mini-app)` depends on itself. Cycle:
+package `mini-app v0.1.0 (.../crates/mini-app)`
+    ... which satisfies path dependency `mini-app` (locked to 0.1.0) of package `mini-core v0.1.0 (.../crates/mini-core)`
+    ... which satisfies path dependency `mini-core` (locked to 0.1.0) of package `mini-app v0.1.0 (.../crates/mini-app)`</code></pre>
+</figure>
+<p>Nghe như một hạn chế, nhưng hãy nhìn hệ quả trong dự án.</p>
+
+<h3 id="vong-chart">3.1 Ví dụ thật: <code>openxml-chart</code> tự dựng workbook</h3>
+<p>Khi chèn biểu đồ vào Word hay PowerPoint, Office muốn có một file Excel nhúng kèm để nút "Edit Data" hoạt động. Cách "lười" là để <code>openxml-chart</code> gọi <code>openxml-xlsx</code> tạo workbook. Nhưng <code>openxml-xlsx</code> đã phụ thuộc <code>openxml-chart</code> (Excel cần vẽ biểu đồ) — thêm chiều ngược lại là vòng. Cargo không cho, nên tác giả phải dựng workbook tối thiểu <em>trực tiếp</em> từ các kiểu schema <code>sml</code> ở tầng dưới:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-chart/src/workbook.rs#L1-L11">crates/openxml-chart/src/workbook.rs:1–11</figcaption>
+<pre><code class="language-rust">//! The workbook embedded next to a chart in Word and PowerPoint documents,
+//! holding the chart data so that "Edit Data" works in Office.
+
+use openxml_opc::known::{content_types as ct, rel_types};
+use openxml_opc::{Package, PartName};
+use openxml_schema::sml::{
+    self, CT_Cell, CT_Row, CT_Rst, CT_Sheet, CT_SheetData, CT_Sheets, CT_Workbook, CT_Worksheet, ST_CellType,
+};
+
+use crate::build::{DATA_SHEET, column_name, scatter_x};
+use crate::spec::{Chart, ChartKind};</code></pre>
+</figure>
+<p>Kết quả là một thiết kế <em>tốt hơn</em>: <code>openxml-chart</code> chỉ cần đúng những gì nó dùng (một sheet dữ liệu), không kéo theo toàn bộ API Excel. Luật cấm vòng buộc bạn trả lời câu hỏi "đoạn code này <em>thật sự</em> thuộc về tầng nào?" ngay từ đầu, thay vì để hai module quấn vào nhau rồi không gỡ ra được.</p>
+<p>Ngoại lệ hợp lệ duy nhất là dev-dependency: <code>openxml-chart</code> khai báo <code>openxml-xlsx</code> trong <code>[dev-dependencies]</code> để test tích hợp (<code>tests/charts.rs</code>) có thể mở workbook ra kiểm tra — test tích hợp là crate riêng nên không tạo vòng trong thư viện.</p>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — so với ngôn ngữ khác</span>
+  <p>Nhiều hệ sinh thái (Python, JavaScript) cho phép import vòng giữa các gói/module rồi xử lý "nửa chừng" lúc chạy — nguồn gốc của những lỗi kiểu "module chưa khởi tạo xong". Rust chặn từ lúc build ở cấp crate. Còn <em>bên trong</em> một crate, module thì được tham chiếu vòng thoải mái (ví dụ <code>raw.rs</code> dùng <code>element::XmlRead</code>, còn <code>element.rs</code> dùng <code>raw::RawElement</code>) — vì cả crate được biên dịch cùng một lúc.</p>
+</div>
+
+<h2 id="vi-sao">4. Vì sao chia thành nhiều crate?</h2>
+<p>Hoàn toàn có thể dồn cả dự án vào một crate với 12 module. Chia ra 12 crate được năm thứ:</p>
+
+<h3 id="bien-dich">4.1 Biên dịch song song và incremental</h3>
+<p><code>rustc</code> biên dịch <strong>từng crate</strong> một; Cargo chạy nhiều <code>rustc</code> song song khi đồ thị cho phép. Mình build <code>openxml-docx</code> từ đầu (profile dev, máy 4 lõi) với <code>cargo build -p openxml-docx --timings</code>. Trích báo cáo thật:</p>
+<div class="table-wrap"><table>
+  <tr><th>Crate</th><th>Bắt đầu (s)</th><th>Thời gian (s)</th><th>Kết thúc (s)</th></tr>
+  <tr><td><code>openxml-xml</code></td><td>1.37</td><td>1.56</td><td>2.93</td></tr>
+  <tr><td><code>openxml-schema</code></td><td>2.93</td><td><strong>44.49</strong></td><td>47.42</td></tr>
+  <tr><td><code>openxml-opc</code></td><td>5.61</td><td>1.89</td><td>7.50</td></tr>
+  <tr><td><code>openxml-core</code></td><td>34.22</td><td>0.51</td><td>34.73</td></tr>
+  <tr><td><code>openxml-chart</code></td><td>34.50</td><td>2.33</td><td>36.83</td></tr>
+  <tr><td><code>openxml-docx</code></td><td>35.11</td><td>9.55</td><td>44.66</td></tr>
+  <tr><td colspan="4">Tổng: 47.4 s, 19 đơn vị biên dịch, tối đa 5 việc chạy song song</td></tr>
+</table></div>
+<p>Đọc bảng:</p>
+<ul>
+  <li><code>openxml-opc</code> biên dịch <strong>song song</strong> với <code>openxml-schema</code> (5.6–7.5s nằm trọn trong 2.9–47.4s) — nhờ hai crate không phụ thuộc nhau (mục 1.1).</li>
+  <li><code>openxml-schema</code> (~215.000 dòng) chiếm gần hết thời gian. Nhưng <code>openxml-core</code> bắt đầu ở 34.2s, <em>trước</em> khi schema xong ở 47.4s. Đó là <strong>pipelining</strong>: sau pha frontend (31.3s), <code>rustc</code> đã xuất được "metadata" (danh sách kiểu, hàm…) đủ để crate phía trên bắt đầu, trong khi pha sinh mã máy (13.2s) của schema vẫn chạy tiếp.</li>
+  <li>Quan trọng hơn cả là <strong>incremental</strong>: build lần sau, nếu bạn chỉ sửa <code>openxml-docx</code>, Cargo chỉ biên dịch lại <code>openxml-docx</code> và những crate đứng trên nó. Khối 44 giây của schema nằm yên trong cache. Nếu cả dự án là một crate, mỗi lần sửa một dòng ở docx, <code>rustc</code> phải xử lý lại một crate khổng lồ (incremental trong một crate có giúp, nhưng không triệt để bằng).</li>
+</ul>
+
+<h3 id="ranh-gioi">4.2 Ranh giới API rõ ràng</h3>
+<p>Giữa hai crate chỉ có đúng một cửa: những gì được <code>pub</code> và lộ ra ở gốc (bài <a href="p1-2-crate-module.html#pub-use">1.2</a>). <code>openxml-docx</code> không thể "tiện tay" gọi một hàm nội bộ của <code>openxml-opc</code>. Mỗi crate buộc phải có một API tử tế — và có tài liệu, nhờ <code>#![warn(missing_docs)]</code>.</p>
+
+<h3 id="dung-lai">4.3 Dùng lại được</h3>
+<p><code>openxml-opc</code> không biết gì về Office (mục 2), nên nó dùng được cho <em>bất kỳ</em> định dạng nào xây trên OPC. Và OPC không chỉ có Office: Visio (<code>.vsdx</code>), XPS, định dạng in 3D 3MF, gói NuGet (<code>.nupkg</code>) đều là gói OPC. Ai cần đọc những định dạng đó chỉ cần <code>openxml-opc</code> + <code>openxml-xml</code>, không kéo theo 215.000 dòng schema. Chính tài liệu của crate cũng mô tả nó một cách trung lập:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-opc/src/lib.rs#L1-L6">crates/openxml-opc/src/lib.rs:1–6</figcaption>
+<pre><code class="language-rust">//! Open Packaging Conventions (ECMA-376 Part 2) for Office Open XML.
+//!
+//! A package is a ZIP container holding *parts* (named byte streams with a
+//! content type) connected by *relationships*. This crate reads and writes
+//! packages, validates part names, resolves relationship targets and manages
+//! the `[Content_Types].xml` stream and core properties.</code></pre>
+</figure>
+
+<h3 id="test-doc-lap">4.4 Test độc lập</h3>
+<p><code>cargo test -p openxml-xml --lib</code> chạy 63 test trong chớp mắt mà không cần biên dịch schema hay docx. Khi sửa tầng dưới, bạn test tầng dưới trước; khi test tầng trên đỏ mà tầng dưới xanh, bạn biết ngay lỗi nằm ở đâu.</p>
+
+<h3 id="co-lap-dep">4.5 Cô lập dependency ngoài</h3>
+<p>Như bài 1.1 đã thấy: <code>quick-xml</code> chỉ nằm trong <code>openxml-xml</code>, <code>zip</code> chỉ trong <code>openxml-opc</code>. Thay thư viện ZIP chỉ đụng một crate. Công cụ sinh code dùng <code>roxmltree</code>, <code>serde</code> — nhưng vì là crate riêng, người dùng thư viện không bao giờ phải biên dịch chúng.</p>
+
+<h2 id="nhuoc-diem">5. Cái giá phải trả</h2>
+<p>Chia crate không miễn phí. Những nhược điểm thấy được ngay trong dự án:</p>
+<ul>
+  <li><strong><code>pub(crate)</code> không vượt được ranh giới crate.</strong> Hàm hỗ trợ mà code sinh ra ở <code>openxml-schema</code> cần gọi phải là <code>pub</code> ở <code>openxml-xml</code> — nên mới có mẹo <code>#[doc(hidden)] pub mod rt</code> (<a href="p1-2-crate-module.html#doc-hidden">bài 1.2</a>). Trong một crate duy nhất, <code>pub(crate)</code> là đủ.</li>
+  <li><strong>Nhiều file cấu hình.</strong> 12 <code>Cargo.toml</code>, mỗi cái lặp lại khối <code>version.workspace = true</code>… Workspace inheritance (bài 1.1) giảm bớt, nhưng không xoá hết.</li>
+  <li><strong>Re-export lặp lại.</strong> <code>openxml-docx</code>, <code>-xlsx</code>, <code>-pptx</code> mỗi crate đều <code>pub use openxml_core::{Error, …, Length, Result};</code> để người dùng không phải thêm dependency <code>openxml-core</code>. Crate facade lại gom một lần nữa.</li>
+  <li><strong>Phát hành phức tạp hơn.</strong> Muốn đưa lên crates.io phải publish từ dưới lên (xml → opc/schema → core → chart → docx…), và mỗi dependency path phải kèm <code>version</code>.</li>
+  <li><strong>Phải nghĩ kỹ hơn ngay từ đầu.</strong> Mục 3.1 là mặt tốt, nhưng cũng là chi phí: đôi khi phải viết lại một phần nhỏ (workbook tối thiểu) thay vì dùng lại thứ đã có.</li>
+</ul>
+<p>Quy tắc ngón tay cái: chia crate khi phần đó có <em>trách nhiệm riêng</em>, <em>tốc độ thay đổi riêng</em> (schema sinh tự động gần như không đổi; docx đổi liên tục), hoặc <em>người dùng riêng</em> (opc dùng lại được). Đừng chia chỉ để "trông gọn".</p>
+
+<h2 id="facade">6. Facade pattern: crate <code>openxml</code></h2>
+<p>Với 8 crate thư viện, người dùng phải thêm dependency nào? Câu trả lời mà dự án đưa ra: <strong>chỉ một</strong>. Crate <code>openxml</code> có 64 dòng, và phần code của nó là đây:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml/src/lib.rs#L53-L64">crates/openxml/src/lib.rs:53–64</figcaption>
+<pre><code class="language-rust">#![warn(missing_docs)]
+
+pub use openxml_chart as chart;
+pub use openxml_core as core;
+pub use openxml_docx as docx;
+pub use openxml_opc as opc;
+pub use openxml_pptx as pptx;
+pub use openxml_schema as schema;
+pub use openxml_xlsx as xlsx;
+pub use openxml_xml as xml;
+
+pub use openxml_core::{Error, Length, Result};</code></pre>
+</figure>
+<p>Từng dòng:</p>
+<ul>
+  <li><code>pub use openxml_docx as docx;</code> — lấy <em>cả crate</em> <code>openxml_docx</code> và công bố nó như một module con tên <code>docx</code>. Người dùng viết <code>openxml::docx::Document</code>. Đây là cùng một <code>pub use</code> của bài 1.2, chỉ khác là thứ được re-export là một crate chứ không phải một struct.</li>
+  <li><code>pub use openxml_core::{Error, Length, Result};</code> — ba thứ dùng nhiều nhất được đưa thẳng lên gốc: <code>openxml::Result</code>, <code>openxml::Error</code>, <code>openxml::Length</code>. Example <code>all_formats.rs</code> dùng đúng dòng <code>use openxml::{Length, Result};</code>.</li>
+  <li>Facade còn là nơi hợp lý cho một doc-test "chạy cả ba định dạng" (bài 1.2 mục 10.4) — kiểm tra rằng mọi mảnh ghép khớp với nhau.</li>
+</ul>
+
+<h3 id="gach-ngang">6.1 <code>openxml-docx</code> hay <code>openxml_docx</code>?</h3>
+<p>Tên package trong <code>Cargo.toml</code> là <code>openxml-docx</code> (gạch ngang — quy ước phổ biến trên crates.io). Nhưng trong code Rust, <code>-</code> là dấu trừ: <code>openxml-docx::Document</code> sẽ bị hiểu là "<code>openxml</code> trừ <code>docx::Document</code>". Vì vậy Cargo tự đổi mọi <code>-</code> trong tên package thành <code>_</code> khi đặt tên <strong>crate</strong> để dùng trong code: <code>openxml_docx</code>. Hai cái tên chỉ cùng một thứ; bạn dùng gạch ngang ở <code>Cargo.toml</code>, dòng lệnh (<code>cargo test -p openxml-docx</code>), và gạch dưới trong file <code>.rs</code>.</p>
+
+<div class="callout pattern">
+  <span class="callout-title">🧩 Design pattern: Facade ở cấp crate</span>
+  <p>Facade là một mặt tiền đơn giản đứng trước một hệ thống con phức tạp. Ở đây nó giải quyết ba việc: (1) người dùng chỉ khai báo <strong>một</strong> dependency, (2) các crate con chắc chắn cùng phiên bản với nhau (vì cùng đi qua một facade), (3) tài liệu có một trang "cửa chính" — bảng module ở đầu <code>crates/openxml/src/lib.rs</code> (dòng 5–14). Nhưng facade <strong>không đóng cửa</strong> tầng dưới: <code>openxml::opc</code>, <code>openxml::schema</code>, <code>openxml::xml</code> vẫn lộ ra đầy đủ — xem mục 9 về escape hatch. Để ý <code>openxml-core</code> cũng làm một facade nhỏ tương tự (<code>pub use openxml_opc as opc;</code>, <code>pub use openxml_schema as schema;</code>, <code>pub use openxml_xml as xml;</code> ở <code>crates/openxml-core/src/lib.rs</code> dòng 22–24).</p>
+</div>
+
+<div class="callout warn">
+  <span class="callout-title">⚠️ Chỗ hay nhầm: <code>openxml::core</code> và <code>core</code></span>
+  <p>Rust có sẵn một crate tên <code>core</code> (lõi của thư viện chuẩn, dùng được cả khi không có hệ điều hành). <code>pub use openxml_core as core;</code> tạo ra module <code>openxml::core</code> — <em>khác</em> với <code>::core</code> của Rust. Bên ngoài bạn luôn viết đầy đủ <code>openxml::core::FontSize</code> nên không lẫn; nhưng nếu thấy <code>use core::…</code> trần trụi trong một file, đó là của Rust, không phải của dự án.</p>
+</div>
+
+<h2 id="phan-tang">7. Layered architecture và separation of concerns</h2>
+<p>ARCHITECTURE.md vẽ dự án thành các tầng. Ghép với những gì đã thấy:</p>
+<div class="layers">
+  <div><b>applications</b><small>openxml (facade) · openxml-cli — gom lại, đưa cho người dùng</small></div>
+  <div><b>document APIs</b><small>openxml-docx · openxml-xlsx · openxml-pptx — "thêm một đoạn văn", "đặt giá trị ô A1"</small></div>
+  <div><b>shared</b><small>openxml-chart · openxml-core — thứ ba API dùng chung: biểu đồ, lỗi, đọc/ghi part có kiểu, đơn vị, ảnh</small></div>
+  <div><b>typed model</b><small>openxml-schema ◀ openxml-codegen — mỗi phần tử XML thành một struct/enum</small></div>
+  <div><b>packaging</b><small>openxml-opc — ZIP, part, content type, relationship</small></div>
+  <div><b>XML</b><small>openxml-xml — namespace, reader, writer, raw node</small></div>
+</div>
+<p><strong>Layered architecture</strong> (kiến trúc phân tầng) là sắp xếp hệ thống thành các lớp, mỗi lớp chỉ dùng dịch vụ của lớp bên dưới. <strong>Separation of concerns</strong> (tách biệt mối quan tâm) là nguyên tắc mỗi phần chỉ lo một loại việc. Hai ý này đi đôi: mỗi tầng ở đây là một "mối quan tâm" đúng nghĩa:</p>
+<div class="table-wrap"><table>
+  <tr><th>Tầng</th><th>Lo việc</th><th>Không lo</th></tr>
+  <tr><td>xml</td><td>cú pháp XML, namespace, escape</td><td>file nằm ở đâu, thẻ nghĩa là gì</td></tr>
+  <tr><td>opc</td><td>ZIP, tên part, relationship</td><td>nội dung part</td></tr>
+  <tr><td>schema</td><td>cấu trúc hợp lệ của từng thẻ theo XSD</td><td>part nằm trong gói nào, API thân thiện</td></tr>
+  <tr><td>core / chart</td><td>nối gói với kiểu schema; biểu đồ độc lập host</td><td>Word khác Excel ra sao</td></tr>
+  <tr><td>docx/xlsx/pptx</td><td>khái niệm người dùng: đoạn văn, ô, slide</td><td>chi tiết ZIP, escape XML</td></tr>
+</table></div>
+<p>Lợi ích thực tế: khi đọc một bug "ký tự <code>&amp;</code> bị ghi sai", bạn biết chỉ cần xem <code>openxml-xml</code>; bug "relationship trỏ sai file" thì xem <code>openxml-opc</code>. Và đó cũng là lý do khoá học đi <strong>từ dưới lên</strong>.</p>
+
+<h2 id="codegen">8. Code generation as a build step</h2>
+<figure class="code">
+  <figcaption data-src="ARCHITECTURE.md#L106-L108">ARCHITECTURE.md:106–108</figcaption>
+<pre><code class="language-plaintext">The generator is a normal Rust binary (`cargo run -p openxml-codegen`). Its
+output is committed, so users never run it; a test fails if the committed
+code is stale.</code></pre>
+</figure>
+<p>Ba ý trong ba dòng:</p>
+<ol>
+  <li><strong>Bộ sinh code là một chương trình Rust bình thường</strong> — một crate trong workspace, chạy bằng <code>cargo run -p openxml-codegen</code>. Nó đọc <code>schemas/transitional/*.xsd</code> và ghi ra <code>crates/openxml-schema/src/generated/*.rs</code>.</li>
+  <li><strong>Output được commit vào git.</strong> Người dùng thư viện nhận <code>openxml-schema</code> như một crate Rust thường — không cần file XSD, không cần <code>roxmltree</code>, không có bước sinh code nào lúc build.</li>
+  <li><strong>Một test canh chừng</strong> để output commit không bao giờ lệch khỏi bộ sinh:</li>
+</ol>
+<figure class="code">
+  <figcaption data-src="crates/openxml-codegen/tests/up_to_date.rs#L1-L34">crates/openxml-codegen/tests/up_to_date.rs:1–34</figcaption>
+<pre><code class="language-rust">//! The checked-in `openxml-schema` sources must match the generator's output.
+
+use std::path::PathBuf;
+
+#[test]
+fn generated_sources_are_up_to_date() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let files = openxml_codegen::generate(
+        &amp;root.join("schemas/transitional"),
+        Some(&amp;root.join("schemas/spec-index.json")),
+    )
+    .unwrap();
+    assert_eq!(files.len(), 27, "one module per schema file plus mod.rs");
+    let out_dir = root.join("crates/openxml-schema/src/generated");
+    let mut stale = Vec::new();
+    for (name, source) in &amp;files {
+        let formatted = match openxml_codegen::format_source(source) {
+            Ok(f) =&gt; f,
+            Err(e) if e.contains("cannot run rustfmt") =&gt; {
+                eprintln!("note: rustfmt not available, skipping comparison");
+                return;
+            }
+            Err(e) =&gt; panic!("{name}: {e}"),
+        };
+        let current = std::fs::read_to_string(out_dir.join(name)).unwrap_or_default();
+        if current != formatted {
+            stale.push(name.clone());
+        }
+    }
+    assert!(
+        stale.is_empty(),
+        "stale generated files {stale:?}; run `cargo run -p openxml-codegen`"
+    );
+}</code></pre>
+</figure>
+<p>Ý chính: chạy lại bộ sinh trong bộ nhớ, so từng file với bản đang commit; lệch một byte là test đỏ kèm lời nhắc "chạy <code>cargo run -p openxml-codegen</code>". <code>env!("CARGO_MANIFEST_DIR")</code> là đường dẫn thư mục của crate đang biên dịch (Cargo cung cấp lúc build) — cách đáng tin để tìm file bất kể bạn chạy <code>cargo test</code> từ đâu. Bộ sinh cũng có sẵn chế độ <code>cargo run -p openxml-codegen -- --check</code> làm đúng việc đó từ dòng lệnh.</p>
+
+<h3 id="codegen-khac">8.1 Các cách khác và vì sao không chọn</h3>
+<div class="table-wrap"><table>
+  <tr><th>Cách</th><th>Làm thế nào</th><th>Vì sao dự án không chọn</th></tr>
+  <tr><td>Viết tay</td><td>Tự gõ struct cho từng thẻ</td><td>Hàng nghìn kiểu (chỉ <code>wml.xsd</code> đã có 285 complex type), dễ sai, khó theo kịp spec.</td></tr>
+  <tr><td>Build script <code>build.rs</code></td><td>Sinh code mỗi lần biên dịch</td><td>Mọi người dùng phải có XSD và <code>roxmltree</code> lúc build, và chịu thêm thời gian sinh; code sinh ra nằm trong <code>target/</code>, khó đọc, khó grep.</td></tr>
+  <tr><td>Procedural macro</td><td>Macro đọc XSD lúc biên dịch</td><td>Như trên, thêm nữa là IDE và thông báo lỗi khó theo dõi hơn nhiều.</td></tr>
+  <tr><td><strong>Sinh trước + commit + test</strong></td><td>Cách của dự án</td><td>Code đọc được trên GitHub/docs.rs, grep được, diff được khi đổi bộ sinh. Cái giá: repo nặng thêm ~215.000 dòng và phải nhớ chạy lại bộ sinh — việc mà test đã nhắc hộ.</td></tr>
+</table></div>
+
+<h2 id="escape-hatch">9. Escape hatch: luôn có lối thoát xuống tầng dưới</h2>
+<p>API cấp cao như <code>doc.add_paragraph("…")</code> không bao giờ phủ hết ~5.000 trang của ECMA-376. Khi người dùng cần một tính năng chưa có, họ làm gì? Dự án trả lời bằng một nguyên tắc thiết kế ghi rõ trong ARCHITECTURE.md: <em>"Escape hatches everywhere"</em> — mọi view đều cho chui xuống đối tượng schema bên dưới, và mọi API đều cho chạm vào gói OPC:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-docx/src/document.rs#L626-L653">crates/openxml-docx/src/document.rs:626–653</figcaption>
+<pre><code class="language-rust">    // ----- raw access ----------------------------------------------------------------
+
+    /// The package. Typed parts reflect changes only after [`Document::flush`].
+    pub fn package(&amp;self) -&gt; &amp;Package {
+        &amp;self.shared.package
+    }
+
+    /// Mutable package. Parts the document manages are overwritten on save
+    /// if they were modified through the document.
+    pub fn package_mut(&amp;mut self) -&gt; &amp;mut Package {
+        &amp;mut self.shared.package
+    }
+
+    /// Name of the main document part.
+    pub fn main_part_name(&amp;self) -&gt; &amp;PartName {
+        &amp;self.shared.main_part
+    }
+
+    /// The main document part (`w:document`).
+    pub fn document(&amp;self) -&gt; &amp;wml::CT_Document {
+        &amp;self.main
+    }
+
+    /// Mutable main document part.
+    pub fn document_mut(&amp;mut self) -&gt; &amp;mut wml::CT_Document {
+        self.main_dirty = true;
+        &amp;mut self.main
+    }</code></pre>
+</figure>
+<figure class="code">
+  <figcaption data-src="crates/openxml-docx/src/paragraph.rs#L229-L232">crates/openxml-docx/src/paragraph.rs:229–232</figcaption>
+<pre><code class="language-rust">    /// The underlying schema object.
+    pub fn raw(&amp;mut self) -&gt; &amp;mut wml::CT_P {
+        self.p
+    }</code></pre>
+</figure>
+<p>Ba mức "thoát":</p>
+<ul>
+  <li><code>ParagraphMut::raw()</code> → <code>wml::CT_P</code>: sửa trực tiếp mọi thuộc tính của <code>w:p</code> theo đúng spec.</li>
+  <li><code>Document::document_mut()</code> → <code>wml::CT_Document</code>: cả part chính. Để ý dòng <code>self.main_dirty = true;</code> — vì bạn có thể đã sửa, part này sẽ được ghi lại lúc lưu (đó là "dirty flag" mà ARCHITECTURE.md nhắc tới).</li>
+  <li><code>Document::package_mut()</code> → <code>Package</code> của <code>openxml-opc</code>: thêm part bất kỳ, sửa relationship… tầng thấp nhất.</li>
+</ul>
+<p>Excel và PowerPoint có tương đương: <code>Workbook::package_mut()</code>, <code>WorksheetMut::raw_mut()</code>… Kiến trúc phân tầng chính là thứ làm escape hatch khả thi: vì tầng dưới là crate công khai, có API đầy đủ và tài liệu, tầng trên chỉ cần "trả ra" đối tượng của tầng dưới. (Chữ <code>&amp;mut</code> trong các chữ ký trên là "mượn để sửa" — Phần 2 sẽ giải thích ownership và borrowing.)</p>
+
+<div class="callout pattern">
+  <span class="callout-title">🧩 Nguyên tắc thiết kế API: escape hatch</span>
+  <p>Một thư viện tiện lợi nhưng "đóng kín" buộc người dùng bỏ đi ngay khi gặp nhu cầu nằm ngoài API. Một thư viện có lối thoát cho phép dùng API tiện lợi cho 95% việc, và hạ xuống tầng thấp cho 5% còn lại — <em>mà không phải bỏ thư viện</em>. Cái giá: tầng dưới (<code>CT_P</code>, <code>Package</code>) trở thành một phần của API công khai, nên đổi chúng phải cẩn thận hơn.</p>
+</div>
+
+<h2 id="goc-openxml">10. Góc OpenXML: 4 phần ECMA-376 ↔ các tầng, và vì sao biểu đồ đứng riêng</h2>
+
+<h3 id="bon-phan">10.1 Bốn phần của chuẩn nằm ở tầng nào</h3>
+<div class="table-wrap"><table>
+  <tr><th>ECMA-376</th><th>Nội dung</th><th>Tầng / crate</th></tr>
+  <tr><td>Part 1 – Fundamentals &amp; Markup Language Reference</td><td>Từ vựng WordprocessingML (§17), SpreadsheetML (§18), PresentationML (§19), DrawingML (§20–21)…</td><td>Cấu trúc: <code>openxml-schema</code> (sinh từ XSD). Ngữ nghĩa ("một danh sách đánh số hoạt động thế nào"): <code>openxml-docx/xlsx/pptx</code>, <code>openxml-chart</code>.</td></tr>
+  <tr><td>Part 2 – Open Packaging Conventions</td><td>ZIP, part, content type, relationship, core properties</td><td><code>openxml-opc</code></td></tr>
+  <tr><td>Part 3 – Markup Compatibility &amp; Extensibility</td><td><code>mc:AlternateContent</code>, <code>mc:Ignorable</code></td><td><code>openxml-xml</code> (namespace <code>mc</code>, raw node giữ nguyên nội dung không hiểu, writer phát lại khai báo namespace để <code>mc:Ignorable="w14 wp14"</code> còn hợp lệ)</td></tr>
+  <tr><td>Part 4 – Transitional Migration Features</td><td>Schema Transitional (bản Office thực sự ghi), VML</td><td><code>schemas/transitional/</code> → <code>openxml-codegen</code> → <code>openxml-schema</code> (kể cả các module <code>vml*</code>)</td></tr>
+</table></div>
+<p>Để ý Part 1 "trải" trên nhiều tầng: <em>cú pháp</em> của một thẻ thuộc tầng typed model, còn <em>ý nghĩa</em> của nó thuộc tầng document API. Tách hai thứ này là separation of concerns đúng nghĩa.</p>
+
+<h3 id="chart-rieng">10.2 Vì sao <code>openxml-chart</code> đứng riêng?</h3>
+<p>Biểu đồ là DrawingML Chart (<code>c:</code>, ECMA-376 Part 1 §21.2) — một từ vựng <em>chung</em> cho cả ba ứng dụng. Chart part (<code>c:chartSpace</code>) có cùng cấu trúc dù nằm trong <code>.docx</code>, <code>.xlsx</code> hay <code>.pptx</code>; chỉ khác <strong>chỗ đặt</strong> và <strong>cái khung bọc</strong> để hiển thị nó. Nên thiết kế tự nhiên là: một crate lo phần chung, mỗi host lo phần khung.</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-chart/src/package.rs#L88-L97">crates/openxml-chart/src/package.rs:88–97</figcaption>
+<pre><code class="language-rust">/// `a:graphicData` showing the chart related with `rel_id`; hosts wrap it in
+/// `wp:inline`/`wp:anchor` (Word), `p:graphicFrame` (PowerPoint) or
+/// `xdr:graphicFrame` (Excel).
+pub fn graphic_data(rel_id: &amp;str) -&gt; dml::CT_GraphicalObjectData {
+    dml::CT_GraphicalObjectData {
+        uri: Some(CHART_URI.to_owned()),
+        any: vec![chart_reference(rel_id)],
+        ..Default::default()
+    }
+}</code></pre>
+</figure>
+<p><code>openxml-chart</code> lo hai việc chung: <code>insert_chart</code> thêm chart part vào gói và tạo relationship, <code>graphic_data</code> tạo phần lõi <code>a:graphicData</code> trỏ tới chart đó. Ba host gọi đúng hai hàm này, chỉ khác tham số và cái khung:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-docx/src/chart.rs#L23-L32">crates/openxml-docx/src/chart.rs:23–32 — Word</figcaption>
+<pre><code class="language-rust">        let part = self.part.clone();
+        let inserted = insert_chart(
+            &amp;mut self.shared.package,
+            &amp;part,
+            "/word",
+            chart,
+            ChartData::EmbeddedWorkbook,
+        )?;
+        let name = format!("Chart {}", self.shared.next_drawing_id + 1);
+        Ok(self.add_graphic(graphic_data(&amp;inserted.rel_id), width, height, &amp;name, floating))</code></pre>
+</figure>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xlsx/src/chart.rs#L140-L145">crates/openxml-xlsx/src/chart.rs:140–145 — Excel</figcaption>
+<pre><code class="language-rust">    pub fn add_chart(&amp;mut self, chart: &amp;Chart, anchor: &amp;Anchor) -&gt; Result&lt;u32&gt; {
+        let drawing = self.drawing_part()?;
+        let inserted = insert_chart(self.package, &amp;drawing, "/xl", chart, ChartData::InChart)?;
+        let count = self.package.related_parts(Some(&amp;drawing), rel_types::CHART).len();
+        self.add_graphic_frame(anchor, &amp;format!("Chart {count}"), graphic_data(&amp;inserted.rel_id))
+    }</code></pre>
+</figure>
+<figure class="code">
+  <figcaption data-src="crates/openxml-pptx/src/chart.rs#L32-L43">crates/openxml-pptx/src/chart.rs:32–43 — PowerPoint</figcaption>
+<pre><code class="language-rust">    pub fn add_chart(&amp;mut self, chart: &amp;Chart, x: Length, y: Length, w: Length, h: Length) -&gt; Result&lt;u32&gt; {
+        let slide_part = self.part_name().clone();
+        let inserted = insert_chart(
+            &amp;mut self.pres.package,
+            &amp;slide_part,
+            "/ppt",
+            chart,
+            ChartData::EmbeddedWorkbook,
+        )?;
+        let name = format!("Chart {}", self.next_id());
+        Ok(self.add_graphic_frame(&amp;name, graphic_data(&amp;inserted.rel_id), x, y, w, h))
+    }</code></pre>
+</figure>
+<p>Ba khác biệt đọc được ngay trong code:</p>
+<div class="table-wrap"><table>
+  <tr><th></th><th>Word</th><th>Excel</th><th>PowerPoint</th></tr>
+  <tr><td>Chart part</td><td><code>/word/charts/chartN.xml</code></td><td><code>/xl/charts/chartN.xml</code></td><td><code>/ppt/charts/chartN.xml</code></td></tr>
+  <tr><td>Relationship từ</td><td>part chứa đoạn văn (document, header…)</td><td><strong>drawing part</strong> của sheet (<code>xl/drawings/drawingN.xml</code>)</td><td>slide</td></tr>
+  <tr><td>Dữ liệu</td><td>workbook nhúng (<code>EmbeddedWorkbook</code>)</td><td>trỏ tới ô của chính sheet (<code>InChart</code>)</td><td>workbook nhúng</td></tr>
+  <tr><td>Khung bọc</td><td><code>w:drawing</code> → <code>wp:inline</code>/<code>wp:anchor</code> → <code>a:graphic</code></td><td><code>xdr:graphicFrame</code> (trong <code>xdr:twoCellAnchor</code>…)</td><td><code>p:graphicFrame</code></td></tr>
+</table></div>
+<p>Mình chạy <code>cargo run -p openxml --example all_formats -- out/</code> rồi giải nén ba file sinh ra. Đây là XML thật (chỉ xuống dòng cho dễ đọc):</p>
+<figure class="code">
+  <figcaption>sales.docx → word/document.xml (trích)</figcaption>
+<pre><code class="language-xml">&lt;w:drawing&gt;
+  &lt;wp:inline distT="0" distB="0" distL="0" distR="0"&gt;
+    &lt;wp:extent cx="5400000" cy="2880000"/&gt;
+    &lt;wp:effectExtent l="0" t="0" r="0" b="0"/&gt;
+    &lt;wp:docPr id="1" name="Chart 1"/&gt;
+    &lt;wp:cNvGraphicFramePr/&gt;
+    &lt;a:graphic&gt;
+      &lt;a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart"&gt;
+        &lt;c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" r:id="rId5"/&gt;
+      &lt;/a:graphicData&gt;
+    &lt;/a:graphic&gt;
+  &lt;/wp:inline&gt;
+&lt;/w:drawing&gt;</code></pre>
+</figure>
+<figure class="code">
+  <figcaption>sales.xlsx → xl/drawings/drawing1.xml (trích, bên trong xdr:twoCellAnchor)</figcaption>
+<pre><code class="language-xml">&lt;xdr:graphicFrame macro=""&gt;
+  &lt;xdr:nvGraphicFramePr&gt;
+    &lt;xdr:cNvPr id="2" name="Chart 1"/&gt;
+    &lt;xdr:cNvGraphicFramePr/&gt;
+  &lt;/xdr:nvGraphicFramePr&gt;
+  &lt;xdr:xfrm&gt;&lt;a:off x="1828800" y="190500"/&gt;&lt;a:ext cx="4267200" cy="3048000"/&gt;&lt;/xdr:xfrm&gt;
+  &lt;a:graphic&gt;
+    &lt;a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart"&gt;
+      &lt;c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" r:id="rId1"/&gt;
+    &lt;/a:graphicData&gt;
+  &lt;/a:graphic&gt;
+&lt;/xdr:graphicFrame&gt;</code></pre>
+</figure>
+<figure class="code">
+  <figcaption>sales.pptx → ppt/slides/slide3.xml (trích)</figcaption>
+<pre><code class="language-xml">&lt;p:graphicFrame&gt;
+  &lt;p:nvGraphicFramePr&gt;
+    &lt;p:cNvPr id="3" name="Chart 3"/&gt;
+    &lt;p:cNvGraphicFramePr&gt;&lt;a:graphicFrameLocks noGrp="true"/&gt;&lt;/p:cNvGraphicFramePr&gt;
+    &lt;p:nvPr/&gt;
+  &lt;/p:nvGraphicFramePr&gt;
+  &lt;p:xfrm&gt;&lt;a:off x="1080000" y="1440000"/&gt;&lt;a:ext cx="9360000" cy="4680000"/&gt;&lt;/p:xfrm&gt;
+  &lt;a:graphic&gt;
+    &lt;a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart"&gt;
+      &lt;c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" r:id="rId2"/&gt;
+    &lt;/a:graphicData&gt;
+  &lt;/a:graphic&gt;
+&lt;/p:graphicFrame&gt;</code></pre>
+</figure>
+<p>Phần lõi <code>&lt;a:graphic&gt;&lt;a:graphicData uri="…/chart"&gt;&lt;c:chart r:id="…"/&gt;</code> <strong>giống hệt nhau</strong> ở cả ba — đó là phần <code>openxml-chart</code> tạo. Khác nhau chỉ là vỏ ngoài và prefix (<code>wp:</code>, <code>xdr:</code>, <code>p:</code>) — phần mỗi crate host tự lo. <code>r:id</code> là relationship id trỏ tới chart part (ví dụ trong <code>word/_rels/document.xml.rels</code>: <code>Id="rId5"</code> với <code>Target="charts/chart1.xml"</code>) — đúng cơ chế relationship của <a href="p0-1-openxml-la-gi.html#relationships">bài 0.1</a>.</p>
+
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — <code>a:graphicData</code> là một "ổ cắm" đa năng</span>
+  <p>Thuộc tính <code>uri</code> của <code>a:graphicData</code> cho biết bên trong chứa gì: <code>…/drawingml/2006/chart</code> là biểu đồ, <code>…/drawingml/2006/table</code> là bảng (slide2 của cùng file <code>sales.pptx</code> có đúng một <code>p:graphicFrame</code> chứa <code>a:tbl</code>), <code>…/drawingml/2006/picture</code> là ảnh, <code>…/drawingml/2006/diagram</code> là SmartArt. Trong XSD, nội dung của <code>a:graphicData</code> được khai báo là <code>xsd:any</code> — "bất kỳ phần tử nào". Đó là lý do trong code, trường <code>any</code> của <code>CT_GraphicalObjectData</code> là một <code>Vec</code> các <code>RawElement</code> và <code>chart_reference</code> phải chuyển <code>c:chart</code> thành raw (<code>RawElement::from_typed</code>) — bạn sẽ hiểu cơ chế này ở <a href="p2-7-raw-node.html">bài 2.7</a>.</p>
+</div>
+
+<section class="exercise">
+  <h3>🛠 Bài tập</h3>
+  <ol>
+    <li><strong>Tự vẽ đồ thị.</strong> Không nhìn bài, mở 12 file <code>crates/*/Cargo.toml</code> và vẽ lại đồ thị phụ thuộc (chỉ <code>[dependencies]</code>). Rồi so với <code>cargo tree -p openxml-cli -e normal --depth 1</code> và <code>cargo tree -i openxml-opc -e normal</code>. Crate nào có nhiều "người phụ thuộc" nhất?</li>
+    <li><strong>Đo thời gian biên dịch.</strong> Chạy <code>CARGO_TARGET_DIR=/tmp/ox-timings cargo build -p openxml-docx --timings</code> (thư mục target riêng để build lại từ đầu mà không xoá cache của bạn). Mở file HTML trong <code>/tmp/ox-timings/cargo-timings/</code>. Tìm những crate chạy song song với <code>openxml-schema</code>. Sau đó chạy lại lệnh — lần này mất bao lâu, vì sao?</li>
+    <li><strong>Thử phá luật tầng.</strong> Trong workspace mini của bài 1.1, cho <code>mini-core</code> phụ thuộc vào <code>mini-app</code> (trong khi <code>mini-app</code> đã phụ thuộc <code>mini-core</code>) và build — đọc lỗi. Rồi đổi thành <code>[dev-dependencies]</code> và viết một test trong <code>crates/mini-core/tests/</code> dùng <code>mini_app</code>: có build được không?</li>
+    <li><strong>Câu hỏi thiết kế.</strong> Giả sử bạn muốn thêm hỗ trợ file Visio (<code>.vsdx</code>, cũng là gói OPC). Bạn sẽ tạo crate mới nào, nó phụ thuộc vào những crate hiện có nào, và có cần sửa crate hiện có nào không? Viết câu trả lời 5–6 dòng, dựa vào đồ thị ở mục 1.</li>
+  </ol>
+</section>
+
+<section>
+  <h2 id="tu-kiem-tra">Tự kiểm tra</h2>
+  <details><summary>1. <code>openxml-opc</code> và <code>openxml-schema</code> phụ thuộc nhau theo chiều nào?</summary>
+    <div class="answer">Không chiều nào (xét dependency thường). Cả hai chỉ phụ thuộc <code>openxml-xml</code>; chúng gặp nhau ở <code>openxml-core</code>. (<code>openxml-schema</code> có dùng <code>openxml-opc</code> nhưng chỉ trong <code>[dev-dependencies]</code> cho test.) Nhờ vậy hai crate biên dịch song song.</div></details>
+  <details><summary>2. Vì sao <code>openxml-chart</code> không gọi <code>openxml-xlsx</code> để tạo workbook nhúng?</summary>
+    <div class="answer">Vì <code>openxml-xlsx</code> đã phụ thuộc <code>openxml-chart</code>; thêm chiều ngược lại tạo vòng phụ thuộc giữa crate, và Cargo cấm. <code>openxml-chart</code> tự dựng một workbook tối thiểu từ các kiểu <code>openxml_schema::sml</code>.</div></details>
+  <details><summary>3. Trong file <code>.rs</code>, vì sao viết <code>openxml_docx</code> chứ không phải <code>openxml-docx</code>?</summary>
+    <div class="answer">Dấu <code>-</code> không hợp lệ trong định danh Rust (nó là toán tử trừ). Cargo tự đổi <code>-</code> thành <code>_</code> để tạo tên crate dùng trong code. Tên package (Cargo.toml, <code>-p</code>) vẫn dùng gạch ngang.</div></details>
+  <details><summary>4. "Code generation as a build step" ở dự án này khác <code>build.rs</code> ở điểm nào?</summary>
+    <div class="answer">Code được sinh <em>trước</em> bởi một chương trình riêng (<code>cargo run -p openxml-codegen</code>) và <em>commit</em> vào repo; người dùng không bao giờ chạy bộ sinh, không cần XSD hay <code>roxmltree</code>. Một test (<code>up_to_date.rs</code>) đảm bảo code đã commit khớp với output của bộ sinh. Với <code>build.rs</code>, việc sinh diễn ra ở mỗi lần build, trên máy của mọi người dùng.</div></details>
+  <details><summary>5. Người dùng cần đặt thuộc tính <code>w:pPr/w:keepNext</code> cho một đoạn văn nhưng <code>openxml-docx</code> chưa có hàm tiện lợi. Họ làm gì?</summary>
+    <div class="answer">Dùng escape hatch: <code>ParagraphMut::raw()</code> trả về <code>&amp;mut wml::CT_P</code> — đối tượng schema đầy đủ — để sửa trực tiếp trường tương ứng. Ở mức thấp hơn nữa có <code>document_mut()</code> và <code>package_mut()</code>.</div></details>
+  <details><summary>6. Trong ba file sinh ra bởi <code>all_formats</code>, phần XML nào giống nhau và phần nào khác nhau khi chứa biểu đồ?</summary>
+    <div class="answer">Giống: <code>&lt;a:graphic&gt;&lt;a:graphicData uri="…/drawingml/2006/chart"&gt;&lt;c:chart r:id="…"/&gt;</code> — do <code>openxml_chart::graphic_data</code> tạo. Khác: khung bọc — Word dùng <code>w:drawing</code>/<code>wp:inline</code> (hoặc <code>wp:anchor</code>), Excel dùng <code>xdr:graphicFrame</code> trong drawing part của sheet, PowerPoint dùng <code>p:graphicFrame</code> trong slide; Word và PowerPoint còn có workbook nhúng, Excel trỏ vào ô của sheet.</div></details>
+</section>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Hết Phần 1 — sang Phần 2</span>
+  <p>Bạn đã có bản đồ: crate nào ở đâu, vì sao. Phần 2 bắt đầu leo từ tầng thấp nhất — <code>openxml-xml</code>. Bài 2.1 mở <code>ns.rs</code> để xem namespace XML (thứ bạn vừa thấy trong <code>wp:</code>, <code>xdr:</code>, <code>p:</code>) được biểu diễn trong Rust thế nào, và gặp những kiểu dữ liệu đầu tiên của dự án.</p>
+</div>
+
+</main>
+</body>
+</html>
