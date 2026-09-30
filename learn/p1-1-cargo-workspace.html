@@ -86,7 +86,7 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/open-xml-rust/open-xml-rust"
+repository = "https://github.com/AdonisGM/open-xml-rust"
 
 [workspace.dependencies]
 openxml-xml = { path = "crates/openxml-xml" }
@@ -429,9 +429,10 @@ let y = unsafe { *p };      // đọc qua con trỏ thô: phải nằm trong kh�
 
 <h3 id="lints-optin">8.3 <code>[lints] workspace = true</code> — lại là opt-in</h3>
 <figure class="code">
-  <figcaption data-src="crates/openxml-xml/Cargo.toml#L1-L13">crates/openxml-xml/Cargo.toml:1–13</figcaption>
+  <figcaption data-src="crates/openxml-xml/Cargo.toml#L1-L14">crates/openxml-xml/Cargo.toml:1–14</figcaption>
 <pre><code class="language-toml">[package]
 name = "openxml-xml"
+description = "Namespace-aware XML reader/writer and raw nodes for the Office Open XML toolkit"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -452,8 +453,8 @@ workspace = true</code></pre>
 </div>
 
 <div class="callout warn">
-  <span class="callout-title">⚠️ Một điểm lệch nhỏ</span>
-  <p><code>crates/openxml-xml/Cargo.toml</code> là crate duy nhất <strong>không có</strong> dòng <code>description</code>. Build hay test thì không sao, nhưng crates.io từ chối publish crate thiếu description. Để ý những chi tiết như vậy khi đọc cấu hình — nó giúp bạn đọc code "có phản biện".</p>
+  <span class="callout-title">⚠️ Một điểm lệch nhỏ (đã sửa)</span>
+  <p>Lúc mình viết bài, <code>crates/openxml-xml/Cargo.toml</code> là crate duy nhất <strong>không có</strong> dòng <code>description</code>, và <code>repository</code> ở <code>Cargo.toml</code> gốc trỏ tới một địa chỉ GitHub không phải repo thật. Build hay test thì không sao, nhưng crates.io từ chối publish crate thiếu description, còn link sai thì dẫn người đọc tới nhầm chỗ. Cả hai đã được sửa. Để ý những chi tiết như vậy khi đọc cấu hình: nó giúp bạn đọc code "có phản biện".</p>
 </div>
 
 <h2 id="profile">9. <code>[profile.dev.package."*"] opt-level = 1</code></h2>
@@ -532,7 +533,7 @@ ls target/debug/openxml                                     # file chạy mang T
 <h3 id="bang-12-crate">11.4 Bức tranh 12 crate qua Cargo.toml</h3>
 <div class="table-wrap"><table>
   <tr><th>Crate</th><th>Loại</th><th>publish</th><th>Dependency ngoài (normal)</th><th>description (rút gọn)</th></tr>
-  <tr><td><code>openxml-xml</code></td><td>lib</td><td>✓</td><td><code>quick-xml</code></td><td>(không có)</td></tr>
+  <tr><td><code>openxml-xml</code></td><td>lib</td><td>✓</td><td><code>quick-xml</code></td><td>Namespace-aware XML reader/writer and raw nodes…</td></tr>
   <tr><td><code>openxml-opc</code></td><td>lib</td><td>✓</td><td><code>zip</code></td><td>Open Packaging Conventions (Part 2)</td></tr>
   <tr><td><code>openxml-codegen</code></td><td>lib + bin</td><td>✗</td><td><code>roxmltree</code>, <code>serde</code>, <code>serde_json</code></td><td>Sinh <code>openxml-schema</code> từ XSD</td></tr>
   <tr><td><code>openxml-schema</code></td><td>lib</td><td>✓</td><td>—</td><td>Kiểu schema có kiểu mạnh, sinh từ XSD</td></tr>

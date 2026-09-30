@@ -101,7 +101,7 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/open-xml-rust/open-xml-rust"</code></pre>
+repository = "https://github.com/AdonisGM/open-xml-rust"</code></pre>
 </figure>
 <ul>
   <li><code>version = "0.1.0"</code> — phiên bản <em>của dự án</em> (theo SemVer). Không liên quan tới Rust.</li>
@@ -186,15 +186,7 @@ repository = "https://github.com/open-xml-rust/open-xml-rust"</code></pre>
 <p>Crate thấp nhất, nhỏ nhất, chạy nhanh nhất. Đây là output thật trên máy mình (đã lược bớt phần giữa):</p>
 <figure class="code">
   <figcaption>Output thật của cargo test -p openxml-xml (rút gọn)</figcaption>
-<pre><code class="language-bash">warning: unnecessary allocation, use `&amp;` instead
-   --&gt; crates/openxml-xml/src/validate.rs:202:9
-    |
-202 |         Box::new(p).validate(&amp;mut v);
-    |         ^^^^^^^^^^^
-    = note: `#[warn(unused_allocation)]` (part of `#[warn(unused)]`) on by default
-
-warning: `openxml-xml` (lib test) generated 1 warning
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+<pre><code class="language-bash">    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
      Running unittests src/lib.rs (target/debug/deps/openxml_xml-4e1444ebd5a77b5c)
 
 running 63 tests
@@ -231,7 +223,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 <h3 id="unit-test">5.2 Unit test nằm ở đâu?</h3>
 <p><code>openxml-xml</code> không có thư mục <code>tests/</code>. 63 test kia nằm <em>ngay trong</em> các file nguồn, trong một module đặc biệt ở cuối file:</p>
 <figure class="code">
-  <figcaption data-src="crates/openxml-xml/src/ns.rs#L245-L296">crates/openxml-xml/src/ns.rs:245–296 (lược bớt các test ở giữa)</figcaption>
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L249-L301">crates/openxml-xml/src/ns.rs:249–301 (lược bớt các test ở giữa)</figcaption>
 <pre><code class="language-rust">#[cfg(test)]
 mod tests {
     use super::*;
@@ -482,12 +474,13 @@ echo "all checks passed"</code></pre>
 </ul>
 
 <div class="callout warn">
-  <span class="callout-title">⚠️ Chuyện có thật khi mình chạy bước này</span>
-  <p>Với rustc/clippy <strong>1.94.1</strong>, lệnh <code>cargo clippy -p openxml-xml --all-targets -- -D warnings</code> trên máy mình <strong>thất bại</strong> — chính vì cái warning <code>unused_allocation</code> ở <code>crates/openxml-xml/src/validate.rs:202</code> bạn đã thấy ở mục 5 (nằm trong code test, nên chỉ lộ ra khi có <code>--all-targets</code>):</p>
+  <span class="callout-title">⚠️ Chuyện có thật khi mình viết bài này</span>
+  <p>Lúc mình viết bài, với rustc/clippy <strong>1.94.1</strong>, lệnh <code>cargo clippy -p openxml-xml --all-targets -- -D warnings</code> <strong>thất bại</strong> vì lint <code>unused_allocation</code> ở <code>crates/openxml-xml/src/validate.rs</code>. Dòng bị báo nằm trong code test, nên chỉ lộ ra khi có <code>--all-targets</code>:</p>
 <pre><code class="language-bash">error: unnecessary allocation, use `&amp;` instead
    --&gt; crates/openxml-xml/src/validate.rs:202:9
     = note: `-D unused-allocation` implied by `-D warnings`</code></pre>
-  <p>Nhiều khả năng toolchain lúc tác giả viết code chưa báo trường hợp này. Bài học: <code>-D warnings</code> + toolchain không ghim cứng = bản Rust mới có thể "làm đỏ" CI dù không ai sửa code. Các dự án xử lý bằng cách ghim toolchain (<code>rust-toolchain.toml</code>) hoặc sửa ngay khi lint mới xuất hiện (ở đây: gọi <code>p.validate(&amp;mut v)</code> thay vì bọc <code>Box::new</code>). Bạn chưa cần sửa — chỉ cần hiểu vì sao nó xảy ra. Nếu bạn dùng toolchain khác, kết quả có thể khác.</p>
+  <p>Nhiều khả năng toolchain lúc tác giả viết code chưa báo trường hợp này. Bài học: <code>-D warnings</code> + toolchain không ghim cứng = bản Rust mới có thể "làm đỏ" CI dù không ai sửa code. Các dự án xử lý bằng cách ghim toolchain (<code>rust-toolchain.toml</code>) hoặc sửa ngay khi lint mới xuất hiện.</p>
+  <p>Repo đã chọn cách thứ hai. Dòng bị báo là <code>Box::new(p).validate(&amp;mut v);</code>. Chỗ tinh tế: test này <em>cố ý</em> gọi qua <code>Box</code> để kiểm tra phần <code>impl Validate for Box&lt;T&gt;</code>, nên nếu chỉ sửa thành <code>p.validate(&amp;mut v)</code> thì hết cảnh báo nhưng test lại không còn kiểm tra điều nó muốn. Cách sửa giữ được mục đích là tách ra một biến: <code>let boxed = Box::new(p); boxed.validate(&amp;mut v);</code>. Bài học: khi sửa một cảnh báo, hãy hỏi "dòng này đang muốn làm gì" trước khi làm theo gợi ý của công cụ. Giờ <code>scripts/check.sh</code> chạy qua toàn bộ.</p>
 </div>
 
 <h3 id="check-codegen">9.4 Bước 3 — code sinh còn "tươi" không (dòng 17)</h3>

@@ -100,7 +100,7 @@ tong!()           // dán thành: 0</code></pre>
 <h2 id="pattern">3. Mổ macro <code>namespaces!</code> — phần pattern</h2>
 <p>Đây là toàn bộ macro. Mình sẽ đi qua từng mảnh.</p>
 <figure class="code">
-  <figcaption data-src="crates/openxml-xml/src/ns.rs#L31-L65">crates/openxml-xml/src/ns.rs:31–65</figcaption>
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L31-L69">crates/openxml-xml/src/ns.rs:31–69</figcaption>
 <pre><code class="language-rust">macro_rules! namespaces {
     ($(
         $(#[$meta:meta])*
@@ -130,6 +130,10 @@ tong!()           // dán thành: 0</code></pre>
                 _ =&gt; None,
             }
         }
+
+        /// Every constant with its name, so tests can check the explicit indices.
+        #[cfg(test)]
+        static CONSTANTS: &amp;[(&amp;str, Ns)] = &amp;[$( (stringify!($id), Ns::$id), )*];
     };
     (@opt) =&gt; { None };
     (@opt $v:literal) =&gt; { Some($v) };
@@ -139,7 +143,7 @@ tong!()           // dán thành: 0</code></pre>
 </figure>
 <p>Macro có <strong>năm rule</strong>: rule lớn đầu tiên (dòng 32–60) và bốn rule nhỏ ở cuối (dòng 61–64). Trước hết đặt pattern của rule lớn cạnh một dòng dữ liệu thật để thấy chúng ghép với nhau thế nào:</p>
 <figure class="code">
-  <figcaption data-src="crates/openxml-xml/src/ns.rs#L80-L82">crates/openxml-xml/src/ns.rs:80–82 — một dòng dữ liệu</figcaption>
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L84-L86">crates/openxml-xml/src/ns.rs:84–86 — một dòng dữ liệu</figcaption>
 <pre><code class="language-rust">    /// SpreadsheetML main (`x:`), ECMA-376 Part 1 §18.
     X = 5, "x", "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
         strict = "http://purl.oclc.org/ooxml/spreadsheetml/main", default_on_root = true;</code></pre>
@@ -196,7 +200,7 @@ dữ liệu:  , strict = "http://purl.oclc.org/ooxml/spreadsheetml/main" , defau
 <p>Vấn đề: trường <code>strict_uri</code> có kiểu <code>Option&lt;&amp;'static str&gt;</code>. Nếu dòng dữ liệu có <code>strict = "…"</code> thì cần sinh <code>Some("…")</code>; nếu không có thì cần sinh <code>None</code>. Nhưng <code>macro_rules!</code> <strong>không có "if/else"</strong>. Với <code>$( … )?</code> bạn chỉ nói được "nếu có thì sinh cái này" — không nói được "nếu không có thì sinh cái kia".</p>
 <p>Mẹo: gọi <em>chính macro đó</em> một lần nữa, đẩy phần tuỳ chọn vào, và để việc chọn rule làm thay "if/else":</p>
 <figure class="code">
-  <figcaption data-src="crates/openxml-xml/src/ns.rs#L61-L64">crates/openxml-xml/src/ns.rs:61–64</figcaption>
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L65-L68">crates/openxml-xml/src/ns.rs:65–68</figcaption>
 <pre><code class="language-rust">    (@opt) =&gt; { None };
     (@opt $v:literal) =&gt; { Some($v) };
     (@bool) =&gt; { false };
@@ -327,7 +331,7 @@ fn lookup_uri(uri: &amp;str) -&gt; Option&lt;Ns&gt; {
 </table></div>
 <p>Vì vậy: <code>Ns::W</code> phải là <code>const</code> (để làm pattern, và chỉ nặng 2 byte). <code>TABLE</code> là mảng 38 phần tử × 5 trường — dùng <code>static</code> để chỉ có một bản trong file thực thi, mọi lần tra đều trỏ vào đó. Và vì <code>TABLE</code> sống suốt chương trình, tham chiếu vào nó có lifetime <code>'static</code>:</p>
 <figure class="code">
-  <figcaption data-src="crates/openxml-xml/src/ns.rs#L190-L192">crates/openxml-xml/src/ns.rs:190–192</figcaption>
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L194-L196">crates/openxml-xml/src/ns.rs:194–196</figcaption>
 <pre><code class="language-rust">    fn info(self) -&gt; &amp;'static NsInfo {
         &amp;TABLE[self.0 as usize]
     }</code></pre>
@@ -340,9 +344,22 @@ fn lookup_uri(uri: &amp;str) -&gt; Option&lt;Ns&gt; {
 
 <h2 id="test-thu-tu">7. Test bảo vệ thứ tự — và một bất ngờ</h2>
 <p>Nhớ lại mục 4.2: vị trí trong <code>TABLE</code> là <em>thứ tự dòng</em>, còn hằng số lấy từ <em>con số <code>$idx</code> gõ tay</em>. Hai thứ này độc lập. Nếu ai đó chèn một namespace mới vào giữa bảng mà quên đánh số lại, <code>Ns::W</code> có thể là <code>Ns(5)</code> trong khi dòng của W nằm ở vị trí 4 — <code>Ns::W.uri()</code> sẽ trả URI của namespace khác! Đó là loại lỗi nguy hiểm nhất: không crash, chỉ sai âm thầm.</p>
-<p>Dự án có test mang tên đúng mục đích này:</p>
+<p>Dự án có test mang tên đúng mục đích này. Nhưng bạn đang đọc <strong>phiên bản thứ hai</strong> của nó: phiên bản đầu có một lỗ hổng, và câu chuyện tìm ra lỗ hổng đó là bài học chính của mục này. Đây là bản hiện tại:</p>
 <figure class="code">
-  <figcaption data-src="crates/openxml-xml/src/ns.rs#L249-L255">crates/openxml-xml/src/ns.rs:249–255</figcaption>
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L253-L260">crates/openxml-xml/src/ns.rs:253–260</figcaption>
+<pre><code class="language-rust">    #[test]
+    fn table_indices_match_constants() {
+        // Each constant's explicit index must point at its own row of TABLE.
+        assert_eq!(CONSTANTS.len(), TABLE.len());
+        for (name, ns) in CONSTANTS {
+            assert_eq!(ns.ident(), *name, "Ns::{name} points at the wrong row of TABLE");
+        }
+    }</code></pre>
+</figure>
+<h3 id="phien-ban-cu">7.1 Phiên bản cũ: một test không thể fail</h3>
+<p>Trước đây test này được viết như sau:</p>
+<figure class="code">
+  <figcaption>Phiên bản cũ của test (trước khi sửa)</figcaption>
 <pre><code class="language-rust">    #[test]
     fn table_indices_match_constants() {
         for (i, info) in TABLE.iter().enumerate() {
@@ -351,7 +368,7 @@ fn lookup_uri(uri: &amp;str) -&gt; Option&lt;Ns&gt; {
         }
     }</code></pre>
 </figure>
-<p>Đọc chậm: <code>ns = Ns(i)</code>, nên <code>ns.ident()</code> = <code>TABLE[i].ident</code>. Còn <code>info</code> cũng là <code>TABLE[i]</code>. Vậy test so <code>TABLE[i].ident</code> với <em>chính nó</em> — nó <strong>luôn đúng</strong>, không phụ thuộc hằng số <code>Ns::W</code> là bao nhiêu. Để chắc chắn, mình làm thí nghiệm trên bản sao macro: tráo chỉ số của W và X (<code>W = 3</code>, <code>X = 2</code>) nhưng giữ thứ tự dòng. Kết quả chạy thật:</p>
+<p>Đọc chậm: <code>ns = Ns(i)</code>, nên <code>ns.ident()</code> = <code>TABLE[i].ident</code>. Còn <code>info</code> cũng là <code>TABLE[i]</code>. Vậy test so <code>TABLE[i].ident</code> với <em>chính nó</em>: nó <strong>luôn đúng</strong>, không phụ thuộc hằng số <code>Ns::W</code> là bao nhiêu. Để chắc chắn, mình làm thí nghiệm trên bản sao macro: tráo chỉ số của W và X (<code>W = 3</code>, <code>X = 2</code>) nhưng giữ thứ tự dòng. Kết quả chạy thật:</p>
 <figure class="code">
   <figcaption>Kết quả thật — bản sao với chỉ số W/X bị tráo</figcaption>
 <pre><code class="language-bash">---- uris_round_trip_through_lookup stdout ----
@@ -364,13 +381,26 @@ assertion `left == right` failed
  right: "w"
 test result: FAILED. 1 passed; 2 failed; ...</code></pre>
 </figure>
-<p>Test "1 passed" chính là bản sao của <code>table_indices_match_constants</code> — nó không phát hiện gì. Người thực sự bắt lỗi là <code>uris_round_trip_through_lookup</code> (bài 2.1): nó lấy <code>Ns(i)</code>, lấy URI ở vị trí <code>i</code>, tra ngược qua <code>lookup_uri</code> — mà <code>lookup_uri</code> trả về <em>hằng số</em> <code>Ns::W</code> (dùng <code>$idx</code>). Nếu chỉ số lệch vị trí, hai bên khác nhau ngay. (<code>w_prefix</code> là test mình tự thêm vào bản sao để minh hoạ hậu quả: <code>Ns::W</code> trả prefix <code>"x"</code>.)</p>
-<p>Vậy trong repo, lỗi thứ tự <em>vẫn được bảo vệ</em> — nhưng bởi test round-trip, không phải bởi test có tên nghe đúng nhất. Bài học chung, áp dụng cho mọi dự án:</p>
+<p>Test "1 passed" chính là bản sao của <code>table_indices_match_constants</code> phiên bản cũ: nó không phát hiện gì. Người thực sự bắt lỗi là <code>uris_round_trip_through_lookup</code> (bài 2.1): nó lấy <code>Ns(i)</code>, lấy URI ở vị trí <code>i</code>, tra ngược qua <code>lookup_uri</code> — mà <code>lookup_uri</code> trả về <em>hằng số</em> <code>Ns::W</code> (dùng <code>$idx</code>). Nếu chỉ số lệch vị trí, hai bên khác nhau ngay. (<code>w_prefix</code> là test mình tự thêm vào bản sao để minh hoạ hậu quả: <code>Ns::W</code> trả prefix <code>"x"</code>.)</p>
+<p>Vậy lỗi thứ tự <em>vẫn được bảo vệ</em>, nhưng bởi test round-trip, không phải bởi test có tên nghe đúng nhất. Bài học chung, áp dụng cho mọi dự án:</p>
 <div class="callout pattern">
   <span class="callout-title">🧩 Kỹ thuật: kiểm tra xem test có thể fail không</span>
   <p>Một test chưa bao giờ fail thì chưa chắc đã kiểm tra được gì. Cách nhanh để biết: <strong>cố tình làm hỏng code</strong> (tráo chỉ số, xoá một dòng) rồi chạy test, xem test nào đỏ. Kỹ thuật này được tự động hoá thành "mutation testing" (công cụ Rust: <code>cargo-mutants</code>). Ở đây nó giúp mình phát hiện một test đúng tên nhưng rỗng ruột — và một test khác đang âm thầm gánh việc.</p>
 </div>
-<p>Một cách chặt chẽ hơn là để chính macro sinh ra phép kiểm tra, vì chỉ macro mới thấy cả <code>$id</code> lẫn thứ tự dòng. Đó là bài tập 3 cuối bài.</p>
+<h3 id="phien-ban-moi">7.2 Cách sửa: để macro nói ra "hằng số nào tên gì"</h3>
+<p>Vấn đề gốc: bên trong test, chỉ có <code>TABLE</code> và các con số, không có cách nào biết "hằng số tên <code>W</code> đáng lẽ trỏ vào dòng tên <code>W</code>". Chỉ <em>macro</em> mới thấy cùng lúc tên <code>$id</code> và hằng số <code>Ns::$id</code>. Vì vậy cách sửa là nhờ macro sinh thêm một bảng thứ tư, chỉ tồn tại khi chạy test (xem dòng 61–63 trong khối macro ở mục 3):</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L61-L63">crates/openxml-xml/src/ns.rs:61–63</figcaption>
+<pre><code class="language-rust">        /// Every constant with its name, so tests can check the explicit indices.
+        #[cfg(test)]
+        static CONSTANTS: &amp;[(&amp;str, Ns)] = &amp;[$( (stringify!($id), Ns::$id), )*];</code></pre>
+</figure>
+<ul>
+  <li><code>$( (stringify!($id), Ns::$id), )*</code>: với mỗi dòng dữ liệu, sinh một cặp (tên, hằng số), ví dụ <code>("W", Ns::W)</code>. <code>Ns::W</code> mang con số <code>$idx</code> gõ tay, còn <code>"W"</code> là tên thật.</li>
+  <li><code>#[cfg(test)]</code>: bảng này không có mặt trong bản build thường, nên không tốn gì cho người dùng thư viện.</li>
+</ul>
+<p>Test mới (khối ở đầu mục 7) duyệt bảng đó: với mỗi cặp, <code>ns.ident()</code> đọc tên ở dòng mà <em>con số</em> trỏ tới, rồi so với <em>tên thật</em>. Nếu <code>W</code> bị gõ nhầm chỉ số, <code>Ns::W.ident()</code> trả về <code>"X"</code> và test đỏ ngay, với thông điệp chỉ đúng hằng số bị sai. Dòng <code>assert_eq!(CONSTANTS.len(), TABLE.len())</code> thêm một lớp an toàn: cùng với phép so từng cặp, nó đảm bảo mỗi dòng của bảng có đúng một hằng số trỏ vào.</p>
+<p>Mình đã làm lại thí nghiệm tráo <code>W = 5</code>, <code>X = 4</code> trên repo thật: <code>table_indices_match_constants</code> giờ fail cùng với các test round-trip. Test này giờ đã kiểm tra đúng điều mà tên của nó hứa.</p>
 
 <h2 id="macro-khac">8. Các macro khác trong dự án</h2>
 <h3 id="int-value">8.1 <code>int_value!</code> và <code>float_value!</code>: sinh <code>impl</code> cho nhiều kiểu</h3>
@@ -468,7 +498,7 @@ macro_rules! say {
 <h2 id="ban-do-spec">10. Góc OpenXML: đọc bảng namespace như bản đồ spec</h2>
 <div class="callout ooxml">
   <span class="callout-title">📦 Góc OpenXML — 36 namespace, 6 nhóm</span>
-  <p>Mỗi dòng trong <code>namespaces! { … }</code> (ns.rs:67–170) có doc comment ghi rõ mục (§) của ECMA-376. Gom lại, bảng chính là một mục lục thu nhỏ của chuẩn:</p>
+  <p>Mỗi dòng trong <code>namespaces! { … }</code> (ns.rs:71–174) có doc comment ghi rõ mục (§) của ECMA-376. Gom lại, bảng chính là một mục lục thu nhỏ của chuẩn:</p>
   <div class="table-wrap"><table>
     <tr><th>Chỉ số</th><th>Nhóm</th><th>Namespace</th><th>Nguồn</th></tr>
     <tr><td>0–1</td><td>Giá trị đặc biệt</td><td><code>NONE</code>, <code>OTHER</code></td><td>Không phải namespace thật</td></tr>
@@ -507,14 +537,14 @@ macro_rules! say {
   <h3>🛠 Bài tập</h3>
   <ol>
     <li><strong>Viết macro đầu tiên.</strong> Trong một project riêng (<code>cargo new thu-macro</code>, ngoài repo), viết <code>macro_rules! max_of</code> nhận 1 hoặc nhiều biểu thức, trả về giá trị lớn nhất: <code>max_of!(3)</code> → 3, <code>max_of!(3, 9, 2)</code> → 9. Gợi ý: hai rule, rule thứ hai gọi đệ quy <code>max_of!</code> với phần còn lại, dùng <code>std::cmp::max</code>.</li>
-    <li><strong>Tái hiện <code>namespaces!</code> thu nhỏ.</strong> Trong cùng project, chép <code>struct Ns</code>, <code>NsInfo</code> và macro (ns.rs:20–65), gọi macro với 4 dòng <code>NONE</code>, <code>OTHER</code>, <code>W</code>, <code>X</code>. In <code>lookup_uri("http://purl.oclc.org/ooxml/spreadsheetml/main")</code>. Rồi xoá <code>#[allow(unreachable_patterns)]</code> và đọc cảnh báo. Thêm một thuộc tính tuỳ chọn thứ ba <code>$(, legacy = $legacy:literal)?</code> vào pattern, sinh ra trường <code>legacy: bool</code> trong <code>NsInfo</code> bằng rule <code>(@bool)</code> có sẵn.</li>
+    <li><strong>Tái hiện <code>namespaces!</code> thu nhỏ.</strong> Trong cùng project, chép <code>struct Ns</code>, <code>NsInfo</code> và macro (ns.rs:20–69), gọi macro với 4 dòng <code>NONE</code>, <code>OTHER</code>, <code>W</code>, <code>X</code>. In <code>lookup_uri("http://purl.oclc.org/ooxml/spreadsheetml/main")</code>. Rồi xoá <code>#[allow(unreachable_patterns)]</code> và đọc cảnh báo. Thêm một thuộc tính tuỳ chọn thứ ba <code>$(, legacy = $legacy:literal)?</code> vào pattern, sinh ra trường <code>legacy: bool</code> trong <code>NsInfo</code> bằng rule <code>(@bool)</code> có sẵn.</li>
     <li><strong>Test thứ tự "thật".</strong> Vẫn trong bản sao ở bài 2, sửa macro để nó sinh thêm một hàm kiểm tra:
       <pre><code class="language-rust">#[cfg(test)]
 #[test]
 fn constants_point_at_their_rows() {
     $( assert_eq!(TABLE[Ns::$id.0 as usize].ident, stringify!($id)); )*
 }</code></pre>
-      (đặt đoạn này bên trong phần expansion của rule lớn). Tráo chỉ số của <code>W</code> và <code>X</code>, chạy <code>cargo test</code>: test mới có bắt được không? So với <code>table_indices_match_constants</code> gốc.</li>
+      (đặt đoạn này bên trong phần expansion của rule lớn). Tráo chỉ số của <code>W</code> và <code>X</code>, chạy <code>cargo test</code>: test mới có bắt được không? So cách của bạn (sinh thẳng một hàm test) với cách repo đã chọn ở mục 7.2 (sinh bảng <code>CONSTANTS</code>, test viết tay duyệt bảng). Mỗi cách có ưu điểm gì?</li>
     <li><strong>Đọc macro lạ.</strong> Mở <code>crates/openxml-opc/src/core_properties.rs</code>, đọc macro <code>fields!</code> (từ dòng 46). Nó chỉ nhận <em>tên của một macro khác</em> (<code>$m:ident</code>) rồi gọi <code>$m!(…)</code> với bảng 15 trường của <code>core.xml</code> — kỹ thuật "callback macro": một bảng, nhiều macro dùng chung. Tìm hai macro cục bộ <code>assign!</code> và <code>emit!</code> trong cùng file: mỗi cái làm gì với bảng đó? Viết tay bản mở rộng của <code>fields!(assign)</code> cho dòng <code>(DC, "title", title)</code>.</li>
   </ol>
 </section>
@@ -522,7 +552,7 @@ fn constants_point_at_their_rows() {
 <section>
   <h2 id="tu-kiem-tra">Tự kiểm tra</h2>
   <details><summary>1. Macro <code>namespaces!</code> sinh ra ba thứ gì từ một bảng? Vì sao không viết tay?</summary>
-    <div class="answer">(1) Các hằng số <code>pub const W: Ns = Ns(4);</code> trong <code>impl Ns</code>; (2) bảng <code>static TABLE: &amp;[NsInfo]</code>; (3) hàm <code>lookup_uri</code> với <code>match</code> trên URI Transitional và Strict. Viết tay thì hơn 130 chỗ ở ba nơi phải khớp nhau — dễ sai âm thầm. Macro giữ một nguồn sự thật.</div></details>
+    <div class="answer">(1) Các hằng số <code>pub const W: Ns = Ns(4);</code> trong <code>impl Ns</code>; (2) bảng <code>static TABLE: &amp;[NsInfo]</code>; (3) hàm <code>lookup_uri</code> với <code>match</code> trên URI Transitional và Strict. (Ngoài ra còn bảng <code>CONSTANTS</code>, nhưng chỉ khi chạy test.) Viết tay thì hơn 130 chỗ ở ba nơi phải khớp nhau — dễ sai âm thầm. Macro giữ một nguồn sự thật.</div></details>
   <details><summary>2. <code>$(, strict = $strict:literal)?</code> khớp với những đầu vào nào?</summary>
     <div class="answer">Hoặc không có gì (0 lần), hoặc đúng chuỗi token <code>, strict = "một literal"</code> (1 lần). <code>strict</code> và <code>=</code> là token cố định phải có mặt.</div></details>
   <details><summary>3. Tại sao cần <code>(@opt)</code> và <code>(@opt $v:literal)</code> thay vì viết thẳng <code>$(Some($strict))?</code>?</summary>
@@ -531,8 +561,8 @@ fn constants_point_at_their_rows() {
     <div class="answer">Từ nhánh <code>"" =&gt; Some(Ns::NONE)</code> sinh ra cho dòng <code>NONE</code> (URI rỗng), đứng sau <code>"" =&gt; None</code>. NONE có trong bảng chỉ để <code>TABLE[0]</code> tồn tại, không để tra ngược, nên nhánh chết là cố ý. Trùng URI thật sự thì đã có test <code>uris_and_prefixes_are_unique</code> bắt.</div></details>
   <details><summary>5. Khác nhau giữa <code>const</code> và <code>static</code>? Vì sao <code>Ns::W</code> là const còn <code>TABLE</code> là static?</summary>
     <div class="answer"><code>const</code> là giá trị được dán vào mỗi chỗ dùng, dùng được làm pattern; <code>static</code> là một vị trí bộ nhớ duy nhất, địa chỉ cố định. <code>Ns::W</code> nhỏ và cần làm pattern trong <code>match</code> → const. <code>TABLE</code> là bảng lớn dùng chung, trả tham chiếu <code>&amp;'static NsInfo</code> → static.</div></details>
-  <details><summary>6. Test <code>table_indices_match_constants</code> có phát hiện được việc gõ nhầm chỉ số <code>W = 5</code> không? Test nào phát hiện?</summary>
-    <div class="answer">Không: nó so <code>TABLE[i].ident</code> với chính nó, nên luôn đúng. Test <code>uris_round_trip_through_lookup</code> mới phát hiện, vì <code>lookup_uri</code> trả về hằng số (dùng <code>$idx</code>), còn <code>Ns(i).uri()</code> dùng vị trí — hai bên lệch nhau khi chỉ số sai.</div></details>
+  <details><summary>6. Vì sao phiên bản cũ của <code>table_indices_match_constants</code> không bắt được lỗi gõ nhầm <code>W = 5</code>, còn phiên bản mới thì bắt được?</summary>
+    <div class="answer">Bản cũ so <code>TABLE[i].ident</code> với chính nó, nên luôn đúng. Bản mới dùng bảng <code>CONSTANTS</code> do macro sinh ra, chứa cặp (tên thật, hằng số mang chỉ số gõ tay), nên so được "dòng mà con số trỏ tới" với "tên đáng lẽ phải có". Test <code>uris_round_trip_through_lookup</code> thì bắt được lỗi này từ trước, vì <code>lookup_uri</code> trả hằng số (dùng <code>$idx</code>) còn <code>Ns(i).uri()</code> dùng vị trí.</div></details>
 </section>
 
 <div class="callout rust">

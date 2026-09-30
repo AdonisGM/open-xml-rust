@@ -341,7 +341,7 @@ pub struct RawName {
 </figure>
 <p>Nếu derive, <code>println!("{:?}", Ns::W)</code> sẽ in <code>Ns(4)</code> — chính xác nhưng vô dụng: ai nhớ số 4 là namespace nào? Nên dự án tự viết:</p>
 <figure class="code">
-  <figcaption data-src="crates/openxml-xml/src/ns.rs#L239-L243">crates/openxml-xml/src/ns.rs:239–243</figcaption>
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L243-L247">crates/openxml-xml/src/ns.rs:243–247</figcaption>
 <pre><code class="language-rust">impl fmt::Debug for Ns {
     fn fmt(&amp;self, f: &amp;mut fmt::Formatter&lt;'_&gt;) -&gt; fmt::Result {
         write!(f, "Ns::{}", self.ident())
@@ -396,7 +396,7 @@ let m = Mau::DO;     // dùng như một "giá trị có tên" của kiểu</cod
 <h2 id="method">9. Các method của <code>Ns</code></h2>
 <h3 id="from-uri-classify">9.1 <code>from_uri</code> và <code>classify</code>: từ URI ra <code>Ns</code></h3>
 <figure class="code">
-  <figcaption data-src="crates/openxml-xml/src/ns.rs#L172-L188">crates/openxml-xml/src/ns.rs:172–188</figcaption>
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L176-L192">crates/openxml-xml/src/ns.rs:176–192</figcaption>
 <pre><code class="language-rust">impl Ns {
     /// Looks up a namespace by URI. Both Transitional and Strict URIs are accepted.
     ///
@@ -433,7 +433,7 @@ Ns::classify("")                                               -&gt;  Ns::NONE</
 
 <h3 id="info-uri">9.2 <code>info</code>, <code>uri</code>, <code>prefix</code>, <code>default_on_root</code>: tra bảng</h3>
 <figure class="code">
-  <figcaption data-src="crates/openxml-xml/src/ns.rs#L190-L216">crates/openxml-xml/src/ns.rs:190–216</figcaption>
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L194-L220">crates/openxml-xml/src/ns.rs:194–220</figcaption>
 <pre><code class="language-rust">    fn info(self) -&gt; &amp;'static NsInfo {
         &amp;TABLE[self.0 as usize]
     }
@@ -470,7 +470,7 @@ Ns::classify("")                                               -&gt;  Ns::NONE</
 
 <h3 id="is-known-all">9.3 <code>is_known</code>, <code>index</code>, <code>all</code>, <code>ident</code></h3>
 <figure class="code">
-  <figcaption data-src="crates/openxml-xml/src/ns.rs#L218-L236">crates/openxml-xml/src/ns.rs:218–236</figcaption>
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L222-L240">crates/openxml-xml/src/ns.rs:222–240</figcaption>
 <pre><code class="language-rust">    /// Whether this is a real namespace from the registry.
     pub fn is_known(self) -&gt; bool {
         self != Ns::NONE &amp;&amp; self != Ns::OTHER
@@ -508,7 +508,7 @@ Ns::W.index(), Ns::XSI.index()             -&gt; 4 37</code></pre>
 
 <h2 id="sentinel">10. <code>Ns::NONE</code> và <code>Ns::OTHER</code>: giá trị đặc biệt</h2>
 <figure class="code">
-  <figcaption data-src="crates/openxml-xml/src/ns.rs#L67-L75">crates/openxml-xml/src/ns.rs:67–75</figcaption>
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L71-L79">crates/openxml-xml/src/ns.rs:71–79</figcaption>
 <pre><code class="language-rust">namespaces! {
     /// No namespace (unqualified names).
     NONE = 0, "", "";
@@ -563,28 +563,29 @@ Ns::W.index(), Ns::XSI.index()             -&gt; 4 37</code></pre>
 <h2 id="test">11. Đọc từng test trong <code>ns.rs</code></h2>
 <p>Test trong Rust thường nằm ngay cuối file, trong một module riêng chỉ biên dịch khi chạy test:</p>
 <figure class="code">
-  <figcaption data-src="crates/openxml-xml/src/ns.rs#L245-L255">crates/openxml-xml/src/ns.rs:245–255</figcaption>
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L249-L260">crates/openxml-xml/src/ns.rs:249–260</figcaption>
 <pre><code class="language-rust">#[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn table_indices_match_constants() {
-        for (i, info) in TABLE.iter().enumerate() {
-            let ns = Ns(i as u16);
-            assert_eq!(ns.ident(), info.ident, "index {i} is out of order");
+        // Each constant's explicit index must point at its own row of TABLE.
+        assert_eq!(CONSTANTS.len(), TABLE.len());
+        for (name, ns) in CONSTANTS {
+            assert_eq!(ns.ident(), *name, "Ns::{name} points at the wrong row of TABLE");
         }
     }</code></pre>
 </figure>
 <ul>
   <li><code>#[cfg(test)]</code>: chỉ biên dịch module này khi chạy <code>cargo test</code>. <code>use super::*;</code>: nhập mọi thứ của module cha (<code>ns</code>), kể cả thứ riêng tư như <code>TABLE</code> và constructor <code>Ns(…)</code> — module con được thấy đồ riêng tư của module cha.</li>
   <li><code>#[test]</code>: đánh dấu hàm là một test.</li>
-  <li><code>TABLE.iter().enumerate()</code>: duyệt bảng, kèm chỉ số <code>i</code>.</li>
-  <li><code>assert_eq!(a, b, "thông điệp {i}")</code>: nếu <code>a != b</code> thì panic, in cả hai giá trị (nhờ <code>Debug</code>) và thông điệp. Tham số thứ ba trở đi là chuỗi định dạng như <code>format!</code>.</li>
+  <li><code>CONSTANTS</code>: một bảng các cặp (tên, hằng số) như <code>("W", Ns::W)</code>, do macro sinh ra và chỉ tồn tại khi chạy test. <code>for (name, ns) in CONSTANTS</code> duyệt bảng và <em>tách</em> mỗi cặp thành hai biến (destructuring).</li>
+  <li><code>assert_eq!(a, b, "thông điệp {name}")</code>: nếu <code>a != b</code> thì panic, in cả hai giá trị (nhờ <code>Debug</code>) và thông điệp. Tham số thứ ba trở đi là chuỗi định dạng như <code>format!</code>.</li>
 </ul>
-<p>Test này muốn bảo vệ việc "chỉ số khai báo trong macro khớp vị trí trong bảng". Nhưng hãy để ý: <code>ns.ident()</code> chính là <code>TABLE[i].ident</code>, còn <code>info</code> cũng là <code>TABLE[i]</code>… <a href="p2-2-macro.html#test-thu-tu">Bài 2.2</a> sẽ phân tích kỹ chuyện này (có bất ngờ đấy).</p>
+<p>Test này bảo vệ việc "chỉ số gõ tay trong macro khớp vị trí trong bảng": <code>ns.ident()</code> đọc tên ở dòng mà con số trỏ tới, rồi so với tên thật. Phiên bản đầu của test này có một lỗ hổng khiến nó không bao giờ fail. <a href="p2-2-macro.html#test-thu-tu">Bài 2.2</a> kể lại cách phát hiện và cách sửa.</p>
 <figure class="code">
-  <figcaption data-src="crates/openxml-xml/src/ns.rs#L257-L265">crates/openxml-xml/src/ns.rs:257–265</figcaption>
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L262-L270">crates/openxml-xml/src/ns.rs:262–270</figcaption>
 <pre><code class="language-rust">    #[test]
     fn uris_round_trip_through_lookup() {
         for ns in Ns::all() {
@@ -597,7 +598,7 @@ mod tests {
 </figure>
 <p>"Khứ hồi" (round trip): với mọi namespace, lấy URI rồi tra ngược phải ra đúng nó; nếu có URI Strict thì tra URI Strict cũng phải ra nó. <code>if let Some(strict) = …</code> là cách gọn để "nếu là <code>Some</code> thì lấy giá trị bên trong ra dùng". <code>"{ns:?}"</code> in tên namespace khi fail — nhờ <code>Debug</code> tự viết, bạn sẽ thấy <code>Ns::W</code> chứ không phải <code>Ns(4)</code>.</p>
 <figure class="code">
-  <figcaption data-src="crates/openxml-xml/src/ns.rs#L267-L286">crates/openxml-xml/src/ns.rs:267–286</figcaption>
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L272-L291">crates/openxml-xml/src/ns.rs:272–291</figcaption>
 <pre><code class="language-rust">    #[test]
     fn uris_and_prefixes_are_unique() {
         let mut uris = std::collections::HashSet::new();
@@ -627,7 +628,7 @@ mod tests {
   <li><code>assert!(điều_kiện, "…")</code>: như <code>assert_eq!</code> nhưng chỉ kiểm tra một <code>bool</code>.</li>
 </ul>
 <figure class="code">
-  <figcaption data-src="crates/openxml-xml/src/ns.rs#L288-L315">crates/openxml-xml/src/ns.rs:288–315</figcaption>
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L293-L320">crates/openxml-xml/src/ns.rs:293–320</figcaption>
 <pre><code class="language-rust">    #[test]
     fn strict_maps_to_transitional() {
         let ns = Ns::from_uri("http://purl.oclc.org/ooxml/wordprocessingml/main").unwrap();
