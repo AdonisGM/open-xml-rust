@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.1 XML namespace &amp; kiểu Ns · Học Rust qua open-xml-rust</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/vendor/highlight.min.js" defer></script>
+<script src="assets/app.js" defer></script>
+</head>
+<body data-lesson="p2-1">
+<main class="content">
+
+<header>
+  <p class="crumb">Phần 2 · Tầng XML (openxml-xml)</p>
+  <h1>2.1 XML namespace &amp; kiểu Ns</h1>
+  <p class="lead">Mọi thẻ trong file Office đều thuộc về một namespace. Trước khi đọc được một dòng XML nào, thư viện phải trả lời được câu hỏi "thẻ này thuộc từ vựng nào?". Bài này mình học XML và namespace từ gốc, rồi mổ kiểu <code>Ns</code> — một struct chỉ nặng 2 byte nhưng là "chứng minh thư" của mọi thẻ trong dự án.</p>
+  <div class="meta"><span>⏱ ~60 phút</span><span>crates/openxml-xml/src/ns.rs</span><span>Rust: tuple struct, derive, trait Debug, const, &amp;'static str, Option, Iterator</span></div>
+</header>
+
+<section class="goals">
+  <h3>🎯 Học xong bài này bạn sẽ</h3>
+  <ul>
+    <li>Đọc được XML "chuẩn chỉnh": element, attribute, text, thẻ rỗng, khai báo <code>&lt;?xml …?&gt;</code>.</li>
+    <li>Hiểu namespace, prefix, default namespace, và cái bẫy kinh điển: <strong>attribute không prefix không thuộc default namespace</strong>.</li>
+    <li>Biết Clark notation <code>{uri}local</code>, namespace Transitional vs Strict, và vì sao SpreadsheetML hay dùng default namespace.</li>
+    <li>Hiểu <code>pub struct Ns(u16);</code>: tuple struct / newtype, vì sao chọn <code>u16</code> thay vì <code>String</code>.</li>
+    <li>Giải thích được từng trait trong <code>#[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]</code> và vì sao <code>Debug</code> được viết tay.</li>
+    <li>Đọc hiểu các method <code>from_uri</code>, <code>classify</code>, <code>uri</code>, <code>is_known</code>, <code>all</code> và toàn bộ test trong <code>ns.rs</code>.</li>
+  </ul>
+</section>
+
+<h2 id="xml-co-ban">1. XML cơ bản trong 5 phút</h2>
+<p>Ở <a href="p0-1-openxml-la-gi.html">bài 0.1</a> bạn đã nhìn thấy XML của Word. Giờ mình gọi tên chính xác từng thành phần, vì code của dự án dùng đúng những từ này. Lấy luôn phần đầu file <code>xl/worksheets/sheet1.xml</code> trong <code>fixtures/poi/sample.xlsx</code> (mình giải nén và xuống dòng cho dễ đọc):</p>
+<figure class="code">
+  <figcaption>xl/worksheets/sheet1.xml trong fixtures/poi/sample.xlsx (rút gọn, đã xuống dòng)</figcaption>
+<pre><code class="language-xml">&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;
+&lt;worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+           xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"&gt;
+  &lt;dimension ref="A1:B10"/&gt;
+  &lt;sheetData&gt;
+    &lt;row r="1" spans="1:2"&gt;
+      &lt;c r="A1" t="s"&gt;&lt;v&gt;0&lt;/v&gt;&lt;/c&gt;
+      &lt;c r="B1"&gt;&lt;v&gt;111&lt;/v&gt;&lt;/c&gt;
+    &lt;/row&gt;
+    ...
+  &lt;/sheetData&gt;
+&lt;/worksheet&gt;</code></pre>
+</figure>
+<dl class="glossary">
+  <dt>&lt;?xml …?&gt;</dt><dd><strong>XML declaration</strong> (khai báo): phiên bản XML và bảng mã (<code>UTF-8</code>). Không bắt buộc, nhưng Office luôn ghi. Dự án có hằng số <code>XML_DECLARATION</code> trong <code>writer.rs</code> để ghi lại đúng dòng này.</dd>
+  <dt>element</dt><dd>Một "thẻ" gồm thẻ mở <code>&lt;row …&gt;</code>, nội dung, và thẻ đóng <code>&lt;/row&gt;</code>. Element lồng nhau thành cây; element ngoài cùng (<code>worksheet</code>) gọi là <strong>root</strong> (gốc) — mỗi tài liệu có đúng một root.</dd>
+  <dt>attribute</dt><dd>Cặp <code>tên="giá trị"</code> nằm trong thẻ mở: <code>r="A1"</code>, <code>t="s"</code>. Thứ tự attribute không có ý nghĩa, và một thẻ không được có hai attribute trùng tên.</dd>
+  <dt>text</dt><dd>Chữ nằm giữa thẻ mở và thẻ đóng: <code>111</code> trong <code>&lt;v&gt;111&lt;/v&gt;</code>. Trong text, <code>&lt;</code> và <code>&amp;</code> phải viết thành <code>&amp;lt;</code> và <code>&amp;amp;</code> (escape).</dd>
+  <dt>empty element</dt><dd>Thẻ rỗng viết gọn <code>&lt;dimension ref="A1:B10"/&gt;</code> — tương đương <code>&lt;dimension ref="A1:B10"&gt;&lt;/dimension&gt;</code>. Office dùng rất nhiều kiểu này, ví dụ <code>&lt;w:b/&gt;</code> nghĩa là "in đậm".</dd>
+</dl>
+<p>Một tài liệu tuân thủ các luật cú pháp (thẻ đóng mở khớp nhau, attribute có ngoặc kép, đúng một root…) gọi là <strong>well-formed</strong>. Nếu không well-formed, parser phải báo lỗi — bạn sẽ thấy các lỗi đó ở <a href="p2-3-xu-ly-loi.html">bài 2.3</a>.</p>
+
+<h2 id="namespace">2. Namespace: tên họ của thẻ</h2>
+<h3 id="van-de-trung-ten">2.1 Vấn đề: trùng tên</h3>
+<p>Một file <code>.docx</code> trộn nhiều "ngôn ngữ con": WordprocessingML cho văn bản, DrawingML cho hình, Math cho công thức… Cả Word lẫn DrawingML đều có thẻ tên <code>p</code> (paragraph), cả hai đều có <code>r</code> (run). Nếu chỉ nhìn tên thì không biết <code>&lt;p&gt;</code> là đoạn văn của Word hay đoạn chữ trong một hình vẽ.</p>
+<p>Giải pháp của XML: mỗi từ vựng được gắn với một <strong>namespace</strong> (không gian tên) — một URI dài, duy nhất trên đời. Tên đầy đủ của một thẻ là <em>cặp</em> (namespace URI, tên cục bộ). Giống như người Việt có họ và tên: "Lan" thì nhiều, nhưng "Nguyễn Lan ở nhà số 5" thì một.</p>
+
+<h3 id="prefix">2.2 Prefix — biệt danh của URI</h3>
+<p>Viết URI dài vào từng thẻ thì không ai đọc nổi, nên XML cho phép khai báo một <strong>prefix</strong> (tiền tố):</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — khai báo và dùng prefix</figcaption>
+<pre><code class="language-xml">&lt;w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+            xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"&gt;
+  &lt;w:body&gt;
+    &lt;w:p&gt; ... &lt;/w:p&gt;          &lt;!-- p của Word --&gt;
+    ... &lt;a:p&gt; ... &lt;/a:p&gt; ...   &lt;!-- p của DrawingML: khác hẳn --&gt;
+  &lt;/w:body&gt;
+&lt;/w:document&gt;</code></pre>
+</figure>
+<ul>
+  <li><code>xmlns:w="URI"</code> là một <strong>namespace declaration</strong> (khai báo namespace). Trông giống attribute, nhưng ý nghĩa đặc biệt: "trong thẻ này và mọi thẻ con, <code>w</code> nghĩa là URI kia".</li>
+  <li>Khai báo có <strong>phạm vi</strong> (scope): hiệu lực từ thẻ khai báo xuống hết cây con. Thẻ con có thể khai báo lại cùng prefix với URI khác — khi đó nó "che" khai báo của cha.</li>
+  <li><code>w:p</code> gọi là <strong>QName</strong> (qualified name — tên có prefix); <code>p</code> là <strong>local name</strong> (tên cục bộ).</li>
+</ul>
+<p>Như bài 0.1 đã nhấn mạnh: <strong>prefix chỉ là biệt danh, URI mới là danh tính</strong>. Vì vậy thư viện không bao giờ được so sánh <code>"w:p"</code> như chuỗi. Nó phải "resolve" (giải) prefix ra URI rồi mới so sánh.</p>
+
+<h3 id="default-namespace">2.3 Default namespace — <code>xmlns="…"</code></h3>
+<p>Nhìn lại <code>sheet1.xml</code> ở mục 1: thẻ <code>worksheet</code>, <code>row</code>, <code>c</code> không hề có prefix. Đó là nhờ <strong>default namespace</strong> (namespace mặc định): khai báo <code>xmlns="URI"</code> (không có <code>:tên</code>) nghĩa là "mọi <em>element</em> không prefix trong phạm vi này thuộc URI kia". Vậy <code>&lt;row&gt;</code> ở trên thực chất là <code>row</code> của SpreadsheetML — y hệt như khi viết <code>&lt;x:row&gt;</code> với <code>xmlns:x</code> trỏ tới cùng URI.</p>
+<p>Còn <code>xmlns=""</code> (URI rỗng) thì <em>huỷ</em> default namespace: element không prefix bên trong không thuộc namespace nào. Writer của dự án biết tự sinh ra <code>xmlns=""</code> khi cần (ghi trong <code>ARCHITECTURE.md</code>) — chuyện của <a href="p2-5-xml-writer.html">bài 2.5</a>.</p>
+
+<h2 id="attribute-khong-prefix">3. Cái bẫy: attribute không prefix</h2>
+<p>Đây là luật mà rất nhiều người (và không ít thư viện) làm sai: <strong>default namespace chỉ áp dụng cho element, không áp dụng cho attribute</strong>. Attribute không có prefix thì <em>không thuộc namespace nào cả</em>, bất kể thẻ chứa nó ở namespace nào.</p>
+<p>Mình không muốn bạn tin suông, nên đã chạy thử <code>XmlReader</code> của dự án trên một thẻ giống <code>worksheet</code> ở trên (chương trình nhỏ đặt ngoài repo, phụ thuộc <code>openxml-xml</code> qua đường dẫn), in ra namespace của từng attribute:</p>
+<figure class="code">
+  <figcaption>Tự viết — in namespace của từng attribute</figcaption>
+<pre><code class="language-rust">let mut r = XmlReader::new(r#"&lt;worksheet
+    xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+    xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+    ref="A1" r:id="rId1" xml:space="preserve"/&gt;"#);
+let root = r.root().unwrap();
+for a in root.attributes() {
+    println!("attr {:?} {} = {}", a.ns, a.local, a.value);
+}
+println!("clark {}", root.clark_name());</code></pre>
+</figure>
+<figure class="code">
+  <figcaption>Kết quả chạy thật</figcaption>
+<pre><code class="language-bash">attr Ns::XMLNS  = http://schemas.openxmlformats.org/spreadsheetml/2006/main
+attr Ns::XMLNS r = http://schemas.openxmlformats.org/officeDocument/2006/relationships
+attr Ns::NONE ref = A1
+attr Ns::R id = rId1
+attr Ns::XML space = preserve
+clark {http://schemas.openxmlformats.org/spreadsheetml/2006/main}worksheet</code></pre>
+</figure>
+<p>Đọc từng dòng:</p>
+<ul>
+  <li>Hai khai báo namespace được reader báo là thuộc "namespace giả" <code>Ns::XMLNS</code> (sẽ nói ở mục 4).</li>
+  <li><code>ref</code> không prefix → <code>Ns::NONE</code> ("không namespace"), <strong>dù</strong> <code>worksheet</code> nằm trong default namespace SpreadsheetML.</li>
+  <li><code>r:id</code> có prefix → <code>Ns::R</code> (namespace relationships).</li>
+  <li>Root element thì có namespace SpreadsheetML — in bằng Clark notation ở dòng cuối.</li>
+</ul>
+<p>Trong code, chỗ quyết định điều này nằm ở <code>reader.rs</code>: với attribute, reader gọi <code>resolver.resolve_attribute(...)</code> của quick-xml (hàm này làm đúng luật), và kết quả <code>Unbound</code> được đổi thành <code>Ns::NONE</code>. Bạn sẽ đọc kỹ ở <a href="p2-4-xml-reader.html">bài 2.4</a>. Tầng trên dựa vào luật này ở khắp nơi — ví dụ khi đọc <code>[Content_Types].xml</code>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-opc/src/content_types.rs#L46-L58">crates/openxml-opc/src/content_types.rs:46–58</figcaption>
+<pre><code class="language-rust">    pub fn parse(bytes: &amp;[u8]) -&gt; Result&lt;Self&gt; {
+        let root = RawElement::parse_bytes(bytes)?;
+        if !root.name.is(Ns::CT, "Types") {
+            return Err(Error::Xml(openxml_xml::Error::UnexpectedRoot {
+                expected: format!("{{{}}}Types", Ns::CT.uri()),
+                found: format!("{{{}}}{}", root.name.uri(), root.name.local),
+            }));
+        }
+        let mut table = ContentTypes::empty();
+        for el in root.elements() {
+            if el.name.is(Ns::CT, "Default") {
+                if let (Some(ext), Some(ty)) =
+                    (el.attr(Ns::NONE, "Extension"), el.attr(Ns::NONE, "ContentType"))</code></pre>
+</figure>
+<p>Element <code>Default</code> nằm trong namespace <code>Ns::CT</code> (vì <code>&lt;Types xmlns="…content-types"&gt;</code> khai báo default namespace), nhưng attribute <code>Extension</code> được tìm với <code>Ns::NONE</code>. Đúng luật.</p>
+<div class="callout warn">
+  <span class="callout-title">⚠️ Chỗ hay nhầm</span>
+  <p>Trong Word, attribute lại <em>luôn có prefix</em>: <code>&lt;w:jc w:val="center"/&gt;</code>. Vì schema WordprocessingML khai báo attribute là "qualified". Còn SpreadsheetML, OPC thì attribute không prefix (<code>r="A1"</code>). Nếu bạn viết tay code tìm <code>w:val</code> bằng <code>Ns::NONE</code> thì sẽ không bao giờ thấy, và ngược lại. Code sinh tự động (Phần 4) lấy thông tin này từ XSD nên không nhầm.</p>
+</div>
+
+<h2 id="xml-prefix-clark">4. Prefix <code>xml:</code>, <code>xmlns</code> và Clark notation</h2>
+<p>Có hai prefix đặc biệt mà bạn <strong>không bao giờ</strong> cần (và không được phép) tự khai báo:</p>
+<ul>
+  <li><code>xml:</code> luôn gắn với URI <code>http://www.w3.org/XML/1998/namespace</code>. Word dùng nó mỗi ngày: <code>&lt;w:t xml:space="preserve"&gt;</code> để giữ khoảng trắng đầu/cuối. Trong dự án là <code>Ns::XML</code>.</li>
+  <li><code>xmlns</code> là "namespace giả" dành cho chính các khai báo. Chuẩn "Namespaces in XML" gán cho nó URI <code>http://www.w3.org/2000/xmlns/</code>. Trong dự án là <code>Ns::XMLNS</code> — nhờ đó các khai báo có thể được giữ lại như attribute thường (để ghi ra đúng như cũ, xem <a href="p2-7-raw-node.html">bài 2.7</a>).</li>
+</ul>
+<p>Khi cần <em>in</em> một tên đầy đủ mà không phụ thuộc prefix (chẳng hạn trong thông báo lỗi), người ta dùng <strong>Clark notation</strong> (đặt theo tên James Clark): <code>{URI}local</code>. Dự án có đúng một hàm cho việc này:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L236-L239">crates/openxml-xml/src/reader.rs:236–239</figcaption>
+<pre><code class="language-rust">    /// Clark notation (`{uri}local`) of the element name, for diagnostics.
+    pub fn clark_name(&amp;self) -&gt; String {
+        format!("{{{}}}{}", self.uri(), self.local())
+    }</code></pre>
+</figure>
+<p>Chuỗi định dạng <code>"{{{}}}{}"</code> trông rối mắt: trong <code>format!</code>, <code>{{</code> in ra một dấu <code>{</code> thật, <code>}}</code> in ra <code>}</code>, còn <code>{}</code> là chỗ điền giá trị. Vậy <code>{{</code> + <code>{}</code> + <code>}}</code> + <code>{}</code> = <code>{</code>uri<code>}</code>local.</p>
+
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — Transitional vs Strict: hai URI cho một từ vựng</span>
+  <p>ECMA-376 có hai bộ namespace cho cùng các từ vựng của Part 1:</p>
+  <div class="table-wrap"><table>
+    <tr><th>Từ vựng</th><th>Transitional (Office ghi ra)</th><th>Strict</th></tr>
+    <tr><td>WordprocessingML</td><td><code>http://schemas.openxmlformats.org/wordprocessingml/2006/main</code></td><td><code>http://purl.oclc.org/ooxml/wordprocessingml/main</code></td></tr>
+    <tr><td>SpreadsheetML</td><td><code>http://schemas.openxmlformats.org/spreadsheetml/2006/main</code></td><td><code>http://purl.oclc.org/ooxml/spreadsheetml/main</code></td></tr>
+    <tr><td>DrawingML</td><td><code>http://schemas.openxmlformats.org/drawingml/2006/main</code></td><td><code>http://purl.oclc.org/ooxml/drawingml/main</code></td></tr>
+  </table></div>
+  <p>Quy luật: Transitional dùng <code>schemas.openxmlformats.org/…/2006/…</code>, Strict dùng <code>purl.oclc.org/ooxml/…</code> (không có năm). Vì với XML, URI khác nhau là namespace khác nhau, một thư viện ngây thơ sẽ coi file Strict là "không hiểu gì". Dự án chọn cách: <strong>đọc cả hai, coi như một</strong> — <code>Ns::from_uri</code> trả về cùng <code>Ns::W</code> cho cả hai URI, còn khi ghi thì luôn dùng URI Transitional. Test <code>strict_maps_to_transitional</code> (mục 11) chứng minh điều đó. Chỉ 21 namespace của Part 1 có "bản Strict"; VML, MC, OPC, Dublin Core thì chỉ có một URI.</p>
+</div>
+
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — vì sao Excel thích default namespace?</span>
+  <p>Mở <code>xl/workbook.xml</code> hay <code>sheet1.xml</code> của <code>sample.xlsx</code> đều thấy <code>xmlns="…spreadsheetml/2006/main"</code> và thẻ không prefix. Word thì ngược lại: luôn <code>w:</code>. Đây là quy ước của Office chứ chuẩn không bắt buộc (bài 0.1 gọi SpreadsheetML là <code>x:</code> — cũng hợp lệ). Một sheet có hàng trăm nghìn thẻ <code>&lt;c&gt;</code>, bỏ được <code>x:</code> ở mỗi thẻ là tiết kiệm đáng kể. Các part OPC (<code>[Content_Types].xml</code>, <code>.rels</code>) và docProps (<code>app.xml</code>, <code>custom.xml</code>) cũng dùng default namespace.</p>
+  <p>Dự án ghi nhớ quy ước này trong cờ <code>default_on_root</code> của từng namespace, để khi <em>tạo mới</em> một part, writer khai báo namespace đó làm default ở root:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L239-L248">crates/openxml-xml/src/writer.rs:239–248</figcaption>
+<pre><code class="language-rust">            let default_free = !self.bindings[start..].iter().any(|b| b.prefix.is_empty())
+                &amp;&amp; self.binding_of_prefix("").is_none();
+            let prefix = if ns.default_on_root() &amp;&amp; default_free {
+                String::new()
+            } else if self.binding_of_prefix(ns.prefix()).is_none() {
+                ns.prefix().to_owned()
+            } else {
+                continue;
+            };
+            self.push_binding(prefix, ns, None);</code></pre>
+</figure>
+  <p>Đọc: "nếu namespace này quen dùng làm default <em>và</em> chỗ default còn trống thì dùng prefix rỗng; không thì dùng prefix quen thuộc (<code>w</code>, <code>r</code>…)". Chạy thật, các namespace có cờ này là: <code>[Ns::X, Ns::EP, Ns::OP, Ns::CT, Ns::PR]</code>.</p>
+</div>
+
+<h2 id="kieu-ns">5. Biểu diễn namespace trong Rust: <code>pub struct Ns(u16);</code></h2>
+<h3 id="bai-toan">5.1 Bài toán</h3>
+<p>Mỗi thẻ đọc được cần mang theo namespace của nó. Code sinh tự động (hàng trăm nghìn dòng) sẽ hỏi liên tục: "thẻ này có phải <code>w:p</code> không? <code>w:r</code>? <code>w:tbl</code>?". Có mấy cách biểu diễn:</p>
+<ol>
+  <li><strong><code>String</code> chứa URI.</strong> Đơn giản, nhưng mỗi phép so sánh là so từng ký tự một chuỗi ~60 ký tự; mỗi thẻ phải cấp phát bộ nhớ; và phải tự xử lý Strict/Transitional ở khắp nơi.</li>
+  <li><strong><code>enum Ns { W, X, P, … }</code>.</strong> Gọn và nhanh. Nhưng phải viết tay thêm bảng URI/prefix ở chỗ khác, và biến thể "namespace lạ" cần kèm URI (<code>Other(String)</code>) làm enum mất khả năng <code>Copy</code>.</li>
+  <li><strong>Một con số nhỏ bọc trong struct</strong> — cách dự án chọn: mỗi namespace được đánh số 0, 1, 2…; số đó tra được trong một bảng tĩnh để lấy URI, prefix.</li>
+</ol>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L15-L21">crates/openxml-xml/src/ns.rs:15–21</figcaption>
+<pre><code class="language-rust">/// Compact identifier of a known XML namespace.
+///
+/// Two special values exist: [`Ns::NONE`] for names without a namespace and
+/// [`Ns::OTHER`] for namespaces that are not part of the registry (their URI
+/// is carried separately, e.g. in [`crate::RawName`]).
+#[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct Ns(u16);</code></pre>
+</figure>
+
+<h3 id="tuple-struct">5.2 Tuple struct và newtype</h3>
+<p>Bạn đã biết struct có trường đặt tên: <code>struct Point { x: i32, y: i32 }</code>. Rust còn có <strong>tuple struct</strong> — struct mà các trường không có tên, chỉ có vị trí:</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — tuple struct</figcaption>
+<pre><code class="language-rust">struct Mau(u8, u8, u8);          // đỏ, xanh lá, xanh dương
+let cam = Mau(255, 128, 0);      // tạo: gọi như hàm
+println!("{}", cam.0);           // truy cập trường thứ nhất: .0, .1, .2
+
+struct Met(f64);                 // tuple struct 1 trường = "newtype"
+struct Feet(f64);
+let a = Met(3.0);
+// let b: Met = Feet(10.0);      // LỖI: Met và Feet là hai kiểu khác nhau</code></pre>
+</figure>
+<p>Tuple struct <em>một</em> trường có tên riêng: <strong>newtype</strong> (kiểu mới). Nó "bọc" một kiểu có sẵn để tạo ra kiểu khác hẳn về mặt kiểm tra kiểu, nhưng ở máy thì y như kiểu bên trong (không tốn thêm byte nào). <code>Ns(u16)</code> là newtype quanh <code>u16</code>.</p>
+<p>Điểm tinh tế: trường <code>.0</code> <strong>không có <code>pub</code></strong>. Nghĩa là code bên ngoài module <code>ns</code> không thể viết <code>Ns(999)</code> để bịa ra một namespace không tồn tại, cũng không thể đọc <code>ns.0</code>. Muốn có một <code>Ns</code>, bạn chỉ có thể dùng hằng số (<code>Ns::W</code>) hoặc hàm (<code>Ns::classify(uri)</code>). Muốn xem con số thì gọi <code>ns.index()</code>. Kỹ thuật này gọi là "giữ bất biến bằng cách giấu constructor": mọi <code>Ns</code> đang tồn tại đều hợp lệ, nên <code>TABLE[self.0 as usize]</code> không bao giờ vượt chỉ số.</p>
+<div class="callout pattern">
+  <span class="callout-title">🧩 Pattern: Newtype</span>
+  <p>Newtype là một trong những pattern dùng nhiều nhất trong Rust. Nó cho bạn: (1) an toàn kiểu — không thể lẫn <code>Ns</code> với một <code>u16</code> bất kỳ, (2) kiểm soát giá trị hợp lệ — constructor riêng tư, (3) được tự định nghĩa method và trait (như <code>Debug</code> in ra <code>Ns::W</code>). Bạn sẽ gặp lại ở <code>PartName</code> (Phần 3), <code>HexBinary(pub Vec&lt;u8&gt;)</code> trong <code>value.rs</code>, và các đơn vị đo như twip/EMU (Phần 5).</p>
+</div>
+
+<h3 id="vi-sao-u16">5.3 Vì sao <code>u16</code> chứ không phải <code>String</code>?</h3>
+<p>Mình in thử kích thước bằng <code>std::mem::size_of</code> (máy 64-bit):</p>
+<figure class="code">
+  <figcaption>Kết quả chạy thật — size_of</figcaption>
+<pre><code class="language-bash">size = 2            # Ns
+size String = 24    # String: con trỏ + độ dài + sức chứa
+size &amp;str = 16      # &amp;str: con trỏ + độ dài</code></pre>
+</figure>
+<ul>
+  <li><strong>Nhỏ:</strong> 2 byte, so với 24 byte của <code>String</code> (chưa kể vùng nhớ heap chứa ~60 ký tự URI).</li>
+  <li><strong>So sánh nhanh:</strong> <code>Ns::W == ns</code> là so hai số nguyên — một lệnh máy. So hai URI là so từng byte.</li>
+  <li><strong><code>Copy</code>:</strong> truyền đi đâu cũng chỉ là sao chép 2 byte; không cần nghĩ tới ownership, không cấp phát (mục 6).</li>
+  <li><strong>Dùng được trong <code>match</code>:</strong> đây là lý do quan trọng nhất. Code sinh tự động đọc attribute và phần tử con bằng cách <code>match</code> trên cặp <code>(Ns, &amp;str)</code>:</li>
+</ul>
+<figure class="code">
+  <figcaption data-src="crates/openxml-schema/src/generated/wml.rs#L6844-L6857">crates/openxml-schema/src/generated/wml.rs:6844–6857 (code sinh tự động)</figcaption>
+<pre><code class="language-rust">    fn read_xml(r: &amp;mut XmlReader&lt;'_&gt;, tag: &amp;StartTag&lt;'_&gt;) -&gt; Result&lt;Self&gt; {
+        let mut this = Self::default();
+        for a in tag.attributes() {
+            match (a.ns, a.local) {
+                (Ns::W, "abstractNumId") =&gt; {
+                    if let Some(v) = XmlValue::parse_xml(&amp;a.value) {
+                        this.abstract_num_id = Some(v);
+                        continue;
+                    }
+                }
+                _ =&gt; {}
+            }
+            this.extra_attrs.push(a.to_raw());
+        }</code></pre>
+</figure>
+<p><code>(Ns::W, "abstractNumId")</code> là một <em>pattern</em>: khớp khi namespace là <code>Ns::W</code> và local name là chuỗi đó. Trình biên dịch có thể tối ưu kiểu match này rất tốt. Với <code>String</code> URI thì không viết được như vậy (không thể đặt lời gọi hàm trong pattern), còn so sánh URI thì chậm hơn nhiều lần. Comment đầu file <code>ns.rs</code> nói đúng ý này: <em>"Generated code matches on <code>(Ns, local_name)</code> pairs instead of comparing namespace URIs, which keeps parsing fast."</em></p>
+<p>Bạn có thể hỏi: vậy URI chỉ được so sánh một lần ở đâu? Ở reader, khi gặp một URI, nó gọi <code>Ns::from_uri</code> để đổi sang <code>Ns</code>, và còn có một cache nhỏ 8 phần tử (<code>ns_cache</code>) để khỏi tra lại. Sau đó mọi thứ chỉ là số.</p>
+
+<h2 id="derive">6. Từng trait trong <code>#[derive(...)]</code></h2>
+<p><strong>Trait</strong> là một "khả năng" mà kiểu có thể có (sẽ học kỹ ở <a href="p2-6-xml-value.html">bài 2.6</a>). <code>#[derive(...)]</code> bảo trình biên dịch <em>tự viết</em> phần cài đặt trait đó cho bạn, dựa trên các trường. Vì <code>Ns</code> chỉ có một trường <code>u16</code>, mọi cài đặt tự sinh đều đơn giản là "làm y như <code>u16</code>". Mình đã cho trình biên dịch in ra code nó tự sinh (bản sao thu nhỏ của <code>Ns</code>, xem cách làm ở <a href="p2-2-macro.html">bài 2.2</a>), đây là một đoạn:</p>
+<figure class="code">
+  <figcaption>Code do derive sinh ra (in bằng -Zunpretty=expanded trên bản sao, lược bớt)</figcaption>
+<pre><code class="language-rust">impl ::core::clone::Clone for Ns {
+    fn clone(&amp;self) -&gt; Ns { *self }
+}
+impl ::core::marker::Copy for Ns { }
+impl ::core::marker::StructuralPartialEq for Ns { }
+impl ::core::cmp::PartialEq for Ns {
+    fn eq(&amp;self, other: &amp;Ns) -&gt; bool { self.0 == other.0 }
+}</code></pre>
+</figure>
+
+<h3 id="clone-copy">6.1 <code>Clone</code> và <code>Copy</code></h3>
+<p>Mặc định trong Rust, <code>let b = a;</code> là <strong>move</strong> (chuyển quyền sở hữu): sau dòng đó <code>a</code> không dùng được nữa. Điều này hợp lý với <code>String</code> (chỉ nên có một chủ sở hữu vùng nhớ heap), nhưng phiền với những giá trị nhỏ như số.</p>
+<ul>
+  <li><strong><code>Clone</code></strong>: kiểu có method <code>.clone()</code> để tạo bản sao <em>một cách tường minh</em>. Với <code>String</code>, clone là cấp phát và sao chép — có thể tốn kém, nên Rust bắt bạn gõ <code>.clone()</code> để thấy rõ.</li>
+  <li><strong><code>Copy</code></strong>: bản sao được tạo <em>ngầm</em>, chỉ bằng cách sao chép bit. <code>let b = a;</code> khi đó là copy, <code>a</code> vẫn dùng được. Chỉ kiểu mà mọi trường đều <code>Copy</code> (số, <code>bool</code>, <code>&amp;T</code>…) mới được <code>Copy</code>; <code>String</code>, <code>Vec</code> thì không.</li>
+</ul>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — move vs copy</figcaption>
+<pre><code class="language-rust">let s = String::from("w");
+let t = s;              // move
+// println!("{s}");     // LỖI: s đã bị move
+
+let a = Ns::W;
+let b = a;              // copy, vì Ns: Copy
+println!("{:?} {:?}", a, b);   // OK: Ns::W Ns::W</code></pre>
+</figure>
+<p><code>Copy</code> luôn đi kèm <code>Clone</code> (<code>Copy</code> là "trait con" của <code>Clone</code>), nên phải derive cả hai. Nhờ <code>Copy</code>, các method của <code>Ns</code> nhận <code>self</code> theo giá trị (<code>fn uri(self)</code>) thay vì <code>&amp;self</code> — không cần nghĩ đến borrow.</p>
+
+<h3 id="partialeq-eq">6.2 <code>PartialEq</code> và <code>Eq</code></h3>
+<p><code>PartialEq</code> cho phép dùng <code>==</code> và <code>!=</code>. <code>Eq</code> là lời hứa thêm: "phép so sánh bằng này là quan hệ tương đương đầy đủ, <code>a == a</code> luôn đúng". Tại sao có chữ "partial"? Vì <code>f64</code> có <code>NaN</code>, mà <code>NaN != NaN</code> — nên <code>f64</code> chỉ có <code>PartialEq</code>, không có <code>Eq</code>. Với <code>u16</code> thì không có chuyện đó, derive cả hai.</p>
+<p>Có một lý do nữa, rất thực tế với dự án này: <strong>muốn dùng hằng số <code>Ns::W</code> làm pattern trong <code>match</code>, kiểu <code>Ns</code> phải <em>derive</em> <code>PartialEq</code></strong> (tự viết <code>impl PartialEq</code> không đủ). Mình đã thử viết tay <code>impl PartialEq for Ns</code> rồi <code>match n { Ns::W =&gt; … }</code>, trình biên dịch báo:</p>
+<figure class="code">
+  <figcaption>Lỗi biên dịch thật khi PartialEq được viết tay</figcaption>
+<pre><code class="language-bash">error: constant of non-structural type `Ns` in a pattern
+  |
+2 | struct Ns(u16);
+  | --------- `Ns` must be annotated with `#[derive(PartialEq)]` to be usable in patterns
+...
+note: the `PartialEq` trait must be derived, manual `impl`s are not sufficient</code></pre>
+</figure>
+<p>Đó là ý nghĩa của dòng <code>impl StructuralPartialEq for Ns</code> trong code tự sinh ở trên: nó đánh dấu "so sánh bằng của kiểu này đúng là so từng trường", nên trình biên dịch dám dùng hằng số làm pattern. Toàn bộ <code>match (a.ns, a.local)</code> của code sinh tự động dựa trên điều này.</p>
+
+<h3 id="hash">6.3 <code>Hash</code></h3>
+<p><code>Hash</code> cho phép tính "mã băm" của giá trị — điều kiện để làm khoá trong <code>HashMap</code>/phần tử của <code>HashSet</code>. Trong dự án, lý do trực tiếp là <code>RawName</code> (tên của một thẻ "thô", <a href="p2-7-raw-node.html">bài 2.7</a>) có trường <code>ns: Ns</code> và derive <code>Hash</code>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/raw.rs#L15-L25">crates/openxml-xml/src/raw.rs:15–25</figcaption>
+<pre><code class="language-rust">#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RawName {
+    /// Namespace identifier.
+    pub ns: Ns,
+    /// Namespace URI when `ns` is [`Ns::OTHER`].
+    pub uri: Option&lt;Box&lt;str&gt;&gt;,
+    /// Prefix used in the source document, reused when writing if possible.
+    pub prefix: Option&lt;Box&lt;str&gt;&gt;,
+    /// Local name.
+    pub local: Box&lt;str&gt;,
+}</code></pre>
+</figure>
+<p>Derive trên một struct đòi hỏi <em>mọi trường</em> cũng có trait đó. Nếu <code>Ns</code> không <code>Hash</code> thì <code>RawName</code>, <code>RawElement</code>… đều không derive <code>Hash</code> được. Quy tắc chung cho kiểu "giá trị nhỏ" trong thư viện: derive càng đủ càng tốt, vì người dùng không thể tự thêm trait chuẩn cho kiểu của bạn sau này.</p>
+
+<h3 id="ord">6.4 <code>PartialOrd</code> và <code>Ord</code></h3>
+<p>Cho phép so sánh thứ tự <code>&lt;</code>, <code>&gt;</code>, sắp xếp (<code>sort()</code>), và làm khoá của <code>BTreeMap</code>/<code>BTreeSet</code> (map có thứ tự). Thứ tự ở đây là thứ tự chỉ số: chạy thật <code>Ns::W &lt; Ns::X</code> cho <code>true</code> vì 4 &lt; 5. Mình grep trong các crate viết tay (không tính code sinh) thì <em>không</em> thấy chỗ nào sắp xếp hay dùng <code>Ns</code> làm khoá <code>BTreeMap</code>; hai trait này được derive "cho đủ bộ", để người dùng thư viện có thể làm vậy nếu cần. Chi phí gần như bằng không.</p>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — bộ derive "chuẩn" cho kiểu giá trị</span>
+  <p>Bạn sẽ gặp đi gặp lại tổ hợp <code>Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord</code> cho kiểu nhỏ, không chứa heap. Ví dụ các enum sinh từ XSD trong <code>openxml-schema</code> dùng <code>#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]</code>. <code>Ns</code> có mọi thứ trừ <code>Debug</code> (tự viết, mục 7) và <code>Default</code> (không có namespace nào hiển nhiên là "mặc định").</p>
+</div>
+
+<h2 id="debug">7. Vì sao <code>Debug</code> được viết tay?</h2>
+<p><code>Debug</code> là trait cho định dạng <code>{:?}</code> — dùng khi in để gỡ lỗi, và bắt buộc cho <code>assert_eq!</code> (khi test fail, nó phải in được hai vế). Không có nó, trình biên dịch từ chối:</p>
+<figure class="code">
+  <figcaption>Lỗi biên dịch thật khi thiếu Debug</figcaption>
+<pre><code class="language-bash">error[E0277]: `Ns` doesn't implement `Debug`
+  = help: the trait `Debug` is not implemented for `Ns`
+  = note: add `#[derive(Debug)]` to `Ns` or manually `impl Debug for Ns`</code></pre>
+</figure>
+<p>Nếu derive, <code>println!("{:?}", Ns::W)</code> sẽ in <code>Ns(4)</code> — chính xác nhưng vô dụng: ai nhớ số 4 là namespace nào? Nên dự án tự viết:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L239-L243">crates/openxml-xml/src/ns.rs:239–243</figcaption>
+<pre><code class="language-rust">impl fmt::Debug for Ns {
+    fn fmt(&amp;self, f: &amp;mut fmt::Formatter&lt;'_&gt;) -&gt; fmt::Result {
+        write!(f, "Ns::{}", self.ident())
+    }
+}</code></pre>
+</figure>
+<ul>
+  <li><code>impl fmt::Debug for Ns</code>: "cài đặt trait <code>Debug</code> (trong module <code>std::fmt</code>, đã <code>use std::fmt;</code> ở dòng 13) cho kiểu <code>Ns</code>".</li>
+  <li><code>fn fmt(&amp;self, f: &amp;mut fmt::Formatter&lt;'_&gt;) -&gt; fmt::Result</code>: chữ ký bắt buộc của trait. <code>f</code> là "nơi ghi ra"; <code>&lt;'_&gt;</code> là một lifetime mà ta để trình biên dịch tự suy — tạm bỏ qua, <a href="p2-4-xml-reader.html">bài 2.4</a> sẽ giải thích.</li>
+  <li><code>write!(f, "Ns::{}", self.ident())</code>: giống <code>format!</code> nhưng ghi vào <code>f</code>. <code>self.ident()</code> trả về tên hằng số, ví dụ <code>"W"</code>.</li>
+</ul>
+<p>Kết quả chạy thật: <code>println!("{:?}", Ns::W)</code> in <code>Ns::W</code>, <code>Ns::from_uri(…strict spreadsheetml…)</code> in <code>Some(Ns::X)</code>. Output dễ đọc này xuất hiện trong mọi thông báo test fail của dự án — đáng công viết 5 dòng.</p>
+<div class="callout tip">
+  <span class="callout-title">💡 Mẹo</span>
+  <p>Output của <code>Debug</code> tốt nhất là <em>trông giống code Rust tạo ra giá trị đó</em>. <code>Ns::W</code> là đúng tinh thần ấy: bạn copy nó vào test là chạy được. Vì thế mới viết <code>"Ns::{}"</code> chứ không chỉ in <code>"w"</code> hay URI.</p>
+</div>
+
+<h2 id="const-static">8. Hằng số liên kết và <code>&amp;'static str</code></h2>
+<h3 id="associated-const">8.1 Associated const: <code>Ns::W</code></h3>
+<p>Bạn đã quen <code>impl</code> để định nghĩa method. Trong <code>impl</code> còn đặt được <strong>hằng số</strong> — gọi là <strong>associated const</strong> (hằng số liên kết với kiểu):</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — associated const</figcaption>
+<pre><code class="language-rust">struct Mau(u8, u8, u8);
+impl Mau {
+    pub const DO: Mau = Mau(255, 0, 0);
+    pub const DEN: Mau = Mau(0, 0, 0);
+}
+let m = Mau::DO;     // dùng như một "giá trị có tên" của kiểu</code></pre>
+</figure>
+<p>Trong <code>ns.rs</code>, bạn sẽ không thấy dòng <code>pub const W: Ns = Ns(4);</code> nào viết tay — chúng do macro <code>namespaces!</code> sinh ra từ các dòng như <code>W = 4, "w", "http://…"</code>. Tạm thời hãy coi macro là <strong>hộp đen</strong>: nó nhận một bảng và sinh ra (1) hằng số <code>Ns::W</code>, <code>Ns::X</code>…, (2) bảng tĩnh <code>TABLE</code> chứa thông tin từng namespace, (3) hàm <code>lookup_uri</code>. <a href="p2-2-macro.html">Bài 2.2</a> sẽ mổ nó từng dòng. Cách viết <code>Ns::W</code> trông y như biến thể enum — đó là chủ ý.</p>
+
+<h3 id="nsinfo">8.2 <code>NsInfo</code> và <code>&amp;'static str</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L23-L29">crates/openxml-xml/src/ns.rs:23–29</figcaption>
+<pre><code class="language-rust">struct NsInfo {
+    ident: &amp;'static str,
+    prefix: &amp;'static str,
+    uri: &amp;'static str,
+    strict_uri: Option&lt;&amp;'static str&gt;,
+    default_on_root: bool,
+}</code></pre>
+</figure>
+<p>Mỗi dòng của bảng namespace là một <code>NsInfo</code>. Struct này không <code>pub</code> — chi tiết nội bộ, bên ngoài chỉ thấy các method của <code>Ns</code>.</p>
+<p><code>&amp;str</code> là một "tham chiếu tới chuỗi" (mượn, không sở hữu). Chữ <code>'static</code> là một <strong>lifetime</strong> (vòng đời): nó nói tham chiếu này trỏ tới dữ liệu <em>sống suốt chương trình</em>. Chuỗi viết thẳng trong code như <code>"w"</code> được trình biên dịch nhúng vào file thực thi, nên nó tồn tại từ lúc chương trình chạy tới lúc tắt — kiểu của nó chính là <code>&amp;'static str</code>. Hệ quả thực tế:</p>
+<ul>
+  <li>Không tốn cấp phát: <code>Ns::W.uri()</code> trả về tham chiếu vào vùng dữ liệu có sẵn, không tạo <code>String</code> mới.</li>
+  <li>Người gọi giữ kết quả bao lâu cũng được, không bị "hết hạn". Đó là lý do chữ ký <code>pub fn uri(self) -&gt; &amp;'static str</code> rất dễ dùng.</li>
+</ul>
+<p>Lifetime là chủ đề khó nhất của Rust; ở đây bạn chỉ cần nhớ một câu: <strong><code>'static</code> = sống mãi</strong>. Các lifetime "ngắn" hơn (như <code>'i</code> trong <code>XmlReader&lt;'i&gt;</code>) để dành cho <a href="p2-4-xml-reader.html">bài 2.4</a>.</p>
+<p><code>Option&lt;&amp;'static str&gt;</code> cho <code>strict_uri</code>: có thể có (<code>Some("http://purl.oclc.org/…")</code>) hoặc không (<code>None</code>, với VML, MC…). Rust không có <code>null</code>; "có thể không có" luôn được nói rõ bằng <code>Option</code>.</p>
+
+<h2 id="method">9. Các method của <code>Ns</code></h2>
+<h3 id="from-uri-classify">9.1 <code>from_uri</code> và <code>classify</code>: từ URI ra <code>Ns</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L172-L188">crates/openxml-xml/src/ns.rs:172–188</figcaption>
+<pre><code class="language-rust">impl Ns {
+    /// Looks up a namespace by URI. Both Transitional and Strict URIs are accepted.
+    ///
+    /// Returns `None` for the empty URI and for namespaces outside the registry.
+    pub fn from_uri(uri: &amp;str) -&gt; Option&lt;Ns&gt; {
+        lookup_uri(uri)
+    }
+
+    /// Resolves a URI to an identifier, mapping unknown URIs to [`Ns::OTHER`]
+    /// and the empty URI to [`Ns::NONE`].
+    pub fn classify(uri: &amp;str) -&gt; Ns {
+        if uri.is_empty() {
+            Ns::NONE
+        } else {
+            lookup_uri(uri).unwrap_or(Ns::OTHER)
+        }
+    }</code></pre>
+</figure>
+<p>Hai hàm, hai phong cách trả lời cho cùng câu hỏi "URI này là namespace nào?":</p>
+<ul>
+  <li><code>from_uri</code> trả <code>Option&lt;Ns&gt;</code>: "<code>Some(ns)</code> nếu biết, <code>None</code> nếu không". Người gọi <em>buộc</em> phải xử lý trường hợp không biết. <code>lookup_uri</code> là hàm riêng tư do macro sinh ra (một <code>match</code> khổng lồ trên chuỗi).</li>
+  <li><code>classify</code> luôn trả một <code>Ns</code>: URI rỗng → <code>Ns::NONE</code>, lạ → <code>Ns::OTHER</code>. <code>unwrap_or(x)</code> nghĩa là "nếu là <code>Some(v)</code> thì lấy <code>v</code>, nếu <code>None</code> thì dùng <code>x</code>" — không bao giờ panic, khác với <code>unwrap()</code>.</li>
+</ul>
+<p>Không có chữ <code>self</code> trong tham số nên đây là <strong>associated function</strong> (hàm liên kết) — gọi bằng <code>Ns::from_uri(…)</code>, giống <code>String::new()</code>. Kết quả chạy thật:</p>
+<figure class="code">
+  <figcaption>Kết quả chạy thật</figcaption>
+<pre><code class="language-bash">Ns::from_uri("http://purl.oclc.org/ooxml/spreadsheetml/main")  -&gt;  Some(Ns::X)
+Ns::from_uri("urn:example")                                    -&gt;  None
+Ns::from_uri("")                                               -&gt;  None
+Ns::classify("urn:example")                                    -&gt;  Ns::OTHER
+Ns::classify("")                                               -&gt;  Ns::NONE</code></pre>
+</figure>
+<p>Ai dùng hàm nào? Reader dùng <code>from_uri(uri).unwrap_or(Ns::OTHER)</code> (reader.rs:490) vì nó đã xử lý trường hợp "không namespace" riêng. <code>RawName::with_uri</code> dùng <code>classify</code> vì nhận URI tuỳ ý, kể cả rỗng (raw.rs:40). Code sinh (<code>openxml-codegen</code>) dùng <code>from_uri</code> để biết một URI trong XSD có trong bảng không.</p>
+
+<h3 id="info-uri">9.2 <code>info</code>, <code>uri</code>, <code>prefix</code>, <code>default_on_root</code>: tra bảng</h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L190-L216">crates/openxml-xml/src/ns.rs:190–216</figcaption>
+<pre><code class="language-rust">    fn info(self) -&gt; &amp;'static NsInfo {
+        &amp;TABLE[self.0 as usize]
+    }
+
+    /// The canonical (Transitional) namespace URI. Empty for [`Ns::NONE`] and [`Ns::OTHER`].
+    pub fn uri(self) -&gt; &amp;'static str {
+        match self {
+            Ns::OTHER =&gt; "",
+            _ =&gt; self.info().uri,
+        }
+    }
+
+    /// The Strict-conformance URI, if this namespace has one.
+    pub fn strict_uri(self) -&gt; Option&lt;&amp;'static str&gt; {
+        self.info().strict_uri
+    }
+
+    /// The conventional prefix used when a declaration has to be generated.
+    pub fn prefix(self) -&gt; &amp;'static str {
+        self.info().prefix
+    }
+
+    /// Whether new documents conventionally bind this namespace as the default
+    /// namespace on the root element (e.g. SpreadsheetML and OPC parts).
+    pub fn default_on_root(self) -&gt; bool {
+        self.info().default_on_root
+    }</code></pre>
+</figure>
+<ul>
+  <li><code>info</code> là "động cơ" chung: lấy con số bên trong (<code>self.0</code>), đổi sang <code>usize</code> (<code>as usize</code> — Rust chỉ cho đánh chỉ số mảng bằng <code>usize</code>), rồi lấy tham chiếu tới phần tử đó trong bảng tĩnh <code>TABLE</code>. Chi tiết <code>static</code> ở bài 2.2.</li>
+  <li><code>uri</code> dùng <code>match self { Ns::OTHER =&gt; "", … }</code> — lại là hằng số làm pattern (nhờ derive <code>PartialEq</code>). Tại sao <code>OTHER</code> phải xử lý riêng? Vì trong bảng, URI của <code>OTHER</code> là một chuỗi "giả" <code>"\u{0}other"</code> (bài 2.2 giải thích); người dùng không nên thấy chuỗi đó, nên trả về rỗng.</li>
+  <li>Ba method còn lại chỉ đọc một trường của <code>NsInfo</code>. Tất cả nhận <code>self</code> (không phải <code>&amp;self</code>) — rẻ vì <code>Ns: Copy</code>.</li>
+</ul>
+
+<h3 id="is-known-all">9.3 <code>is_known</code>, <code>index</code>, <code>all</code>, <code>ident</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L218-L236">crates/openxml-xml/src/ns.rs:218–236</figcaption>
+<pre><code class="language-rust">    /// Whether this is a real namespace from the registry.
+    pub fn is_known(self) -&gt; bool {
+        self != Ns::NONE &amp;&amp; self != Ns::OTHER
+    }
+
+    /// The numeric index of this identifier (stable within a build).
+    pub fn index(self) -&gt; u16 {
+        self.0
+    }
+
+    /// Iterates over every registered namespace (excluding `NONE` and `OTHER`).
+    pub fn all() -&gt; impl Iterator&lt;Item = Ns&gt; {
+        (2..TABLE.len() as u16).map(Ns)
+    }
+
+    /// The constant name of this namespace, e.g. `"W"`.
+    pub fn ident(self) -&gt; &amp;'static str {
+        self.info().ident
+    }</code></pre>
+</figure>
+<ul>
+  <li><code>is_known</code>: "không phải hai giá trị đặc biệt". CLI và testkit dùng nó để chỉ kiểm tra XSD những part có root thuộc namespace đã biết: <code>if !ns.is_known() || matches!(ns, Ns::CP | Ns::CT | Ns::PR)</code> (crates/openxml-cli/src/main.rs:230).</li>
+  <li><code>index</code>: cửa sổ duy nhất để nhìn con số bên trong. Comment dặn "stable within a build" — đừng lưu con số này ra file, vì thêm namespace mới có thể đổi số.</li>
+  <li><code>all</code> có kiểu trả về lạ: <code>impl Iterator&lt;Item = Ns&gt;</code>. Đọc là "một kiểu <em>nào đó</em> cài đặt <code>Iterator</code> sinh ra các <code>Ns</code> — tôi không nói tên cụ thể". Tên thật là <code>Map&lt;Range&lt;u16&gt;, fn(u16) -&gt; Ns&gt;</code> — dài và lộ chi tiết, nên giấu đi bằng <code>impl Trait</code>.</li>
+  <li><code>(2..TABLE.len() as u16)</code> là khoảng số 2, 3, …, 37 (bỏ 0 = <code>NONE</code> và 1 = <code>OTHER</code>). <code>.map(Ns)</code>: tuple struct <code>Ns</code> dùng được <em>như một hàm</em> <code>fn(u16) -&gt; Ns</code>, nên truyền thẳng tên kiểu vào <code>map</code>. Mẹo nhỏ mà rất hay.</li>
+</ul>
+<figure class="code">
+  <figcaption>Kết quả chạy thật</figcaption>
+<pre><code class="language-bash">Ns::all().count()                          -&gt; 36
+Ns::all().take(5).collect::&lt;Vec&lt;_&gt;&gt;()      -&gt; [Ns::XML, Ns::XMLNS, Ns::W, Ns::X, Ns::P]
+số namespace có strict_uri                 -&gt; 21
+Ns::W.index(), Ns::XSI.index()             -&gt; 4 37</code></pre>
+</figure>
+<p>Vậy bảng có 38 dòng: 2 giá trị đặc biệt (chỉ số 0, 1) + 36 namespace thật (chỉ số 2…37, khớp con số "36 namespaces" trong <code>ARCHITECTURE.md</code>).</p>
+
+<h2 id="sentinel">10. <code>Ns::NONE</code> và <code>Ns::OTHER</code>: giá trị đặc biệt</h2>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L67-L75">crates/openxml-xml/src/ns.rs:67–75</figcaption>
+<pre><code class="language-rust">namespaces! {
+    /// No namespace (unqualified names).
+    NONE = 0, "", "";
+    /// A namespace that is not part of the registry.
+    OTHER = 1, "", "\u{0}other";
+    /// The `xml:` namespace (always bound, never declared).
+    XML = 2, "xml", "http://www.w3.org/XML/1998/namespace";
+    /// The `xmlns` pseudo-namespace used for namespace declarations.
+    XMLNS = 3, "xmlns", "http://www.w3.org/2000/xmlns/";</code></pre>
+</figure>
+<p>Không phải thẻ nào cũng thuộc một namespace trong bảng:</p>
+<ul>
+  <li><strong><code>NONE</code></strong>: tên không có namespace — như attribute <code>ref</code>, <code>Extension</code> ở mục 3.</li>
+  <li><strong><code>OTHER</code></strong>: có namespace, nhưng không nằm trong 36 cái dự án biết. Ví dụ phần mở rộng của Word 2010 <code>w14:</code> (<code>http://schemas.microsoft.com/office/word/2010/wordml</code>) — không thuộc ECMA-376. Vì <code>Ns</code> chỉ là một con số, nó không chứa được URI thật; URI được mang <em>bên cạnh</em>, trong trường <code>uri</code> của <code>RawName</code>:</li>
+</ul>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/raw.rs#L38-L47">crates/openxml-xml/src/raw.rs:38–47</figcaption>
+<pre><code class="language-rust">    /// Creates a name in an arbitrary namespace URI.
+    pub fn with_uri(uri: &amp;str, prefix: Option&lt;&amp;str&gt;, local: &amp;str) -&gt; Self {
+        let ns = Ns::classify(uri);
+        RawName {
+            ns,
+            uri: (ns == Ns::OTHER).then(|| uri.into()),
+            prefix: prefix.map(Into::into),
+            local: local.into(),
+        }
+    }</code></pre>
+</figure>
+<p><code>(ns == Ns::OTHER).then(|| uri.into())</code>: nếu điều kiện đúng thì <code>Some(uri)</code>, không thì <code>None</code>. Tức là chỉ tốn bộ nhớ lưu URI khi namespace lạ; với namespace đã biết thì URI tra được từ bảng.</p>
+<p>Kỹ thuật dùng vài giá trị "đặc biệt" trong cùng miền giá trị gọi là <strong>sentinel value</strong> (giá trị lính gác). So sánh với cách "đúng sách" dùng enum:</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — cách thay thế bằng enum (không phải code dự án)</figcaption>
+<pre><code class="language-rust">enum Namespace {
+    None,                 // không namespace
+    Known(KnownNs),       // KnownNs là enum 36 biến thể W, X, P...
+    Other(String),        // mang luôn URI
+}</code></pre>
+</figure>
+<div class="table-wrap"><table>
+  <tr><th></th><th>Sentinel trong <code>Ns(u16)</code> (dự án)</th><th>Enum có dữ liệu</th></tr>
+  <tr><td>Kích thước</td><td>2 byte, <code>Copy</code></td><td>≥ 24 byte (vì <code>String</code>), không <code>Copy</code></td></tr>
+  <tr><td>Match trong code sinh</td><td><code>(Ns::W, "p")</code></td><td><code>(Namespace::Known(KnownNs::W), "p")</code> — dài hơn</td></tr>
+  <tr><td>An toàn</td><td>Người dùng có thể quên kiểm tra <code>OTHER</code> và gọi <code>.uri()</code> (được <code>""</code>)</td><td>Trình biên dịch bắt xử lý mọi biến thể</td></tr>
+  <tr><td>URI của namespace lạ</td><td>Mang riêng (<code>RawName.uri</code>)</td><td>Nằm ngay trong giá trị</td></tr>
+</table></div>
+<p>Dự án chấp nhận đánh đổi một chút an toàn để lấy tốc độ và sự gọn gàng ở hàng trăm nghìn dòng code sinh — hợp lý vì <code>OTHER</code> chỉ xuất hiện trong tầng raw, nơi luôn có URI đi kèm. Và <code>is_known()</code> tồn tại chính là để giảm rủi ro "quên kiểm tra".</p>
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — Option vs sentinel</span>
+  <p>Trong code Rust thông thường, "có thể không có" nên dùng <code>Option</code> thay vì giá trị đặc biệt kiểu <code>-1</code> hay chuỗi rỗng. <code>Ns</code> làm cả hai tuỳ chỗ: <code>from_uri</code> trả <code>Option&lt;Ns&gt;</code> (đúng sách), còn trường <code>ns</code> của <code>RawName</code> dùng sentinel <code>NONE</code>/<code>OTHER</code> (vì mọi tên đều cần <em>một</em> giá trị <code>Ns</code> để match). Biết khi nào dùng cái nào là kỹ năng thiết kế, không có luật tuyệt đối.</p>
+</div>
+
+<h2 id="test">11. Đọc từng test trong <code>ns.rs</code></h2>
+<p>Test trong Rust thường nằm ngay cuối file, trong một module riêng chỉ biên dịch khi chạy test:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L245-L255">crates/openxml-xml/src/ns.rs:245–255</figcaption>
+<pre><code class="language-rust">#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn table_indices_match_constants() {
+        for (i, info) in TABLE.iter().enumerate() {
+            let ns = Ns(i as u16);
+            assert_eq!(ns.ident(), info.ident, "index {i} is out of order");
+        }
+    }</code></pre>
+</figure>
+<ul>
+  <li><code>#[cfg(test)]</code>: chỉ biên dịch module này khi chạy <code>cargo test</code>. <code>use super::*;</code>: nhập mọi thứ của module cha (<code>ns</code>), kể cả thứ riêng tư như <code>TABLE</code> và constructor <code>Ns(…)</code> — module con được thấy đồ riêng tư của module cha.</li>
+  <li><code>#[test]</code>: đánh dấu hàm là một test.</li>
+  <li><code>TABLE.iter().enumerate()</code>: duyệt bảng, kèm chỉ số <code>i</code>.</li>
+  <li><code>assert_eq!(a, b, "thông điệp {i}")</code>: nếu <code>a != b</code> thì panic, in cả hai giá trị (nhờ <code>Debug</code>) và thông điệp. Tham số thứ ba trở đi là chuỗi định dạng như <code>format!</code>.</li>
+</ul>
+<p>Test này muốn bảo vệ việc "chỉ số khai báo trong macro khớp vị trí trong bảng". Nhưng hãy để ý: <code>ns.ident()</code> chính là <code>TABLE[i].ident</code>, còn <code>info</code> cũng là <code>TABLE[i]</code>… <a href="p2-2-macro.html#test-thu-tu">Bài 2.2</a> sẽ phân tích kỹ chuyện này (có bất ngờ đấy).</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L257-L265">crates/openxml-xml/src/ns.rs:257–265</figcaption>
+<pre><code class="language-rust">    #[test]
+    fn uris_round_trip_through_lookup() {
+        for ns in Ns::all() {
+            assert_eq!(Ns::from_uri(ns.uri()), Some(ns), "{ns:?}");
+            if let Some(strict) = ns.strict_uri() {
+                assert_eq!(Ns::from_uri(strict), Some(ns), "strict {ns:?}");
+            }
+        }
+    }</code></pre>
+</figure>
+<p>"Khứ hồi" (round trip): với mọi namespace, lấy URI rồi tra ngược phải ra đúng nó; nếu có URI Strict thì tra URI Strict cũng phải ra nó. <code>if let Some(strict) = …</code> là cách gọn để "nếu là <code>Some</code> thì lấy giá trị bên trong ra dùng". <code>"{ns:?}"</code> in tên namespace khi fail — nhờ <code>Debug</code> tự viết, bạn sẽ thấy <code>Ns::W</code> chứ không phải <code>Ns(4)</code>.</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L267-L286">crates/openxml-xml/src/ns.rs:267–286</figcaption>
+<pre><code class="language-rust">    #[test]
+    fn uris_and_prefixes_are_unique() {
+        let mut uris = std::collections::HashSet::new();
+        for ns in Ns::all() {
+            assert!(uris.insert(ns.uri()), "duplicate uri {}", ns.uri());
+            if let Some(s) = ns.strict_uri() {
+                assert!(uris.insert(s), "duplicate strict uri {s}");
+            }
+        }
+        // Prefixes may legitimately collide only for XVML ("x" in VML parts) and X.
+        let mut prefixes = std::collections::HashMap::new();
+        for ns in Ns::all() {
+            if let Some(prev) = prefixes.insert(ns.prefix(), ns) {
+                assert!(
+                    matches!((prev, ns), (Ns::X, Ns::XVML)),
+                    "unexpected prefix clash {prev:?} / {ns:?}"
+                );
+            }
+        }
+    }</code></pre>
+</figure>
+<p>Test này dựa vào giá trị trả về của <code>insert</code> — thứ mà người mới hay bỏ qua:</p>
+<ul>
+  <li><code>HashSet::insert(x)</code> trả <code>bool</code>: <code>true</code> nếu <code>x</code> chưa có (thêm thành công), <code>false</code> nếu đã có. Chạy thật: <code>s.insert("a")</code> hai lần cho <code>true false</code>. Vậy <code>assert!(uris.insert(…))</code> nghĩa là "URI này phải chưa từng xuất hiện".</li>
+  <li><code>HashMap::insert(k, v)</code> trả <code>Option&lt;V&gt;</code>: <code>None</code> nếu khoá mới, <code>Some(giá_trị_cũ)</code> nếu khoá đã có (và giá trị cũ bị thay). Chạy thật: <code>m.insert("x", Ns::X)</code> rồi <code>m.insert("x", Ns::XVML)</code> cho <code>None Some(Ns::X)</code>. Vậy <code>if let Some(prev) = prefixes.insert(…)</code> bắt được đúng lúc hai namespace trùng prefix.</li>
+  <li><code>matches!(giá_trị, pattern)</code>: trả <code>true</code> nếu giá trị khớp pattern — một <code>match</code> rút gọn thành <code>bool</code>. Ở đây: vụ trùng prefix duy nhất được chấp nhận là (<code>Ns::X</code> trước, <code>Ns::XVML</code> sau). Lý do trùng là chuyện OpenXML, xem bài 2.2.</li>
+  <li><code>assert!(điều_kiện, "…")</code>: như <code>assert_eq!</code> nhưng chỉ kiểm tra một <code>bool</code>.</li>
+</ul>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L288-L315">crates/openxml-xml/src/ns.rs:288–315</figcaption>
+<pre><code class="language-rust">    #[test]
+    fn strict_maps_to_transitional() {
+        let ns = Ns::from_uri("http://purl.oclc.org/ooxml/wordprocessingml/main").unwrap();
+        assert_eq!(ns, Ns::W);
+        assert_eq!(
+            ns.uri(),
+            "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+        );
+    }
+
+    #[test]
+    fn classify_handles_special_cases() {
+        assert_eq!(Ns::classify(""), Ns::NONE);
+        assert_eq!(Ns::classify("urn:example"), Ns::OTHER);
+        assert_eq!(Ns::classify(Ns::A.uri()), Ns::A);
+        assert!(!Ns::NONE.is_known());
+        assert!(!Ns::OTHER.is_known());
+        assert!(Ns::MC.is_known());
+        assert_eq!(Ns::OTHER.uri(), "");
+    }
+
+    #[test]
+    fn default_on_root_flags() {
+        assert!(Ns::X.default_on_root());
+        assert!(Ns::CT.default_on_root());
+        assert!(!Ns::W.default_on_root());
+        assert!(!Ns::P.default_on_root());
+    }</code></pre>
+</figure>
+<ul>
+  <li><code>strict_maps_to_transitional</code>: đọc URI Strict → được <code>Ns::W</code> → <code>.uri()</code> trả URI Transitional. Đây chính là cơ chế "đọc Strict, ghi Transitional" trong 6 dòng. <code>.unwrap()</code> trong test là chấp nhận được: nếu <code>None</code> thì test panic = fail, đúng ý.</li>
+  <li><code>classify_handles_special_cases</code>: kiểm tra từng nhánh của <code>classify</code>, của <code>is_known</code>, và việc <code>OTHER.uri()</code> trả rỗng (chứ không phải <code>"\u{0}other"</code>).</li>
+  <li><code>default_on_root_flags</code>: SpreadsheetML và content types dùng default namespace; Word và PowerPoint thì không.</li>
+</ul>
+<figure class="code">
+  <figcaption>Terminal — chạy riêng các test của ns.rs (kết quả thật)</figcaption>
+<pre><code class="language-bash">$ cargo test -p openxml-xml --lib ns::
+running 6 tests
+test ns::tests::classify_handles_special_cases ... ok
+test ns::tests::default_on_root_flags ... ok
+test ns::tests::strict_maps_to_transitional ... ok
+test ns::tests::table_indices_match_constants ... ok
+test ns::tests::uris_round_trip_through_lookup ... ok
+test ns::tests::uris_and_prefixes_are_unique ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 57 filtered out</code></pre>
+</figure>
+<p>Tham số <code>ns::</code> là bộ lọc: chỉ chạy test có tên chứa <code>ns::</code>. (Có thể có thêm vài dòng <code>warning</code> của file khác trong crate khi biên dịch — không liên quan tới bài này.)</p>
+
+<section class="exercise">
+  <h3>🛠 Bài tập</h3>
+  <ol>
+    <li><strong>Thêm một test tạm.</strong> Trong <code>crates/openxml-xml/src/ns.rs</code>, cuối <code>mod tests</code>, thêm:
+      <pre><code class="language-rust">#[test]
+fn thu_nghiem() {
+    println!("{:?}", Ns::from_uri("http://purl.oclc.org/ooxml/presentationml/main"));
+    println!("{:?}", Ns::all().filter(|n| n.strict_uri().is_none()).collect::&lt;Vec&lt;_&gt;&gt;());
+    println!("{}", Ns::PIC.prefix());
+}</code></pre>
+      Chạy <code>cargo test -p openxml-xml --lib thu_nghiem -- --nocapture</code> (<code>--nocapture</code> để thấy <code>println!</code>). Giải thích từng dòng output. Nhớ xoá test sau khi xong.</li>
+    <li><strong>Săn namespace trong file thật.</strong> Giải nén <code>fixtures/poi/sample.docx</code>, mở <code>word/document.xml</code>, liệt kê mọi khai báo <code>xmlns:…</code> ở root. Với mỗi URI, đoán xem <code>Ns::classify</code> trả gì (namespace nào trong bảng, hay <code>OTHER</code>). Kiểm chứng bằng một test tạm như bài 1.</li>
+    <li><strong>Thí nghiệm derive.</strong> Tạo project riêng <code>cargo new thu-ns</code> (ngoài repo). Viết <code>struct Ns(u16);</code> với <code>impl Ns { const W: Ns = Ns(4); }</code> và một <code>match</code> trên <code>Ns::W</code>. Lần lượt bỏ từng trait trong derive và đọc lỗi biên dịch. Trait nào bỏ đi mà <code>match</code> vẫn chạy? Trait nào bỏ đi thì <code>let b = a; dùng a;</code> hỏng?</li>
+    <li><strong>Attribute không prefix.</strong> Trong test tạm, dùng <code>XmlReader::new(r#"&lt;a xmlns="urn:x" b="1"/&gt;"#)</code>, đọc root bằng <code>.root().unwrap()</code> rồi in <code>root.ns()</code> và <code>ns</code> của attribute <code>b</code> (xem đoạn code ở mục 3). Dự đoán trước khi chạy.</li>
+  </ol>
+</section>
+
+<section>
+  <h2 id="tu-kiem-tra">Tự kiểm tra</h2>
+  <details><summary>1. Trong <code>&lt;Types xmlns="…content-types"&gt;&lt;Default Extension="xml" …/&gt;&lt;/Types&gt;</code>, element <code>Default</code> và attribute <code>Extension</code> thuộc namespace nào?</summary>
+    <div class="answer"><code>Default</code> thuộc namespace content-types (default namespace áp dụng cho element) → <code>Ns::CT</code>. <code>Extension</code> không prefix nên <em>không</em> thuộc namespace nào → <code>Ns::NONE</code>. Đó là lý do <code>content_types.rs</code> gọi <code>el.attr(Ns::NONE, "Extension")</code>.</div></details>
+  <details><summary>2. Vì sao <code>Ns</code> là <code>struct Ns(u16)</code> chứ không lưu URI dạng <code>String</code>?</summary>
+    <div class="answer">2 byte thay vì 24 byte + heap; so sánh là so số nguyên; <code>Copy</code> nên không phải lo ownership; và quan trọng nhất: dùng được hằng số <code>Ns::W</code> làm pattern, để code sinh tự động <code>match (ns, local)</code> nhanh. URI chỉ được so một lần khi đọc (qua <code>from_uri</code> + cache).</div></details>
+  <details><summary>3. Nếu thay <code>#[derive(PartialEq)]</code> bằng <code>impl PartialEq for Ns</code> viết tay (cùng logic), điều gì hỏng?</summary>
+    <div class="answer">Mọi <code>match</code> dùng hằng số <code>Ns::…</code> làm pattern sẽ không biên dịch được ("constant of non-structural type `Ns` in a pattern") — bao gồm <code>Ns::uri</code> và toàn bộ code sinh trong <code>openxml-schema</code>. Chỉ derive mới đánh dấu <code>StructuralPartialEq</code>.</div></details>
+  <details><summary>4. <code>Ns::classify("urn:example")</code> và <code>Ns::from_uri("urn:example")</code> khác nhau thế nào?</summary>
+    <div class="answer"><code>from_uri</code> trả <code>Option&lt;Ns&gt;</code>: <code>None</code>. <code>classify</code> luôn trả <code>Ns</code>: <code>Ns::OTHER</code> (dùng <code>unwrap_or(Ns::OTHER)</code>); riêng URI rỗng thì <code>Ns::NONE</code>.</div></details>
+  <details><summary>5. <code>HashMap::insert</code> trả về gì, và test <code>uris_and_prefixes_are_unique</code> tận dụng nó ra sao?</summary>
+    <div class="answer">Trả <code>Option&lt;V&gt;</code>: <code>None</code> nếu khoá mới, <code>Some(cũ)</code> nếu khoá đã tồn tại. Test dùng <code>if let Some(prev) = prefixes.insert(prefix, ns)</code> để phát hiện hai namespace trùng prefix, rồi chỉ chấp nhận cặp <code>(Ns::X, Ns::XVML)</code> bằng <code>matches!</code>.</div></details>
+  <details><summary>6. Một file Strict có root <code>&lt;w:document xmlns:w="http://purl.oclc.org/ooxml/wordprocessingml/main"&gt;</code>. Sau khi đọc và ghi lại bằng dự án, URI ở root là gì?</summary>
+    <div class="answer">URI Transitional <code>http://schemas.openxmlformats.org/wordprocessingml/2006/main</code>. Khi đọc, <code>from_uri</code> ánh xạ URI Strict thành <code>Ns::W</code> (chạy thật: <code>root_name</code> trả <code>(Ns::W, "document")</code>); khi ghi, writer dùng <code>Ns::W.uri()</code> — luôn là Transitional.</div></details>
+</section>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Bài sau</span>
+  <p>Mình đã hứa mở hộp đen: <a href="p2-2-macro.html">bài 2.2</a> mổ macro <code>namespaces!</code> từng dòng — <code>macro_rules!</code>, <code>$( … )*</code>, fragment specifier — và tự tay "mở rộng" macro để thấy nó sinh ra đúng những <code>const</code>, <code>TABLE</code>, <code>lookup_uri</code> mà bài này đã dùng.</p>
+</div>
+
+</main>
+</body>
+</html>

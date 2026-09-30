@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.2 macro_rules!: bảng namespace · Học Rust qua open-xml-rust</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/vendor/highlight.min.js" defer></script>
+<script src="assets/app.js" defer></script>
+</head>
+<body data-lesson="p2-2">
+<main class="content">
+
+<header>
+  <p class="crumb">Phần 2 · Tầng XML (openxml-xml)</p>
+  <h1>2.2 macro_rules!: bảng namespace</h1>
+  <p class="lead">Ở bài 2.1 mình coi <code>namespaces!</code> là hộp đen. Giờ mở nó ra. Chỉ 35 dòng macro mà sinh ra hằng số, bảng tra cứu và một hàm <code>match</code> hơn 50 nhánh — từ một bảng duy nhất mà ai đọc cũng hiểu. Đây là cửa ngõ tốt nhất để học <code>macro_rules!</code>, vì macro này đủ thật để có ích mà vẫn đủ nhỏ để đọc hết.</p>
+  <div class="meta"><span>⏱ ~60 phút</span><span>crates/openxml-xml/src/ns.rs</span><span>value.rs · openxml-cli/src/main.rs · openxml-opc/src/known.rs</span><span>Rust: macro_rules!, fragment specifier, static vs const</span></div>
+</header>
+
+<section class="goals">
+  <h3>🎯 Học xong bài này bạn sẽ</h3>
+  <ul>
+    <li>Hiểu vì sao cần macro ở đây: <strong>một nguồn sự thật</strong> sinh ra ba thứ (hằng số, bảng <code>TABLE</code>, hàm <code>lookup_uri</code>).</li>
+    <li>Đọc được cú pháp <code>macro_rules!</code>: rule, <code>$( … )*</code>, <code>$( … )?</code>, fragment specifier <code>ident</code>, <code>literal</code>, <code>meta</code>, <code>ty</code>, <code>tt</code>.</li>
+    <li>Nắm kỹ thuật <strong>internal rules</strong> (<code>(@opt)</code>, <code>(@bool)</code>) và lý do cần <code>#[allow(unreachable_patterns)]</code>.</li>
+    <li>Phân biệt <code>static</code> và <code>const</code>; hiểu <code>TABLE[self.0 as usize]</code>.</li>
+    <li>Tự viết tay "bản mở rộng" của macro và biết cách nhờ công cụ mở rộng giúp.</li>
+    <li>So sánh với <code>int_value!</code>, <code>float_value!</code>, <code>say!</code>, <code>rels!</code>; biết khi nào dùng macro, khi nào dùng hàm/generic.</li>
+    <li>Đọc bảng namespace như một bản đồ của ECMA-376.</li>
+  </ul>
+</section>
+
+<h2 id="van-de">1. Vấn đề: ba thứ phải luôn khớp nhau</h2>
+<p>Từ bài 2.1, kiểu <code>Ns</code> cần ba thứ cho mỗi namespace:</p>
+<ol>
+  <li>Một <strong>hằng số</strong> để code viết <code>Ns::W</code>: <code>pub const W: Ns = Ns(4);</code></li>
+  <li>Một <strong>dòng trong bảng</strong> để tra URI, prefix…: <code>NsInfo { ident: "W", prefix: "w", uri: "http://…", strict_uri: Some("…"), default_on_root: false }</code> — và dòng này phải nằm đúng ở <em>vị trí số 4</em>.</li>
+  <li>Một hoặc hai <strong>nhánh <code>match</code></strong> để tra ngược từ URI: <code>"http://…/wordprocessingml/2006/main" =&gt; Some(Ns::W)</code> và nhánh cho URI Strict.</li>
+</ol>
+<p>Nhân với 38 dòng, bạn có hơn 130 chỗ phải viết tay, rải ở ba nơi khác nhau, và một ràng buộc vô hình: "số trong hằng số = vị trí trong bảng". Thêm một namespace mà quên một chỗ, hoặc gõ nhầm URI ở chỗ thứ ba — code vẫn biên dịch, và lỗi chỉ lộ ra khi đọc đúng file có namespace đó.</p>
+<p>Giải pháp: viết <strong>một bảng duy nhất</strong>, dễ đọc như tài liệu, rồi để trình biên dịch <em>sinh</em> ra cả ba thứ từ bảng. Đó chính là việc của macro <code>namespaces!</code>.</p>
+<div class="callout pattern">
+  <span class="callout-title">🧩 Nguyên tắc: Single Source of Truth (một nguồn sự thật)</span>
+  <p>Khi nhiều mảnh code phải luôn đồng bộ, hãy để chúng được <em>sinh ra</em> từ một nguồn, thay vì dựa vào trí nhớ con người. Dự án áp dụng nguyên tắc này ở hai quy mô: nhỏ là macro <code>namespaces!</code> (bài này), lớn là <code>openxml-codegen</code> sinh ~215 nghìn dòng từ XSD (Phần 4). Có người gọi đây là DRY — "Don't Repeat Yourself".</p>
+</div>
+
+<h2 id="macro-la-gi">2. Macro là gì? Khác hàm ở đâu?</h2>
+<p>Bạn đã dùng macro từ ngày đầu: <code>println!</code>, <code>vec!</code>, <code>format!</code>, <code>assert_eq!</code>. Dấu <code>!</code> báo hiệu "đây là macro". Khác biệt cốt lõi:</p>
+<div class="table-wrap"><table>
+  <tr><th></th><th>Hàm</th><th>Macro (<code>macro_rules!</code>)</th></tr>
+  <tr><td>Chạy khi nào</td><td>Lúc chương trình chạy</td><td>Lúc <strong>biên dịch</strong>, trước cả kiểm tra kiểu</td></tr>
+  <tr><td>Nhận gì</td><td>Giá trị có kiểu</td><td>Một chuỗi <strong>token</strong> (từ, số, dấu câu) — code chưa được hiểu nghĩa</td></tr>
+  <tr><td>Trả gì</td><td>Một giá trị</td><td>Code mới, được "dán" vào chỗ gọi rồi mới biên dịch</td></tr>
+  <tr><td>Sinh được</td><td>Không sinh được <code>struct</code>, <code>impl</code>, hằng số…</td><td>Sinh được gần như mọi thứ: item, biểu thức, pattern…</td></tr>
+  <tr><td>Số tham số</td><td>Cố định</td><td>Tuỳ ý (<code>println!</code> nhận 1, 2, 10 đối số)</td></tr>
+</table></div>
+<p>Một macro <code>macro_rules!</code> là danh sách các <strong>rule</strong> dạng <code>(pattern) =&gt; { expansion };</code>. Khi bạn gọi macro, trình biên dịch thử từng rule từ trên xuống; rule đầu tiên có pattern khớp với token đầu vào sẽ được dùng, và phần expansion được dán vào chỗ gọi.</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — macro nhỏ nhất</figcaption>
+<pre><code class="language-rust">macro_rules! binh_phuong {
+    ($x:expr) =&gt; { $x * $x };
+}
+
+let a = binh_phuong!(7);        // dán thành: 7 * 7
+let b = binh_phuong!(a + 1);    // dán thành: (a + 1) * (a + 1)  — $x:expr được giữ nguyên khối</code></pre>
+</figure>
+<ul>
+  <li><code>$x:expr</code>: "bắt một <strong>biểu thức</strong>, đặt tên là <code>$x</code>". <code>expr</code> là một <strong>fragment specifier</strong> (loại mảnh cú pháp).</li>
+  <li>Trong phần expansion, <code>$x</code> được thay bằng đúng mảnh đã bắt. Với <code>expr</code>, Rust coi cả mảnh như một khối, nên <code>a + 1</code> không bị vỡ thành <code>a + 1 * a + 1</code>.</li>
+</ul>
+
+<h3 id="lap">2.1 Lặp: <code>$( … )*</code>, <code>$( … ),*</code>, <code>$( … )?</code></h3>
+<p>Sức mạnh thật của macro nằm ở <strong>repetition</strong> (lặp):</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — lặp trong macro</figcaption>
+<pre><code class="language-rust">macro_rules! tong {
+    ($($x:expr),*) =&gt; { 0 $( + $x )* };
+}
+tong!(1, 2, 3)    // dán thành: 0 + 1 + 2 + 3
+tong!()           // dán thành: 0</code></pre>
+</figure>
+<ul>
+  <li>Trong pattern, <code>$( $x:expr ),*</code> nghĩa là "khớp 0 hoặc nhiều biểu thức, ngăn cách bởi dấu phẩy". Dấu phẩy nằm giữa <code>)</code> và <code>*</code> là <strong>separator</strong> (dấu ngăn).</li>
+  <li>Trong expansion, <code>$( + $x )*</code> nghĩa là "với mỗi <code>$x</code> đã bắt được, sinh ra <code>+ $x</code>".</li>
+  <li>Ba loại lặp: <code>*</code> (0 hoặc nhiều), <code>+</code> (1 hoặc nhiều), <code>?</code> (0 hoặc 1 — "tuỳ chọn").</li>
+</ul>
+
+<h3 id="fragment">2.2 Các fragment specifier hay gặp</h3>
+<div class="table-wrap"><table>
+  <tr><th>Specifier</th><th>Khớp với</th><th>Ví dụ</th><th>Gặp ở đâu trong dự án</th></tr>
+  <tr><td><code>ident</code></td><td>Một định danh (tên)</td><td><code>W</code>, <code>foo</code>, <code>XVML</code></td><td><code>$id</code> trong <code>namespaces!</code></td></tr>
+  <tr><td><code>literal</code></td><td>Một hằng số viết thẳng</td><td><code>4</code>, <code>"w"</code>, <code>true</code></td><td><code>$idx</code>, <code>$prefix</code>, <code>$uri</code></td></tr>
+  <tr><td><code>meta</code></td><td>Nội dung bên trong <code>#[ … ]</code></td><td><code>doc = "…"</code>, <code>allow(dead_code)</code></td><td><code>$meta</code> (doc comment)</td></tr>
+  <tr><td><code>expr</code></td><td>Một biểu thức</td><td><code>a + 1</code>, <code>f(x)</code></td><td><code>series_list!</code>, <code>accessors!</code></td></tr>
+  <tr><td><code>ty</code></td><td>Một kiểu</td><td><code>u32</code>, <code>Vec&lt;u8&gt;</code></td><td><code>int_value!</code>, <code>float_value!</code></td></tr>
+  <tr><td><code>tt</code></td><td>Một "token tree": một token, hoặc cả một cụm trong <code>()</code>/<code>[]</code>/<code>{}</code></td><td>bất cứ gì</td><td><code>say!</code></td></tr>
+</table></div>
+
+<h2 id="pattern">3. Mổ macro <code>namespaces!</code> — phần pattern</h2>
+<p>Đây là toàn bộ macro. Mình sẽ đi qua từng mảnh.</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L31-L65">crates/openxml-xml/src/ns.rs:31–65</figcaption>
+<pre><code class="language-rust">macro_rules! namespaces {
+    ($(
+        $(#[$meta:meta])*
+        $id:ident = $idx:literal, $prefix:literal, $uri:literal
+            $(, strict = $strict:literal)? $(, default_on_root = $dor:literal)?;
+    )*) =&gt; {
+        impl Ns {
+            $( $(#[$meta])* pub const $id: Ns = Ns($idx); )*
+        }
+
+        static TABLE: &amp;[NsInfo] = &amp;[
+            $( NsInfo {
+                ident: stringify!($id),
+                prefix: $prefix,
+                uri: $uri,
+                strict_uri: namespaces!(@opt $($strict)?),
+                default_on_root: namespaces!(@bool $($dor)?),
+            }, )*
+        ];
+
+        #[allow(unreachable_patterns)]
+        fn lookup_uri(uri: &amp;str) -&gt; Option&lt;Ns&gt; {
+            match uri {
+                "" =&gt; None,
+                $( $uri =&gt; Some(Ns::$id), )*
+                $( $( $strict =&gt; Some(Ns::$id), )? )*
+                _ =&gt; None,
+            }
+        }
+    };
+    (@opt) =&gt; { None };
+    (@opt $v:literal) =&gt; { Some($v) };
+    (@bool) =&gt; { false };
+    (@bool $v:literal) =&gt; { $v };
+}</code></pre>
+</figure>
+<p>Macro có <strong>năm rule</strong>: rule lớn đầu tiên (dòng 32–60) và bốn rule nhỏ ở cuối (dòng 61–64). Trước hết đặt pattern của rule lớn cạnh một dòng dữ liệu thật để thấy chúng ghép với nhau thế nào:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L80-L82">crates/openxml-xml/src/ns.rs:80–82 — một dòng dữ liệu</figcaption>
+<pre><code class="language-rust">    /// SpreadsheetML main (`x:`), ECMA-376 Part 1 §18.
+    X = 5, "x", "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+        strict = "http://purl.oclc.org/ooxml/spreadsheetml/main", default_on_root = true;</code></pre>
+</figure>
+<pre class="diagram"><code>pattern:  $(#[$meta:meta])*                  $id:ident = $idx:literal, $prefix:literal, $uri:literal
+dữ liệu:  /// SpreadsheetML main (`x:`) ...    X         = 5           , "x"            , "http://…/spreadsheetml/2006/main"
+
+pattern:  $(, strict = $strict:literal)?                        $(, default_on_root = $dor:literal)?   ;
+dữ liệu:  , strict = "http://purl.oclc.org/ooxml/spreadsheetml/main" , default_on_root = true           ;</code></pre>
+<p>Từng mảnh:</p>
+<ul>
+  <li><strong><code>$( … )*</code> bao ngoài cùng</strong> (dòng 32 và 36): cả khối lặp 0 hoặc nhiều lần — mỗi lần là một dòng namespace. Không có separator giữa <code>)</code> và <code>*</code>, vì mỗi dòng đã tự kết thúc bằng <code>;</code> (dấu <code>;</code> nằm <em>bên trong</em> khối lặp, cuối dòng 35).</li>
+  <li><strong><code>$(#[$meta:meta])*</code></strong> (dòng 33): 0 hoặc nhiều attribute. "Ủa, dữ liệu đâu có <code>#[…]</code>?" — có đấy, trá hình: với trình biên dịch, doc comment <code>/// abc</code> chính là cú pháp rút gọn của <code>#[doc = " abc"]</code>. Pattern này bắt lấy các doc comment để sau đó gắn lên hằng số tương ứng. Nhờ vậy <code>cargo doc</code> hiển thị "SpreadsheetML main (x:), ECMA-376 Part 1 §18" cho <code>Ns::X</code>.</li>
+  <li><strong><code>$id:ident = $idx:literal, $prefix:literal, $uri:literal</code></strong> (dòng 34): tên hằng số, chỉ số, prefix, URI. Chữ <code>=</code> và <code>,</code> không có <code>$</code> là token <em>phải có mặt đúng như vậy</em> trong đầu vào.</li>
+  <li><strong><code>$(, strict = $strict:literal)?</code></strong> (dòng 35): lặp <em>0 hoặc 1 lần</em>. Hoặc không có gì, hoặc có đúng chuỗi token <code>, strict = "…"</code>. Chữ <code>strict</code> ở đây cũng là token cố định, giống tên đối số — giúp bảng dễ đọc.</li>
+  <li><strong><code>$(, default_on_root = $dor:literal)?</code></strong>: tương tự, tuỳ chọn. Hai phần tuỳ chọn phải xuất hiện <em>đúng thứ tự này</em> (strict trước, default_on_root sau) — macro_rules không hiểu "đối số có tên" thật.</li>
+</ul>
+<div class="callout warn">
+  <span class="callout-title">⚠️ Chỗ hay nhầm</span>
+  <p>Mọi biến <code>$…</code> bắt được trong một <code>$( … )*</code> chỉ được dùng lại bên trong một <code>$( … )*</code> tương ứng ở phần expansion. Viết <code>$id</code> trần ngoài vòng lặp sẽ bị báo lỗi kiểu "variable 'id' is still repeating at this depth". Quy tắc dễ nhớ: <strong>biến bắt ở độ sâu lặp nào, dùng ở ít nhất độ sâu đó</strong>.</p>
+</div>
+
+<h2 id="expansion">4. Mổ phần expansion — ba sản phẩm</h2>
+<h3 id="san-pham-1">4.1 Sản phẩm 1: các hằng số</h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L37-L39">crates/openxml-xml/src/ns.rs:37–39</figcaption>
+<pre><code class="language-rust">        impl Ns {
+            $( $(#[$meta])* pub const $id: Ns = Ns($idx); )*
+        }</code></pre>
+</figure>
+<p>Một khối <code>impl Ns</code> duy nhất, bên trong lặp: với mỗi dòng dữ liệu, dán lại các doc comment (<code>$(#[$meta])*</code> — lặp lồng: mỗi dòng có thể có nhiều attribute), rồi <code>pub const X: Ns = Ns(5);</code>. Đây là chỗ duy nhất trong dự án tạo <code>Ns</code> bằng constructor riêng tư — macro được định nghĩa và gọi trong chính module <code>ns</code>, nên được phép.</p>
+
+<h3 id="san-pham-2">4.2 Sản phẩm 2: bảng <code>TABLE</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L41-L49">crates/openxml-xml/src/ns.rs:41–49</figcaption>
+<pre><code class="language-rust">        static TABLE: &amp;[NsInfo] = &amp;[
+            $( NsInfo {
+                ident: stringify!($id),
+                prefix: $prefix,
+                uri: $uri,
+                strict_uri: namespaces!(@opt $($strict)?),
+                default_on_root: namespaces!(@bool $($dor)?),
+            }, )*
+        ];</code></pre>
+</figure>
+<ul>
+  <li><strong><code>stringify!($id)</code></strong>: macro có sẵn, biến token thành chuỗi. <code>stringify!(X)</code> → <code>"X"</code>. Nhờ vậy <code>Ns::X.ident()</code> trả <code>"X"</code> và <code>Debug</code> in được <code>Ns::X</code> (bài 2.1) mà không ai phải gõ tên hai lần.</li>
+  <li><strong><code>prefix: $prefix, uri: $uri</code></strong>: dán thẳng chuỗi literal.</li>
+  <li><strong><code>strict_uri: namespaces!(@opt $($strict)?)</code></strong>: đây là chỗ thú vị nhất, xem mục 4.3.</li>
+  <li>Thứ tự các <code>NsInfo</code> trong mảng = thứ tự các dòng trong bảng dữ liệu. <strong>Chỉ số <code>$idx</code> không hề được dùng ở đây</strong> — ghi nhớ điều này cho mục 7.</li>
+</ul>
+
+<h3 id="internal-rules">4.3 Internal rules: <code>(@opt)</code> và <code>(@bool)</code></h3>
+<p>Vấn đề: trường <code>strict_uri</code> có kiểu <code>Option&lt;&amp;'static str&gt;</code>. Nếu dòng dữ liệu có <code>strict = "…"</code> thì cần sinh <code>Some("…")</code>; nếu không có thì cần sinh <code>None</code>. Nhưng <code>macro_rules!</code> <strong>không có "if/else"</strong>. Với <code>$( … )?</code> bạn chỉ nói được "nếu có thì sinh cái này" — không nói được "nếu không có thì sinh cái kia".</p>
+<p>Mẹo: gọi <em>chính macro đó</em> một lần nữa, đẩy phần tuỳ chọn vào, và để việc chọn rule làm thay "if/else":</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L61-L64">crates/openxml-xml/src/ns.rs:61–64</figcaption>
+<pre><code class="language-rust">    (@opt) =&gt; { None };
+    (@opt $v:literal) =&gt; { Some($v) };
+    (@bool) =&gt; { false };
+    (@bool $v:literal) =&gt; { $v };</code></pre>
+</figure>
+<pre class="diagram"><code>Dòng W có strict:
+  namespaces!(@opt $($strict)?)
+    → namespaces!(@opt "http://purl.oclc.org/ooxml/wordprocessingml/main")
+    → khớp rule (@opt $v:literal)  → Some("http://purl.oclc.org/ooxml/wordprocessingml/main")
+
+Dòng V (VML) không có strict:
+  namespaces!(@opt $($strict)?)
+    → namespaces!(@opt)
+    → khớp rule (@opt)             → None
+
+Tương tự (@bool): không có default_on_root → false; có → giá trị ghi trong bảng (true).</code></pre>
+<p><code>@opt</code>, <code>@bool</code> chỉ là token bình thường (dấu <code>@</code> rồi một tên) — không có ý nghĩa đặc biệt trong Rust. Người ta chọn <code>@</code> vì nó không thể là đầu của một dòng dữ liệu thật, nên rule lớn không bao giờ khớp nhầm, và người dùng bên ngoài khó vô tình gọi trúng. Kỹ thuật này có tên <strong>internal rules</strong> (rule nội bộ): nhét các "hàm phụ" vào chung một macro, phân biệt bằng một token đánh dấu.</p>
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — thứ tự rule</span>
+  <p>Trình biên dịch thử rule từ trên xuống. Khi gọi <code>namespaces!(@opt)</code>, nó thử rule lớn trước: rule lớn cần một <code>ident</code> hoặc <code>#</code> ở đầu, gặp <code>@</code> thì không khớp, chuyển sang rule tiếp theo. Nhiều người có thói quen đặt internal rules <em>lên đầu</em> để khỏi phải suy nghĩ chuyện này; ở đây đặt cuối cũng đúng vì <code>@</code> không bao giờ khớp rule lớn.</p>
+</div>
+
+<h3 id="san-pham-3">4.4 Sản phẩm 3: <code>lookup_uri</code> và <code>#[allow(unreachable_patterns)]</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L51-L59">crates/openxml-xml/src/ns.rs:51–59</figcaption>
+<pre><code class="language-rust">        #[allow(unreachable_patterns)]
+        fn lookup_uri(uri: &amp;str) -&gt; Option&lt;Ns&gt; {
+            match uri {
+                "" =&gt; None,
+                $( $uri =&gt; Some(Ns::$id), )*
+                $( $( $strict =&gt; Some(Ns::$id), )? )*
+                _ =&gt; None,
+            }
+        }</code></pre>
+</figure>
+<ul>
+  <li><code>match</code> trên <code>&amp;str</code> với các nhánh là chuỗi literal — <code>$uri</code> được bắt bằng <code>literal</code> nên đặt vào vị trí pattern được.</li>
+  <li><code>$( $uri =&gt; Some(Ns::$id), )*</code>: mỗi dòng dữ liệu một nhánh cho URI Transitional. <code>Ns::$id</code> dán thành <code>Ns::W</code>, <code>Ns::X</code>…</li>
+  <li><code>$( $( $strict =&gt; Some(Ns::$id), )? )*</code>: <strong>lặp lồng hai tầng</strong>. Tầng ngoài <code>*</code> duyệt các dòng; tầng trong <code>?</code> chỉ sinh nhánh nếu dòng đó có <code>strict</code>. Để ý <code>$id</code> được bắt ở tầng 1 nhưng dùng trong tầng 2 — được phép (xem lại chỗ hay nhầm ở mục 3). Kết quả: 21 nhánh Strict.</li>
+  <li><code>"" =&gt; None</code> đứng <em>đầu tiên</em>: URI rỗng nghĩa là "không namespace", không phải một namespace trong bảng.</li>
+</ul>
+<p>Vậy <code>#[allow(unreachable_patterns)]</code> để làm gì? Nhìn dòng đầu bảng: <code>NONE = 0, "", "";</code> — URI của <code>NONE</code> là chuỗi rỗng. Vậy vòng lặp sẽ sinh nhánh <code>"" =&gt; Some(Ns::NONE)</code>, đứng <em>sau</em> nhánh <code>"" =&gt; None</code>. Nhánh sau không bao giờ được chạy tới, và Rust cảnh báo. Mình đã bỏ dòng <code>#[allow]</code> trong một bản sao của macro để xem cảnh báo thật:</p>
+<figure class="code">
+  <figcaption>Cảnh báo thật khi bỏ #[allow(unreachable_patterns)] (bản sao thu nhỏ)</figcaption>
+<pre><code class="language-bash">warning: unreachable pattern
+  --&gt; src/bin/m.rs:37:19
+   |
+24 |                 "" =&gt; None,
+   |                 -- matches all the relevant values
+...
+37 |     NONE = 0, "", "";
+   |                   ^^ no value can reach this
+   |
+   = note: `#[warn(unreachable_patterns)]` (part of `#[warn(unused)]`) on by default</code></pre>
+</figure>
+<p>Để ý: cảnh báo chỉ vào <em>dòng dữ liệu</em> (<code>NONE = 0, "", "";</code>) chứ không chỉ vào macro — trình biên dịch nhớ token nào đến từ đâu. Cảnh báo này là "cố ý" (NONE nằm trong bảng để <code>TABLE[0]</code> tồn tại, không phải để tra ngược), nên tắt nó là hợp lý. Cái giá: nếu sau này ai đó vô tình thêm hai namespace trùng URI, trình biên dịch cũng im lặng. Bù lại, test <code>uris_and_prefixes_are_unique</code> (bài 2.1) bắt lỗi đó.</p>
+<div class="callout tip">
+  <span class="callout-title">💡 Còn <code>OTHER</code> với URI <code>"\u{0}other"</code>?</span>
+  <p><code>OTHER</code> cũng phải có một dòng trong bảng (để <code>TABLE[1]</code> tồn tại) và do đó một nhánh trong <code>lookup_uri</code>. Tác giả chọn URI <code>"\u{0}other"</code> — bắt đầu bằng ký tự NUL (mã 0). XML 1.0 cấm ký tự NUL trong tài liệu, nên không file thật nào có namespace này: nhánh đó "tồn tại nhưng không bao giờ trúng" trong thực tế. Và <code>Ns::uri()</code> có nhánh riêng trả <code>""</code> cho <code>OTHER</code> để chuỗi kỳ quặc này không lọt ra ngoài.</p>
+</div>
+
+<h2 id="mo-rong">5. Macro mở rộng ra cái gì? Tự tay viết thử</h2>
+<p>Cách tốt nhất để hiểu macro là tự "chạy" nó bằng tay. Lấy bốn dòng đầu tiên kiểu như bảng thật — <code>NONE</code>, <code>OTHER</code>, <code>W</code>, <code>X</code> — và mở rộng. Để chắc chắn mình không mở rộng sai, mình đã chép macro sang một project thử (chỉ số đổi thành 0–3 cho gọn) và nhờ trình biên dịch in ra code sau mở rộng. Đây là output thật (bỏ phần derive, định dạng lại cho dễ đọc):</p>
+<figure class="code">
+  <figcaption>Output thật của trình biên dịch sau mở rộng (bản sao 4 dòng: NONE=0, OTHER=1, W=2, X=3)</figcaption>
+<pre><code class="language-rust">impl Ns {
+    pub const NONE: Ns = Ns(0);
+    pub const OTHER: Ns = Ns(1);
+    pub const W: Ns = Ns(2);
+    pub const X: Ns = Ns(3);
+}
+static TABLE: &amp;[NsInfo] =
+    &amp;[NsInfo {
+            ident: "NONE",
+            prefix: "",
+            uri: "",
+            strict_uri: None,
+            default_on_root: false,
+        },
+        NsInfo {
+            ident: "OTHER",
+            prefix: "",
+            uri: "\u{0}other",
+            strict_uri: None,
+            default_on_root: false,
+        },
+        NsInfo {
+            ident: "W",
+            prefix: "w",
+            uri: "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
+            strict_uri: Some("http://purl.oclc.org/ooxml/wordprocessingml/main"),
+            default_on_root: false,
+        },
+        NsInfo {
+            ident: "X",
+            prefix: "x",
+            uri: "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+            strict_uri: Some("http://purl.oclc.org/ooxml/spreadsheetml/main"),
+            default_on_root: true,
+        }];
+fn lookup_uri(uri: &amp;str) -&gt; Option&lt;Ns&gt; {
+    match uri {
+        "" =&gt; None,
+        "" =&gt; Some(Ns::NONE),
+        "\u{0}other" =&gt; Some(Ns::OTHER),
+        "http://schemas.openxmlformats.org/wordprocessingml/2006/main" =&gt; Some(Ns::W),
+        "http://schemas.openxmlformats.org/spreadsheetml/2006/main" =&gt; Some(Ns::X),
+        "http://purl.oclc.org/ooxml/wordprocessingml/main" =&gt; Some(Ns::W),
+        "http://purl.oclc.org/ooxml/spreadsheetml/main" =&gt; Some(Ns::X),
+        _ =&gt; None,
+    }
+}</code></pre>
+</figure>
+<p>Bạn thấy tận mắt: nhánh <code>"" =&gt; Some(Ns::NONE)</code> không bao giờ trúng; các nhánh Strict nằm sau tất cả nhánh Transitional (vì là một vòng lặp riêng); <code>strict_uri: None</code> sinh ra từ rule <code>(@opt)</code>. Doc comment (trong bản sao mình bỏ đi) sẽ xuất hiện dưới dạng <code>#[doc = "…"]</code> ngay trên mỗi <code>pub const</code>.</p>
+<div class="callout tip">
+  <span class="callout-title">💡 Tự xem macro mở rộng: cargo-expand</span>
+  <p>Công cụ phổ biến là <a href="https://github.com/dtolnay/cargo-expand">cargo-expand</a>: <code>cargo install cargo-expand</code>, rồi <code>cargo expand -p openxml-xml ns</code> để in module <code>ns</code> sau mở rộng. Nó cần có toolchain nightly được cài (<code>rustup toolchain install nightly</code>) vì dựa trên tuỳ chọn <code>-Zunpretty=expanded</code> chưa ổn định của rustc — output ở trên chính là từ tuỳ chọn đó. Repo chỉ dùng toolchain stable, nên đây là bước tuỳ chọn. Trong VS Code, rust-analyzer có lệnh "Expand macro recursively" (đặt con trỏ lên tên macro) — không cần cài gì thêm.</p>
+</div>
+
+<h2 id="static-const">6. <code>static</code> vs <code>const</code>, và <code>TABLE[self.0 as usize]</code></h2>
+<p>Macro sinh <code>pub const W: Ns = …</code> nhưng lại sinh <code>static TABLE</code>. Hai từ khoá khác nhau thế nào?</p>
+<div class="table-wrap"><table>
+  <tr><th></th><th><code>const</code></th><th><code>static</code></th></tr>
+  <tr><td>Bản chất</td><td>Một <em>giá trị</em> có tên. Mỗi chỗ dùng, trình biên dịch dán giá trị vào (như copy-paste).</td><td>Một <em>vị trí trong bộ nhớ</em>, tồn tại đúng một bản suốt chương trình.</td></tr>
+  <tr><td>Địa chỉ</td><td>Không cố định — hai lần dùng có thể là hai bản sao khác nhau</td><td>Cố định; mọi tham chiếu trỏ về cùng một chỗ</td></tr>
+  <tr><td>Dùng làm pattern trong <code>match</code></td><td>Được (như <code>Ns::W</code>)</td><td>Không</td></tr>
+  <tr><td>Hợp với</td><td>Giá trị nhỏ: số, <code>Ns</code>, chuỗi ngắn</td><td>Dữ liệu lớn dùng chung: bảng tra cứu</td></tr>
+</table></div>
+<p>Vì vậy: <code>Ns::W</code> phải là <code>const</code> (để làm pattern, và chỉ nặng 2 byte). <code>TABLE</code> là mảng 38 phần tử × 5 trường — dùng <code>static</code> để chỉ có một bản trong file thực thi, mọi lần tra đều trỏ vào đó. Và vì <code>TABLE</code> sống suốt chương trình, tham chiếu vào nó có lifetime <code>'static</code>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L190-L192">crates/openxml-xml/src/ns.rs:190–192</figcaption>
+<pre><code class="language-rust">    fn info(self) -&gt; &amp;'static NsInfo {
+        &amp;TABLE[self.0 as usize]
+    }</code></pre>
+</figure>
+<ul>
+  <li><code>TABLE</code> có kiểu <code>&amp;[NsInfo]</code> — một <strong>slice</strong> (lát cắt): tham chiếu tới một dãy liên tiếp, kèm độ dài. <code>&amp;[ … ]</code> ở vế phải là "lấy tham chiếu tới mảng này"; vì mảng toàn giá trị hằng, Rust đặt nó vào vùng nhớ tĩnh.</li>
+  <li><code>self.0 as usize</code>: đổi <code>u16</code> sang <code>usize</code>. Rust <em>không tự đổi kiểu số</em>, và chỉ số mảng phải là <code>usize</code>. <code>as</code> là phép ép kiểu tường minh; từ <code>u16</code> lên <code>usize</code> thì không bao giờ mất dữ liệu.</li>
+  <li><code>TABLE[i]</code>: Rust luôn kiểm tra chỉ số; vượt quá độ dài thì <strong>panic</strong> chứ không đọc bậy bộ nhớ. Ở đây không bao giờ panic vì mọi <code>Ns</code> đều đến từ hằng số trong bảng hoặc từ <code>Ns::all()</code> (bài 2.1 — constructor riêng tư) — <em>với điều kiện</em> chỉ số trong bảng khớp vị trí. Đó là chủ đề của mục tiếp theo.</li>
+</ul>
+
+<h2 id="test-thu-tu">7. Test bảo vệ thứ tự — và một bất ngờ</h2>
+<p>Nhớ lại mục 4.2: vị trí trong <code>TABLE</code> là <em>thứ tự dòng</em>, còn hằng số lấy từ <em>con số <code>$idx</code> gõ tay</em>. Hai thứ này độc lập. Nếu ai đó chèn một namespace mới vào giữa bảng mà quên đánh số lại, <code>Ns::W</code> có thể là <code>Ns(5)</code> trong khi dòng của W nằm ở vị trí 4 — <code>Ns::W.uri()</code> sẽ trả URI của namespace khác! Đó là loại lỗi nguy hiểm nhất: không crash, chỉ sai âm thầm.</p>
+<p>Dự án có test mang tên đúng mục đích này:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L249-L255">crates/openxml-xml/src/ns.rs:249–255</figcaption>
+<pre><code class="language-rust">    #[test]
+    fn table_indices_match_constants() {
+        for (i, info) in TABLE.iter().enumerate() {
+            let ns = Ns(i as u16);
+            assert_eq!(ns.ident(), info.ident, "index {i} is out of order");
+        }
+    }</code></pre>
+</figure>
+<p>Đọc chậm: <code>ns = Ns(i)</code>, nên <code>ns.ident()</code> = <code>TABLE[i].ident</code>. Còn <code>info</code> cũng là <code>TABLE[i]</code>. Vậy test so <code>TABLE[i].ident</code> với <em>chính nó</em> — nó <strong>luôn đúng</strong>, không phụ thuộc hằng số <code>Ns::W</code> là bao nhiêu. Để chắc chắn, mình làm thí nghiệm trên bản sao macro: tráo chỉ số của W và X (<code>W = 3</code>, <code>X = 2</code>) nhưng giữ thứ tự dòng. Kết quả chạy thật:</p>
+<figure class="code">
+  <figcaption>Kết quả thật — bản sao với chỉ số W/X bị tráo</figcaption>
+<pre><code class="language-bash">---- uris_round_trip_through_lookup stdout ----
+assertion `left == right` failed: W
+  left: Some(Ns(3))
+ right: Some(Ns(2))
+---- w_prefix stdout ----
+assertion `left == right` failed
+  left: "x"
+ right: "w"
+test result: FAILED. 1 passed; 2 failed; ...</code></pre>
+</figure>
+<p>Test "1 passed" chính là bản sao của <code>table_indices_match_constants</code> — nó không phát hiện gì. Người thực sự bắt lỗi là <code>uris_round_trip_through_lookup</code> (bài 2.1): nó lấy <code>Ns(i)</code>, lấy URI ở vị trí <code>i</code>, tra ngược qua <code>lookup_uri</code> — mà <code>lookup_uri</code> trả về <em>hằng số</em> <code>Ns::W</code> (dùng <code>$idx</code>). Nếu chỉ số lệch vị trí, hai bên khác nhau ngay. (<code>w_prefix</code> là test mình tự thêm vào bản sao để minh hoạ hậu quả: <code>Ns::W</code> trả prefix <code>"x"</code>.)</p>
+<p>Vậy trong repo, lỗi thứ tự <em>vẫn được bảo vệ</em> — nhưng bởi test round-trip, không phải bởi test có tên nghe đúng nhất. Bài học chung, áp dụng cho mọi dự án:</p>
+<div class="callout pattern">
+  <span class="callout-title">🧩 Kỹ thuật: kiểm tra xem test có thể fail không</span>
+  <p>Một test chưa bao giờ fail thì chưa chắc đã kiểm tra được gì. Cách nhanh để biết: <strong>cố tình làm hỏng code</strong> (tráo chỉ số, xoá một dòng) rồi chạy test, xem test nào đỏ. Kỹ thuật này được tự động hoá thành "mutation testing" (công cụ Rust: <code>cargo-mutants</code>). Ở đây nó giúp mình phát hiện một test đúng tên nhưng rỗng ruột — và một test khác đang âm thầm gánh việc.</p>
+</div>
+<p>Một cách chặt chẽ hơn là để chính macro sinh ra phép kiểm tra, vì chỉ macro mới thấy cả <code>$id</code> lẫn thứ tự dòng. Đó là bài tập 3 cuối bài.</p>
+
+<h2 id="macro-khac">8. Các macro khác trong dự án</h2>
+<h3 id="int-value">8.1 <code>int_value!</code> và <code>float_value!</code>: sinh <code>impl</code> cho nhiều kiểu</h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/value.rs#L47-L59">crates/openxml-xml/src/value.rs:47–59</figcaption>
+<pre><code class="language-rust">macro_rules! int_value {
+    ($($t:ty),*) =&gt; {$(
+        impl XmlValue for $t {
+            fn parse_xml(s: &amp;str) -&gt; Option&lt;Self&gt; {
+                s.trim().parse().ok()
+            }
+            fn write_xml(&amp;self, out: &amp;mut String) {
+                let _ = write!(out, "{self}");
+            }
+        }
+    )*};
+}
+int_value!(i8, i16, i32, i64, u8, u16, u32, u64);</code></pre>
+</figure>
+<p><code>XmlValue</code> là trait "đổi qua lại giữa giá trị Rust và chuỗi trong XML" (bài 2.6). Tám kiểu số nguyên cần tám khối <code>impl</code> giống hệt nhau, chỉ khác tên kiểu. Macro nhận danh sách kiểu (<code>$t:ty</code>, ngăn bằng dấu phẩy) và sinh một <code>impl</code> cho mỗi kiểu. Để ý cấu trúc <code>=&gt; {$( … )*};</code>: cặp <code>{ }</code> ngoài là thân rule, <code>$( … )*</code> nằm ngay trong đó. Dòng 59 là lời gọi duy nhất.</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/value.rs#L61-L69">crates/openxml-xml/src/value.rs:61–69 (phần đầu)</figcaption>
+<pre><code class="language-rust">macro_rules! float_value {
+    ($($t:ty),*) =&gt; {$(
+        impl XmlValue for $t {
+            /// `xsd:double` / `xsd:float` / `xsd:decimal`, including `INF`, `-INF` and `NaN`.
+            fn parse_xml(s: &amp;str) -&gt; Option&lt;Self&gt; {
+                match s.trim() {
+                    "INF" | "+INF" =&gt; Some(&lt;$t&gt;::INFINITY),
+                    "-INF" =&gt; Some(&lt;$t&gt;::NEG_INFINITY),
+                    "NaN" =&gt; Some(&lt;$t&gt;::NAN),</code></pre>
+</figure>
+<p><code>float_value!(f32, f64)</code> (dòng 91) cùng khuôn, nhưng có chi tiết đáng học: <code>&lt;$t&gt;::INFINITY</code>. Vì sao không viết <code>$t::INFINITY</code>? Vì <code>$t</code> được bắt bằng <code>ty</code> — một <em>kiểu</em> đã được phân tích xong — và đặt một kiểu trước <code>::</code> cần cú pháp <code>&lt;Kiểu&gt;::TÊN</code> (ví dụ <code>&lt;Vec&lt;u8&gt;&gt;::new()</code>). Viết <code>&lt;$t&gt;</code> luôn an toàn.</p>
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — sao không dùng generic?</span>
+  <p>Có thể bạn nghĩ: "viết <code>impl&lt;T: FromStr + Display&gt; XmlValue for T</code> một lần là xong?" Nhưng <code>String</code> và <code>bool</code> cũng thoả <code>FromStr + Display</code>, mà dự án cần cài <code>XmlValue</code> cho chúng <em>theo cách khác</em> (bool của XML nhận <code>1</code>/<code>0</code>; float nhận <code>INF</code>). Rust cấm hai <code>impl</code> chồng lấn cho cùng một kiểu (luật "coherence"), nên một <code>impl</code> generic tổng quát sẽ xung đột. Macro sinh <code>impl</code> riêng cho từng kiểu cụ thể — không chồng lấn.</p>
+</div>
+
+<h3 id="say">8.2 <code>say!</code>: bọc một hành vi quanh <code>writeln!</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-cli/src/main.rs#L21-L33">crates/openxml-cli/src/main.rs:21–33</figcaption>
+<pre><code class="language-rust">/// Prints a line to stdout; exits quietly when the reader has gone away
+/// (e.g. `openxml text big.xlsx | head`).
+macro_rules! say {
+    ($($arg:tt)*) =&gt; {{
+        let mut out = std::io::stdout().lock();
+        if let Err(e) = writeln!(out, $($arg)*) {
+            if e.kind() == std::io::ErrorKind::BrokenPipe {
+                std::process::exit(0);
+            }
+            panic!("cannot write to stdout: {e}");
+        }
+    }};
+}</code></pre>
+</figure>
+<ul>
+  <li><strong>Vấn đề:</strong> <code>println!</code> sẽ panic nếu đầu ra bị đóng — ví dụ <code>openxml text big.xlsx | head</code>: <code>head</code> đọc đủ 10 dòng rồi thoát, lần ghi tiếp theo gặp lỗi "broken pipe". <code>say!</code> thay <code>println!</code> ở 27 chỗ trong CLI, và thoát êm (mã 0) khi gặp lỗi đó.</li>
+  <li><strong><code>$($arg:tt)*</code></strong>: "nhận mọi thứ" — một dãy token tree bất kỳ. <code>say!</code> không cần hiểu đối số; nó chuyển nguyên xi cho <code>writeln!</code>. Đây là cách chuẩn để viết macro "bọc" macro định dạng: <code>say!("{USAGE}")</code>, <code>say!("valid    {name}")</code>.</li>
+  <li><strong>Hai cặp ngoặc <code>{{ … }}</code></strong>: cặp ngoài là thân rule; cặp trong là một <em>khối</em> Rust <code>{ … }</code>, để biến <code>out</code> có phạm vi riêng và cả macro là một biểu thức/câu lệnh gọn.</li>
+  <li><strong>Vì sao không là hàm?</strong> Hàm không nhận được "số đối số tuỳ ý với chuỗi định dạng kiểm tra lúc biên dịch" như <code>writeln!</code>. Chỉ macro mới chuyển tiếp được y nguyên.</li>
+</ul>
+
+<h3 id="rels">8.3 <code>rels!</code>: người anh em của <code>namespaces!</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-opc/src/known.rs#L25-L30">crates/openxml-opc/src/known.rs:25–30</figcaption>
+<pre><code class="language-rust">    macro_rules! rels {
+        ($($(#[$m:meta])* $name:ident = $suffix:literal;)*) =&gt; {$(
+            $(#[$m])*
+            pub const $name: &amp;str = concat!("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", $suffix);
+        )*};
+    }</code></pre>
+</figure>
+<p>Cùng kiểu bảng có doc comment (<code>$(#[$m:meta])*</code>) như <code>namespaces!</code>, nhưng đơn giản hơn: mỗi dòng <code>OFFICE_DOCUMENT = "officeDocument";</code> thành một hằng số chuỗi. <code>concat!</code> là macro có sẵn nối các literal <em>lúc biên dịch</em> — kết quả vẫn là <code>&amp;'static str</code>, không tốn gì lúc chạy. Bạn đã có đủ kiến thức để đọc nó một mạch. Ngoài ra repo còn <code>series_list!</code> (openxml-chart), <code>accessors!</code> (openxml-xlsx), <code>fields!</code>/<code>assign!</code>/<code>emit!</code> (core_properties.rs), <code>heading_xml!</code>/<code>toc_xml!</code> (openxml-docx) — thử tự đọc một cái khi rảnh.</p>
+
+<h2 id="khi-nao">9. Khi nào dùng macro, khi nào dùng hàm/generic?</h2>
+<p>Macro mạnh nhưng có giá: thông báo lỗi khó đọc hơn, IDE hỗ trợ kém hơn, người đọc phải "chạy macro trong đầu". Quy tắc ngón tay cái:</p>
+<ol>
+  <li><strong>Mặc định dùng hàm.</strong> Nếu một hàm làm được, dùng hàm.</li>
+  <li><strong>Cần làm việc với nhiều kiểu → thử generic + trait trước</strong> (bài 2.6). Chỉ chuyển sang macro khi generic vướng (như vụ coherence ở <code>int_value!</code>).</li>
+  <li><strong>Dùng macro khi phải sinh ra thứ mà hàm không sinh được:</strong>
+    <ul>
+      <li>item: <code>const</code>, <code>static</code>, <code>impl</code>, <code>fn</code> (<code>namespaces!</code>, <code>int_value!</code>, <code>rels!</code>);</li>
+      <li>pattern cho <code>match</code> (<code>lookup_uri</code>);</li>
+      <li>số đối số tuỳ ý, chuyển tiếp chuỗi định dạng (<code>say!</code>);</li>
+      <li>xử lý tại thời điểm biên dịch: <code>stringify!</code>, <code>concat!</code>.</li>
+    </ul>
+  </li>
+  <li><strong>Khi bảng dữ liệu quá lớn hoặc đến từ file ngoài</strong> (XSD hàng nghìn kiểu) → macro cũng không đủ; dùng <strong>code generator</strong> riêng, sinh file <code>.rs</code> (<code>openxml-codegen</code>, Phần 4). Macro nằm giữa: đủ cho 38 dòng viết tay, không đủ cho 215 nghìn dòng.</li>
+</ol>
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — còn procedural macro?</span>
+  <p><code>#[derive(Debug)]</code> mà bạn gặp ở bài 2.1 cũng là macro, nhưng thuộc loại <strong>procedural macro</strong>: một chương trình Rust thật nhận token và trả token, viết trong crate riêng. Mạnh hơn nhiều nhưng phức tạp hơn nhiều. Dự án này không tự viết procedural macro nào — chỉ dùng <code>macro_rules!</code> và các derive có sẵn — một lựa chọn nhất quán với tinh thần ít phụ thuộc (crate <code>openxml-xml</code> chỉ phụ thuộc đúng <code>quick-xml</code>).</p>
+</div>
+
+<h2 id="ban-do-spec">10. Góc OpenXML: đọc bảng namespace như bản đồ spec</h2>
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — 36 namespace, 6 nhóm</span>
+  <p>Mỗi dòng trong <code>namespaces! { … }</code> (ns.rs:67–170) có doc comment ghi rõ mục (§) của ECMA-376. Gom lại, bảng chính là một mục lục thu nhỏ của chuẩn:</p>
+  <div class="table-wrap"><table>
+    <tr><th>Chỉ số</th><th>Nhóm</th><th>Namespace</th><th>Nguồn</th></tr>
+    <tr><td>0–1</td><td>Giá trị đặc biệt</td><td><code>NONE</code>, <code>OTHER</code></td><td>Không phải namespace thật</td></tr>
+    <tr><td>2–3</td><td>Hạ tầng XML</td><td><code>XML</code>, <code>XMLNS</code></td><td>W3C (XML, Namespaces in XML)</td></tr>
+    <tr><td>4–24</td><td>OOXML chính (21, đều có URI Strict)</td><td><code>W</code> §17, <code>X</code> §18, <code>P</code> §19, <code>A</code> §20.1/§21.1, <code>PIC</code> §20.2, <code>LC</code> §20.3, <code>WP</code> §20.4, <code>XDR</code> §20.5, <code>C</code> §21.2, <code>CDR</code> §21.3, <code>DGM</code> §21.4, <code>M</code> §22.1, <code>EP</code> §22.2, <code>OP</code> §22.3, <code>VT</code> §22.4, <code>DS</code> §22.5, <code>B</code> §22.6, <code>AC</code> §22.7, <code>R</code> §22.8, <code>S</code> §22.9, <code>SL</code> §23</td><td>ECMA-376 Part 1</td></tr>
+    <tr><td>25–29</td><td>VML (đồ hoạ cũ)</td><td><code>V</code>, <code>O</code>, <code>W10</code>, <code>XVML</code>, <code>PVML</code> (§19.1–§19.5)</td><td>Part 4 (Transitional) — URI dạng <code>urn:schemas-microsoft-com:…</code></td></tr>
+    <tr><td>30</td><td>Markup Compatibility</td><td><code>MC</code></td><td>Part 3</td></tr>
+    <tr><td>31–33</td><td>OPC</td><td><code>CT</code> (<code>[Content_Types].xml</code>), <code>PR</code> (<code>.rels</code>), <code>CP</code> (core properties)</td><td>Part 2</td></tr>
+    <tr><td>34–36</td><td>Dublin Core</td><td><code>DC</code>, <code>DCTERMS</code>, <code>DCMITYPE</code></td><td>Chuẩn metadata Dublin Core (ngoài ECMA)</td></tr>
+    <tr><td>37</td><td>XML Schema instance</td><td><code>XSI</code></td><td>W3C</td></tr>
+  </table></div>
+  <p>Vì sao Dublin Core và XSI có mặt? Mở <code>docProps/core.xml</code> của <code>sample.xlsx</code> là thấy ngay — một part dùng đúng năm namespace 33–37:</p>
+<pre><code class="language-xml">&lt;cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
+    xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/"
+    xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"&gt;
+  &lt;dc:creator&gt;&lt;/dc:creator&gt;
+  &lt;dcterms:created xsi:type="dcterms:W3CDTF"&gt;2007-08-15T06:50:14Z&lt;/dcterms:created&gt; ...</code></pre>
+  <p>Chỉ nhóm Part 1 có bản Strict (21 namespace — khớp con số 21 chạy thật ở bài 2.1). VML là đồ "di sản" chỉ có trong Transitional, còn MC, OPC, Dublin Core dùng chung một URI cho cả hai chế độ. Một chi tiết nữa: prefix <code>ep</code>, <code>op</code>, <code>ct</code>, <code>pr</code> trong bảng gần như không bao giờ xuất hiện trong file, vì bốn namespace này có <code>default_on_root = true</code> — Office ghi chúng làm default namespace (như <code>&lt;Properties xmlns="…extended-properties"&gt;</code> trong <code>app.xml</code>). Prefix chỉ là "phương án dự phòng" khi writer buộc phải khai báo.</p>
+</div>
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — vì sao <code>XVML</code> và <code>X</code> trùng prefix <code>"x"</code>?</span>
+  <p>Hai namespace hoàn toàn khác nhau, nhưng Office quen gọi cả hai là <code>x</code>. <code>X</code> là SpreadsheetML (<code>…/spreadsheetml/2006/main</code>). <code>XVML</code> là phần mở rộng VML của Excel (<code>urn:schemas-microsoft-com:office:excel</code>, Part 4 §19.4), xuất hiện trong các part VML — ví dụ khung chú thích (comment) của ô. Trích <code>xl/drawings/vmlDrawing1.vml</code> trong <code>fixtures/poi/comments.xlsx</code>:</p>
+<pre><code class="language-xml">&lt;xml xmlns:v="urn:schemas-microsoft-com:vml"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"&gt;
+ ...
+  &lt;x:ClientData ObjectType="Note"&gt;
+   &lt;x:MoveWithCells/&gt;
+   &lt;x:Row&gt;0&lt;/x:Row&gt;
+   &lt;x:Column&gt;0&lt;/x:Column&gt;
+  &lt;/x:ClientData&gt;</code></pre>
+  <p>Trong part này <code>x:</code> là VML-Excel, trong <code>sheet1.xml</code> (nếu có prefix) <code>x:</code> lại là SpreadsheetML. Không mâu thuẫn, vì như bài 2.1 đã nói, prefix chỉ có nghĩa trong phạm vi khai báo của nó. Bảng giữ đúng quy ước Office cho cả hai, và test <code>uris_and_prefixes_are_unique</code> cho phép duy nhất vụ trùng này. Nếu hiếm hoi cả hai cùng xuất hiện trong một phạm vi, writer có cơ chế chọn prefix khác (<code>fresh_prefix</code>, bài 2.5) để tránh đụng nhau.</p>
+</div>
+
+<section class="exercise">
+  <h3>🛠 Bài tập</h3>
+  <ol>
+    <li><strong>Viết macro đầu tiên.</strong> Trong một project riêng (<code>cargo new thu-macro</code>, ngoài repo), viết <code>macro_rules! max_of</code> nhận 1 hoặc nhiều biểu thức, trả về giá trị lớn nhất: <code>max_of!(3)</code> → 3, <code>max_of!(3, 9, 2)</code> → 9. Gợi ý: hai rule, rule thứ hai gọi đệ quy <code>max_of!</code> với phần còn lại, dùng <code>std::cmp::max</code>.</li>
+    <li><strong>Tái hiện <code>namespaces!</code> thu nhỏ.</strong> Trong cùng project, chép <code>struct Ns</code>, <code>NsInfo</code> và macro (ns.rs:20–65), gọi macro với 4 dòng <code>NONE</code>, <code>OTHER</code>, <code>W</code>, <code>X</code>. In <code>lookup_uri("http://purl.oclc.org/ooxml/spreadsheetml/main")</code>. Rồi xoá <code>#[allow(unreachable_patterns)]</code> và đọc cảnh báo. Thêm một thuộc tính tuỳ chọn thứ ba <code>$(, legacy = $legacy:literal)?</code> vào pattern, sinh ra trường <code>legacy: bool</code> trong <code>NsInfo</code> bằng rule <code>(@bool)</code> có sẵn.</li>
+    <li><strong>Test thứ tự "thật".</strong> Vẫn trong bản sao ở bài 2, sửa macro để nó sinh thêm một hàm kiểm tra:
+      <pre><code class="language-rust">#[cfg(test)]
+#[test]
+fn constants_point_at_their_rows() {
+    $( assert_eq!(TABLE[Ns::$id.0 as usize].ident, stringify!($id)); )*
+}</code></pre>
+      (đặt đoạn này bên trong phần expansion của rule lớn). Tráo chỉ số của <code>W</code> và <code>X</code>, chạy <code>cargo test</code>: test mới có bắt được không? So với <code>table_indices_match_constants</code> gốc.</li>
+    <li><strong>Đọc macro lạ.</strong> Mở <code>crates/openxml-opc/src/core_properties.rs</code>, đọc macro <code>fields!</code> (từ dòng 46). Nó chỉ nhận <em>tên của một macro khác</em> (<code>$m:ident</code>) rồi gọi <code>$m!(…)</code> với bảng 15 trường của <code>core.xml</code> — kỹ thuật "callback macro": một bảng, nhiều macro dùng chung. Tìm hai macro cục bộ <code>assign!</code> và <code>emit!</code> trong cùng file: mỗi cái làm gì với bảng đó? Viết tay bản mở rộng của <code>fields!(assign)</code> cho dòng <code>(DC, "title", title)</code>.</li>
+  </ol>
+</section>
+
+<section>
+  <h2 id="tu-kiem-tra">Tự kiểm tra</h2>
+  <details><summary>1. Macro <code>namespaces!</code> sinh ra ba thứ gì từ một bảng? Vì sao không viết tay?</summary>
+    <div class="answer">(1) Các hằng số <code>pub const W: Ns = Ns(4);</code> trong <code>impl Ns</code>; (2) bảng <code>static TABLE: &amp;[NsInfo]</code>; (3) hàm <code>lookup_uri</code> với <code>match</code> trên URI Transitional và Strict. Viết tay thì hơn 130 chỗ ở ba nơi phải khớp nhau — dễ sai âm thầm. Macro giữ một nguồn sự thật.</div></details>
+  <details><summary>2. <code>$(, strict = $strict:literal)?</code> khớp với những đầu vào nào?</summary>
+    <div class="answer">Hoặc không có gì (0 lần), hoặc đúng chuỗi token <code>, strict = "một literal"</code> (1 lần). <code>strict</code> và <code>=</code> là token cố định phải có mặt.</div></details>
+  <details><summary>3. Tại sao cần <code>(@opt)</code> và <code>(@opt $v:literal)</code> thay vì viết thẳng <code>$(Some($strict))?</code>?</summary>
+    <div class="answer">Vì khi không có <code>strict</code>, <code>$(Some($strict))?</code> sinh ra <em>rỗng</em>, trong khi trường <code>strict_uri</code> cần giá trị <code>None</code>. <code>macro_rules!</code> không có "else"; gọi lại macro với rule nội bộ cho phép chọn <code>None</code> (không có token) hoặc <code>Some($v)</code> (có token).</div></details>
+  <details><summary>4. Cảnh báo <code>unreachable_patterns</code> đến từ nhánh nào, và vì sao tắt nó là chấp nhận được?</summary>
+    <div class="answer">Từ nhánh <code>"" =&gt; Some(Ns::NONE)</code> sinh ra cho dòng <code>NONE</code> (URI rỗng), đứng sau <code>"" =&gt; None</code>. NONE có trong bảng chỉ để <code>TABLE[0]</code> tồn tại, không để tra ngược, nên nhánh chết là cố ý. Trùng URI thật sự thì đã có test <code>uris_and_prefixes_are_unique</code> bắt.</div></details>
+  <details><summary>5. Khác nhau giữa <code>const</code> và <code>static</code>? Vì sao <code>Ns::W</code> là const còn <code>TABLE</code> là static?</summary>
+    <div class="answer"><code>const</code> là giá trị được dán vào mỗi chỗ dùng, dùng được làm pattern; <code>static</code> là một vị trí bộ nhớ duy nhất, địa chỉ cố định. <code>Ns::W</code> nhỏ và cần làm pattern trong <code>match</code> → const. <code>TABLE</code> là bảng lớn dùng chung, trả tham chiếu <code>&amp;'static NsInfo</code> → static.</div></details>
+  <details><summary>6. Test <code>table_indices_match_constants</code> có phát hiện được việc gõ nhầm chỉ số <code>W = 5</code> không? Test nào phát hiện?</summary>
+    <div class="answer">Không: nó so <code>TABLE[i].ident</code> với chính nó, nên luôn đúng. Test <code>uris_round_trip_through_lookup</code> mới phát hiện, vì <code>lookup_uri</code> trả về hằng số (dùng <code>$idx</code>), còn <code>Ns(i).uri()</code> dùng vị trí — hai bên lệch nhau khi chỉ số sai.</div></details>
+</section>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Bài sau</span>
+  <p>Bảng namespace đã xong. Nhưng đọc XML thật thì sẽ gặp file hỏng, thẻ không đóng, bảng mã lạ, root sai… <a href="p2-3-xu-ly-loi.html">Bài 2.3</a> học cách dự án xử lý lỗi: <code>Result</code>, <code>enum Error</code>, <code>From</code> và toán tử <code>?</code> — và vì sao lỗi của quick-xml không bao giờ lọt ra ngoài crate.</p>
+</div>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.3 Xử lý lỗi: Error, From, ? · Học Rust qua open-xml-rust</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/vendor/highlight.min.js" defer></script>
+<script src="assets/app.js" defer></script>
+</head>
+<body data-lesson="p2-3">
+<main class="content">
+
+<header>
+  <p class="crumb">Phần 2 · Tầng XML (openxml-xml)</p>
+  <h1>2.3 Xử lý lỗi: Error, From, ?</h1>
+  <p class="lead">File Office ngoài đời không phải lúc nào cũng đẹp: ZIP hỏng, XML thiếu thẻ đóng, mã hoá UTF-16, root sai, thậm chí file cố tình lồng 100.000 tầng để làm sập chương trình. Bài này học cách Rust xử lý lỗi từ gốc, rồi đọc từng dòng <code>error.rs</code> — file 71 dòng mà mọi tầng phía trên đều dựa vào.</p>
+  <div class="meta"><span>⏱ ~60 phút</span><span>crates/openxml-xml/src/error.rs</span><span>openxml-opc/src/error.rs · openxml-core/src/error.rs</span><span>Rust: panic, Result, Option, enum, Display, From, ?, type alias</span></div>
+</header>
+
+<section class="goals">
+  <h3>🎯 Học xong bài này bạn sẽ</h3>
+  <ul>
+    <li>Phân biệt <strong>panic</strong> và <strong><code>Result</code></strong>; <code>Option</code> và <code>Result</code>; biết khi nào <code>unwrap</code>/<code>expect</code> là chấp nhận được (khái niệm <em>bất biến</em>).</li>
+    <li>Đọc hiểu từng dòng <code>enum Error</code> của <code>openxml-xml</code>: variant tuple/struct-like, <code>#[non_exhaustive]</code>, derive, <code>Display</code>, <code>std::error::Error</code>.</li>
+    <li>Hiểu <code>impl From&lt;quick_xml::Error&gt;</code> và toán tử <code>?</code> thực sự làm gì (desugar).</li>
+    <li>Hiểu <code>pub type Result&lt;T, E = Error&gt;</code> — generic có giá trị mặc định.</li>
+    <li>Lần theo chuỗi lỗi từ <code>openxml-xml</code> → <code>openxml-opc</code> → <code>openxml-core</code>; biết vì sao dự án không dùng <code>thiserror</code>/<code>anyhow</code>.</li>
+    <li>Dùng thành thạo <code>ok_or_else</code>, <code>map_err</code>, <code>and_then</code>.</li>
+    <li>Liên hệ từng loại lỗi với thực tế file Office, và triết lý "đọc dễ dãi" (lenient reading).</li>
+  </ul>
+</section>
+
+<h2 id="panic-result">1. Hai loại lỗi: panic và Result</h2>
+<p>Rust chia lỗi làm hai loại rất rõ ràng:</p>
+<ul>
+  <li><strong>Lỗi không thể phục hồi → <code>panic!</code>.</strong> Chương trình gặp tình huống "không thể xảy ra" — một lỗi <em>lập trình</em> (bug). Luồng đang chạy dừng lại, in thông báo, huỷ dọn dẹp. Ví dụ: truy cập <code>v[10]</code> khi vector chỉ có 3 phần tử.</li>
+  <li><strong>Lỗi có thể dự đoán → trả về <code>Result&lt;T, E&gt;</code>.</strong> Tình huống bình thường của thế giới thật: file không tồn tại, dữ liệu sai định dạng. Hàm trả về <em>hoặc</em> <code>Ok(giá_trị)</code> <em>hoặc</em> <code>Err(lỗi)</code>, và người gọi quyết định làm gì.</li>
+</ul>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — Result là một enum bình thường</figcaption>
+<pre><code class="language-rust">// Trong thư viện chuẩn (rút gọn):
+enum Result&lt;T, E&gt; {
+    Ok(T),
+    Err(E),
+}
+
+fn chia(a: i32, b: i32) -&gt; Result&lt;i32, String&gt; {
+    if b == 0 {
+        return Err("chia cho 0".to_string());
+    }
+    Ok(a / b)
+}
+
+match chia(10, 0) {
+    Ok(kq) =&gt; println!("kết quả {kq}"),
+    Err(e) =&gt; println!("lỗi: {e}"),     // in: lỗi: chia cho 0
+}</code></pre>
+</figure>
+<p>Với một thư viện đọc file Office, quy tắc vàng là: <strong>dữ liệu đầu vào sai không bao giờ được làm panic</strong>. File do người dùng đưa vào — có thể hỏng, có thể độc hại. Thư viện phải trả <code>Err</code> để ứng dụng (ví dụ một web server nhận file upload) tự quyết định, chứ không được làm sập cả tiến trình.</p>
+
+<h3 id="option-result">1.1 Option vs Result</h3>
+<p><code>Option&lt;T&gt;</code> (<code>Some(v)</code> / <code>None</code>) nói "có thể không có"; <code>Result&lt;T, E&gt;</code> nói "có thể thất bại, và đây là <em>lý do</em>". Bạn đã thấy ở bài 2.1: <code>Ns::from_uri</code> trả <code>Option&lt;Ns&gt;</code> — URI lạ không phải "lỗi", chỉ là "không có trong bảng", và không cần giải thích thêm. Còn <code>XmlReader::root()</code> trả <code>Result</code> — thất bại cần nói rõ vì sao (không có root? thẻ không đóng?).</p>
+<p>Chuyển đổi giữa hai loại rất thường gặp — dự án dùng những hàm sau:</p>
+<div class="table-wrap"><table>
+  <tr><th>Hàm</th><th>Làm gì</th><th>Ví dụ trong dự án</th></tr>
+  <tr><td><code>opt.ok_or_else(|| lỗi)</code></td><td><code>Option</code> → <code>Result</code>: <code>None</code> thành <code>Err(lỗi)</code>. Closure chỉ chạy khi thật sự <code>None</code>.</td><td>reader.rs:287, core part.rs:12</td></tr>
+  <tr><td><code>res.map_err(|e| lỗi_khác)</code></td><td>Đổi kiểu lỗi, giữ nguyên <code>Ok</code></td><td>reader.rs:40, 45; core part.rs:13</td></tr>
+  <tr><td><code>x.and_then(|v| …)</code></td><td>Nối tiếp một bước có thể thất bại: nếu <code>Ok</code>/<code>Some</code> thì chạy tiếp, nếu không thì giữ nguyên lỗi/<code>None</code></td><td>opc package.rs:206, test reader.rs:660</td></tr>
+  <tr><td><code>opt.unwrap_or(x)</code></td><td>Lấy giá trị, hoặc dùng mặc định <code>x</code></td><td><code>Ns::classify</code> (bài 2.1)</td></tr>
+  <tr><td><code>res.ok()</code></td><td><code>Result</code> → <code>Option</code>, vứt lỗi đi</td><td><code>int_value!</code>: <code>s.trim().parse().ok()</code></td></tr>
+</table></div>
+<p>Một ví dụ gói gọn cả hai kỹ thuật — hàm đọc một part của <code>openxml-core</code>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-core/src/part.rs#L8-L17">crates/openxml-core/src/part.rs:8–17</figcaption>
+<pre><code class="language-rust">/// Parses a part with the given root element definition.
+pub fn read_part&lt;T: XmlRead&gt;(pkg: &amp;Package, name: &amp;PartName, def: &amp;ElementDef&lt;T&gt;) -&gt; Result&lt;T&gt; {
+    let part = pkg
+        .part(name)
+        .ok_or_else(|| Error::MissingPart(name.to_string()))?;
+    def.parse_bytes(part.data()).map_err(|source| Error::Xml {
+        part: name.to_string(),
+        source,
+    })
+}</code></pre>
+</figure>
+<ul>
+  <li><code>pkg.part(name)</code> trả <code>Option</code> (part có thể không tồn tại). <code>.ok_or_else(|| Error::MissingPart(…))</code> đổi <code>None</code> thành lỗi có tên part; <code>?</code> (mục 5) trả lỗi đó ra ngay nếu có.</li>
+  <li>Vì sao <code>ok_or_else</code> chứ không <code>ok_or(Error::MissingPart(name.to_string()))</code>? Vì <code>ok_or</code> tính đối số <em>trước</em> khi biết có cần hay không — tức là luôn cấp phát chuỗi tên part, kể cả khi part tồn tại. <code>ok_or_else</code> nhận closure <code>|| …</code>, chỉ chạy khi <code>None</code>.</li>
+  <li><code>def.parse_bytes(…)</code> trả <code>Result&lt;T, openxml_xml::Error&gt;</code>. <code>.map_err(|source| Error::Xml { part, source })</code> bọc lỗi XML vào lỗi của tầng core, <em>kèm tên part</em> — thông tin mà tầng XML không hề biết.</li>
+</ul>
+
+<h2 id="unwrap-expect">2. <code>unwrap</code> và <code>expect</code>: khi nào chấp nhận được?</h2>
+<p><code>x.unwrap()</code> lấy giá trị trong <code>Some</code>/<code>Ok</code>, và <strong>panic</strong> nếu là <code>None</code>/<code>Err</code>. <code>x.expect("lý do")</code> y như vậy nhưng in kèm thông điệp của bạn. Chúng tiện nhưng nguy hiểm: mỗi <code>unwrap</code> là một chỗ chương trình có thể sập. Có hai tình huống chính đáng:</p>
+<ol>
+  <li><strong>Trong test.</strong> Test panic = test fail — đúng điều ta muốn. Bạn sẽ thấy <code>.unwrap()</code> dày đặc trong các <code>mod tests</code> của crate (ví dụ <code>XmlReader::new("&lt;a&gt;…").root().unwrap()</code>).</li>
+  <li><strong>Khi lỗi là không thể xảy ra, vì một bất biến.</strong> <strong>Bất biến</strong> (invariant) là một điều <em>luôn đúng</em> do cách code được viết, mà trình biên dịch không tự chứng minh được. Khi đó <code>expect("…")</code> vừa là lệnh, vừa là tài liệu: chuỗi thông điệp nói ra bất biến đó.</li>
+</ol>
+<p>Grep <code>.expect(</code> trong code không phải test của <code>openxml-xml</code> chỉ ra đúng hai chỗ. Chỗ thứ nhất:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/raw.rs#L185-L190">crates/openxml-xml/src/raw.rs:185–190</figcaption>
+<pre><code class="language-rust">    /// Converts a typed value into a raw element named `ns:local`.
+    pub fn from_typed&lt;T: XmlWrite + ?Sized&gt;(value: &amp;T, ns: Ns, local: &amp;str) -&gt; Self {
+        let mut w = XmlWriter::new();
+        value.write_xml(&amp;mut w, ns, local);
+        RawElement::parse(&amp;w.finish()).expect("the writer produces well-formed XML")
+    }</code></pre>
+</figure>
+<p>Hàm ghi một giá trị bằng <code>XmlWriter</code> của chính dự án, rồi đọc lại bằng parser. <code>RawElement::parse</code> trả <code>Result</code> vì <em>nói chung</em> chuỗi XML có thể hỏng. Nhưng chuỗi ở đây do writer của ta sinh ra, và writer đảm bảo XML well-formed (escape đúng, đóng thẻ đủ — bài 2.5). Bất biến: "writer luôn sinh XML hợp lệ". Nếu parse fail thì là bug trong writer — panic là phản ứng đúng, và thông điệp chỉ thẳng vào nghi phạm. Nhờ vậy <code>from_typed</code> trả <code>Self</code> gọn gàng chứ không bắt mọi người gọi xử lý một lỗi không bao giờ xảy ra.</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L123-L138">crates/openxml-xml/src/writer.rs:123–138</figcaption>
+<pre><code class="language-rust">    fn fresh_prefix(&amp;self, wanted: &amp;str) -&gt; String {
+        let usable =
+            |p: &amp;str| !p.is_empty() &amp;&amp; p != "xml" &amp;&amp; p != "xmlns" &amp;&amp; self.binding_of_prefix(p).is_none();
+        if usable(wanted) {
+            return wanted.to_owned();
+        }
+        let base = if wanted.is_empty() || wanted == "xml" || wanted == "xmlns" {
+            "ns"
+        } else {
+            wanted
+        };
+        (1..)
+            .map(|i| format!("{base}{i}"))
+            .find(|p| usable(p))
+            .expect("an unused prefix exists")
+    }</code></pre>
+</figure>
+<p>Hàm tìm một prefix chưa bị dùng: thử <code>wanted</code>, không được thì thử <code>x1</code>, <code>x2</code>, <code>x3</code>… <code>(1..)</code> là dãy số <strong>vô hạn</strong> 1, 2, 3, …; <code>.find(…)</code> trả <code>Option</code> vì về lý thuyết có thể không tìm thấy. Nhưng số prefix đang dùng là hữu hạn, dãy ứng viên là vô hạn, nên chắc chắn có một cái trống. Bất biến: "luôn tồn tại một prefix chưa dùng" — đúng như thông điệp.</p>
+<p>Ở tầng trên cũng vậy, ví dụ <code>Presentation::new()</code> trong <code>openxml-pptx</code> (presentation.rs:71–72) dùng <code>.expect("the built-in template is valid")</code>: gói mẫu trống được nhúng sẵn trong thư viện, không phải do người dùng đưa vào, nên nếu nó hỏng thì đó là bug của thư viện.</p>
+<div class="callout tip">
+  <span class="callout-title">💡 Mẹo — viết thông điệp expect</span>
+  <p>Viết thông điệp dạng <em>"điều mà tôi tin là đúng"</em> (<code>"the writer produces well-formed XML"</code>), không phải dạng <em>"điều đã hỏng"</em> (<code>"parse failed"</code>). Khi panic xảy ra, người đọc log hiểu ngay giả định nào bị vi phạm. Và nếu bạn không nói được bất biến là gì — đừng dùng <code>expect</code>, hãy trả <code>Result</code>.</p>
+</div>
+
+<h2 id="enum-error">3. <code>error.rs</code> từng dòng: enum <code>Error</code></h2>
+<p>Thay vì trả lỗi dạng <code>String</code> (như ví dụ <code>chia</code> ở trên), thư viện nghiêm túc định nghĩa một <strong>kiểu lỗi riêng</strong> — thường là một <code>enum</code>, mỗi biến thể là một loại lỗi. Người gọi nhờ đó có thể <code>match</code> để xử lý từng loại khác nhau.</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/error.rs#L1-L31">crates/openxml-xml/src/error.rs:1–31</figcaption>
+<pre><code class="language-rust">use std::fmt;
+
+/// Errors produced while reading or interpreting XML.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum Error {
+    /// The document is not well-formed XML.
+    Syntax(String),
+    /// The input ended before the document was complete.
+    UnexpectedEof,
+    /// The input is not valid UTF-8 / UTF-16 text.
+    Encoding(String),
+    /// The document has no root element.
+    NoRootElement,
+    /// The root element is not the one the caller asked for.
+    UnexpectedRoot {
+        /// Expected `{namespace}local` name.
+        expected: String,
+        /// Actual `{namespace}local` name.
+        found: String,
+    },
+    /// A value could not be parsed as the type required by the schema.
+    InvalidValue {
+        /// Name of the element or attribute holding the value.
+        name: String,
+        /// The offending lexical value.
+        value: String,
+    },
+    /// The element nesting exceeds [`crate::MAX_DEPTH`].
+    TooDeep,
+}</code></pre>
+</figure>
+
+<h3 id="variant">3.1 Ba hình dạng biến thể</h3>
+<p>Enum trong Rust mạnh hơn enum của nhiều ngôn ngữ: mỗi biến thể có thể mang dữ liệu, theo ba kiểu:</p>
+<ul>
+  <li><strong>Unit</strong> (không dữ liệu): <code>UnexpectedEof</code>, <code>NoRootElement</code>, <code>TooDeep</code>. Tên đã nói đủ.</li>
+  <li><strong>Tuple</strong> (dữ liệu theo vị trí, như tuple struct ở bài 2.1): <code>Syntax(String)</code>, <code>Encoding(String)</code> — mang một thông điệp chi tiết. Tạo: <code>Error::Syntax("…".into())</code>.</li>
+  <li><strong>Struct-like</strong> (dữ liệu có tên trường): <code>UnexpectedRoot { expected, found }</code>, <code>InvalidValue { name, value }</code>. Khi có từ hai trường cùng kiểu (<code>String</code>, <code>String</code>) thì đặt tên giúp khỏi nhầm cái nào là "mong đợi", cái nào là "thực tế".</li>
+</ul>
+<p>Mỗi biến thể và mỗi trường đều có doc comment <code>///</code>. Đây không chỉ là thói quen tốt: <code>lib.rs</code> có dòng <code>#![warn(missing_docs)]</code>, nên thiếu doc cho bất kỳ thứ gì <code>pub</code> là bị cảnh báo.</p>
+
+<h3 id="non-exhaustive">3.2 <code>#[non_exhaustive]</code> — lời hứa cho tương lai</h3>
+<p>Giả sử bạn là người dùng thư viện và viết:</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — match ở crate người dùng</figcaption>
+<pre><code class="language-rust">match err {
+    Error::Syntax(m) =&gt; …,
+    Error::UnexpectedEof =&gt; …,
+    // ... liệt kê đủ 7 biến thể
+}</code></pre>
+</figure>
+<p>Nếu phiên bản sau của thư viện thêm biến thể thứ 8 (ví dụ <code>Error::TooLarge</code>), code của bạn hết biên dịch được vì <code>match</code> không còn "đủ". Tức là <em>thêm một loại lỗi</em> — việc rất bình thường — lại thành thay đổi phá vỡ tương thích (breaking change).</p>
+<p><code>#[non_exhaustive]</code> giải quyết điều này: nó bắt mọi <code>match</code> <strong>ở ngoài crate</strong> phải có nhánh <code>_ =&gt; …</code>. Nhờ vậy thư viện được tự do thêm biến thể mà không làm hỏng ai. Bên trong chính crate <code>openxml-xml</code> thì vẫn match đủ được (như <code>impl Display</code> ở mục 4). Để ý: thuộc tính này chỉ hạn chế <em>match</em>, không cấm tạo giá trị — <code>openxml-opc</code> vẫn tạo được <code>openxml_xml::Error::UnexpectedRoot { … }</code> (content_types.rs:49, xem bài 2.1). Cả ba kiểu lỗi của <code>openxml-xml</code>, <code>openxml-opc</code>, <code>openxml-core</code> đều có <code>#[non_exhaustive]</code> — một quy ước tốt cho mọi thư viện công khai.</p>
+
+<h3 id="derive-error">3.3 <code>#[derive(Debug, Clone, PartialEq, Eq)]</code></h3>
+<ul>
+  <li><strong><code>Debug</code></strong>: bắt buộc cho kiểu lỗi (trait <code>std::error::Error</code> đòi nó — mục 4.2) và cho <code>unwrap_err()</code>, <code>assert_eq!</code>.</li>
+  <li><strong><code>Clone</code></strong>: cho phép sao chép lỗi (ví dụ lưu lại để báo cáo sau). Được vì mọi trường đều là <code>String</code>.</li>
+  <li><strong><code>PartialEq, Eq</code></strong>: cho phép so sánh lỗi bằng <code>==</code>. Nghe lạ — ai so sánh lỗi? Câu trả lời: <strong>test</strong>. Xem test trong reader.rs:</li>
+</ul>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L655-L684">crates/openxml-xml/src/reader.rs:655–684</figcaption>
+<pre><code class="language-rust">    #[test]
+    fn reports_errors() {
+        assert_eq!(XmlReader::new("").root().unwrap_err(), Error::NoRootElement);
+        assert_eq!(XmlReader::new("   ").root().unwrap_err(), Error::NoRootElement);
+        assert!(matches!(
+            XmlReader::new("&lt;a&gt;&lt;b&gt;&lt;/a&gt;").root().and_then(|_| {
+                let mut r = XmlReader::new("&lt;a&gt;&lt;b&gt;&lt;/a&gt;");
+                let a = r.root()?;
+                r.skip(&amp;a)
+            }),
+            Err(Error::Syntax(_))
+        ));
+        let mut r = XmlReader::new("&lt;p:a/&gt;");
+        assert!(matches!(r.root(), Err(Error::Syntax(msg)) if msg.contains("undeclared")));
+        let mut r = XmlReader::new("&lt;a&gt;&amp;bogus;&lt;/a&gt;");
+        let a = r.root().unwrap();
+        assert!(matches!(r.read_text(&amp;a), Err(Error::Syntax(msg)) if msg.contains("bogus")));
+        let mut r = XmlReader::new("&lt;a&gt;&lt;b&gt;");
+        let a = r.root().unwrap();
+        assert!(r.skip(&amp;a).is_err());
+    }
+
+    #[test]
+    fn depth_limit_is_enforced() {
+        let depth = MAX_DEPTH + 5;
+        let xml = "&lt;a&gt;".repeat(depth) + &amp;"&lt;/a&gt;".repeat(depth);
+        let mut r = XmlReader::new(&amp;xml);
+        let root = r.root().unwrap();
+        assert_eq!(r.skip(&amp;root).unwrap_err(), Error::TooDeep);
+    }</code></pre>
+</figure>
+<ul>
+  <li><code>.unwrap_err()</code>: ngược với <code>unwrap</code> — lấy lỗi ra, panic nếu kết quả lại là <code>Ok</code>. Rồi <code>assert_eq!(…, Error::NoRootElement)</code> so sánh <em>chính xác</em> loại lỗi — cần <code>PartialEq</code> (và <code>Debug</code> để in khi sai).</li>
+  <li>Khi lỗi chứa thông điệp dài mà ta không muốn so nguyên văn, test dùng <code>matches!</code> với <strong>guard</strong>: <code>Err(Error::Syntax(msg)) if msg.contains("undeclared")</code> — "là lỗi Syntax <em>và</em> thông điệp có chữ undeclared".</li>
+  <li><code>.and_then(|_| { … r.root()?; r.skip(&amp;a) })</code>: nếu <code>root()</code> đầu tiên thành công thì chạy tiếp closure; closure trả <code>Result</code>, và <code>?</code> bên trong closure hoạt động vì closure trả <code>Result</code>.</li>
+</ul>
+<p>Ngược lại, <code>openxml-opc::Error</code> chỉ derive <code>Debug</code> — vì nó chứa <code>std::io::Error</code>, kiểu này không có <code>Clone</code> lẫn <code>PartialEq</code>. Derive chỉ được khi mọi trường cũng có trait đó (như bài 2.1 đã nói). Lỗi tầng XML toàn <code>String</code> nên được hưởng đủ bộ.</p>
+
+<h2 id="display">4. <code>Display</code> và <code>std::error::Error</code></h2>
+<h3 id="impl-display">4.1 <code>impl fmt::Display</code> — thông điệp cho con người</h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/error.rs#L33-L49">crates/openxml-xml/src/error.rs:33–49</figcaption>
+<pre><code class="language-rust">impl fmt::Display for Error {
+    fn fmt(&amp;self, f: &amp;mut fmt::Formatter&lt;'_&gt;) -&gt; fmt::Result {
+        match self {
+            Error::Syntax(msg) =&gt; write!(f, "malformed XML: {msg}"),
+            Error::UnexpectedEof =&gt; write!(f, "unexpected end of XML input"),
+            Error::Encoding(msg) =&gt; write!(f, "invalid text encoding: {msg}"),
+            Error::NoRootElement =&gt; write!(f, "the XML document has no root element"),
+            Error::UnexpectedRoot { expected, found } =&gt; {
+                write!(f, "unexpected root element {found}, expected {expected}")
+            }
+            Error::InvalidValue { name, value } =&gt; {
+                write!(f, "invalid value {value:?} for {name}")
+            }
+            Error::TooDeep =&gt; write!(f, "element nesting is too deep"),
+        }
+    }
+}</code></pre>
+</figure>
+<p>Bài 2.1 bạn đã gặp <code>Debug</code> (<code>{:?}</code>, cho lập trình viên). <code>Display</code> (<code>{}</code>) là định dạng cho <strong>người dùng cuối</strong>. Chữ ký y hệt; khác ở ý nghĩa. Từng dòng:</p>
+<ul>
+  <li><code>match self</code>: <code>self</code> là <code>&amp;Error</code>. Match trên tham chiếu, các biến như <code>msg</code>, <code>expected</code> được <em>mượn</em> (kiểu <code>&amp;String</code>), không lấy ra khỏi lỗi.</li>
+  <li><code>Error::UnexpectedRoot { expected, found } =&gt;</code>: pattern cho biến thể struct-like, bóc hai trường ra hai biến cùng tên.</li>
+  <li><code>write!(f, "… {msg}")</code>: tên biến đặt thẳng trong <code>{}</code> (có từ Rust 2021).</li>
+  <li><code>{value:?}</code>: dùng <code>Debug</code> của chuỗi — in kèm ngoặc kép và escape. Giá trị sai thường có khoảng trắng hoặc ký tự lạ; ngoặc kép giúp thấy rõ.</li>
+  <li>Không có nhánh <code>_</code>: trong crate thì match phải đủ, và trình biên dịch sẽ nhắc nếu sau này thêm biến thể mà quên thông điệp.</li>
+</ul>
+<p>Kết quả in thật (<code>{}</code> rồi <code>{:?}</code>):</p>
+<figure class="code">
+  <figcaption>Kết quả chạy thật — Display và Debug</figcaption>
+<pre><code class="language-bash">invalid value "abc" for {urn:x}v
+unexpected root element {u}b, expected {u}a  /  UnexpectedRoot { expected: "{u}a", found: "{u}b" }
+malformed XML: undeclared namespace prefix `p`
+element nesting is too deep</code></pre>
+</figure>
+<p>Để ý các tên trong <code>UnexpectedRoot</code>, <code>InvalidValue</code> dùng Clark notation <code>{uri}local</code> từ bài 2.1 — rõ ràng, không phụ thuộc prefix.</p>
+
+<h3 id="error-trait">4.2 <code>impl std::error::Error for Error {}</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/error.rs#L51">crates/openxml-xml/src/error.rs:51</figcaption>
+<pre><code class="language-rust">impl std::error::Error for Error {}</code></pre>
+</figure>
+<p>Một dòng, thân rỗng. <code>std::error::Error</code> là trait chuẩn "đây là một kiểu lỗi". Nó đòi kiểu phải có <code>Debug</code> và <code>Display</code> (đã có), còn mọi method của nó đều có cài đặt mặc định — nên <code>{}</code> là đủ. Lợi ích: lỗi của ta hoà nhập với hệ sinh thái. Ví dụ, nó tự động chuyển được thành <code>Box&lt;dyn std::error::Error&gt;</code> — "một lỗi bất kỳ" — mà CLI của dự án dùng (mục 7).</p>
+<p>Method mặc định quan trọng nhất là <code>source()</code>: "lỗi này gây ra bởi lỗi nào?". Mặc định trả <code>None</code>. Lỗi tầng XML là tầng đáy, không bọc lỗi nào khác, nên không cần viết. Tầng opc và core thì có viết — mục 7.</p>
+
+<h2 id="from">5. <code>impl From&lt;quick_xml::Error&gt;</code> — biên dịch lỗi của người khác</h2>
+<p><code>XmlReader</code> được xây trên crate <code>quick-xml</code> (phụ thuộc duy nhất của <code>openxml-xml</code>). quick-xml có kiểu lỗi riêng. Dự án không để kiểu đó "lọt" ra ngoài, mà đổi nó sang <code>Error</code> của mình:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/error.rs#L53-L68">crates/openxml-xml/src/error.rs:53–68</figcaption>
+<pre><code class="language-rust">impl From&lt;quick_xml::Error&gt; for Error {
+    fn from(e: quick_xml::Error) -&gt; Self {
+        match e {
+            quick_xml::Error::Syntax(quick_xml::errors::SyntaxError::UnclosedTag)
+            | quick_xml::Error::Syntax(quick_xml::errors::SyntaxError::UnclosedComment)
+            | quick_xml::Error::Syntax(quick_xml::errors::SyntaxError::UnclosedCData) =&gt; Error::UnexpectedEof,
+            other =&gt; Error::Syntax(other.to_string()),
+        }
+    }
+}
+
+impl From&lt;quick_xml::events::attributes::AttrError&gt; for Error {
+    fn from(e: quick_xml::events::attributes::AttrError) -&gt; Self {
+        Error::Syntax(e.to_string())
+    }
+}</code></pre>
+</figure>
+<p><strong><code>From&lt;T&gt;</code></strong> là trait chuẩn cho "chuyển đổi không thể thất bại từ <code>T</code> sang kiểu này". <code>impl From&lt;quick_xml::Error&gt; for Error</code> đọc là "có thể tạo một <code>Error</code> (của ta) từ một <code>quick_xml::Error</code>", bằng hàm <code>from</code>. Bên trong là một phép <strong>phân loại</strong>:</p>
+<ul>
+  <li>Các lỗi "thẻ/comment/CDATA chưa đóng" (<code>UnclosedTag</code>, <code>UnclosedComment</code>, <code>UnclosedCData</code>) thực chất đều nghĩa là <em>dữ liệu hết giữa chừng</em> — file bị cắt cụt (tải về dở, ZIP hỏng). Chúng được gom thành một biến thể có nghĩa rõ ràng: <code>Error::UnexpectedEof</code>. Dấu <code>|</code> trong pattern nghĩa là "hoặc".</li>
+  <li>Mọi lỗi khác (<code>other</code>) thành <code>Error::Syntax</code> với thông điệp của quick-xml (<code>.to_string()</code> dùng <code>Display</code> của nó).</li>
+  <li><code>AttrError</code> (lỗi cú pháp attribute, ví dụ thiếu ngoặc kép) cũng thành <code>Syntax</code>.</li>
+</ul>
+<p>Kiểm chứng thật với vài đầu vào hỏng:</p>
+<figure class="code">
+  <figcaption>Kết quả chạy thật</figcaption>
+<pre><code class="language-bash">XmlReader::new("&lt;a").root()                          -&gt; Err(UnexpectedEof)
+skip sau root của "&lt;a&gt;&lt;!-- x"                          -&gt; Err(UnexpectedEof)
+skip sau root của "&lt;a&gt;&lt;![CDATA[ x"                    -&gt; Err(UnexpectedEof)
+XmlReader::new("&lt;a b=c/&gt;").root()                    -&gt; Err(Syntax("position 4: attribute value must be enclosed in `\"` or `'`"))
+skip sau root của "&lt;a&gt;&lt;b&gt;&lt;/a&gt;"                      -&gt; Err(Syntax("ill-formed document: expected `&lt;/b&gt;`, but `&lt;/a&gt;` was found"))</code></pre>
+</figure>
+
+<h3 id="vi-sao-boc">5.1 Vì sao không để lộ kiểu lỗi của quick-xml?</h3>
+<ul>
+  <li><strong>Ổn định API.</strong> Nếu hàm công khai trả <code>quick_xml::Error</code>, mỗi lần quick-xml ra phiên bản lớn (0.41 → 0.42) đổi kiểu lỗi, người dùng của <em>ta</em> cũng phải sửa code. Bọc lại thì chỉ có <code>from</code> phải sửa.</li>
+  <li><strong>Tự do thay ruột.</strong> Một ngày nào đó có thể thay quick-xml bằng parser khác; người dùng không cần biết.</li>
+  <li><strong>Lỗi có nghĩa với bài toán.</strong> Người dùng quan tâm "file bị cắt cụt" (<code>UnexpectedEof</code>), không quan tâm tên nội bộ <code>SyntaxError::UnclosedCData</code>.</li>
+</ul>
+<p>Để công bằng: vì mọi <code>impl</code> trait đều công khai, <code>impl From&lt;quick_xml::Error&gt;</code> cũng hiện ra trong tài liệu của crate. Nhưng không hàm công khai nào nhận hay trả kiểu của quick-xml, và <code>lib.rs</code> không re-export gì của quick-xml — người dùng bình thường không bao giờ phải chạm vào nó.</p>
+<div class="callout pattern">
+  <span class="callout-title">🧩 Pattern: Anti-corruption layer cho lỗi</span>
+  <p>Mỗi tầng/crate có kiểu lỗi riêng, và <strong>dịch</strong> lỗi của phụ thuộc bên dưới sang ngôn ngữ của mình tại ranh giới (bằng <code>From</code>). Đây là phiên bản thu nhỏ của "anti-corruption layer" trong thiết kế phần mềm: không để khái niệm của hệ thống khác thấm vào hệ thống của bạn.</p>
+</div>
+
+<h2 id="dau-hoi">6. Toán tử <code>?</code> thực sự làm gì</h2>
+<p>Viết <code>match</code> cho mọi lời gọi có thể lỗi thì rất dài. Rust có toán tử <code>?</code>:</p>
+<figure class="code">
+  <figcaption>Tự viết — một hàm dùng ?</figcaption>
+<pre><code class="language-rust">use openxml_xml::{XmlReader, Result};
+
+fn first_local(xml: &amp;str) -&gt; Result&lt;String&gt; {
+    let mut r = XmlReader::new(xml);
+    let root = r.root()?;
+    Ok(root.local().to_owned())
+}
+// first_local("&lt;w:p xmlns:w='urn:x'/&gt;")  -&gt; Ok("p")        (chạy thật)
+// first_local("")                        -&gt; Err(NoRootElement)</code></pre>
+</figure>
+<p><code>r.root()?</code> có nghĩa: "nếu <code>Ok(v)</code> thì lấy <code>v</code> và đi tiếp; nếu <code>Err(e)</code> thì <strong>trả về ngay</strong> <code>Err</code> khỏi hàm hiện tại". Chính xác hơn, trình biên dịch <strong>desugar</strong> (khai triển) nó gần như thành:</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — ? được khai triển gần đúng thành</figcaption>
+<pre><code class="language-rust">let root = match r.root() {
+    Ok(v) =&gt; v,
+    Err(e) =&gt; return Err(From::from(e)),
+};</code></pre>
+</figure>
+<p>Chú ý <code>From::from(e)</code>: đây là chỗ <code>impl From</code> ở mục 5 phát huy tác dụng. <code>?</code> tự động chuyển lỗi sang kiểu lỗi mà hàm hiện tại trả về. Nếu hai kiểu giống nhau, <code>From</code> "tự chuyển sang chính mình" (có sẵn trong thư viện chuẩn) và không làm gì. Nếu khác nhau và không có <code>impl From</code> phù hợp, trình biên dịch báo lỗi — bạn không thể vô tình "quên" chuyển lỗi.</p>
+<p>Nhìn code thật của reader:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L327-L343">crates/openxml-xml/src/reader.rs:327–343</figcaption>
+<pre><code class="language-rust">    fn read_raw(&amp;mut self) -&gt; Result&lt;Option&lt;Event&lt;'i&gt;&gt;&gt; {
+        loop {
+            let ev = self.inner.read_event()?;
+            return Ok(Some(match ev {
+                QEvent::Start(e) =&gt; {
+                    self.depth += 1;
+                    if self.depth &gt; MAX_DEPTH {
+                        return Err(Error::TooDeep);
+                    }
+                    Event::Start(self.resolve_start(e, false)?)
+                }
+                QEvent::Empty(e) =&gt; {
+                    if self.depth + 1 &gt; MAX_DEPTH {
+                        return Err(Error::TooDeep);
+                    }
+                    Event::Start(self.resolve_start(e, true)?)
+                }</code></pre>
+</figure>
+<ul>
+  <li><code>self.inner.read_event()?</code> (dòng 329): <code>inner</code> là reader của quick-xml, trả <code>Result&lt;_, quick_xml::Error&gt;</code>. Hàm <code>read_raw</code> trả <code>Result</code> của <em>ta</em>. <code>?</code> gọi <code>From::from</code> → chạy đúng hàm phân loại ở mục 5. Một ký tự làm toàn bộ việc chuyển đổi.</li>
+  <li><code>self.resolve_start(e, false)?</code> (dòng 336): <code>resolve_start</code> đã trả <code>Result</code> của ta, <code>?</code> chỉ chuyển tiếp lỗi. Bên trong <code>resolve_start</code> có <code>let attr = attr?;</code> (reader.rs:284) — đó là chỗ <code>From&lt;AttrError&gt;</code> được dùng.</li>
+  <li><code>return Err(Error::TooDeep);</code>: tự tạo lỗi và trả về trực tiếp — không cần <code>?</code>.</li>
+</ul>
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — <code>?</code> với Option</span>
+  <p><code>?</code> cũng dùng được với <code>Option</code> trong hàm trả <code>Option</code>: <code>None</code> thì trả <code>None</code> ngay. Nhưng không trộn được: trong hàm trả <code>Result</code>, <code>opt?</code> không biên dịch — phải đổi trước bằng <code>opt.ok_or_else(|| …)?</code>, đúng như reader.rs:287 và core part.rs:12. Còn <code>main</code> muốn dùng <code>?</code> thì cho nó trả <code>Result</code>, ví dụ <code>fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt;</code>.</p>
+</div>
+
+<h2 id="type-alias">7. <code>pub type Result&lt;T, E = Error&gt;</code> — generic có mặc định</h2>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/error.rs#L70-L71">crates/openxml-xml/src/error.rs:70–71</figcaption>
+<pre><code class="language-rust">/// Result alias used throughout the crate.
+pub type Result&lt;T, E = Error&gt; = std::result::Result&lt;T, E&gt;;</code></pre>
+</figure>
+<p><code>type A = B;</code> là <strong>type alias</strong> (bí danh kiểu): đặt tên ngắn cho một kiểu có sẵn, không tạo kiểu mới. Ở đây có thêm <code>E = Error</code>: tham số generic <code>E</code> có <strong>giá trị mặc định</strong>. Hệ quả:</p>
+<ul>
+  <li><code>Result&lt;StartTag&gt;</code> = <code>std::result::Result&lt;StartTag, openxml_xml::Error&gt;</code> — khỏi gõ kiểu lỗi ở hàng trăm chữ ký hàm.</li>
+  <li><code>Result&lt;T, RawElement&gt;</code> vẫn viết được — ghi đè mặc định khi cần một kiểu lỗi khác. Nếu alias chỉ là <code>type Result&lt;T&gt; = …</code> (không có <code>E</code>), thì trong file đã <code>use crate::error::Result</code>, bạn không thể viết <code>Result&lt;T, X&gt;</code> nữa.</li>
+</ul>
+<p>Trường hợp thứ hai có thật, và rất đáng xem:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/element.rs#L166-L174">crates/openxml-xml/src/element.rs:166–174</figcaption>
+<pre><code class="language-rust">    /// Reads an element whose content is a simple type.
+    ///
+    /// If the text is not a valid value, or the element carries attributes the
+    /// schema does not allow, the element is returned as raw XML instead so
+    /// that it can be preserved.
+    pub fn read_simple&lt;T: XmlValue&gt;(
+        r: &amp;mut XmlReader&lt;'_&gt;,
+        tag: &amp;StartTag&lt;'_&gt;,
+    ) -&gt; Result&lt;Result&lt;T, RawElement&gt;&gt; {</code></pre>
+</figure>
+<p><code>Result&lt;Result&lt;T, RawElement&gt;&gt;</code> — hai tầng, hai ý nghĩa:</p>
+<ul>
+  <li>Tầng ngoài <code>Result&lt;_&gt;</code> (lỗi mặc định <code>Error</code>): XML có đọc được không? <code>Err</code> nghĩa là file hỏng thật (thiếu thẻ đóng…).</li>
+  <li>Tầng trong <code>Result&lt;T, RawElement&gt;</code>: giá trị có hợp lệ không? <code>Ok(v)</code> là giá trị đúng kiểu; <code>Err(raw)</code> nghĩa là "chữ trong thẻ không phải kiểu <code>T</code>, đây là nguyên thẻ dạng thô để giữ lại". Không phải lỗi — là một kết quả thay thế.</li>
+</ul>
+<p>Code sinh tự động dùng nó như sau (dml.rs):</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-schema/src/generated/dml.rs#L16072-L16078">crates/openxml-schema/src/generated/dml.rs:16072–16078 (code sinh tự động)</figcaption>
+<pre><code class="language-rust">                    (Ns::A, "header") =&gt; {
+                        match rt::read_simple(r, &amp;child)? {
+                            Ok(v) =&gt; this.header.push(v),
+                            Err(raw) =&gt; {
+                                rt::push_extra_at(&amp;mut this.extra_children, 0, this.header.len(), raw)
+                            }
+                        }</code></pre>
+</figure>
+<p><code>?</code> bóc tầng ngoài (lỗi thật thì trả ra); <code>match</code> xử lý tầng trong (giá trị hợp lệ thì lưu, không hợp lệ thì cất vào <code>extra_children</code>). Đây là triết lý "đọc dễ dãi" mà mục 9 sẽ nói.</p>
+
+<h2 id="tang-tren">8. Nhìn lên tầng trên: chuỗi lỗi qua các crate</h2>
+<h3 id="opc-error">8.1 <code>openxml-opc::Error</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-opc/src/error.rs#L3-L30">crates/openxml-opc/src/error.rs:3–30</figcaption>
+<pre><code class="language-rust">/// Errors produced while reading, manipulating or writing a package.
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum Error {
+    /// I/O failure.
+    Io(std::io::Error),
+    /// The ZIP container is invalid.
+    Zip(String),
+    /// An XML part of the package infrastructure is invalid.
+    Xml(openxml_xml::Error),
+    /// A part name violates ECMA-376 Part 2 §6.2.2.
+    InvalidPartName {
+        /// The rejected name.
+        name: String,
+        /// Why it was rejected.
+        reason: &amp;'static str,
+    },
+    /// The package has no `[Content_Types].xml` stream.
+    MissingContentTypes,
+    /// A part has no content type.
+    MissingContentType(String),
+    /// A part with this name already exists.
+    DuplicatePart(String),
+    /// A required part is absent.
+    MissingPart(String),
+    /// A relationship is invalid.
+    InvalidRelationship(String),
+}</code></pre>
+</figure>
+<p>Biến thể <code>Xml(openxml_xml::Error)</code> <em>chứa</em> nguyên lỗi của tầng dưới — không đổi thành chuỗi, nên thông tin không mất. Cách chuyển:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-opc/src/error.rs#L50-L79">crates/openxml-opc/src/error.rs:50–79</figcaption>
+<pre><code class="language-rust">impl std::error::Error for Error {
+    fn source(&amp;self) -&gt; Option&lt;&amp;(dyn std::error::Error + 'static)&gt; {
+        match self {
+            Error::Io(e) =&gt; Some(e),
+            Error::Xml(e) =&gt; Some(e),
+            _ =&gt; None,
+        }
+    }
+}
+
+impl From&lt;std::io::Error&gt; for Error {
+    fn from(e: std::io::Error) -&gt; Self {
+        Error::Io(e)
+    }
+}
+
+impl From&lt;zip::result::ZipError&gt; for Error {
+    fn from(e: zip::result::ZipError) -&gt; Self {
+        match e {
+            zip::result::ZipError::Io(io) =&gt; Error::Io(io),
+            other =&gt; Error::Zip(other.to_string()),
+        }
+    }
+}
+
+impl From&lt;openxml_xml::Error&gt; for Error {
+    fn from(e: openxml_xml::Error) -&gt; Self {
+        Error::Xml(e)
+    }
+}</code></pre>
+</figure>
+<ul>
+  <li><code>source()</code> được viết thật: lỗi <code>Io</code> và <code>Xml</code> trả lỗi gốc bên trong. Công cụ báo lỗi có thể lần theo chuỗi <code>source()</code> để in "lỗi A, gây ra bởi lỗi B". Kiểu trả về <code>Option&lt;&amp;(dyn std::error::Error + 'static)&gt;</code> trông đáng sợ: đọc là "có thể có một tham chiếu tới <em>một lỗi nào đó</em>" — <code>dyn Trait</code> sẽ học ở Phần 5.</li>
+  <li><code>From&lt;ZipError&gt;</code> làm cùng việc phân loại như quick-xml: lỗi I/O bên trong ZIP được "kéo phẳng" thành <code>Error::Io</code> thay vì <code>Zip("…")</code> — người dùng chỉ cần kiểm tra một chỗ cho mọi lỗi I/O.</li>
+  <li><code>From&lt;openxml_xml::Error&gt;</code>: nhờ nó, trong opc chỉ cần <code>RawElement::parse_bytes(bytes)?</code> (content_types.rs:47) là lỗi XML tự thành <code>opc::Error::Xml</code>.</li>
+</ul>
+
+<h3 id="core-error">8.2 <code>openxml-core::Error</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-core/src/error.rs#L3-L28">crates/openxml-core/src/error.rs:3–28</figcaption>
+<pre><code class="language-rust">/// Errors of the document-level APIs.
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum Error {
+    /// The package (ZIP container, content types, relationships) is invalid.
+    Package(openxml_opc::Error),
+    /// An XML part could not be parsed.
+    Xml {
+        /// Name of the part.
+        part: String,
+        /// Parser error.
+        source: openxml_xml::Error,
+    },
+    /// A part required by the document type is missing.
+    MissingPart(String),
+    /// The document structure is invalid (e.g. the main part has the wrong type).
+    InvalidDocument(String),
+    /// A requested item (sheet, slide, style, …) does not exist.
+    NotFound(String),
+    /// An argument is out of range or malformed.
+    InvalidArgument(String),
+    /// An image could not be recognised.
+    UnsupportedImage,
+    /// I/O failure.
+    Io(std::io::Error),
+}</code></pre>
+</figure>
+<figure class="code">
+  <figcaption data-src="crates/openxml-core/src/error.rs#L56-L69">crates/openxml-core/src/error.rs:56–69</figcaption>
+<pre><code class="language-rust">impl From&lt;openxml_opc::Error&gt; for Error {
+    fn from(e: openxml_opc::Error) -&gt; Self {
+        match e {
+            openxml_opc::Error::Io(io) =&gt; Error::Io(io),
+            other =&gt; Error::Package(other),
+        }
+    }
+}
+
+impl From&lt;std::io::Error&gt; for Error {
+    fn from(e: std::io::Error) -&gt; Self {
+        Error::Io(e)
+    }
+}</code></pre>
+</figure>
+<p>Hai điều đáng chú ý:</p>
+<ol>
+  <li><strong>Lỗi I/O lại được kéo phẳng</strong>: <code>opc::Error::Io</code> thành <code>core::Error::Io</code>, không bị lồng thành <code>Package(Io(…))</code>.</li>
+  <li><strong>Không có <code>impl From&lt;openxml_xml::Error&gt;</code></strong>. Vì biến thể <code>Xml { part, source }</code> cần <em>tên part</em>, mà hàm <code>from(e)</code> chỉ nhận mỗi lỗi — không biết part nào. Nên tầng core dùng <code>map_err</code> để tự thêm ngữ cảnh, như <code>read_part</code> ở mục 1.1. Grep <code>Error::Xml {</code> cho thấy cùng cách làm ở docx, xlsx, pptx, chart. Đây là giới hạn của <code>From</code>: nó chuyển kiểu, nhưng không thêm được thông tin.</li>
+</ol>
+<p>Ghép lại, đây là hành trình của một lỗi "thẻ chưa đóng" trong <code>[Content_Types].xml</code> khi bạn mở file bằng <code>openxml-docx</code> (crate này re-export <code>openxml_core::Error</code>):</p>
+<pre class="diagram"><code>quick_xml::Error::Syntax(UnclosedTag)
+   │  From (error.rs:53)        ← dấu ? trong reader.rs:329
+   ▼
+openxml_xml::Error::UnexpectedEof
+   │  From (opc error.rs:75)    ← dấu ? trong content_types.rs:47
+   ▼
+openxml_opc::Error::Xml(UnexpectedEof)
+   │  From (core error.rs:56)   ← dấu ? ở tầng core/docx
+   ▼
+openxml_core::Error::Package(Xml(UnexpectedEof))
+   │  Display
+   ▼
+"invalid package XML: unexpected end of XML input"</code></pre>
+
+<h3 id="thiserror">8.3 Không <code>thiserror</code>, không <code>anyhow</code> — vì sao?</h3>
+<p>Mình đã grep <code>thiserror</code> và <code>anyhow</code> trong <code>Cargo.toml</code> gốc, <code>Cargo.toml</code> của mọi crate và cả <code>Cargo.lock</code>: <strong>không có kết quả nào</strong>. Mọi <code>Display</code>, <code>From</code>, <code>source()</code> ở trên đều viết tay. Trong cộng đồng Rust, hai crate này cực kỳ phổ biến:</p>
+<ul>
+  <li><strong><code>thiserror</code></strong> (cho thư viện): một derive sinh ra <code>Display</code>, <code>std::error::Error</code>, <code>source()</code> và <code>From</code> từ các thuộc tính.</li>
+  <li><strong><code>anyhow</code></strong> (cho ứng dụng): một kiểu <code>anyhow::Error</code> chứa "lỗi bất kỳ", kèm tiện ích thêm ngữ cảnh <code>.context("đang đọc file X")</code>.</li>
+</ul>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — nếu opc dùng thiserror (KHÔNG có trong repo)</figcaption>
+<pre><code class="language-rust">#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+pub enum Error {
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),          // #[from] sinh impl From và source()
+    #[error("invalid ZIP container: {0}")]
+    Zip(String),
+    #[error("invalid package XML: {0}")]
+    Xml(#[from] openxml_xml::Error),
+    #[error("invalid part name {name:?}: {reason}")]
+    InvalidPartName { name: String, reason: &amp;'static str },
+    // ...
+}</code></pre>
+</figure>
+<p>Gọn hơn nhiều. Vậy sao dự án không dùng? Mình không thấy tài liệu nào của repo giải thích trực tiếp, nhưng các dấu hiệu nhất quán với chủ trương <strong>ít phụ thuộc</strong>: <code>openxml-xml</code> chỉ phụ thuộc <code>quick-xml</code>; <code>[workspace.dependencies]</code> chỉ có ba crate ngoài (<code>quick-xml</code>, <code>zip</code>, <code>roxmltree</code>); bài 2.2 thấy dự án cũng không dùng procedural macro. <code>thiserror</code> là một procedural macro — kéo theo <code>syn</code>, <code>quote</code>, <code>proc-macro2</code> và làm tăng thời gian biên dịch. Với ba enum lỗi, viết tay chỉ tốn khoảng 70–80 dòng mỗi file, đổi lại cây phụ thuộc gọn và toàn quyền kiểm soát (ví dụ việc "kéo phẳng" lỗi I/O trong <code>From</code> — <code>#[from]</code> không làm được).</p>
+<p>Còn CLI — một <em>ứng dụng</em> — thì dùng giải pháp của thư viện chuẩn thay cho <code>anyhow</code>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-cli/src/main.rs#L70-L73">crates/openxml-cli/src/main.rs:70–73</figcaption>
+<pre><code class="language-rust">type CliResult = Result&lt;bool, Box&lt;dyn std::error::Error&gt;&gt;;
+
+fn info(file: &amp;str) -&gt; CliResult {
+    let pkg = Package::open_path(file)?;</code></pre>
+</figure>
+<p><code>Box&lt;dyn std::error::Error&gt;</code> = "một lỗi bất kỳ, cất trên heap". Vì <code>opc::Error</code> cài <code>std::error::Error</code>, <code>?</code> tự chuyển nó vào box. <code>main</code> chỉ cần in <code>error: {e}</code>. Đó chính là công việc cốt lõi của <code>anyhow</code>, làm bằng thư viện chuẩn.</p>
+<div class="callout tip">
+  <span class="callout-title">💡 Quy tắc chung của cộng đồng</span>
+  <p><strong>Thư viện</strong>: kiểu lỗi <code>enum</code> cụ thể, có <code>#[non_exhaustive]</code>, để người dùng <code>match</code> được (viết tay hoặc <code>thiserror</code>). <strong>Ứng dụng</strong>: một kiểu "lỗi bất kỳ" (<code>Box&lt;dyn Error&gt;</code> hoặc <code>anyhow</code>), vì cuối cùng chỉ cần in ra cho người dùng. Dự án làm đúng cả hai: các crate thư viện có enum, CLI dùng box.</p>
+</div>
+
+<h2 id="openxml">9. Góc OpenXML: mỗi loại lỗi là một chuyện có thật</h2>
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — Encoding: file Office không chỉ có UTF-8</span>
+  <p>ECMA-376 Part 2 §8.1.4 cho phép part XML được mã hoá UTF-8 <em>hoặc</em> UTF-16. Hầu hết file là UTF-8, nhưng một số công cụ ghi UTF-16 (mỗi ký tự 2 byte, có BOM <code>FF FE</code> hoặc <code>FE FF</code> ở đầu). Hàm <code>decode_xml_bytes</code> nhận diện cả hai:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L21-L29">crates/openxml-xml/src/reader.rs:21–29 (phần đầu)</figcaption>
+<pre><code class="language-rust">/// Decodes the bytes of an XML part into text.
+///
+/// OOXML parts are UTF-8 or UTF-16 (ECMA-376 Part 2 §8.1.4). A byte order mark
+/// is removed; UTF-16 input is transcoded.
+pub fn decode_xml_bytes(bytes: &amp;[u8]) -&gt; Result&lt;Cow&lt;'_, str&gt;&gt; {
+    fn utf16(bytes: &amp;[u8], le: bool) -&gt; Result&lt;Cow&lt;'static, str&gt;&gt; {
+        if !bytes.len().is_multiple_of(2) {
+            return Err(Error::Encoding("odd number of bytes in UTF-16 input".into()));
+        }</code></pre>
+</figure>
+  <p>Chạy thật: bytes <code>FF FE 3C 00 61 00 2F 00 3E 00</code> (UTF-16 LE của <code>&lt;a/&gt;</code>) giải mã thành <code>Ok("&lt;a/&gt;")</code>; <code>FF FE 3C</code> (lẻ byte) cho <code>Err(Encoding("odd number of bytes in UTF-16 input"))</code>; byte <code>C3</code> đơn lẻ cho <code>Err(Encoding("incomplete utf-8 byte sequence from index 0"))</code>. Kiểu <code>Cow</code> ở đây sẽ học ở <a href="p2-4-xml-reader.html">bài 2.4</a>.</p>
+</div>
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — TooDeep: phòng thủ trước file độc</span>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L15-L19">crates/openxml-xml/src/reader.rs:15–19</figcaption>
+<pre><code class="language-rust">/// Maximum element nesting accepted by [`XmlReader`].
+///
+/// Generated readers recurse once per element level; the limit protects the
+/// stack against hostile or corrupt input.
+pub const MAX_DEPTH: usize = 256;</code></pre>
+</figure>
+  <p>Code sinh tự động đọc mỗi tầng element bằng một lời gọi hàm lồng nhau (đệ quy). Một file cố tình lồng <code>&lt;w:tbl&gt;</code> trong <code>&lt;w:tbl&gt;</code> hàng trăm nghìn lần sẽ làm tràn stack — và tràn stack trong Rust là <em>crash cả tiến trình</em>, không bắt được như panic thường. Giới hạn 256 tầng thừa sức cho tài liệu thật (bảng lồng bảng, nhóm hình lồng nhóm hình vẫn hiếm khi quá vài chục tầng), và biến cuộc tấn công thành một <code>Err(Error::TooDeep)</code> lịch sự. Test <code>depth_limit_is_enforced</code> (mục 3.3) dựng đúng một tài liệu sâu 261 tầng để kiểm tra.</p>
+</div>
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — UnexpectedRoot: part sai "danh tính"</span>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/element.rs#L105-L117">crates/openxml-xml/src/element.rs:105–117</figcaption>
+<pre><code class="language-rust">impl&lt;T: XmlRead&gt; ElementDef&lt;T&gt; {
+    /// Parses a document whose root must be this element.
+    pub fn parse(&amp;self, xml: &amp;str) -&gt; Result&lt;T&gt; {
+        let mut r = XmlReader::new(xml);
+        let root = r.root()?;
+        if root.ns() != self.ns || root.local() != self.local {
+            return Err(Error::UnexpectedRoot {
+                expected: format!("{{{}}}{}", self.ns.uri(), self.local),
+                found: root.clark_name(),
+            });
+        }
+        T::read_xml(&amp;mut r, &amp;root)
+    }</code></pre>
+</figure>
+  <p>Relationship nói <code>word/document.xml</code> là tài liệu chính, content type nói nó là <code>…document.main+xml</code>, nhưng lỡ bên trong root lại là <code>&lt;x:worksheet&gt;</code> thì sao? Hoặc <code>_rels/.rels</code> bị thay bằng file khác? Kiểm tra root là chốt chặn cuối: so cả namespace lẫn local name (so <code>Ns</code> — nhanh, nhờ bài 2.1). Nhờ <code>Ns::from_uri</code> ánh xạ Strict → Transitional, một file Strict có root <code>{http://purl.oclc.org/ooxml/wordprocessingml/main}document</code> vẫn qua được kiểm tra này.</p>
+</div>
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — InvalidValue và triết lý "lenient reading"</span>
+  <p>Office rất khoan dung khi mở file, và file ngoài đời đầy giá trị "gần đúng": <code>w:val="  12 "</code>, <code>val="True"</code>, số màu viết thường… Nếu thư viện từ chối cả file chỉ vì một attribute sai, người dùng sẽ không mở được những file Word mở ngon lành. Nên dự án theo triết lý <strong>đọc dễ dãi, ghi chuẩn chỉnh</strong>:</p>
+  <ul>
+    <li><strong>Attribute sai kiểu</strong>: code sinh thử <code>XmlValue::parse_xml</code>; thất bại thì attribute được cất nguyên văn vào <code>extra_attrs</code> (xem đoạn <code>wml.rs</code> ở <a href="p2-1-namespace.html#vi-sao-u16">bài 2.1</a>: không có <code>continue</code> thì rơi xuống <code>this.extra_attrs.push(a.to_raw())</code>). Không có lỗi nào được trả.</li>
+    <li><strong>Element có nội dung kiểu đơn sai</strong>: <code>rt::read_simple</code> trả <code>Ok(Err(raw))</code> (mục 7) và element được cất vào <code>extra_children</code>.</li>
+    <li><strong><code>Error::InvalidValue</code></strong> chỉ còn dùng ở một chỗ hẹp: kiểu phức hợp có "simple content" (giá trị bắt buộc nằm trong chính struct, không có chỗ để cất bản thô). Grep cho thấy nó xuất hiện đúng 6 lần trong code sinh, và một dòng mẫu trong <code>openxml-codegen/src/emit.rs:612</code>.</li>
+  </ul>
+  <p>Kết quả: giá trị sai không làm hỏng cả file, và khi lưu lại, nó được ghi ra y như cũ — không mất dữ liệu. Cơ chế "cất bản thô" này là chủ đề của <a href="p2-7-raw-node.html">bài 2.7</a>.</p>
+</div>
+
+<section class="exercise">
+  <h3>🛠 Bài tập</h3>
+  <ol>
+    <li><strong>Khám phá lỗi bằng test tạm.</strong> Trong <code>crates/openxml-xml/src/reader.rs</code>, cuối <code>mod tests</code>, thêm:
+      <pre><code class="language-rust">#[test]
+fn thu_loi() {
+    for xml in ["", "&lt;a", "&lt;a&gt;&lt;b&gt;&lt;/a&gt;", "&lt;p:a/&gt;", "&lt;a b=c/&gt;", "text&lt;a/&gt;"] {
+        let mut r = XmlReader::new(xml);
+        let res = r.root().and_then(|t| r.skip(&amp;t));
+        match res {
+            Ok(()) =&gt; println!("{xml:?}: ok"),
+            Err(e) =&gt; println!("{xml:?}: {e}  |  {e:?}"),
+        }
+    }
+}</code></pre>
+      Chạy <code>cargo test -p openxml-xml --lib thu_loi -- --nocapture</code>. Với mỗi dòng, chỉ ra lỗi được tạo ở đâu: tự tạo trong <code>reader.rs</code> hay đi qua <code>From&lt;quick_xml::Error&gt;</code>? Xoá test khi xong.</li>
+    <li><strong>Viết lại <code>?</code> bằng tay.</strong> Trong một project riêng (<code>cargo new thu-loi</code>, thêm <code>openxml-xml = { path = "…/open-xml-rust/crates/openxml-xml" }</code> vào <code>[dependencies]</code>), viết hàm <code>fn dem_con(xml: &amp;str) -&gt; openxml_xml::Result&lt;usize&gt;</code> đếm số phần tử con trực tiếp của root (dùng <code>r.root()</code>, <code>r.next_child()</code>, <code>r.skip(&amp;child)</code>). Viết một lần với <code>?</code>, một lần thay mọi <code>?</code> bằng <code>match</code> tường minh như mục 6.</li>
+    <li><strong>Kiểu lỗi của riêng bạn.</strong> Trong cùng project, định nghĩa <code>enum AppError { Xml(openxml_xml::Error), Empty }</code>, cài <code>Display</code>, <code>std::error::Error</code> (có <code>source()</code>), và <code>From&lt;openxml_xml::Error&gt;</code>. Viết <code>fn root_local(xml: &amp;str) -&gt; Result&lt;String, AppError&gt;</code> dùng <code>?</code> trên <code>r.root()</code> và trả <code>AppError::Empty</code> nếu root không có con. Trong <code>main</code>, in lỗi và lần theo <code>source()</code>.</li>
+    <li><strong>Thử tấn công.</strong> Dùng <code>"&lt;a&gt;".repeat(100_000)</code> (không cần thẻ đóng) và gọi <code>skip</code> sau <code>root</code>. Lỗi nào về trước: <code>TooDeep</code> hay <code>UnexpectedEof</code>? Vì sao? (Gợi ý: đọc reader.rs:331–335.)</li>
+  </ol>
+</section>
+
+<section>
+  <h2 id="tu-kiem-tra">Tự kiểm tra</h2>
+  <details><summary>1. Khi nào một thư viện nên panic, khi nào nên trả <code>Err</code>?</summary>
+    <div class="answer">Dữ liệu đầu vào sai (file hỏng, file độc) → luôn trả <code>Err</code>, để ứng dụng quyết định. Panic chỉ dành cho lỗi lập trình — khi một bất biến bị vi phạm (ví dụ writer của chính thư viện sinh XML hỏng trong <code>from_typed</code>). Trong test, <code>unwrap</code> thoải mái.</div></details>
+  <details><summary>2. <code>#[non_exhaustive]</code> trên <code>enum Error</code> có tác dụng gì với người dùng thư viện?</summary>
+    <div class="answer">Buộc mọi <code>match</code> ngoài crate phải có nhánh <code>_</code>. Nhờ vậy thư viện thêm biến thể lỗi mới mà không phá vỡ code người dùng. Nó không cấm tạo giá trị biến thể từ bên ngoài (opc vẫn tạo <code>openxml_xml::Error::UnexpectedRoot</code>).</div></details>
+  <details><summary>3. Viết lại <code>let ev = self.inner.read_event()?;</code> mà không dùng <code>?</code>.</summary>
+    <div class="answer"><code>let ev = match self.inner.read_event() { Ok(v) =&gt; v, Err(e) =&gt; return Err(From::from(e)), };</code> — <code>From::from</code> gọi <code>impl From&lt;quick_xml::Error&gt; for Error</code>, nơi <code>UnclosedTag</code>/<code>UnclosedComment</code>/<code>UnclosedCData</code> thành <code>UnexpectedEof</code>, còn lại thành <code>Syntax</code>.</div></details>
+  <details><summary>4. Vì sao <code>openxml_xml::Error</code> derive được <code>PartialEq</code> còn <code>openxml_opc::Error</code> thì không? <code>PartialEq</code> dùng vào việc gì?</summary>
+    <div class="answer">Lỗi tầng XML chỉ chứa <code>String</code>, còn lỗi opc chứa <code>std::io::Error</code> — kiểu này không có <code>PartialEq</code>/<code>Clone</code>, nên derive thất bại. <code>PartialEq</code> cho phép test viết <code>assert_eq!(r.skip(&amp;root).unwrap_err(), Error::TooDeep)</code>.</div></details>
+  <details><summary>5. <code>Result&lt;Result&lt;T, RawElement&gt;&gt;</code> trong <code>read_simple</code> nghĩa là gì? Vì sao viết được như vậy?</summary>
+    <div class="answer">Tầng ngoài (lỗi mặc định <code>Error</code>): XML đọc được không. Tầng trong: giá trị hợp lệ (<code>Ok(v)</code>) hay phải giữ nguyên dạng thô (<code>Err(raw)</code>). Viết được vì alias là <code>type Result&lt;T, E = Error&gt;</code> — <code>E</code> có mặc định nhưng ghi đè được.</div></details>
+  <details><summary>6. Tại sao <code>openxml-core</code> không có <code>impl From&lt;openxml_xml::Error&gt;</code> mà dùng <code>map_err</code>?</summary>
+    <div class="answer">Biến thể <code>Error::Xml { part, source }</code> cần tên part, mà <code>From::from</code> chỉ nhận lỗi, không có ngữ cảnh. <code>map_err(|source| Error::Xml { part: name.to_string(), source })</code> thêm được ngữ cảnh đó tại chỗ gọi.</div></details>
+</section>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Bài sau</span>
+  <p>Đã có namespace và lỗi — giờ là lúc đọc XML thật. <a href="p2-4-xml-reader.html">Bài 2.4</a> mổ <code>XmlReader</code>: pull parser, lifetime <code>'i</code> (lần này học nghiêm túc!), <code>Cow&lt;'i, str&gt;</code> để đọc không cần sao chép, và cách reader resolve namespace mà bài 2.1 mới chỉ nhìn từ bên ngoài.</p>
+</div>
+
+</main>
+</body>
+</html>
