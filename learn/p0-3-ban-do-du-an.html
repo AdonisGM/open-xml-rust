@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>0.3 Bản đồ dự án · Học Rust qua open-xml-rust</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/vendor/highlight.min.js" defer></script>
+<script src="assets/app.js" defer></script>
+</head>
+<body data-lesson="p0-3">
+<main class="content">
+
+<header>
+  <p class="crumb">Phần 0 · Khởi động</p>
+  <h1>0.3 Bản đồ dự án</h1>
+  <p class="lead">Gần 290 nghìn dòng Rust, 12 crate, 26 file XSD, 46 file Office mẫu. Nghe thì đáng sợ — nhưng ba phần tư số dòng đó là code do máy sinh ra và bạn không cần đọc. Bài này là tấm bản đồ: đi qua từng thư mục, từng crate, cho bạn biết cái gì nằm ở đâu, cái gì quan trọng, cái gì có thể bỏ qua, và nên đọc theo thứ tự nào.</p>
+  <div class="meta"><span>⏱ ~40 phút</span><span>Toàn bộ repo</span><span>File: <code>README.md</code>, <code>ARCHITECTURE.md</code>, <code>crates/*/src/lib.rs</code>, <code>crates/openxml-xml/src/ns.rs</code></span></div>
+</header>
+
+<section class="goals">
+  <h3>🎯 Học xong bài này bạn sẽ</h3>
+  <ul>
+    <li>Biết vai trò của từng thư mục và file ở gốc repo, đặc biệt là <code>schemas/</code> và <code>fixtures/</code>.</li>
+    <li>Nắm bố cục chuẩn của một crate Rust: <code>src/lib.rs</code>, <code>src/main.rs</code>, <code>tests/</code>, <code>examples/</code>, <code>benches/</code>.</li>
+    <li>Nói được mục đích, phụ thuộc và kích thước của cả 12 crate.</li>
+    <li>Phân biệt code viết tay (~72 nghìn dòng) và code sinh tự động (~215 nghìn dòng).</li>
+    <li>Có một quy trình để đọc một codebase lớn mà không bị ngợp.</li>
+    <li>Tra được: "chương § nào của ECMA-376 nằm ở crate/file nào".</li>
+  </ul>
+</section>
+
+<h2 id="toan-canh">1. Nhìn từ trên cao</h2>
+<p>Đây là thư mục gốc (mình bỏ <code>target/</code> — sản phẩm build, xem <a href="p0-2-cong-cu.html">bài 0.2</a>):</p>
+<figure class="code">
+  <figcaption>Cây thư mục gốc của open-xml-rust</figcaption>
+<pre class="diagram"><code>open-xml-rust/
+├── README.md            ← giới thiệu, ví dụ dùng nhanh, bảng crate, lệnh phát triển
+├── ARCHITECTURE.md      ← thiết kế: các tầng, quy tắc sinh code, chiến lược test
+├── Cargo.toml           ← workspace: danh sách 12 crate + cấu hình chung
+├── Cargo.lock           ← phiên bản chính xác của mọi dependency (bài 0.2)
+├── rustfmt.toml         ← max_width = 110 (bài 0.2)
+├── .gitignore
+├── crates/              ← ★ TOÀN BỘ CODE RUST: 12 crate
+├── schemas/             ← nguyên liệu từ chuẩn ECMA-376: XSD + dữ liệu trích từ PDF
+│   ├── transitional/    ←   26 file .xsd — đầu vào chính của trình sinh code
+│   ├── strict/          ←   21 file .xsd — để đối chiếu
+│   ├── opc/             ←   4 file .xsd của Part 2 (đóng gói)
+│   ├── validation/      ←   schema "gom tất cả" cho xmllint
+│   ├── data/            ←   hình dạng, style có sẵn (preset) từ Part 1
+│   ├── spec-index.json  ←   2 862 mục: số §, tiêu đề, mô tả của từng thẻ
+│   └── spec-examples.json ← 479 ví dụ XML trích từ đặc tả
+├── fixtures/            ← file Office thật để test (Apache POI + ECMA)
+├── docs/                ← architecture.html: báo cáo kiến trúc có minh hoạ
+├── scripts/check.sh     ← "cổng chất lượng" (bài 0.2)
+├── tools/               ← 2 script Python trích dữ liệu từ PDF đặc tả
+└── learn/               ← chính khoá học bạn đang đọc</code></pre>
+</figure>
+<p>Nhận xét quan trọng nhất: <strong>chỉ có <code>crates/</code> là code Rust</strong>. Mọi thứ khác là tài liệu, dữ liệu đầu vào, hoặc công cụ phụ. Khi bị lạc, hãy nhớ câu đó.</p>
+
+<h2 id="file-goc">2. Các file ở gốc</h2>
+<dl class="glossary">
+  <dt>README.md</dt><dd>Cửa chính. Có bảng 12 crate kèm mục đích, ví dụ "Quick start" tạo Word/Excel/PowerPoint, bảng tính năng, cách dùng CLI, và mục <em>Development</em> (lệnh <code>scripts/check.sh</code>, lệnh sinh code). Đọc đầu tiên.</dd>
+  <dt>ARCHITECTURE.md</dt><dd>Tài liệu quan trọng nhất cho người muốn <em>hiểu</em> code: sơ đồ tầng, bảng "đầu vào từ đặc tả", mô tả từng tầng (Layer 1 → 4), bảng quy tắc ánh xạ XSD → Rust, chiến lược test, số đo hiệu năng. Cả khoá học này bám theo nó.</dd>
+  <dt>docs/architecture.html</dt><dd>Bản báo cáo kiến trúc dạng web có minh hoạ (khoảng 49 KB), viết bằng tiếng Việt, với các mục như "Năm tầng, phụ thuộc một chiều", "Từ XSD đến struct Rust", "Mỗi lựa chọn, các phương án đã cân nhắc, và cái giá phải trả". Rất hợp để đọc sau bài này.</dd>
+  <dt>Cargo.toml</dt><dd>File <em>workspace</em>: liệt kê 12 thành viên, thông tin chung (<code>edition</code>, <code>rust-version</code>…), phiên bản dependency dùng chung, luật lint, profile. <a href="p1-1-cargo-workspace.html">Bài 1.1</a> mổ xẻ từng dòng.</dd>
+  <dt>Cargo.lock, rustfmt.toml, .gitignore</dt><dd>Đã học ở <a href="p0-2-cong-cu.html">bài 0.2</a>.</dd>
+</dl>
+
+<h2 id="schemas">3. <code>schemas/</code> — chuẩn ECMA-376 ở dạng máy đọc được</h2>
+<p>Đặc tả ECMA-376 là hàng nghìn trang PDF. Nhưng kèm theo nó, Ecma phát hành các file <strong>XSD</strong> (XML Schema Definition) — mô tả <em>chính xác, máy đọc được</em> mỗi thẻ XML được phép chứa gì. Dự án đưa nguyên các file này vào repo ("vendored"), theo <code>schemas/README.md</code>:</p>
+<div class="table-wrap"><table>
+  <tr><th>Thư mục / file</th><th>Nguồn</th><th>Dùng để</th></tr>
+  <tr><td><code>transitional/</code> (26 file)</td><td>ECMA-376 Part 4, 2016</td><td><strong>Đầu vào chính của trình sinh code</strong>. Mỗi file → một module Rust trong <code>openxml-schema</code>.</td></tr>
+  <tr><td><code>strict/</code> (21 file)</td><td>ECMA-376 Part 1, 2016</td><td>Đối chiếu: test <code>crates/openxml-codegen/tests/strict_subset.rs</code> chứng minh mọi thứ trong Strict đều có trong Transitional.</td></tr>
+  <tr><td><code>opc/</code> (4 file)</td><td>ECMA-376 Part 2, 2021</td><td>Tham khảo cho <code>openxml-opc</code> (content types, relationships, core properties, chữ ký số).</td></tr>
+  <tr><td><code>validation/</code></td><td>Tự viết</td><td><code>transitional-all.xsd</code> chỉ gồm các dòng <code>xsd:import</code> kéo mọi schema Transitional vào, để <code>xmllint</code> kiểm tra bất kỳ part nào bằng một schema duy nhất (dùng bởi <code>openxml-testkit</code> và lệnh <code>openxml validate</code>).</td></tr>
+  <tr><td><code>data/</code> (4 file XML)</td><td>ECMA-376 Part 1</td><td>Định nghĩa hình có sẵn (<code>presetShapeDefinitions.xml</code>), kiểu chữ uốn, style ô và style bảng có sẵn. Hiện là tài liệu tham khảo — mình grep không thấy code Rust nào đọc trực tiếp các file này.</td></tr>
+  <tr><td><code>spec-index.json</code> (~2,4 MB)</td><td>Trích từ PDF Part 1 bằng <code>tools/spec_index.py</code></td><td>Sinh doc comment cho code sinh ra.</td></tr>
+  <tr><td><code>spec-examples.json</code></td><td>Trích từ PDF bằng <code>tools/spec_examples.py</code></td><td>479 đoạn XML ví dụ trong đặc tả, dùng làm test (<code>crates/openxml-schema/tests/spec_examples.rs</code>).</td></tr>
+</table></div>
+
+<p>Một mục trong <code>spec-index.json</code> trông như sau (mình rút gọn danh sách thuộc tính):</p>
+<figure class="code">
+  <figcaption>schemas/spec-index.json — mục của thẻ w:p (rút gọn)</figcaption>
+<pre><code class="language-json">{
+  "section": "17.3.1.22",
+  "ns": "w",
+  "name": "p",
+  "title": "Paragraph",
+  "page": 245,
+  "description": "This element specifies a paragraph of content in the document. ...",
+  "type": "CT_P",
+  "kind": "element",
+  "attributes": [ { "name": "rsidDel", "title": "Revision Identifier for Paragraph Deletion", ... }, ... ]
+}</code></pre>
+</figure>
+<p>Còn một mục trong <code>spec-examples.json</code> ngắn gọn hơn: <code>{"section": "17.2.1", "ns": "w", "element": "background", "type": "CT_Background", "xml": "&lt;w:background  w:color=\"2C34FF\"/&gt;"}</code> — mỗi ví dụ được đọc vào đúng kiểu Rust, ghi ra lại, và so sánh.</p>
+
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — một thẻ đi qua mọi tầng: <code>w:p</code></span>
+  <p>Theo chân thẻ paragraph từ đặc tả tới API. <strong>(1) XSD</strong> nói <code>w:p</code> có kiểu <code>CT_P</code>, gồm một <code>pPr</code> tuỳ chọn rồi nhiều phần tử nhóm <code>EG_PContent</code>, cộng 5 thuộc tính <code>rsid…</code>:</p>
+<pre><code class="language-xml">&lt;xsd:complexType name="CT_P"&gt;
+  &lt;xsd:sequence&gt;
+    &lt;xsd:element name="pPr" type="CT_PPr" minOccurs="0"/&gt;
+    &lt;xsd:group ref="EG_PContent" minOccurs="0" maxOccurs="unbounded"/&gt;
+  &lt;/xsd:sequence&gt;
+  &lt;xsd:attribute name="rsidRPr" type="ST_LongHexNumber"/&gt;
+  ...
+&lt;/xsd:complexType&gt;</code></pre>
+  <p>(trích <code>schemas/transitional/wml.xsd</code>, dòng 2236–2246). <strong>(2) spec-index</strong> cung cấp số mục §17.3.1.22 và mô tả. <strong>(3) Trình sinh code</strong> gộp hai nguồn thành <code>pub struct CT_P</code> trong <code>crates/openxml-schema/src/generated/wml.rs</code> (dòng 22531–22558), với các trường <code>rsid_r_pr</code>, …, <code>p_pr: Option&lt;Box&lt;CT_PPr&gt;&gt;</code>, <code>p_content: Vec&lt;EG_PContent&gt;</code>, và hai trường "không mất dữ liệu" <code>extra_attrs</code>, <code>extra_children</code>. <strong>(4) API Word</strong> bọc nó lại: <code>pub struct Paragraph&lt;'a&gt; { pub(crate) p: &amp;'a wml::CT_P }</code> trong <code>crates/openxml-docx/src/paragraph.rs:108</code>. Bốn tầng, một khái niệm — đây là "xương sống" của cả dự án.</p>
+</div>
+
+<h2 id="fixtures-tools">4. <code>fixtures/</code>, <code>tools/</code>, <code>scripts/</code></h2>
+<h3 id="fixtures">4.1 fixtures/ — file Office thật</h3>
+<ul>
+  <li><code>fixtures/poi/</code>: 45 file (18 <code>.docx</code>, 14 <code>.xlsx</code>, 13 <code>.pptx</code>) sao chép nguyên vẹn từ bộ test của Apache POI (thư viện Java xử lý file Office), kèm <code>NOTICE.md</code> ghi giấy phép Apache 2.0. Tên file cho biết chúng "khó" ở đâu: <code>ComplexNumberedLists.docx</code>, <code>delins.docx</code> (tracked changes), <code>SmartArt.pptx</code>, <code>style-alternate-content.xlsx</code> (có <code>mc:AlternateContent</code>), <code>with_japanese.pptx</code>, <code>rtl.docx</code> (chữ phải-sang-trái)…</li>
+  <li><code>fixtures/ecma/PivotTableFormats.xlsx</code>: file đi kèm bản phân phối ECMA-376.</li>
+</ul>
+<p>Nhiều crate đọc chúng trong test: <code>openxml-schema/tests/corpus.rs</code> round-trip mọi part XML; <code>openxml-docx/tests/fixtures.rs</code>, <code>openxml-xlsx/tests/fixtures.rs</code>, <code>openxml-pptx/tests/fixtures.rs</code> mở file và kiểm tra nội dung cụ thể. Hàm tiện ích <code>openxml_testkit::fixture(name)</code> trả về đường dẫn tới một file fixture.</p>
+
+<h3 id="tools">4.2 tools/ — trích dữ liệu từ PDF</h3>
+<ul>
+  <li><code>tools/spec_index.py</code> (235 dòng): đọc PDF Part 1 bằng thư viện <code>pypdf</code>, tìm các mục mô tả phần tử và simple type ở chương 17–23, xuất <code>spec-index.json</code>. Đầu file có bảng <code>SECTION_NS</code> ánh xạ số chương → prefix namespace (<code>("17.", "w")</code>, <code>("18.", "x")</code>, <code>("21.2.", "c")</code>…) — một bản tóm tắt tuyệt vời về cấu trúc đặc tả.</li>
+  <li><code>tools/spec_examples.py</code> (144 dòng): quét các khối "[Example: … end example]" trong đặc tả, lấy những đoạn XML có thẻ gốc đúng là thẻ mà mục đó mô tả, xuất <code>spec-examples.json</code>.</li>
+</ul>
+<p>Bạn không cần chạy chúng (PDF không có trong repo — nó bị <code>.gitignore</code> loại ra). Chúng ở đây để ai cũng biết JSON được tạo ra thế nào: một thói quen tốt với dữ liệu sinh ra.</p>
+
+<h3 id="scripts">4.3 scripts/</h3>
+<p>Chỉ có <code>check.sh</code> — đã đọc từng dòng ở <a href="p0-2-cong-cu.html#check-sh">bài 0.2</a>.</p>
+
+<h2 id="bo-cuc-crate">5. Bố cục chuẩn của một crate Rust</h2>
+<p><strong>Vấn đề:</strong> nếu mỗi dự án tự đặt chỗ cho code, test, ví dụ theo ý mình, người mới phải đi tìm. Cargo giải quyết bằng <strong>quy ước</strong> (convention over configuration): đặt file đúng chỗ thì cargo tự nhận ra, không cần khai báo.</p>
+<figure class="code">
+  <figcaption>Bố cục chuẩn (Ví dụ minh hoạ)</figcaption>
+<pre class="diagram"><code>my-crate/
+├── Cargo.toml          ← [package] name, dependencies...
+├── src/
+│   ├── lib.rs          ← gốc của THƯ VIỆN (library crate). Có file này = crate là thư viện
+│   ├── main.rs         ← gốc của CHƯƠNG TRÌNH (binary). Có file này = crate có binary
+│   └── foo.rs          ← module con, được khai báo bằng `mod foo;` trong lib.rs
+├── tests/              ← integration test: mỗi file .rs = một chương trình test riêng
+│   ├── a.rs
+│   └── common/mod.rs   ← code dùng chung giữa các test (không tự thành test)
+├── examples/           ← mỗi file .rs = một ví dụ chạy được: cargo run --example tên
+└── benches/            ← benchmark: cargo bench</code></pre>
+</figure>
+<p>Áp vào dự án:</p>
+<div class="table-wrap"><table>
+  <tr><th>Crate</th><th>lib.rs</th><th>main.rs</th><th>tests/</th><th>examples/</th></tr>
+  <tr><td>openxml-xml</td><td>✓</td><td></td><td>(unit test nằm trong src)</td><td>reader_bench</td></tr>
+  <tr><td>openxml-opc</td><td>✓</td><td></td><td>real_packages</td><td></td></tr>
+  <tr><td>openxml-codegen</td><td>✓</td><td>✓</td><td>coverage, strict_subset, up_to_date</td><td></td></tr>
+  <tr><td>openxml-schema</td><td>✓</td><td></td><td>behaviour, corpus, robustness, spec_examples</td><td>bench, roundtrip</td></tr>
+  <tr><td>openxml-testkit</td><td>✓</td><td></td><td></td><td></td></tr>
+  <tr><td>openxml-core</td><td>✓</td><td></td><td>properties_schema</td><td>tiny_png</td></tr>
+  <tr><td>openxml-chart</td><td>✓</td><td></td><td>charts</td><td>inspect</td></tr>
+  <tr><td>openxml-docx</td><td>✓</td><td></td><td>annotations, charts, create, fixtures, layout (+ common/)</td><td>create_report, dump_text</td></tr>
+  <tr><td>openxml-xlsx</td><td>✓</td><td></td><td>charts, create, feature_fixtures, features, fixtures, stream (+ common/)</td><td>chart_workbook, create_workbook, dump</td></tr>
+  <tr><td>openxml-pptx</td><td>✓</td><td></td><td>charts, editing, fixture_features, fixtures, interactivity, new_presentation, shapes, slides_and_masters (+ common/)</td><td>chart_deck, create_deck</td></tr>
+  <tr><td>openxml</td><td>✓</td><td></td><td>facade</td><td>all_formats, perf</td></tr>
+  <tr><td>openxml-cli</td><td></td><td>✓</td><td>cli</td><td></td></tr>
+</table></div>
+<ul>
+  <li><strong><code>openxml-codegen</code> có cả lib.rs lẫn main.rs</strong>: phần lõi là thư viện (để test gọi được <code>openxml_codegen::generate</code>), còn <code>main.rs</code> chỉ là vỏ mỏng 59 dòng gọi thư viện rồi ghi file. Đây là cách tổ chức rất phổ biến: logic trong lib, binary chỉ "đi dây".</li>
+  <li><strong><code>openxml-cli</code> chỉ có main.rs</strong>, và dùng <code>[[bin]] name = "openxml"</code> để đặt tên file chạy (<a href="p0-2-cong-cu.html#goc-openxml">bài 0.2</a>).</li>
+  <li><strong>Không crate nào có <code>benches/</code></strong>. Việc đo hiệu năng được viết thành <em>example</em> (<code>openxml-schema/examples/bench.rs</code>, <code>openxml-xml/examples/reader_bench.rs</code>, <code>openxml/examples/perf.rs</code>) chạy bằng <code>cargo run --release --example …</code>. Lý do hợp lý: <code>cargo bench</code> với <code>#[bench]</code> chuẩn vẫn cần nightly, còn thư viện ngoài như criterion thêm dependency.</li>
+  <li><strong><code>tests/common/mod.rs</code></strong> (docx, xlsx, pptx): code dùng chung giữa các file test. Đặt trong thư mục con <code>common/</code> để cargo không coi nó là một file test riêng; mỗi file test dùng nó bằng <code>mod common;</code>.</li>
+</ul>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — crate, package, module</span>
+  <p><strong>Package</strong> là một thư mục có <code>Cargo.toml</code>. <strong>Crate</strong> là một đơn vị biên dịch: thư viện (gốc ở <code>lib.rs</code>) hoặc binary (gốc ở <code>main.rs</code>) — một package có thể chứa một lib và nhiều bin. <strong>Module</strong> là cách chia code <em>bên trong</em> một crate (<code>mod ns;</code> → file <code>ns.rs</code>). Người ta hay nói "crate" thay cho "package" và trong khoá này mình cũng vậy. Phân biệt kỹ ở <a href="p1-2-crate-module.html">bài 1.2</a>.</p>
+</div>
+
+<h2 id="muoi-hai-crate">6. Mười hai crate, từng cái một</h2>
+<p>Số dòng dưới đây mình đo bằng <code>wc -l</code> trên các file <code>.rs</code> (tính cả chú thích và dòng trống), chia ba cột: <em>src</em> (code thư viện, kể cả unit test bên trong), <em>tests</em>, <em>examples</em>. Đi từ tầng thấp lên cao, đúng như sơ đồ trong <code>ARCHITECTURE.md</code>.</p>
+
+<figure class="code">
+  <figcaption>Lệnh đo (Tự viết)</figcaption>
+<pre><code class="language-bash">ls crates/openxml-xml/src
+find crates/openxml-xml/src -name '*.rs' | xargs wc -l
+find crates -name '*.rs' -not -path '*/generated/*' | xargs cat | wc -l</code></pre>
+</figure>
+
+<h3 id="c-xml">6.1 openxml-xml — tầng XML <small>(src 3 474 · examples 70)</small></h3>
+<p><strong>Mục đích:</strong> đọc/ghi XML có namespace, chính xác tới từng chi tiết, và giữ lại mọi thứ lạ. <strong>Phụ thuộc:</strong> chỉ <code>quick-xml</code> (một parser XML nhanh). <strong>Không biết gì</strong> về Word, ZIP hay OPC.</p>
+<figure class="code">
+  <figcaption>crates/openxml-xml/src (số dòng)</figcaption>
+<pre class="diagram"><code>lib.rs       33   khai báo module + pub use
+ns.rs       316   bảng namespace (Ns::W, Ns::A, ...), Strict → Transitional
+reader.rs   732   XmlReader: pull parser dựa trên quick-xml
+writer.rs   646   XmlWriter: tự chọn prefix, tự khai báo xmlns
+raw.rs      383   RawElement / RawNode: XML "không schema" để giữ nội dung lạ
+element.rs  441   trait XmlRead / XmlWrite, ElementDef
+value.rs    320   trait XmlValue: "true"/"1" ⇄ bool, số, hex, base64...
+validate.rs 215   kiểm tra thuộc tính / phần tử bắt buộc
+compare.rs  317   semantic_diff: so sánh 2 cây XML bỏ qua khác biệt vô nghĩa
+error.rs     71   kiểu lỗi</code></pre>
+</figure>
+<p>Crate nhỏ, không phụ thuộc gì trong dự án, 63 unit test chạy trong chưa tới một giây — lý tưởng để học Rust cơ bản. Cả <a href="p2-1-namespace.html">Phần 2</a> của khoá dành cho nó.</p>
+
+<h3 id="c-opc">6.2 openxml-opc — đóng gói <small>(src 2 391 · tests 47)</small></h3>
+<p><strong>Mục đích:</strong> ECMA-376 Part 2 — mở/ghi ZIP, part name, content type, relationship, core properties. <strong>Phụ thuộc:</strong> <code>openxml-xml</code>, <code>zip</code>.</p>
+<figure class="code">
+  <figcaption>crates/openxml-opc/src (số dòng)</figcaption>
+<pre class="diagram"><code>lib.rs              37   doc + ví dụ (doc-test) + pub use
+package.rs         704   Package: các part dạng bytes, đọc/ghi ZIP
+part_name.rs       425   PartName: luật đặt tên §6.2.2, giải đường dẫn tương đối
+known.rs           434   hằng số: content type và relationship type quen thuộc
+relationships.rs   262   Relationships (.rels), sinh rIdN mới
+core_properties.rs 232   docProps/core.xml (Dublin Core)
+content_types.rs   215   [Content_Types].xml: Default / Override
+error.rs            82</code></pre>
+</figure>
+
+<h3 id="c-codegen">6.3 openxml-codegen — trình sinh code <small>(src 4 254 · tests 453)</small></h3>
+<p><strong>Mục đích:</strong> đọc 26 file XSD + <code>spec-index.json</code>, sinh ra mã nguồn Rust cho <code>openxml-schema</code>. Là một chương trình chạy <em>lúc phát triển</em>, không phải thư viện cho người dùng (<code>publish = false</code> trong Cargo.toml). <strong>Phụ thuộc:</strong> <code>openxml-xml</code>, <code>roxmltree</code> (đọc XSD thành cây), <code>serde</code> + <code>serde_json</code> (đọc JSON). Để ý: nó <em>không</em> phụ thuộc <code>openxml-schema</code> — nó <em>tạo ra</em> crate đó.</p>
+<figure class="code">
+  <figcaption>crates/openxml-codegen/src — đường ống (pipeline) theo thứ tự</figcaption>
+<pre class="diagram"><code>xsd.rs      822   (1) phân tích XSD thành mô hình cú pháp
+registry.rs 131   (2) lập chỉ mục mọi định nghĩa toàn cục
+lower.rs   1383   (3) "hạ" XSD xuống IR: struct nào, trường gì, enum nào   ← lõi
+ir.rs       342       định nghĩa IR (intermediate representation)
+names.rs    196       đổi tên: rsidRPr → rsid_r_pr, ...
+spec.rs     219       đọc spec-index.json để lấy doc comment
+emit.rs    1020   (4) in IR thành mã Rust
+lib.rs       82       generate() nối các bước + format_source() gọi rustfmt
+main.rs      59       vỏ dòng lệnh: ghi file hoặc --check</code></pre>
+</figure>
+
+<h3 id="c-schema">6.4 openxml-schema — mô hình kiểu hoá <small>(viết tay 46 · sinh ra 214 526 · tests 804 · examples 101)</small></h3>
+<p><strong>Mục đích:</strong> một <code>struct</code> hoặc <code>enum</code> Rust cho <em>mọi</em> kiểu trong 26 schema Transitional. <strong>Phụ thuộc:</strong> chỉ <code>openxml-xml</code> (dev-dependency thêm <code>openxml-opc</code>, <code>openxml-testkit</code>, <code>serde_json</code> cho test). Phần viết tay chỉ có hai file nhỏ:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-schema/src/lib.rs#L34-L40">crates/openxml-schema/src/lib.rs:34–40</figcaption>
+<pre><code class="language-rust">#![allow(clippy::large_enum_variant)]
+
+mod generated;
+mod prelude;
+
+pub use generated::*;
+pub use openxml_xml as xml;</code></pre>
+</figure>
+<p><code>mod generated;</code> nạp thư mục <code>src/generated/</code> (qua file <code>generated/mod.rs</code>), rồi <code>pub use generated::*;</code> "kéo" mọi module con lên ngang hàng — nhờ vậy người dùng viết <code>openxml_schema::wml</code> thay vì <code>openxml_schema::generated::wml</code>. Thư mục <code>generated/</code> có 26 module + <code>mod.rs</code> = 27 file; mỗi file mở đầu bằng dòng <code>// @generated by openxml-codegen from the ECMA-376 Transitional schemas. Do not edit.</code></p>
+<div class="table-wrap"><table>
+  <tr><th>Module sinh ra</th><th>Từ XSD</th><th>Số dòng</th><th>Nội dung (theo doc comment đầu file)</th></tr>
+  <tr><td><code>sml</code></td><td><code>sml.xsd</code></td><td>50 209</td><td>98 simple type, 367 complex type, 15 choice enum, 22 phần tử toàn cục</td></tr>
+  <tr><td><code>wml</code></td><td><code>wml.xsd</code></td><td>45 184</td><td>110 simple type, 285 complex type, 24 choice enum, 14 phần tử toàn cục</td></tr>
+  <tr><td><code>dml</code></td><td><code>dml-main.xsd</code></td><td>31 235</td><td>94 simple type, 231 complex type, 35 choice enum, 8 phần tử toàn cục</td></tr>
+  <tr><td><code>dml_chart</code></td><td><code>dml-chart.xsd</code></td><td>19 385</td><td>68 simple type, 136 complex type</td></tr>
+  <tr><td><code>pml</code></td><td><code>pml.xsd</code></td><td>18 793</td><td>58 simple type, 149 complex type</td></tr>
+  <tr><td><code>dml_diagram</code>, <code>vml</code>, <code>shared_math</code>, <code>vml_office</code>…</td><td>…</td><td>10 360, 9 944, 7 845, 3 974…</td><td></td></tr>
+  <tr><td><code>mod.rs</code></td><td>—</td><td>3 058</td><td>khai báo module + hàm dispatch theo thẻ gốc (<code>round_trip_xml</code>…)</td></tr>
+  <tr><td><strong>Tổng</strong></td><td></td><td><strong>214 526</strong></td><td></td></tr>
+</table></div>
+
+<div class="callout warn">
+  <span class="callout-title">⚠️ Đừng "đọc" wml.rs</span>
+  <p>Mở <code>wml.rs</code> (45 nghìn dòng) từ đầu tới cuối là cách nhanh nhất để nản. Code sinh ra có hình dạng lặp đi lặp lại: hiểu <em>một</em> struct (như <code>CT_P</code>) và <em>một</em> enum (như <code>ST_Jc</code>) là hiểu tất cả. Hãy dùng nó như <strong>từ điển</strong>: tra khi cần, bằng tìm kiếm hoặc "Go to definition". Và <strong>không bao giờ sửa tay</strong> — lần chạy codegen sau sẽ ghi đè, còn <code>check.sh</code> sẽ báo lỗi.</p>
+</div>
+
+<h3 id="c-testkit">6.5 openxml-testkit — tiện ích cho test <small>(src 156)</small></h3>
+<p>Một file <code>lib.rs</code> với 5 hàm công khai: <code>workspace_root</code>, <code>fixture</code>, <code>validate_xml</code> (gọi <code>xmllint</code> với <code>schemas/validation/transitional-all.xsd</code>), <code>validate_package</code>, <code>office_files</code>. <strong>Phụ thuộc:</strong> <code>openxml-opc</code>, <code>openxml-xml</code>. <code>publish = false</code>, và các crate khác chỉ khai báo nó trong <code>[dev-dependencies]</code> — nghĩa là nó chỉ có mặt khi build test/example, không bao giờ lọt vào thư viện cho người dùng.</p>
+
+<h3 id="c-core">6.6 openxml-core — đồ dùng chung <small>(src 1 296 · tests 34 · examples 7)</small></h3>
+<p><strong>Mục đích:</strong> những thứ ba API tài liệu cùng cần. <strong>Phụ thuộc:</strong> <code>openxml-opc</code>, <code>openxml-schema</code>, <code>openxml-xml</code>.</p>
+<figure class="code">
+  <figcaption>crates/openxml-core/src (số dòng)</figcaption>
+<pre class="diagram"><code>lib.rs         24
+error.rs       72   Error / Result chung của các API tài liệu
+part.rs       138   đọc/ghi part XML có kiểu: read_part, write_part, add_related_part
+units.rs      190   Length (EMU, twip, point, inch, cm), FontSize
+image.rs      458   sniff_image: nhận dạng PNG/JPEG/GIF/BMP/TIFF/EMF/WMF + kích thước
+properties.rs 414   docProps/custom.xml, docProps/app.xml</code></pre>
+</figure>
+
+<h3 id="c-chart">6.7 openxml-chart — biểu đồ dùng chung <small>(src 1 722 · tests 273 · examples 29)</small></h3>
+<p><strong>Mục đích:</strong> mô tả biểu đồ độc lập với Word/Excel/PowerPoint (<code>Chart</code>, <code>Series</code>, <code>ChartKind</code>…), chuyển thành kiểu sinh <code>c:chartSpace</code>, chèn vào package (kèm workbook nhúng để Office mở "Edit Data"), và đọc ngược lại. <strong>Phụ thuộc:</strong> core, opc, schema, xml. File: <code>spec.rs</code> (314 — mô tả biểu đồ), <code>build.rs</code> (779 — dựng <code>c:chartSpace</code>), <code>package.rs</code> (140), <code>read.rs</code> (263), <code>workbook.rs</code> (186), <code>lib.rs</code> (40).</p>
+<div class="callout warn">
+  <span class="callout-title">⚠️ Chỗ hay nhầm — build.rs</span>
+  <p>Trong Rust, file <code>build.rs</code> <em>ở gốc package</em> (cạnh Cargo.toml) là <strong>build script</strong> đặc biệt, chạy trước khi biên dịch. Còn <code>crates/openxml-chart/src/build.rs</code> nằm <em>trong src/</em>, nên nó chỉ là một module bình thường tên <code>build</code> ("dựng biểu đồ"). Dự án không có build script nào.</p>
+</div>
+
+<h3 id="c-docx">6.8 openxml-docx — Word <small>(src 14 417 · tests 3 063 · examples 267)</small></h3>
+<p><strong>Mục đích:</strong> API cấp cao cho <code>.docx</code>: <code>Document</code>, <code>Paragraph</code> / <code>ParagraphMut</code>, run, style, list, bảng, ảnh, biểu đồ, comment, footnote, tracked changes, section… <strong>Phụ thuộc:</strong> chart, core, opc, schema, xml. 26 file trong src:</p>
+<figure class="code">
+  <figcaption>crates/openxml-docx/src (số dòng, sắp theo tên)</figcaption>
+<pre class="diagram"><code>bookmarks 174   chart     92   comments  386   document 1193   drawing  930
+fields    658   format  1004   lib       122   markup    479   math     581
+notes     583   numbering 519  paragraph 534   picture   105   properties 564
+revisions 1198  run      557   sdt       823   section   994   styles   212
+table     843   template 286   text      472   util      221   vml      512
+walk      375</code></pre>
+</figure>
+
+<h3 id="c-xlsx">6.9 openxml-xlsx — Excel <small>(src 16 569 · tests 3 454 · examples 281)</small></h3>
+<p><strong>Mục đích:</strong> <code>Workbook</code>, <code>Worksheet</code> / <code>WorksheetMut</code>, giá trị ô, công thức (kèm một bộ tính công thức nhỏ), style, ngày tháng, ảnh, biểu đồ, validation, conditional formatting, bảng, filter, in ấn, bảo vệ, ghi/đọc dạng stream. <strong>Phụ thuộc:</strong> chart, core, opc, schema, xml. 29 file trong src — to nhất là <code>styles.rs</code> (2 003), rồi <code>workbook.rs</code> (1 079), <code>worksheet.rs</code> (1 053), <code>drawing.rs</code> (987), <code>calc.rs</code> (918).</p>
+
+<h3 id="c-pptx">6.10 openxml-pptx — PowerPoint <small>(src 13 889 · tests 3 497 · examples 298)</small></h3>
+<p><strong>Mục đích:</strong> <code>Presentation</code>, slide, placeholder, shape, connector, group, bảng, ảnh, biểu đồ, hyperlink, transition, animation, media, comment, section, theme, master/layout. <strong>Phụ thuộc:</strong> chart, core, opc, schema, xml. 26 file — to nhất: <code>shape.rs</code> (998), <code>animation.rs</code> (987), <code>table.rs</code> (984), <code>template.rs</code> (889), <code>drawing.rs</code> (852).</p>
+
+<h3 id="c-openxml">6.11 openxml — mặt tiền (facade) <small>(src 64 · tests 163 · examples 273)</small></h3>
+<p>Crate nhỏ nhất nhưng là thứ người dùng thêm vào dự án của họ. Nó không có logic — chỉ "tái xuất" (re-export) các crate khác dưới tên ngắn:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml/src/lib.rs#L55-L64">crates/openxml/src/lib.rs:55–64</figcaption>
+<pre><code class="language-rust">pub use openxml_chart as chart;
+pub use openxml_core as core;
+pub use openxml_docx as docx;
+pub use openxml_opc as opc;
+pub use openxml_pptx as pptx;
+pub use openxml_schema as schema;
+pub use openxml_xlsx as xlsx;
+pub use openxml_xml as xml;
+
+pub use openxml_core::{Error, Length, Result};</code></pre>
+</figure>
+<p>Nhờ vậy người dùng chỉ cần một dependency <code>openxml</code> rồi viết <code>use openxml::docx::Document;</code>. <strong>Phụ thuộc:</strong> tất cả 8 crate thư viện.</p>
+<div class="callout pattern">
+  <span class="callout-title">🧩 Pattern — Facade crate</span>
+  <p>Chia nhỏ thành nhiều crate giúp biên dịch song song, ranh giới rõ ràng, và người chỉ cần đọc <code>.docx</code> không phải kéo theo code PowerPoint. Nhưng bắt người dùng nhớ 8 cái tên thì phiền. Giải pháp: một crate "mặt tiền" gom tất cả lại. Engine game <code>bevy</code> là ví dụ nổi tiếng: crate <code>bevy</code> gom hàng chục crate <code>bevy_*</code>.</p>
+</div>
+
+<h3 id="c-cli">6.12 openxml-cli — công cụ dòng lệnh <small>(src 272 · tests 100)</small></h3>
+<p>Một file <code>main.rs</code> với 5 lệnh con: <code>info</code>, <code>cat</code>, <code>text</code>, <code>roundtrip</code>, <code>validate</code>. <strong>Phụ thuộc:</strong> docx, opc, pptx, xlsx, schema, xml. Test <code>tests/cli.rs</code> chạy binary thật từ đầu đến cuối. Bạn đã dùng <code>info</code> ở <a href="p0-2-cong-cu.html#goc-openxml">bài 0.2</a>.</p>
+
+<h2 id="viet-tay-vs-sinh">7. Code viết tay và code sinh: tỷ lệ thật</h2>
+<div class="table-wrap"><table>
+  <tr><th>Loại</th><th>Số dòng (wc -l)</th><th>Ghi chú</th></tr>
+  <tr><td>Code sinh (<code>openxml-schema/src/generated/</code>)</td><td><strong>214 526</strong></td><td>27 file, không sửa tay</td></tr>
+  <tr><td>Code viết tay — tổng mọi file <code>.rs</code> còn lại</td><td><strong>~71 800</strong></td><td>gồm src, tests, examples của 12 crate</td></tr>
+  <tr><td>… trong đó 3 API tài liệu (src)</td><td>44 875</td><td>docx 14 417 + xlsx 16 569 + pptx 13 889</td></tr>
+  <tr><td>… trong đó các tầng nền (src)</td><td>~13 700</td><td>xml 3 474 + opc 2 391 + codegen 4 254 + core 1 296 + chart 1 722 + cli, facade, testkit, phần viết tay của schema</td></tr>
+  <tr><td>… trong đó tests/ và examples/</td><td>~13 200</td><td>tests 11 888 + examples 1 326; chưa kể unit test nằm trong src</td></tr>
+</table></div>
+<p>Toàn workspace có khoảng 620 hàm <code>#[test]</code> (đếm bằng grep). Bài học: <strong>~75% số dòng là code sinh</strong>. Phần bạn thực sự cần <em>đọc</em> để hiểu kiến trúc — <code>openxml-xml</code>, <code>openxml-opc</code>, <code>openxml-codegen</code>, <code>openxml-core</code> — chỉ khoảng 11 nghìn dòng. Ba API tài liệu to nhưng "rộng" chứ không "sâu": mỗi file là một tính năng, cùng một khuôn.</p>
+
+<h2 id="do-thi">8. Đồ thị phụ thuộc</h2>
+<p>Tổng hợp từ khối <code>[dependencies]</code> trong Cargo.toml của từng crate (chỉ tính phụ thuộc thường, không tính dev-dependencies):</p>
+<figure class="code">
+  <figcaption>Ai phụ thuộc ai (mũi tên = "dùng")</figcaption>
+<pre class="diagram"><code>                      openxml-cli           openxml (facade)
+                     /     |     \          (dùng cả 8 crate thư viện)
+          openxml-docx  openxml-xlsx  openxml-pptx
+                     \     |     /
+                      openxml-chart
+                           |
+                      openxml-core
+                       /        \
+            openxml-schema    openxml-opc ──▶ zip
+                  |               |
+                  └──▶ openxml-xml ◀──┘ ──▶ quick-xml
+                          ▲
+            openxml-codegen ──▶ roxmltree, serde, serde_json
+            (sinh ra openxml-schema; không phụ thuộc nó)
+
+  openxml-testkit ──▶ openxml-opc, openxml-xml    (chỉ dùng trong dev-dependencies)</code></pre>
+</figure>
+<p>(Để sơ đồ gọn mình không vẽ các cạnh "nhảy tầng": docx/xlsx/pptx cũng dùng trực tiếp core, opc, schema, xml; CLI dùng thẳng docx, xlsx, pptx, opc, schema, xml.) Quy tắc vàng trong <code>ARCHITECTURE.md</code>: "Each layer only depends on the layers below it. Lower layers never know about Word, Excel or PowerPoint." Không có mũi tên nào đi <em>xuống-lên</em> — và Cargo cũng <em>cấm</em> vòng phụ thuộc giữa các crate, nên quy tắc này được trình biên dịch giữ hộ. <a href="p1-3-kien-truc-phan-tang.html">Bài 1.3</a> phân tích kỹ.</p>
+
+<h2 id="spec-map">9. Góc OpenXML: bản đồ đặc tả → crate/file</h2>
+<p>Doc comment của bảng namespace trong <code>openxml-xml</code> ghi rõ mỗi namespace thuộc chương nào của ECMA-376. Ví dụ:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L77-L94">crates/openxml-xml/src/ns.rs:77–94</figcaption>
+<pre><code class="language-rust">    /// WordprocessingML main (`w:`), ECMA-376 Part 1 §17.
+    W = 4, "w", "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
+        strict = "http://purl.oclc.org/ooxml/wordprocessingml/main";
+    /// SpreadsheetML main (`x:`), ECMA-376 Part 1 §18.
+    X = 5, "x", "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+        strict = "http://purl.oclc.org/ooxml/spreadsheetml/main", default_on_root = true;
+    /// PresentationML main (`p:`), ECMA-376 Part 1 §19.
+    P = 6, "p", "http://schemas.openxmlformats.org/presentationml/2006/main",
+        strict = "http://purl.oclc.org/ooxml/presentationml/main";
+    /// DrawingML main (`a:`), ECMA-376 Part 1 §20.1 and §21.1.
+    A = 7, "a", "http://schemas.openxmlformats.org/drawingml/2006/main",
+        strict = "http://purl.oclc.org/ooxml/drawingml/main";
+    /// DrawingML picture (`pic:`), §20.2.
+    PIC = 8, "pic", "http://schemas.openxmlformats.org/drawingml/2006/picture",
+        strict = "http://purl.oclc.org/ooxml/drawingml/picture";
+    /// DrawingML chart (`c:`), §21.2.
+    C = 9, "c", "http://schemas.openxmlformats.org/drawingml/2006/chart",
+        strict = "http://purl.oclc.org/ooxml/drawingml/chart";</code></pre>
+</figure>
+<p>Đọc một dòng: <code>W = 4, "w", "http://…/main", strict = "http://purl.oclc.org/…"</code> — hằng <code>Ns::W</code> mang số 4, prefix ưa dùng <code>w</code>, URI Transitional, và URI Strict tương ứng. Cú pháp lạ này là một <strong>macro</strong> tự viết (<code>namespaces!</code>) — <a href="p2-2-macro.html">bài 2.2</a> sẽ giải thích. Gom toàn bộ doc comment trong <code>ns.rs</code> (dòng 67–170), cộng doc comment đầu các file của <code>openxml-opc</code>, ta được tấm bản đồ:</p>
+
+<div class="table-wrap"><table>
+  <tr><th>Đặc tả</th><th>Nội dung</th><th>Namespace</th><th>XSD → module sinh</th><th>Crate/file viết tay chính</th></tr>
+  <tr><td>Part 1 §17</td><td>WordprocessingML</td><td><code>w:</code> (<code>Ns::W</code>)</td><td><code>wml.xsd</code> → <code>wml</code></td><td><code>openxml-docx</code></td></tr>
+  <tr><td>Part 1 §18</td><td>SpreadsheetML</td><td><code>x:</code> (<code>Ns::X</code>)</td><td><code>sml.xsd</code> → <code>sml</code></td><td><code>openxml-xlsx</code></td></tr>
+  <tr><td>Part 1 §19</td><td>PresentationML</td><td><code>p:</code></td><td><code>pml.xsd</code> → <code>pml</code></td><td><code>openxml-pptx</code></td></tr>
+  <tr><td>Part 1 §20.1, §21.1</td><td>DrawingML chính (hình, màu, chữ, theme)</td><td><code>a:</code></td><td><code>dml-main.xsd</code> → <code>dml</code></td><td>chủ yếu <code>openxml-pptx</code> (shape, format, theme); cả docx, xlsx khi có hình</td></tr>
+  <tr><td>§20.2</td><td>DrawingML picture</td><td><code>pic:</code></td><td><code>dml-picture.xsd</code> → <code>dml_picture</code></td><td><code>docx/src/picture.rs</code>, <code>pptx/src/picture.rs</code>, <code>xlsx/src/drawing.rs</code></td></tr>
+  <tr><td>§20.3</td><td>Locked canvas</td><td><code>lc:</code></td><td>→ <code>dml_locked_canvas</code></td><td>(chỉ giữ nguyên khi round-trip)</td></tr>
+  <tr><td>§20.4</td><td>Hình trong Word</td><td><code>wp:</code></td><td>→ <code>dml_wordprocessing_drawing</code></td><td><code>openxml-docx/src/drawing.rs</code></td></tr>
+  <tr><td>§20.5</td><td>Hình trong Excel</td><td><code>xdr:</code></td><td>→ <code>dml_spreadsheet_drawing</code></td><td><code>openxml-xlsx/src/drawing.rs</code></td></tr>
+  <tr><td>§21.2</td><td>Biểu đồ</td><td><code>c:</code></td><td><code>dml-chart.xsd</code> → <code>dml_chart</code></td><td><code>openxml-chart</code> (build.rs, read.rs, package.rs)</td></tr>
+  <tr><td>§21.3, §21.4</td><td>Chart drawing, diagram (SmartArt)</td><td><code>cdr:</code>, <code>dgm:</code></td><td>→ <code>dml_chart_drawing</code>, <code>dml_diagram</code></td><td>(giữ nguyên; test với <code>SmartArt.pptx</code>)</td></tr>
+  <tr><td>§22.1</td><td>Office Math</td><td><code>m:</code></td><td><code>shared-math.xsd</code> → <code>shared_math</code></td><td><code>openxml-docx/src/math.rs</code></td></tr>
+  <tr><td>§22.2, §22.3, §22.4</td><td>Thuộc tính mở rộng, tuỳ biến, variant</td><td><code>ep:</code>, <code>op:</code>, <code>vt:</code></td><td>→ <code>shared_extended_properties</code>, <code>shared_custom_properties</code>, <code>shared_variant_types</code></td><td><code>openxml-core/src/properties.rs</code></td></tr>
+  <tr><td>§22.5–22.7, §23</td><td>Custom XML, bibliography, characteristics, schema library</td><td><code>ds:</code>, <code>b:</code>, <code>ac:</code>, <code>sl:</code></td><td>→ các module <code>shared_*</code> tương ứng</td><td>(giữ nguyên)</td></tr>
+  <tr><td>§22.8</td><td>Tham chiếu relationship</td><td><code>r:</code> (<code>r:id</code>, <code>r:embed</code>)</td><td>→ <code>shared_relationship_reference</code></td><td>dùng khắp nơi cùng <code>openxml-opc</code></td></tr>
+  <tr><td>§22.9</td><td>Simple type dùng chung</td><td><code>s:</code></td><td><code>shared-commonSimpleTypes.xsd</code> → <code>shared_types</code></td><td>—</td></tr>
+  <tr><td>Part 1 §11–15</td><td>Danh mục part của từng loại tài liệu</td><td>—</td><td>—</td><td><code>openxml-opc/src/known.rs</code> (content type &amp; relationship type)</td></tr>
+  <tr><td>Part 2 §6.2.2</td><td>Part name</td><td>—</td><td>—</td><td><code>openxml-opc/src/part_name.rs</code></td></tr>
+  <tr><td>Part 2 §6.5</td><td>Relationships</td><td><code>Ns::PR</code></td><td><code>schemas/opc/</code> (tham khảo)</td><td><code>openxml-opc/src/relationships.rs</code></td></tr>
+  <tr><td>Part 2 §8.1.2</td><td>[Content_Types].xml</td><td><code>Ns::CT</code></td><td>〃</td><td><code>openxml-opc/src/content_types.rs</code></td></tr>
+  <tr><td>Part 2 §8.3</td><td>Core properties</td><td><code>cp:</code>, <code>dc:</code>, <code>dcterms:</code></td><td>〃</td><td><code>openxml-opc/src/core_properties.rs</code></td></tr>
+  <tr><td>Part 3</td><td>Markup Compatibility</td><td><code>mc:</code> (<code>Ns::MC</code>)</td><td>—</td><td><code>openxml-xml</code> (raw node, <code>writer.rs</code>) + <code>extra_attrs</code>/<code>extra_children</code> trong code sinh</td></tr>
+  <tr><td>Part 4 §19.1–19.5</td><td>VML (đồ hoạ "di sản")</td><td><code>v:</code>, <code>o:</code>, <code>w10:</code>, <code>x:</code>, <code>pvml:</code></td><td><code>vml-*.xsd</code> → <code>vml</code>, <code>vml_office</code>, <code>vml_wordprocessing</code>, <code>vml_spreadsheet</code>, <code>vml_presentation</code></td><td><code>openxml-docx/src/vml.rs</code> (text box, watermark), <code>openxml-xlsx/src/comments.rs</code> (khung ghi chú)</td></tr>
+</table></div>
+<p>Cột "crate/file viết tay" mình lập bằng cách grep tên module sinh (ví dụ <code>grep -ln shared_math crates/*/src/*.rs</code>), nên đó là nơi dùng <em>chính</em>, không phải duy nhất.</p>
+
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — hai chữ <code>x:</code> khác nhau</span>
+  <p>Để ý bảng có hai dòng dùng prefix <code>x:</code>: SpreadsheetML (<code>Ns::X</code>, URI <code>http://schemas.openxmlformats.org/spreadsheetml/2006/main</code>) và VML của Excel (<code>Ns::XVML</code>, URI <code>urn:schemas-microsoft-com:office:excel</code>). Cùng prefix, <em>khác namespace</em> — minh chứng sống cho điều bài 0.1 đã nói: prefix chỉ là biệt danh, URI mới là danh tính. Vì vậy dự án định danh bằng <code>Ns</code> (ánh xạ từ URI) chứ không bao giờ bằng chuỗi prefix.</p>
+</div>
+
+<h2 id="doc-codebase">10. Cách đọc một codebase lớn</h2>
+<p>Đây là quy trình mình khuyên dùng — cho dự án này và cho bất kỳ dự án Rust nào:</p>
+<ol class="steps">
+  <li><strong>README.md</strong> — dự án làm gì, dùng thế nào. Chạy thử ví dụ Quick start.</li>
+  <li><strong>ARCHITECTURE.md</strong> (nếu có) — các tầng, luồng dữ liệu, quyết định lớn. Đọc hai lần: lần đầu lướt, lần sau với code bên cạnh.</li>
+  <li><strong>Cargo.toml gốc</strong> — có những crate nào (<code>members</code>), dependency ngoài là gì (<code>quick-xml</code>, <code>zip</code>, <code>roxmltree</code> cho bạn biết ngay: XML, ZIP, đọc XSD).</li>
+  <li><strong><code>src/lib.rs</code> của từng crate</strong> — đây là "mục lục" của crate. Đọc phần <code>//!</code> ở đầu (mô tả crate), rồi danh sách <code>mod</code> / <code>pub mod</code> (có những module nào) và <code>pub use</code> (cái gì được đưa ra ngoài — tức là API công khai).</li>
+  <li><strong><code>tests/</code> và unit test</strong> — tên test là bản mô tả hành vi ngắn gọn nhất. Test cho thấy API được <em>dùng</em> ra sao.</li>
+  <li><strong><code>examples/</code></strong> — chương trình hoàn chỉnh dùng crate. Chạy chúng, sửa chúng.</li>
+  <li><strong>Chỉ khi đó</strong> mới đi sâu vào từng module, theo một câu hỏi cụ thể ("<code>Package</code> lưu part thế nào?"), không đọc tuần tự.</li>
+</ol>
+
+<p>Áp dụng bước 4 cho <code>openxml-xml</code> — cả file <code>lib.rs</code> chỉ 33 dòng:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/lib.rs#L1-L33">crates/openxml-xml/src/lib.rs:1–33</figcaption>
+<pre><code class="language-rust">//! XML infrastructure for the Open XML toolkit.
+//!
+//! This crate provides the pieces every higher layer builds on:
+//!
+//! * [`Ns`] — the registry of namespaces used by Office Open XML, including
+//!   the mapping of Strict-conformance URIs onto their Transitional twins;
+//! * [`XmlReader`] — a namespace-aware pull parser (built on `quick-xml`);
+//! * [`XmlWriter`] — a writer that manages namespace prefixes automatically;
+//! * [`RawElement`] and friends — schema-less nodes used to preserve content
+//!   the typed model does not describe;
+//! * [`XmlValue`], [`XmlRead`], [`XmlWrite`] — the traits implemented by the
+//!   generated schema types.
+
+#![warn(missing_docs)]
+
+pub mod compare;
+mod element;
+mod error;
+mod ns;
+mod raw;
+mod reader;
+pub mod validate;
+mod value;
+mod writer;
+
+pub use element::{ElementDef, XmlRead, XmlWrite, read_document, rt};
+pub use error::{Error, Result};
+pub use ns::Ns;
+pub use raw::{ExtraChild, RawAttribute, RawElement, RawName, RawNode};
+pub use reader::{Attr, Event, MAX_DEPTH, StartTag, XmlReader, decode_xml_bytes, root_name};
+pub use validate::{Issue, Validate, Validator};
+pub use value::{Base64Binary, HexBinary, XmlList, XmlValue};
+pub use writer::{XML_DECLARATION, XmlWriter, escape_attr, escape_text, needs_space_preserve};</code></pre>
+</figure>
+<ul>
+  <li><strong>Dòng 1–12 (<code>//!</code>)</strong>: "inner doc comment" — tài liệu cho <em>chính crate</em> (khác <code>///</code> là tài liệu cho thứ đứng ngay sau nó). Nó thành trang đầu của <code>cargo doc</code>. <code>[`Ns`]</code> là link tới trang của kiểu <code>Ns</code>.</li>
+  <li><strong>Dòng 14</strong>: <code>#![warn(missing_docs)]</code> — cảnh báo nếu có thứ gì <code>pub</code> mà thiếu tài liệu. Dấu <code>!</code> nghĩa là áp dụng cho cả crate.</li>
+  <li><strong>Dòng 16–24</strong>: 9 module. <code>pub mod compare</code> và <code>pub mod validate</code> là module công khai — người dùng viết được <code>openxml_xml::compare::semantic_diff</code>. Các <code>mod</code> còn lại là private.</li>
+  <li><strong>Dòng 26–33</strong>: <code>pub use</code> "nhấc" các kiểu từ module private lên gốc crate. Người dùng viết <code>openxml_xml::Ns</code>, không cần biết nó nằm trong file <code>ns.rs</code>. Đây là cách một crate <em>thiết kế</em> bề mặt API tách khỏi cách tổ chức file bên trong.</li>
+</ul>
+<p>Chỉ 33 dòng mà bạn đã biết crate có những khái niệm gì và từ nào đáng tra tiếp. Làm tương tự với <code>openxml-opc/src/lib.rs</code> (37 dòng, có cả ví dụ chạy được) và <code>openxml-core/src/lib.rs</code> (24 dòng).</p>
+
+<h3 id="cong-cu-doc">10.1 Công cụ hỗ trợ</h3>
+<ul>
+  <li><strong><code>cargo doc --workspace --no-deps --open</code></strong>: duyệt API như một website, có ô tìm kiếm. Với <code>openxml-schema</code>, mỗi kiểu mang số § của đặc tả — bạn có thể tra <code>CT_P</code> và đọc ngay "Paragraph (ECMA-376 Part 1 §17.3.1.22)". (Build doc cho cả workspace sẽ lâu vì code sinh; dùng <code>-p</code> nếu chỉ cần một crate.)</li>
+  <li><strong>rust-analyzer "Go to Definition"</strong>: đang đọc <code>docx/src/paragraph.rs</code> thấy <code>wml::CT_P</code>? F12 là nhảy thẳng vào dòng 22539 của <code>wml.rs</code> — không cần cuộn qua 45 nghìn dòng.</li>
+  <li><strong>grep / tìm kiếm toàn repo</strong>: nhớ loại trừ <code>generated/</code> khi tìm code viết tay, ví dụ <code>grep -rn "fn main_part" crates --include=*.rs</code>.</li>
+  <li><strong><code>cargo tree -p openxml-opc</code></strong>: in cây phụ thuộc của một crate.</li>
+</ul>
+
+<div class="callout tip">
+  <span class="callout-title">💡 Mẹo — đọc có câu hỏi</span>
+  <p>Đừng mở một file và đọc từ dòng 1. Hãy đặt câu hỏi ("Làm sao <code>openxml info</code> biết main part?") rồi lần theo: <code>main.rs</code> gọi <code>pkg.main_part()</code> → F12 → <code>openxml-opc/src/package.rs</code> → thấy nó tìm relationship <code>officeDocument</code>. Mỗi câu hỏi trả lời được là một mảnh bản đồ bạn tự vẽ.</p>
+</div>
+
+<h2 id="lo-trinh">11. Thứ tự học đề xuất (khớp với khoá)</h2>
+<div class="layers">
+  <div><b>Phần 8 · Tự viết mini-openxml</b><small>tổng hợp mọi thứ</small></div>
+  <div><b>Phần 7 · openxml-chart, openxml-cli, testkit</b><small>biểu đồ, dòng lệnh, chiến lược test</small></div>
+  <div><b>Phần 6 · openxml-docx / xlsx / pptx</b><small>chọn MỘT (khuyên docx), hai cái còn lại cùng khuôn</small></div>
+  <div><b>Phần 5 · openxml-core</b><small>đơn vị đo, part I/O, ảnh — nhỏ, dễ</small></div>
+  <div><b>Phần 4 · openxml-codegen → openxml-schema</b><small>đọc codegen; dùng schema như từ điển</small></div>
+  <div><b>Phần 3 · openxml-opc</b><small>newtype PartName, Package, ZIP</small></div>
+  <div><b>Phần 2 · openxml-xml</b><small>nền tảng Rust: enum, macro, lỗi, lifetime, trait</small></div>
+  <div><b>Phần 1 · Cargo workspace, crate &amp; module, kiến trúc</b><small>khung của dự án</small></div>
+</div>
+<p>Đọc từ dưới lên, cũng là chiều của đồ thị phụ thuộc: tầng dưới nhỏ, không phụ thuộc gì trong dự án, và dạy đúng những khái niệm Rust nền tảng (ownership, borrowing, lifetime, trait) trong một bối cảnh gọn. Tới Phần 6 bạn sẽ ngạc nhiên vì 14 nghìn dòng của <code>openxml-docx</code> đọc trơn tru hơn 700 dòng của <code>reader.rs</code> — vì cái khó nằm ở tầng dưới, còn tầng trên là lặp lại một khuôn.</p>
+
+<section class="exercise">
+  <h3>🛠 Bài tập</h3>
+  <ol>
+    <li><strong>Tự đo.</strong> Chạy <code>find crates/openxml-opc/src -name '*.rs' | xargs wc -l</code> và <code>find crates/openxml-schema/src/generated -name '*.rs' | xargs wc -l | sort -n | tail -5</code>. Số có khớp với bài không? (Nếu repo đã có commit mới, có thể lệch đôi chút.)</li>
+    <li><strong>Đọc lib.rs.</strong> Mở <code>crates/openxml-opc/src/lib.rs</code>. Liệt kê các module private và các kiểu được <code>pub use</code>. Module nào là <code>pub mod</code>? Rồi chạy <code>cargo doc -p openxml-opc --no-deps --open</code> và đối chiếu: những gì bạn liệt kê có hiện trên trang đầu không?</li>
+    <li><strong>Theo chân một thẻ.</strong> Chọn thẻ <code>w:r</code> (run). Tìm: (a) mục của nó trong <code>schemas/spec-index.json</code> (số §, kiểu); (b) <code>complexType</code> tương ứng trong <code>schemas/transitional/wml.xsd</code>; (c) <code>pub struct</code> tương ứng trong <code>wml.rs</code> (dùng grep <code>-n</code>); (d) file nào trong <code>openxml-docx/src</code> bọc nó. Gợi ý: <code>grep -n '"name": "r"' schemas/spec-index.json</code> sẽ ra nhiều kết quả — chọn cái có <code>"ns": "w"</code>.</li>
+    <li><strong>Vẽ đồ thị bằng cargo.</strong> Chạy <code>cargo tree -p openxml-docx --depth 1</code> và <code>cargo tree -p openxml-codegen --depth 1</code>. So với sơ đồ mục 8. Vì sao <code>openxml-codegen</code> không xuất hiện trong cây của <code>openxml-docx</code>?</li>
+  </ol>
+</section>
+
+<section>
+  <h2 id="tu-kiem-tra">Tự kiểm tra</h2>
+  <details><summary>1. Khoảng bao nhiêu phần trăm số dòng Rust là code sinh tự động? Nó nằm ở đâu và vì sao không được sửa tay?</summary>
+    <div class="answer">Khoảng 75% (214 526 / ~286 nghìn dòng), nằm trong <code>crates/openxml-schema/src/generated/</code>. Nó được <code>openxml-codegen</code> sinh từ <code>schemas/transitional/*.xsd</code> + <code>spec-index.json</code>; sửa tay sẽ bị ghi đè ở lần sinh sau, và bước kiểm tra "generated code is up to date" trong <code>check.sh</code> (cũng như test <code>up_to_date.rs</code>) sẽ báo lỗi.</div></details>
+  <details><summary>2. Khác nhau giữa <code>schemas/transitional/</code> và <code>schemas/strict/</code> trong vai trò của dự án?</summary>
+    <div class="answer">Transitional là đầu vào sinh code (Office ghi file Transitional và nó là tập cha của Strict). Strict chỉ dùng để đối chiếu: test <code>strict_subset.rs</code> kiểm tra mọi thứ của Strict đều có trong Transitional — tiền đề để đọc file Strict bằng mô hình Transitional.</div></details>
+  <details><summary>3. Integration test trong <code>tests/</code> khác unit test ở chỗ nào? <code>tests/common/mod.rs</code> để làm gì?</summary>
+    <div class="answer">Mỗi file trong <code>tests/</code> là một chương trình riêng, chỉ dùng được API <code>pub</code> của crate; unit test nằm trong <code>src</code> (<code>#[cfg(test)] mod tests</code>) và thấy được cả phần private. <code>common/mod.rs</code> chứa hàm dùng chung giữa các file test; đặt trong thư mục con để cargo không biên dịch nó thành một test riêng.</div></details>
+  <details><summary>4. Vì sao <code>openxml-codegen</code> vừa có <code>lib.rs</code> vừa có <code>main.rs</code>?</summary>
+    <div class="answer">Logic nằm trong thư viện để test (như <code>up_to_date.rs</code>) gọi được <code>openxml_codegen::generate</code> và <code>format_source</code>; <code>main.rs</code> chỉ là vỏ dòng lệnh mỏng (59 dòng) đọc tham số <code>--check</code> rồi ghi file hoặc so sánh.</div></details>
+  <details><summary>5. Chương 21.2 của ECMA-376 Part 1 nói về gì, và code liên quan nằm ở đâu?</summary>
+    <div class="answer">DrawingML chart (namespace <code>c:</code>, <code>Ns::C</code>). Kiểu sinh: module <code>openxml_schema::dml_chart</code> (từ <code>dml-chart.xsd</code>). Code viết tay: crate <code>openxml-chart</code> (<code>build.rs</code> dựng <code>c:chartSpace</code>, <code>read.rs</code> đọc ngược, <code>package.rs</code> chèn vào package).</div></details>
+  <details><summary>6. Trong lib.rs, <code>mod reader;</code> + <code>pub use reader::XmlReader;</code> đạt được điều gì so với <code>pub mod reader;</code>?</summary>
+    <div class="answer">Người dùng truy cập <code>openxml_xml::XmlReader</code> trực tiếp ở gốc crate, còn module <code>reader</code> và mọi thứ khác trong nó vẫn private. Crate tự do sắp xếp lại file bên trong mà không làm vỡ code của người dùng — bề mặt API được thiết kế tách khỏi cấu trúc file.</div></details>
+</section>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Bài sau</span>
+  <p>Bản đồ đã có. <a href="p1-1-cargo-workspace.html">Bài 1.1</a> mình bắt đầu Phần 1 bằng việc đọc từng dòng <code>Cargo.toml</code> gốc và Cargo.toml của một crate: workspace, <code>members</code>, <code>workspace = true</code>, dependencies vs dev-dependencies, và luật lint dùng chung.</p>
+</div>
+
+</main>
+</body>
+</html>

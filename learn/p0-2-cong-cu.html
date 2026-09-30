@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>0.2 Cài Rust &amp; bộ công cụ cargo · Học Rust qua open-xml-rust</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/vendor/highlight.min.js" defer></script>
+<script src="assets/app.js" defer></script>
+</head>
+<body data-lesson="p0-2">
+<main class="content">
+
+<header>
+  <p class="crumb">Phần 0 · Khởi động</p>
+  <h1>0.2 Cài Rust &amp; bộ công cụ cargo</h1>
+  <p class="lead">Bài này biến máy của bạn thành "xưởng" để làm việc với open-xml-rust: cài Rust, hiểu ba công cụ <code>rustup</code> – <code>rustc</code> – <code>cargo</code>, chạy bộ test lần đầu, đọc từng dòng kịch bản kiểm tra chất lượng của dự án, và cuối cùng dùng chính công cụ dòng lệnh của dự án để "mổ" file <code>.docx</code> — lần này bằng Rust.</p>
+  <div class="meta"><span>⏱ ~45 phút (chưa tính thời gian build lần đầu)</span><span>File: <code>Cargo.toml</code>, <code>rustfmt.toml</code>, <code>scripts/check.sh</code>, <code>.gitignore</code></span><span>Crate: <code>openxml-xml</code>, <code>openxml-cli</code></span></div>
+</header>
+
+<section class="goals">
+  <h3>🎯 Học xong bài này bạn sẽ</h3>
+  <ul>
+    <li>Phân biệt được <strong>rustup</strong>, <strong>rustc</strong>, <strong>cargo</strong> và biết mỗi thứ nằm ở đâu trên máy.</li>
+    <li>Hiểu <strong>toolchain</strong>, <strong>edition</strong> và <strong>rust-version</strong> — ba khái niệm "phiên bản" hay bị nhầm lẫn — qua đúng Cargo.toml của dự án.</li>
+    <li>Dùng thạo các lệnh <code>cargo check / build / run / test / doc / fmt / clippy</code> cùng các cờ <code>-p</code>, <code>--workspace</code>, <code>--release</code>, <code>--example</code> và dấu <code>--</code>.</li>
+    <li>Đọc được output của <code>cargo test</code>: unit test, integration test, doc-test.</li>
+    <li>Hiểu <code>target/</code>, <code>Cargo.lock</code>, debug vs release, và vì sao dự án bật <code>opt-level = 1</code> cho các dependency.</li>
+    <li>Đọc hiểu từng dòng <code>scripts/check.sh</code> — "cổng chất lượng" mà mọi thay đổi phải đi qua.</li>
+    <li>Chạy <code>openxml info</code> trên một file thật và nhận ra package, part, content type, relationship từ bài 0.1.</li>
+  </ul>
+</section>
+
+<h2 id="ba-cong-cu">1. Ba cái tên: rustup, rustc, cargo</h2>
+<p>Người mới hay bối rối vì cài "Rust" xong thì có tới ba lệnh. Hãy hình dung một xưởng mộc:</p>
+<dl class="glossary">
+  <dt>rustc</dt><dd><strong>Trình biên dịch</strong> (compiler) — "cái máy cưa". Nhận file <code>.rs</code>, sinh ra file thực thi hoặc thư viện. Bạn gần như <em>không bao giờ</em> gọi trực tiếp nó trong một dự án thật.</dd>
+  <dt>cargo</dt><dd><strong>Trình quản lý dự án và build</strong> — "người quản đốc". Đọc <code>Cargo.toml</code>, tải thư viện ngoài (dependency) từ <a href="https://crates.io">crates.io</a>, gọi <code>rustc</code> đúng thứ tự cho từng crate, chạy test, sinh tài liệu… Đây là lệnh bạn gõ cả ngày.</dd>
+  <dt>rustup</dt><dd><strong>Trình quản lý phiên bản</strong> (toolchain manager) — "người mua máy móc". Cài, cập nhật, chuyển đổi giữa các bộ <code>rustc</code> + <code>cargo</code> + công cụ phụ (rustfmt, clippy, rust-analyzer…).</dd>
+</dl>
+
+<figure class="code">
+  <figcaption>Quan hệ giữa ba công cụ</figcaption>
+<pre class="diagram"><code>  bạn gõ ──▶ cargo test -p openxml-xml
+               │  đọc Cargo.toml, Cargo.lock
+               │  tải quick-xml, memchr từ crates.io (lần đầu)
+               ├──▶ rustc  (biên dịch memchr)
+               ├──▶ rustc  (biên dịch quick-xml)
+               ├──▶ rustc  (biên dịch openxml-xml ở chế độ test)
+               └──▶ chạy file test vừa sinh ra, in kết quả
+
+  rustup đứng phía sau: quyết định "rustc" và "cargo" ở trên là phiên bản nào
+  (~/.cargo/bin/cargo thực chất là một "proxy" của rustup)</code></pre>
+</figure>
+
+<h3 id="cai-dat">1.1 Cài đặt</h3>
+<ol class="steps">
+  <li><strong>macOS / Linux:</strong> chạy lệnh cài chính thức từ <a href="https://rustup.rs">rustup.rs</a>, chọn mặc định (option 1). Xong thì mở terminal mới (hoặc <code>source "$HOME/.cargo/env"</code>).</li>
+  <li><strong>Windows:</strong> tải <code>rustup-init.exe</code> từ rustup.rs. Trình cài sẽ nhắc cài "Visual Studio C++ Build Tools" (cần cho bước link) — cứ làm theo.</li>
+  <li><strong>Kiểm tra:</strong> <code>rustc --version</code>, <code>cargo --version</code>, <code>rustup show</code>.</li>
+  <li><strong>(Tuỳ chọn) xmllint:</strong> một số test kiểm tra XML sinh ra bằng XSD qua <code>xmllint</code>. macOS có sẵn; Ubuntu/Debian: <code>sudo apt install libxml2-utils</code>. Không có thì các test đó tự bỏ qua (xem mục 7).</li>
+</ol>
+<figure class="code">
+  <figcaption>Terminal</figcaption>
+<pre><code class="language-bash">curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+git clone https://github.com/AdonisGM/open-xml-rust.git
+cd open-xml-rust
+rustc --version
+cargo --version
+rustup show</code></pre>
+</figure>
+<p>Trên máy mình lúc viết bài, output là:</p>
+<figure class="code">
+  <figcaption>Output thật</figcaption>
+<pre><code class="language-bash">rustc 1.94.1 (e408947bf 2026-03-25)
+cargo 1.94.1 (29ea6fb6a 2026-03-24)
+
+installed toolchains
+--------------------
+stable-x86_64-unknown-linux-gnu (active, default)
+
+active toolchain
+----------------
+name: stable-x86_64-unknown-linux-gnu
+active because: it's the default toolchain</code></pre>
+</figure>
+<p>Đọc tên toolchain <code>stable-x86_64-unknown-linux-gnu</code> từ trái sang: <strong>kênh</strong> (<code>stable</code>) + <strong>target triple</strong> (kiến trúc CPU <code>x86_64</code>, hãng <code>unknown</code>, hệ điều hành <code>linux</code>, ABI <code>gnu</code>). Trên Mac chip M sẽ là <code>aarch64-apple-darwin</code>.</p>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — kênh phát hành (channel)</span>
+  <p>Rust ra bản mới <strong>6 tuần một lần</strong> trên kênh <code>stable</code>. Ngoài ra có <code>beta</code> (bản sắp ra) và <code>nightly</code> (mỗi đêm, có tính năng thử nghiệm). Dự án này chỉ cần <code>stable</code>. Lệnh <code>rustup update</code> kéo bản stable mới nhất. Rust giữ cam kết <em>tương thích ngược</em>: code viết cho 1.88 vẫn build được trên 1.94 — chỉ có thể xuất hiện thêm <em>cảnh báo</em> mới (mục 9 bạn sẽ thấy đúng một ví dụ như vậy).</p>
+</div>
+
+<h2 id="edition">2. Toolchain, edition, rust-version: ba chữ "phiên bản"</h2>
+<p>Mở <code>Cargo.toml</code> ở gốc repo. Phần mình quan tâm bây giờ là khối <code>[workspace.package]</code> — các thông tin mà cả 12 crate dùng chung (bài 1.1 sẽ mổ xẻ phần còn lại của file này):</p>
+<figure class="code">
+  <figcaption data-src="Cargo.toml#L18-L23">Cargo.toml:18–23</figcaption>
+<pre><code class="language-toml">[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/open-xml-rust/open-xml-rust"</code></pre>
+</figure>
+<ul>
+  <li><code>version = "0.1.0"</code> — phiên bản <em>của dự án</em> (theo SemVer). Không liên quan tới Rust.</li>
+  <li><code>edition = "2024"</code> — <strong>phiên bản ngôn ngữ</strong> mà code được viết theo.</li>
+  <li><code>rust-version = "1.88"</code> — <strong>phiên bản trình biên dịch tối thiểu</strong> (MSRV — Minimum Supported Rust Version).</li>
+</ul>
+
+<h3 id="edition-la-gi">2.1 Edition là gì?</h3>
+<p><strong>Vấn đề:</strong> ngôn ngữ nào cũng muốn sửa những quyết định cũ chưa hay (thêm từ khoá mới, đổi quy tắc), nhưng sửa thì code cũ vỡ. Rust giải quyết bằng <strong>edition</strong>: cứ vài năm có một edition (2015, 2018, 2021, <strong>2024</strong>). Mỗi crate <em>tự chọn</em> edition của mình trong Cargo.toml. Cùng một <code>rustc</code> biết biên dịch mọi edition, và crate edition 2021 vẫn gọi được crate edition 2024 bình thường.</p>
+<p>Ví dụ đời thường: edition giống "phiên bản quy chuẩn chính tả" của một tờ báo. Bài cũ vẫn in theo quy chuẩn cũ, bài mới theo quy chuẩn mới, cùng một nhà in in được cả hai.</p>
+<p>Edition 2024 cần <code>rustc</code> ≥ 1.85. Nó thay đổi vài quy tắc tinh tế (phạm vi sống của biến tạm trong <code>if let</code>, từ khoá dành riêng <code>gen</code>…) mà bạn chưa cần để ý lúc này.</p>
+
+<h3 id="rust-version">2.2 Vì sao lại là 1.88?</h3>
+<p><code>rust-version</code> nói với cargo: "đừng cố build dự án này bằng rustc cũ hơn 1.88". Nếu ai đó dùng rustc 1.86, cargo dừng ngay với một thông báo rõ ràng thay vì một đống lỗi cú pháp khó hiểu. Con số 1.88 không ngẫu nhiên: đó là bản ổn định hoá <strong>let chains</strong> (chuỗi <code>if let … &amp;&amp; let …</code>) — và chỉ cho edition 2024. Dự án dùng nó hơn 50 chỗ, ví dụ:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-pptx/src/util.rs#L70-L82">crates/openxml-pptx/src/util.rs:70–82</figcaption>
+<pre><code class="language-rust">pub(crate) fn find(tree: &amp;pml::CT_GroupShape, id: u32) -&gt; Option&lt;&amp;C&gt; {
+    for c in &amp;tree.choice {
+        if choice_id(c) == Some(id) {
+            return Some(c);
+        }
+        if let C::GrpSp(g) = c
+            &amp;&amp; let Some(found) = find(g, id)
+        {
+            return Some(found);
+        }
+    }
+    None
+}</code></pre>
+</figure>
+<p>Đừng lo về <code>&amp;</code>, <code>Option</code> hay <code>pub(crate)</code> — bạn sẽ học dần. Chỉ cần nhìn dòng 75–76: "<em>nếu</em> <code>c</code> là một nhóm hình <code>GrpSp(g)</code> <em>và</em> tìm đệ quy trong <code>g</code> ra kết quả". Trước 1.88 phải viết hai <code>if let</code> lồng nhau. Đây là lý do cụ thể khiến MSRV là 1.88: dùng một tính năng ngôn ngữ thì phải khai báo đúng phiên bản tối thiểu có tính năng đó.</p>
+
+<div class="callout warn">
+  <span class="callout-title">⚠️ Chỗ hay nhầm</span>
+  <p><strong>Toolchain</strong> (rustc 1.94.1 trên máy bạn) ≠ <strong>edition</strong> (2024, quy tắc ngôn ngữ) ≠ <strong>rust-version</strong> (1.88, mức tối thiểu). Bạn hoàn toàn có thể — và nên — dùng toolchain mới hơn rust-version. Dự án không có file <code>rust-toolchain.toml</code>, nghĩa là nó không ghim một toolchain cụ thể: ai dùng stable mới nhất cũng được.</p>
+</div>
+<p>Một dòng liên quan ở đầu file: <code>resolver = "3"</code>. Đây là thuật toán cargo dùng để chọn phiên bản dependency; bản 3 "biết" <code>rust-version</code> nên ưu tiên chọn những bản dependency vẫn build được với Rust 1.88. Bài 1.1 sẽ nói thêm.</p>
+
+<h2 id="build-dau-tien">3. Lần build đầu tiên: chuyện gì xảy ra?</h2>
+<p>Gõ <code>cargo build</code> ở gốc repo. Lần đầu tiên sẽ khá lâu, và bạn sẽ thấy hàng loạt dòng <code>Compiling …</code>. Trình tự:</p>
+<ol>
+  <li>Cargo đọc <code>Cargo.toml</code> gốc → biết workspace có 12 crate.</li>
+  <li>Đọc <code>Cargo.lock</code> → biết <em>chính xác</em> phiên bản của từng dependency ngoài (<code>quick-xml 0.42.0</code>, <code>zip 8.6.0</code>…), tải về <code>~/.cargo/registry</code> nếu chưa có.</li>
+  <li>Dựng đồ thị phụ thuộc và biên dịch từ "lá" lên: <code>memchr</code> → <code>quick-xml</code> → <code>openxml-xml</code> → <code>openxml-opc</code> → … Các crate không phụ thuộc nhau được biên dịch song song.</li>
+  <li>Kết quả đặt trong <code>target/debug/</code>.</li>
+</ol>
+<p>Khi mình chạy <code>cargo run -p openxml-cli</code> lần đầu (các crate tầng dưới đã build sẵn), riêng đoạn biên dịch <code>openxml-schema</code> trở lên mất khoảng <strong>1 phút 10 giây</strong>. Thủ phạm là 215 nghìn dòng code sinh tự động trong <code>openxml-schema</code> (bài 0.3). Những lần sau cargo chỉ biên dịch lại crate có thay đổi — nhanh hơn nhiều.</p>
+
+<div class="callout tip">
+  <span class="callout-title">💡 Mẹo</span>
+  <p>Khi đang học một tầng thấp, hãy luôn thêm <code>-p &lt;crate&gt;</code>. <code>cargo test -p openxml-xml</code> chỉ cần biên dịch <code>openxml-xml</code> + <code>quick-xml</code> + <code>memchr</code> — vài giây là xong, thay vì chờ cả workspace.</p>
+</div>
+
+<h2 id="lenh-hang-ngay">4. Các lệnh cargo hằng ngày</h2>
+<div class="table-wrap"><table>
+  <tr><th>Lệnh</th><th>Làm gì</th><th>Khi nào dùng</th></tr>
+  <tr><td><code>cargo check</code></td><td>Kiểm tra kiểu, borrow… nhưng <strong>không sinh mã máy</strong></td><td>Liên tục khi đang sửa code — nhanh nhất để biết "code có compile không"</td></tr>
+  <tr><td><code>cargo build</code></td><td>Biên dịch đầy đủ ra file chạy / thư viện</td><td>Khi cần file thực thi</td></tr>
+  <tr><td><code>cargo run</code></td><td><code>build</code> rồi chạy một binary</td><td>Chạy CLI, chạy codegen, chạy example</td></tr>
+  <tr><td><code>cargo test</code></td><td>Build ở chế độ test rồi chạy mọi test (unit, integration, doc-test)</td><td>Sau mỗi thay đổi</td></tr>
+  <tr><td><code>cargo doc</code></td><td>Sinh tài liệu HTML từ các chú thích <code>///</code> và <code>//!</code></td><td>Tra cứu API của dự án (mục 10)</td></tr>
+  <tr><td><code>cargo fmt</code></td><td>Tự định dạng code theo <code>rustfmt.toml</code></td><td>Trước khi commit</td></tr>
+  <tr><td><code>cargo clippy</code></td><td>Như <code>check</code> + hàng trăm lint "code này nên viết cách khác"</td><td>Trước khi commit; học được rất nhiều idiom Rust từ nó</td></tr>
+</table></div>
+
+<p>Và các cờ bạn sẽ gõ nhiều nhất:</p>
+<dl class="glossary">
+  <dt>-p &lt;crate&gt;</dt><dd>(<code>--package</code>) chỉ làm việc với một crate: <code>cargo test -p openxml-opc</code>. Tên dùng ở đây là tên trong <code>[package] name</code>, có gạch ngang.</dd>
+  <dt>--workspace</dt><dd>áp dụng cho <em>tất cả</em> crate trong workspace. Ở gốc workspace, <code>cargo test</code> không kèm <code>-p</code> vốn đã chạy mọi thành viên, nhưng viết rõ <code>--workspace</code> (như <code>scripts/check.sh</code>) thì không phụ thuộc bạn đang đứng ở thư mục nào.</dd>
+  <dt>--release</dt><dd>build với tối ưu hoá đầy đủ (mục 6). Kết quả vào <code>target/release/</code>.</dd>
+  <dt>--example &lt;tên&gt;</dt><dd>chạy một file trong thư mục <code>examples/</code> của crate: <code>cargo run -p openxml-docx --example create_report -- out/report.docx</code>.</dd>
+  <dt>--</dt><dd>"hết tham số của cargo". Mọi thứ phía sau được chuyển cho <em>chương trình</em> được chạy. <code>cargo run -p openxml-cli -- info a.docx</code>: <code>info a.docx</code> là tham số của CLI. <code>cargo test -- --nocapture</code>: <code>--nocapture</code> là tham số của bộ chạy test.</dd>
+  <dt>-q</dt><dd>(<code>--quiet</code>) bớt dòng <code>Compiling…</code>.</dd>
+</dl>
+
+<div class="callout warn">
+  <span class="callout-title">⚠️ Chỗ hay nhầm — gạch ngang và gạch dưới</span>
+  <p>Tên package là <code>openxml-xml</code> (gạch ngang) — dùng trong <code>Cargo.toml</code> và <code>-p</code>. Nhưng trong code Rust, tên crate bị đổi thành <code>openxml_xml</code> (gạch dưới) vì <code>-</code> không hợp lệ trong định danh: <code>use openxml_xml::Ns;</code>. Thư mục tài liệu cũng là <code>target/doc/openxml_xml/</code>.</p>
+</div>
+
+<h2 id="cargo-test">5. Chạy test lần đầu: <code>cargo test -p openxml-xml</code></h2>
+<p>Crate thấp nhất, nhỏ nhất, chạy nhanh nhất. Đây là output thật trên máy mình (đã lược bớt phần giữa):</p>
+<figure class="code">
+  <figcaption>Output thật của cargo test -p openxml-xml (rút gọn)</figcaption>
+<pre><code class="language-bash">warning: unnecessary allocation, use `&amp;` instead
+   --&gt; crates/openxml-xml/src/validate.rs:202:9
+    |
+202 |         Box::new(p).validate(&amp;mut v);
+    |         ^^^^^^^^^^^
+    = note: `#[warn(unused_allocation)]` (part of `#[warn(unused)]`) on by default
+
+warning: `openxml-xml` (lib test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running unittests src/lib.rs (target/debug/deps/openxml_xml-4e1444ebd5a77b5c)
+
+running 63 tests
+test compare::tests::equivalent_values ... ok
+test compare::tests::reports_differences ... ok
+test element::tests::simple_elements ... ok
+test ns::tests::strict_maps_to_transitional ... ok
+test ns::tests::uris_and_prefixes_are_unique ... ok
+test reader::tests::depth_limit_is_enforced ... ok
+test reader::tests::decodes_encodings ... ok
+...
+test writer::tests::xml_namespace_is_never_declared ... ok
+test writer::tests::duplicate_and_redundant_declarations_are_dropped ... ok
+
+test result: ok. 63 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+   Doc-tests openxml_xml
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s</code></pre>
+</figure>
+
+<h3 id="doc-output">5.1 Đọc output từng khối</h3>
+<ol>
+  <li><strong><code>warning: …</code></strong> — cảnh báo của trình biên dịch, <em>không</em> làm test thất bại. Cảnh báo này nằm trong code test của <code>validate.rs</code>: tạo một <code>Box</code> (cấp phát trên heap) chỉ để gọi một method là thừa. Mục 9 sẽ cho thấy vì sao nó quan trọng với <code>check.sh</code>.</li>
+  <li><strong><code>Finished `test` profile [unoptimized + debuginfo]</code></strong> — build ở profile test (kế thừa từ dev): không tối ưu, có thông tin debug. <code>0.02s</code> vì mình đã build trước đó.</li>
+  <li><strong><code>Running unittests src/lib.rs (target/debug/deps/openxml_xml-4e14…)</code></strong> — cargo biên dịch mỗi "test target" thành <em>một file thực thi riêng</em> rồi chạy nó. Đuôi hash giúp phân biệt các bản build khác cấu hình.</li>
+  <li><strong><code>test ns::tests::strict_maps_to_transitional ... ok</code></strong> — tên test là <em>đường dẫn module</em>: file <code>ns.rs</code> → module <code>ns</code> → module con <code>tests</code> → hàm <code>strict_maps_to_transitional</code>. Thứ tự in ra có thể khác nhau mỗi lần vì test chạy <strong>song song</strong> trên nhiều luồng.</li>
+  <li><strong><code>test result: ok. 63 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out</code></strong> — tổng kết. <em>ignored</em> là test đánh dấu <code>#[ignore]</code>; <em>filtered out</em> là test bị lọc bỏ vì bạn truyền tên cần chạy.</li>
+  <li><strong><code>Doc-tests openxml_xml</code></strong> — các đoạn code nằm trong chú thích tài liệu (<code>///</code>, <code>//!</code>) cũng được biên dịch và chạy như test. <code>openxml-xml</code> không có ví dụ nào trong doc nên là 0.</li>
+</ol>
+
+<h3 id="unit-test">5.2 Unit test nằm ở đâu?</h3>
+<p><code>openxml-xml</code> không có thư mục <code>tests/</code>. 63 test kia nằm <em>ngay trong</em> các file nguồn, trong một module đặc biệt ở cuối file:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/ns.rs#L245-L296">crates/openxml-xml/src/ns.rs:245–296 (lược bớt các test ở giữa)</figcaption>
+<pre><code class="language-rust">#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ... (các test khác)
+
+    #[test]
+    fn strict_maps_to_transitional() {
+        let ns = Ns::from_uri("http://purl.oclc.org/ooxml/wordprocessingml/main").unwrap();
+        assert_eq!(ns, Ns::W);
+        assert_eq!(
+            ns.uri(),
+            "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+        );
+    }</code></pre>
+</figure>
+<ul>
+  <li><code>#[cfg(test)]</code> — một <em>attribute</em> (thuộc tính gắn lên code): "chỉ biên dịch module này khi đang build để test". Bản build thường không chứa code test.</li>
+  <li><code>mod tests { … }</code> — một module con tên <code>tests</code> (tên chỉ là quy ước).</li>
+  <li><code>use super::*;</code> — kéo mọi thứ của module cha (<code>ns</code>) vào, kể cả thứ <em>private</em>. Đây là lợi thế của unit test nằm cùng file: test được cả hàm nội bộ.</li>
+  <li><code>#[test]</code> — đánh dấu hàm là một test. Test <strong>thành công</strong> nếu hàm chạy hết; <strong>thất bại</strong> nếu nó <em>panic</em> (ví dụ <code>assert_eq!</code> thấy hai giá trị khác nhau, hoặc <code>unwrap()</code> gặp <code>None</code>).</li>
+</ul>
+
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — test này kiểm tra điều gì?</span>
+  <p>Nhớ bài 0.1: file <em>Strict</em> dùng namespace URI khác (<code>http://purl.oclc.org/ooxml/wordprocessingml/main</code>) với file <em>Transitional</em> (<code>http://schemas.openxmlformats.org/wordprocessingml/2006/main</code>). Test khẳng định: đọc URI Strict ra đúng hằng <code>Ns::W</code>, và khi hỏi lại URI thì nhận được bản Transitional. Đó chính là cơ chế "đọc Strict, ghi Transitional" được mô tả trong <code>ARCHITECTURE.md</code>. Tên test thường là một câu mô tả hành vi — đọc danh sách tên test là cách nhanh để biết crate làm gì.</p>
+</div>
+
+<h3 id="integration-doc">5.3 Integration test và doc-test: thử với openxml-opc</h3>
+<p>Chạy tiếp <code>cargo test -p openxml-opc</code> (lần đầu sẽ tải và biên dịch <code>zip</code>, <code>flate2</code>, <code>zlib-rs</code>…, mất vài giây). Output rút gọn:</p>
+<figure class="code">
+  <figcaption>Output thật của cargo test -p openxml-opc (đã bỏ các dòng "test … ok")</figcaption>
+<pre><code class="language-bash">   Compiling zip v8.6.0
+   Compiling openxml-opc v0.1.0 (/home/user/open-xml-rust/crates/openxml-opc)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.21s
+     Running unittests src/lib.rs (target/debug/deps/openxml_opc-04b054dab27aa93e)
+running 33 tests
+test result: ok. 33 passed; 0 failed; ...
+
+     Running tests/real_packages.rs (target/debug/deps/real_packages-b152ff57938286c7)
+running 2 tests
+test result: ok. 2 passed; 0 failed; ...
+
+   Doc-tests openxml_opc
+running 1 test
+test crates/openxml-opc/src/lib.rs - (line 8) ... ok
+test result: ok. 1 passed; 0 failed; ...</code></pre>
+</figure>
+<p>Giờ bạn thấy đủ <strong>ba loại test</strong> của Rust:</p>
+<div class="table-wrap"><table>
+  <tr><th>Loại</th><th>Nằm ở đâu</th><th>Thấy được gì</th></tr>
+  <tr><td>Unit test</td><td><code>#[cfg(test)] mod tests</code> trong <code>src/*.rs</code></td><td>Mọi thứ, kể cả private</td></tr>
+  <tr><td>Integration test</td><td>Mỗi file trong <code>tests/</code> (ở đây <code>tests/real_packages.rs</code>) là một chương trình riêng</td><td>Chỉ API <code>pub</code> — dùng crate "như người ngoài"</td></tr>
+  <tr><td>Doc-test</td><td>Khối <code>```</code> trong <code>///</code> hoặc <code>//!</code></td><td>Chỉ API <code>pub</code>; đảm bảo ví dụ trong tài liệu luôn chạy đúng</td></tr>
+</table></div>
+<p>Doc-test duy nhất của <code>openxml-opc</code> là ví dụ ở dòng 8 của <code>lib.rs</code>: tạo package, thêm part <code>/word/document.xml</code>, thêm relationship <code>officeDocument</code>, lưu ra bytes rồi mở lại. Đúng bốn khái niệm OPC của bài 0.1, gói trong 10 dòng. Bạn sẽ đọc kỹ nó ở Phần 3.</p>
+
+<h3 id="loc-test">5.4 Lọc test và các cờ hay dùng</h3>
+<figure class="code">
+  <figcaption>Terminal</figcaption>
+<pre><code class="language-bash">cargo test -p openxml-xml strict          # chỉ chạy test có chữ "strict" trong tên
+cargo test -p openxml-xml ns::tests       # chỉ test của module ns
+cargo test -p openxml-opc --doc           # chỉ doc-test
+cargo test -p openxml-opc --test real_packages   # chỉ một file integration test
+cargo test -p openxml-xml -- --nocapture  # hiện println! của test (mặc định bị giấu)
+cargo test -p openxml-schema -- --ignored # chạy các test bị #[ignore]</code></pre>
+</figure>
+<p>Lệnh đầu tiên cho ra:</p>
+<figure class="code">
+  <figcaption>Output thật</figcaption>
+<pre><code class="language-bash">running 2 tests
+test ns::tests::strict_maps_to_transitional ... ok
+test reader::tests::strict_namespace_maps_to_transitional ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 61 filtered out; finished in 0.00s</code></pre>
+</figure>
+<p>Để ý <code>61 filtered out</code>: 63 − 2. Và bạn vừa phát hiện chuyện Strict→Transitional được test ở <em>hai</em> nơi: bảng namespace (<code>ns</code>) và bộ đọc XML (<code>reader</code>).</p>
+
+<h2 id="target-lock">6. <code>target/</code>, <code>.gitignore</code> và <code>Cargo.lock</code></h2>
+<h3 id="target">6.1 Thư mục target/</h3>
+<p>Mọi thứ cargo sinh ra nằm trong <code>target/</code> ở gốc workspace (một thư mục chung cho cả 12 crate — nhờ vậy dependency chỉ biên dịch một lần):</p>
+<figure class="code">
+  <figcaption>Cấu trúc target/</figcaption>
+<pre class="diagram"><code>target/
+├── debug/                 ← profile dev (cargo build, cargo test)
+│   ├── openxml            ← binary của openxml-cli (tên lấy từ [[bin]] name)
+│   ├── deps/              ← thư viện đã biên dịch + các file test thực thi
+│   ├── examples/          ← binary của cargo run --example
+│   ├── incremental/       ← dữ liệu biên dịch tăng dần (để build lại nhanh)
+│   └── build/             ← output của build script (nếu crate có)
+├── release/               ← profile release (--release), cấu trúc tương tự
+└── doc/                   ← cargo doc
+    └── openxml_xml/index.html</code></pre>
+</figure>
+<p>Thư mục này rất to — trên máy mình lúc viết bài là khoảng <strong>2 GB</strong>. Xoá thoải mái bằng <code>cargo clean</code>; cái giá là lần build sau phải biên dịch lại từ đầu.</p>
+
+<h3 id="gitignore">6.2 .gitignore</h3>
+<figure class="code">
+  <figcaption data-src=".gitignore#L1-L10">.gitignore:1–10</figcaption>
+<pre><code class="language-bash">/target
+.DS_Store
+# Large reference material stays local; the machine-readable schemas are vendored under /schemas.
+/docs/*.pdf
+/docs/*.zip
+# Scratch output of tests and examples.
+/out
+*.tmp
+# Local agent worktrees and settings
+/.claude/</code></pre>
+</figure>
+<ul>
+  <li><code>/target</code> — không bao giờ commit sản phẩm build. Dấu <code>/</code> đầu nghĩa là "chỉ thư mục <code>target</code> ở gốc repo".</li>
+  <li><code>/docs/*.pdf</code>, <code>/docs/*.zip</code> — bản PDF của chuẩn ECMA-376 (hơn 5.000 trang) và các gói zip gốc chỉ giữ trên máy tác giả; phần "máy đọc được" (XSD, JSON) thì được đưa vào <code>schemas/</code>. Ta sẽ nói về <code>schemas/</code> ở mục 11 và bài 0.3.</li>
+  <li><code>/out</code> — nơi các example ghi file ra (<code>cargo run -p openxml-docx --example create_report -- out/report.docx</code>). Bạn cứ ghi vào đó, git sẽ lờ đi.</li>
+</ul>
+
+<h3 id="cargo-lock">6.3 Cargo.lock</h3>
+<p><code>Cargo.toml</code> nói <em>khoảng</em> phiên bản chấp nhận được: <code>quick-xml = "0.42"</code> nghĩa là "bất kỳ 0.42.x nào". <code>Cargo.lock</code> ghi <em>chính xác</em> bản đã chọn kèm checksum:</p>
+<figure class="code">
+  <figcaption>Cargo.lock (trích)</figcaption>
+<pre><code class="language-toml"># This file is automatically @generated by Cargo.
+# It is not intended for manual editing.
+version = 4
+
+[[package]]
+name = "quick-xml"
+version = "0.42.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41b1177fdf999d2321d3fb46ff47159d9c1fb9ad66a4879f8c50a0b504615e9b"</code></pre>
+</figure>
+<p>File này có 34 mục <code>[[package]]</code>: 12 crate của workspace + 22 crate bên ngoài (quick-xml, zip, flate2, roxmltree, serde…). Dự án <strong>commit</strong> <code>Cargo.lock</code> vào git, nên ai clone về cũng build với đúng cùng một bộ dependency — "chạy được trên máy tôi" thành "chạy được trên mọi máy". Không sửa tay; muốn nâng cấp thì <code>cargo update</code>.</p>
+
+<h2 id="profile">7. Debug vs release, và <code>opt-level = 1</code> cho dependency</h2>
+<div class="table-wrap"><table>
+  <tr><th></th><th>dev (mặc định)</th><th>release (<code>--release</code>)</th></tr>
+  <tr><td>Thư mục</td><td><code>target/debug/</code></td><td><code>target/release/</code></td></tr>
+  <tr><td><code>opt-level</code></td><td>0 — không tối ưu</td><td>3 — tối ưu tối đa</td></tr>
+  <tr><td>Thời gian biên dịch</td><td>Nhanh</td><td>Chậm hơn nhiều</td></tr>
+  <tr><td>Tốc độ chạy</td><td>Chậm (có khi chậm hơn 10–50 lần)</td><td>Nhanh</td></tr>
+  <tr><td>Tràn số nguyên</td><td>Panic ngay (giúp bắt lỗi)</td><td>Âm thầm quay vòng</td></tr>
+  <tr><td>Dùng khi</td><td>Viết code, chạy test</td><td>Đo hiệu năng, chạy corpus lớn, phát hành</td></tr>
+</table></div>
+<p>Dự án có một tinh chỉnh nhỏ nhưng khôn ngoan ở cuối <code>Cargo.toml</code>:</p>
+<figure class="code">
+  <figcaption data-src="Cargo.toml#L39-L43">Cargo.toml:39–43</figcaption>
+<pre><code class="language-toml">[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[profile.dev.package."*"]
+opt-level = 1</code></pre>
+</figure>
+<ul>
+  <li><code>[profile.dev…]</code> — chỉnh profile dev (cũng là profile mà test kế thừa).</li>
+  <li><code>.package."*"</code> — áp dụng cho mọi package <strong>không phải thành viên workspace</strong>, tức là các dependency ngoài: <code>quick-xml</code>, <code>zip</code>, <code>flate2</code>, <code>zlib-rs</code>, <code>memchr</code>…</li>
+  <li><code>opt-level = 1</code> — tối ưu nhẹ cho chúng.</li>
+</ul>
+<p><strong>Vì sao?</strong> Test của dự án làm việc nặng: round-trip mọi part XML của mọi file trong <code>fixtures/</code>, thử 2.000 đột biến ngẫu nhiên có kiểm soát (theo bảng test trong <code>ARCHITECTURE.md</code>)… Phần lớn thời gian chạy nằm ở <em>giải nén ZIP</em> và <em>phân tích XML</em> — đều là code của dependency. Tối ưu chúng làm test nhanh hẳn. Cái giá gần như bằng không: dependency hiếm khi thay đổi nên chỉ biên dịch <em>một lần</em> rồi nằm trong cache. Còn code của chính dự án — thứ bạn sửa liên tục — vẫn ở <code>opt-level</code> 0 để biên dịch lại nhanh và dễ debug.</p>
+
+<div class="callout pattern">
+  <span class="callout-title">🧩 Kỹ thuật — tối ưu có chọn lọc</span>
+  <p>"Tối ưu phần ít thay đổi, giữ nhanh phần hay thay đổi" là một mẹo phổ biến trong các dự án Rust lớn (game engine như Bevy cũng khuyên làm y hệt). Cách khác: chạy test với <code>--release</code> — nhưng khi đó <em>mọi</em> lần sửa một dòng đều phải biên dịch tối ưu lại cả crate của bạn, rất chậm với 215 nghìn dòng code sinh.</p>
+</div>
+<p>Còn <code>unsafe_code = "forbid"</code>: cấm tuyệt đối từ khoá <code>unsafe</code> trong toàn dự án. Mỗi crate "đăng ký" luật này bằng hai dòng <code>[lints]</code> / <code>workspace = true</code> trong Cargo.toml của nó. Nghĩa là mọi đảm bảo an toàn bộ nhớ của Rust được giữ nguyên vẹn — một cam kết chất lượng khác, cùng tinh thần với mục 9.</p>
+
+<h2 id="rustfmt">8. <code>rustfmt.toml</code> và <code>cargo fmt</code></h2>
+<figure class="code">
+  <figcaption data-src="rustfmt.toml#L1">rustfmt.toml:1</figcaption>
+<pre><code class="language-toml">max_width = 110</code></pre>
+</figure>
+<p>Cả file chỉ có một dòng: cho phép mỗi dòng code dài tối đa 110 ký tự (mặc định của rustfmt là 100). Mọi thứ khác theo phong cách chuẩn của Rust. Lợi ích của việc có một formatter "không thương lượng": không ai tranh cãi chuyện xuống dòng, diff trên git chỉ chứa thay đổi thật.</p>
+<p>Chi tiết thú vị: <strong>trình sinh code cũng dùng file này.</strong></p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-codegen/src/lib.rs#L52-L69">crates/openxml-codegen/src/lib.rs:52–69</figcaption>
+<pre><code class="language-rust">/// Formats Rust source with `rustfmt` (edition 2024, workspace settings).
+pub fn format_source(source: &amp;str) -&gt; Result&lt;String, String&gt; {
+    let config = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../rustfmt.toml");
+    let mut child = Command::new("rustfmt")
+        .args([
+            "--edition",
+            "2024",
+            "--emit",
+            "stdout",
+            "--quiet",
+            "--config-path",
+        ])
+        .arg(&amp;config)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("cannot run rustfmt: {e}"))?;</code></pre>
+</figure>
+<ul>
+  <li>Dòng 54: <code>env!("CARGO_MANIFEST_DIR")</code> là thư mục chứa Cargo.toml của crate <code>openxml-codegen</code> (cargo cung cấp lúc biên dịch). <code>../../rustfmt.toml</code> đi ngược hai cấp về gốc repo.</li>
+  <li>Dòng 55–68: chạy chương trình <code>rustfmt</code> như một tiến trình con, bơm code qua stdin, đọc code đã định dạng từ stdout.</li>
+</ul>
+<p>Hệ quả: nếu ai đó đổi <code>max_width</code>, toàn bộ 215 nghìn dòng code sinh sẽ được định dạng khác đi và bước kiểm tra "code sinh còn mới không" (mục 9) sẽ báo lỗi cho tới khi chạy lại generator. Một file cấu hình một dòng, nhưng ảnh hưởng cả dự án.</p>
+
+<h2 id="check-sh">9. <code>scripts/check.sh</code> — quy trình chất lượng của dự án</h2>
+<p>README ghi: "<code>scripts/check.sh</code> — fmt, clippy, generated-code freshness, all tests". Đây là <strong>một lệnh duy nhất</strong> gom mọi kiểm tra mà dự án dựa vào. Trước khi coi một thay đổi là "xong", chạy nó. Cả file:</p>
+<figure class="code">
+  <figcaption data-src="scripts/check.sh#L1-L26">scripts/check.sh:1–26</figcaption>
+<pre><code class="language-bash">#!/usr/bin/env bash
+# Runs every check the project relies on: formatting, lints, generated-code
+# freshness, the full test suite and the external corpus (if configured).
+#
+#   scripts/check.sh                     # standard checks
+#   OPENXML_CORPUS=/path scripts/check.sh # also round-trip a local corpus
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+echo "==&gt; rustfmt"
+cargo fmt --all -- --check
+
+echo "==&gt; clippy"
+cargo clippy --workspace --all-targets -- -D warnings
+
+echo "==&gt; generated code is up to date"
+cargo run -q -p openxml-codegen -- --check
+
+echo "==&gt; tests"
+OPENXML_REQUIRE_XMLLINT="${OPENXML_REQUIRE_XMLLINT:-0}" cargo test --workspace
+
+if [[ -n "${OPENXML_CORPUS:-}" ]]; then
+  echo "==&gt; external corpus: $OPENXML_CORPUS"
+  cargo test --release -p openxml-schema --test corpus -- --ignored --nocapture
+fi
+echo "all checks passed"</code></pre>
+</figure>
+
+<h3 id="check-dau">9.1 Hai dòng "dàn trận" (7–8)</h3>
+<p><code>set -euo pipefail</code> là ba công tắc an toàn của bash, gần như mọi script nghiêm túc đều có:</p>
+<dl class="glossary">
+  <dt>-e</dt><dd>Lệnh nào thất bại (mã thoát khác 0) thì <strong>dừng cả script ngay</strong>. Không có nó, <code>cargo fmt</code> báo lỗi xong script vẫn chạy tiếp và cuối cùng in "all checks passed" — tai hại.</dd>
+  <dt>-u</dt><dd>Dùng biến chưa gán giá trị là lỗi (thay vì âm thầm coi là chuỗi rỗng). Chính vì cờ này mà dòng 20 và 22 phải viết <code>${OPENXML_REQUIRE_XMLLINT:-0}</code> và <code>${OPENXML_CORPUS:-}</code>: cú pháp <code>:-</code> nghĩa là "nếu biến chưa có thì dùng giá trị mặc định sau dấu <code>:-</code>" (<code>0</code>, hoặc chuỗi rỗng).</dd>
+  <dt>-o pipefail</dt><dd>Trong một chuỗi <code>a | b</code>, nếu <code>a</code> hỏng thì cả chuỗi tính là hỏng (mặc định bash chỉ nhìn lệnh cuối).</dd>
+</dl>
+<p><code>cd "$(dirname "$0")/.."</code>: <code>$0</code> là đường dẫn tới chính script, <code>dirname</code> lấy thư mục chứa nó (<code>scripts</code>), <code>/..</code> đi lên một cấp — gốc repo. Nhờ vậy bạn gọi <code>scripts/check.sh</code> từ đâu cũng được.</p>
+
+<h3 id="check-fmt">9.2 Bước 1 — định dạng (dòng 11)</h3>
+<p><code>cargo fmt --all -- --check</code>: <code>--all</code> là mọi crate; sau <code>--</code> là tham số cho rustfmt: <code>--check</code> nghĩa là <em>không sửa file</em>, chỉ in phần khác biệt và trả mã lỗi nếu có. Muốn sửa thật thì chạy <code>cargo fmt --all</code> (không <code>--check</code>).</p>
+
+<h3 id="check-clippy">9.3 Bước 2 — lint (dòng 14)</h3>
+<p><code>cargo clippy --workspace --all-targets -- -D warnings</code>:</p>
+<ul>
+  <li><code>--all-targets</code>: kiểm tra cả thư viện, binary, <strong>test</strong>, <strong>example</strong> và bench — không chỉ code chính.</li>
+  <li><code>-D warnings</code>: <em>deny</em> — biến <strong>mọi cảnh báo thành lỗi</strong>. Dự án giữ nguyên tắc "không một warning nào".</li>
+</ul>
+
+<div class="callout warn">
+  <span class="callout-title">⚠️ Chuyện có thật khi mình chạy bước này</span>
+  <p>Với rustc/clippy <strong>1.94.1</strong>, lệnh <code>cargo clippy -p openxml-xml --all-targets -- -D warnings</code> trên máy mình <strong>thất bại</strong> — chính vì cái warning <code>unused_allocation</code> ở <code>crates/openxml-xml/src/validate.rs:202</code> bạn đã thấy ở mục 5 (nằm trong code test, nên chỉ lộ ra khi có <code>--all-targets</code>):</p>
+<pre><code class="language-bash">error: unnecessary allocation, use `&amp;` instead
+   --&gt; crates/openxml-xml/src/validate.rs:202:9
+    = note: `-D unused-allocation` implied by `-D warnings`</code></pre>
+  <p>Nhiều khả năng toolchain lúc tác giả viết code chưa báo trường hợp này. Bài học: <code>-D warnings</code> + toolchain không ghim cứng = bản Rust mới có thể "làm đỏ" CI dù không ai sửa code. Các dự án xử lý bằng cách ghim toolchain (<code>rust-toolchain.toml</code>) hoặc sửa ngay khi lint mới xuất hiện (ở đây: gọi <code>p.validate(&amp;mut v)</code> thay vì bọc <code>Box::new</code>). Bạn chưa cần sửa — chỉ cần hiểu vì sao nó xảy ra. Nếu bạn dùng toolchain khác, kết quả có thể khác.</p>
+</div>
+
+<h3 id="check-codegen">9.4 Bước 3 — code sinh còn "tươi" không (dòng 17)</h3>
+<p><code>cargo run -q -p openxml-codegen -- --check</code> chạy trình sinh code ở chế độ kiểm tra. Bên trong nó:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-codegen/src/main.rs#L36-L50">crates/openxml-codegen/src/main.rs:36–50</figcaption>
+<pre><code class="language-rust">        let path: &amp;Path = &amp;out_dir.join(name);
+        if check {
+            if std::fs::read_to_string(path).ok().as_deref() != Some(formatted.as_str()) {
+                stale.push(name.clone());
+            }
+        } else {
+            std::fs::create_dir_all(&amp;out_dir).expect("create output directory");
+            std::fs::write(path, formatted).expect("write generated file");
+        }
+    }
+    if check &amp;&amp; !stale.is_empty() {
+        eprintln!("generated sources are out of date: {}", stale.join(", "));
+        eprintln!("run `cargo run -p openxml-codegen` to regenerate them");
+        return ExitCode::FAILURE;
+    }</code></pre>
+</figure>
+<p>Ý tưởng: sinh lại toàn bộ code <em>trong bộ nhớ</em> từ các file XSD, so với file đang commit trong <code>crates/openxml-schema/src/generated/</code>. Khác một byte → file đó "cũ" (<code>stale</code>) → thoát với mã lỗi. Không có <code>--check</code> thì nó ghi đè file thật.</p>
+
+<div class="callout pattern">
+  <span class="callout-title">🧩 Pattern — "commit code sinh + kiểm tra độ tươi"</span>
+  <p>Có hai trường phái với code sinh tự động: (1) sinh lúc build (build script <code>build.rs</code>), không commit; (2) sinh một lần, <strong>commit</strong> kết quả, và có test đảm bảo nó khớp với nguồn. Dự án chọn (2): người dùng thư viện không phải chạy generator (không cần <code>rustfmt</code>, không tốn thời gian build), code sinh đọc được trên GitHub, rust-analyzer "go to definition" vào được. Cái giá: phải nhớ chạy lại generator — và bước kiểm tra này tồn tại để bạn không thể quên. (Ngoài bước này còn có test <code>crates/openxml-codegen/tests/up_to_date.rs</code> làm đúng việc tương tự trong <code>cargo test</code>.)</p>
+</div>
+
+<h3 id="check-test">9.5 Bước 4 — toàn bộ test (dòng 20)</h3>
+<p><code>OPENXML_REQUIRE_XMLLINT="${…:-0}" cargo test --workspace</code>. Cú pháp <code>BIẾN=giá_trị lệnh</code> đặt biến môi trường <em>chỉ cho lệnh đó</em>. Crate <code>openxml-testkit</code> đọc biến này: nếu máy không có <code>xmllint</code> thì mặc định (<code>0</code>) chỉ in ghi chú và bỏ qua phần kiểm tra XSD; đặt <code>OPENXML_REQUIRE_XMLLINT=1</code> thì thiếu <code>xmllint</code> là lỗi. Máy CI nghiêm túc nên đặt <code>1</code>.</p>
+
+<h3 id="check-corpus">9.6 Bước 5 (tuỳ chọn) — corpus bên ngoài (dòng 22–25)</h3>
+<p>Nếu bạn có một thư mục đầy file Office thật và đặt <code>OPENXML_CORPUS=/đường/dẫn</code>, script chạy thêm:</p>
+<ul>
+  <li><code>--release</code>: hàng trăm file, hàng nghìn part — cần bản tối ưu.</li>
+  <li><code>-p openxml-schema --test corpus</code>: chỉ file integration test <code>crates/openxml-schema/tests/corpus.rs</code>.</li>
+  <li><code>-- --ignored</code>: test này mang <code>#[ignore = "set OPENXML_CORPUS to a directory of Office documents"]</code> nên bình thường không chạy; cờ này bật nó.</li>
+  <li><code>--nocapture</code>: in báo cáo của test ra màn hình.</li>
+</ul>
+<p>Theo <code>ARCHITECTURE.md</code>, tác giả đã chạy bước này trên 545 tài liệu từ bộ test của Apache POI (6.024 part XML) mà không có lỗi hay khác biệt nào.</p>
+
+<h2 id="editor">10. <code>cargo doc</code> và rust-analyzer</h2>
+<h3 id="cargo-doc">10.1 cargo doc</h3>
+<figure class="code">
+  <figcaption>Terminal</figcaption>
+<pre><code class="language-bash">cargo doc -p openxml-xml --no-deps --open   # tài liệu của một crate, mở trình duyệt
+cargo doc --workspace --no-deps             # cả workspace (openxml-schema sẽ lâu)</code></pre>
+</figure>
+<p><code>--no-deps</code>: bỏ qua tài liệu của dependency ngoài. Output thật: <code>Generated /home/user/open-xml-rust/target/doc/openxml_xml/index.html</code>. Trang đầu chính là đoạn <code>//!</code> ở đầu <code>lib.rs</code>; mỗi <code>struct</code>, <code>fn</code> có <code>///</code> thành một trang. Với <code>openxml-schema</code>, mỗi kiểu còn mang số mục của đặc tả (ví dụ "Paragraph (ECMA-376 Part 1 §17.3.1.22)") — bạn sẽ thấy ở bài 0.3.</p>
+
+<h3 id="rust-analyzer">10.2 rust-analyzer cho VS Code</h3>
+<ol class="steps">
+  <li>Cài extension <strong>rust-analyzer</strong> (publisher: <em>rust-lang</em>). Đừng cài extension cũ tên "Rust" — đã ngừng phát triển.</li>
+  <li>Mở <strong>thư mục gốc repo</strong> (nơi có <code>Cargo.toml</code> chứa <code>[workspace]</code>), không phải một crate con — để nó thấy cả 12 crate.</li>
+  <li>Lần đầu nó sẽ lập chỉ mục khá lâu (vì <code>openxml-schema</code>). Chờ thanh trạng thái hết quay.</li>
+  <li>(Khuyên dùng) Settings → tìm <code>rust-analyzer.check.command</code> → đặt <code>clippy</code>: mỗi lần lưu file bạn thấy luôn cảnh báo clippy.</li>
+</ol>
+<p>Những thao tác bạn sẽ dùng cả khoá học:</p>
+<ul>
+  <li><strong>Go to Definition</strong> (F12 hoặc Ctrl/Cmd+click): nhảy tới nơi định nghĩa <code>Ns</code>, <code>PartName</code>… kể cả vào code của <code>quick-xml</code> hay thư viện chuẩn.</li>
+  <li><strong>Find All References</strong> (Shift+F12): ai đang dùng hàm này?</li>
+  <li><strong>Hover</strong>: di chuột lên tên để xem kiểu và tài liệu.</li>
+  <li><strong>Inlay hints</strong>: chữ mờ hiện kiểu mà Rust tự suy ra, ví dụ <code>let pkg<i>: Package</i> = …</code> — cực hữu ích khi mới học.</li>
+  <li><strong>▶ Run Test</strong> hiện ngay trên mỗi <code>#[test]</code> và mỗi <code>mod tests</code>.</li>
+</ul>
+
+<h2 id="goc-openxml">11. Góc OpenXML: nguyên liệu của dự án và lệnh <code>openxml info</code></h2>
+<p>Một thư viện OpenXML cần hai thứ "nguyên liệu" ngoài code:</p>
+<ul>
+  <li><strong><code>schemas/</code></strong> — các file XSD <em>chính thức</em> của ECMA-376 (Transitional, Strict, OPC) và dữ liệu trích từ PDF đặc tả. Đây là <em>đầu vào</em> của trình sinh code và của bước kiểm tra XSD.</li>
+  <li><strong><code>fixtures/</code></strong> — file Office thật để test: 45 file trong <code>fixtures/poi/</code> (18 <code>.docx</code>, 14 <code>.xlsx</code>, 13 <code>.pptx</code>) lấy nguyên vẹn từ bộ test của dự án Java <strong>Apache POI</strong> (giấy phép Apache 2.0, xem <code>fixtures/poi/NOTICE.md</code>), và 1 file <code>fixtures/ecma/PivotTableFormats.xlsx</code> đi kèm bản phân phối ECMA-376. Theo <code>fixtures/README.md</code>, test <code>crates/openxml-schema/tests/corpus.rs</code> round-trip <em>mọi</em> part XML của <em>mọi</em> file ở đây.</li>
+</ul>
+<p>Giờ đến phần thưởng. Ở bài 0.1 bạn giải nén <code>sample.docx</code> bằng tay; bây giờ dùng CLI của dự án:</p>
+<figure class="code">
+  <figcaption>Terminal</figcaption>
+<pre><code class="language-bash">cargo run -p openxml-cli -- info fixtures/poi/sample.docx</code></pre>
+</figure>
+<figure class="code">
+  <figcaption>Output thật (bỏ các dòng Compiling)</figcaption>
+<pre><code class="language-bash">     Running `target/debug/openxml info fixtures/poi/sample.docx`
+fixtures/poi/sample.docx
+main part: /word/document.xml
+creator:
+
+part                                                 bytes  content type
+/docProps/app.xml                                      972  application/vnd.openxmlformats-officedocument.extended-properties+xml
+/docProps/core.xml                                     621  application/vnd.openxmlformats-package.core-properties+xml
+/word/document.xml                                    3541  application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml
+/word/endnotes.xml                                    1124  application/vnd.openxmlformats-officedocument.wordprocessingml.endnotes+xml
+/word/fontTable.xml                                   1031  application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml
+/word/footer1.xml                                      745  application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml
+...
+/word/styles.xml                                     15390  application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml
+/word/theme/theme1.xml                                6992  application/vnd.openxmlformats-officedocument.theme+xml
+/word/webSettings.xml                                  260  application/vnd.openxmlformats-officedocument.wordprocessingml.webSettings+xml
+
+relationships:
+  / --extended-properties--&gt; docProps/app.xml
+  / --core-properties--&gt; docProps/core.xml
+  / --officeDocument--&gt; word/document.xml
+  /word/document.xml --footer--&gt; footer1.xml
+  /word/document.xml --theme--&gt; theme/theme1.xml
+  /word/document.xml --styles--&gt; styles.xml
+  /word/document.xml --header--&gt; header1.xml
+  ...</code></pre>
+</figure>
+<p>Đối chiếu với bài 0.1:</p>
+<ul>
+  <li><strong>Package</strong>: cả file <code>sample.docx</code>, được mở bằng <code>Package::open_path</code>.</li>
+  <li><strong><code>main part: /word/document.xml</code></strong>: tìm ra bằng cách đi theo relationship <code>officeDocument</code> từ <code>/</code> (dòng <code>/ --officeDocument--&gt; word/document.xml</code>) — đúng như Word làm, không đoán theo tên.</li>
+  <li><strong>Part name</strong> bắt đầu bằng <code>/</code>; cột <code>bytes</code> là kích thước dữ liệu của part (sau giải nén).</li>
+  <li><strong>Content type</strong>: cột cuối, lấy từ <code>[Content_Types].xml</code>. Để ý <code>[Content_Types].xml</code> và các file <code>.rels</code> <em>không</em> xuất hiện trong danh sách part: theo OPC chúng không phải part mà là cấu trúc của chính package — thư viện đọc chúng vào bảng content type và danh sách relationship.</li>
+  <li><strong>Relationship</strong>: Target in ra là <em>tương đối</em> so với part nguồn (<code>styles.xml</code> nghĩa là <code>/word/styles.xml</code>) — đúng "chỗ hay nhầm" ở bài 0.1.</li>
+  <li><code>creator: </code> rỗng: core.xml của file này có thẻ <code>dc:creator</code> nhưng không có chữ nào bên trong.</li>
+</ul>
+<p>Và đây là đoạn code in ra phần giữa output ở trên — đọc lướt thôi, bạn sẽ quay lại ở Phần 7:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-cli/src/main.rs#L86-L104">crates/openxml-cli/src/main.rs:86–104</figcaption>
+<pre><code class="language-rust">    say!("\n{:&lt;48} {:&gt;9}  content type", "part", "bytes");
+    for (name, part) in pkg.parts() {
+        say!(
+            "{:&lt;48} {:&gt;9}  {}",
+            name.as_str(),
+            part.data().len(),
+            part.content_type()
+        );
+    }
+    say!("\nrelationships:");
+    for r in pkg.package_relationships().iter() {
+        say!("  / --{}--&gt; {}", short_type(&amp;r.rel_type), r.target);
+    }
+    for (name, part) in pkg.parts() {
+        for r in part.relationships().iter() {
+            let ext = if r.is_external() { " (external)" } else { "" };
+            say!("  {name} --{}--&gt; {}{ext}", short_type(&amp;r.rel_type), r.target);
+        }
+    }</code></pre>
+</figure>
+<ul>
+  <li><code>say!</code> là một macro tự viết của CLI (định nghĩa ở dòng 23–33), gần giống <code>println!</code>.</li>
+  <li><code>{:&lt;48}</code>: căn trái trong 48 ký tự; <code>{:&gt;9}</code>: căn phải trong 9 ký tự — đó là lý do các cột thẳng hàng.</li>
+  <li><code>pkg.parts()</code> trả về từng cặp (tên part, part) theo thứ tự tên — vì vậy danh sách part được sắp xếp. <code>package_relationships()</code> là quan hệ cấp gói (file <code>_rels/.rels</code>), còn <code>part.relationships()</code> là quan hệ của từng part (<code>word/_rels/document.xml.rels</code>…).</li>
+  <li><code>short_type</code> cắt URI loại quan hệ dài (<code>http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles</code>) lấy đoạn cuối (<code>styles</code>).</li>
+</ul>
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — vì sao binary tên là <code>openxml</code>?</span>
+  <p>Crate tên <code>openxml-cli</code>, nhưng file chạy là <code>target/debug/openxml</code>. Lý do nằm trong <code>crates/openxml-cli/Cargo.toml</code>: khối <code>[[bin]]</code> với <code>name = "openxml"</code> và <code>path = "src/main.rs"</code>. Không có khối đó, cargo mặc định lấy tên package. Bạn có thể cài nó vào máy như một lệnh thật: <code>cargo install --path crates/openxml-cli</code> → sau đó gõ <code>openxml info …</code> ở bất kỳ đâu.</p>
+</div>
+
+<section class="exercise">
+  <h3>🛠 Bài tập</h3>
+  <ol>
+    <li><strong>Ba loại test.</strong> Chạy <code>cargo test -p openxml-opc</code>. Đếm số unit test, integration test, doc-test. Mở <code>crates/openxml-opc/tests/real_packages.rs</code> và tìm xem hai integration test tên gì. Rồi chạy riêng một trong hai bằng <code>--test real_packages &lt;tên&gt;</code>.</li>
+    <li><strong>Làm một test thất bại (rồi hoàn tác).</strong> Trong <code>crates/openxml-xml/src/ns.rs</code>, ở test <code>strict_maps_to_transitional</code>, tạm đổi <code>Ns::W</code> thành <code>Ns::X</code>. Chạy <code>cargo test -p openxml-xml strict</code> và đọc thông báo <code>assertion `left == right` failed</code>: <code>left</code>, <code>right</code> là gì? Sau đó hoàn tác bằng <code>git checkout crates/openxml-xml/src/ns.rs</code>.</li>
+    <li><strong>CLI trên Excel và PowerPoint.</strong> Chạy <code>cargo run -p openxml-cli -- info fixtures/poi/sample.xlsx</code> (và <code>SampleShow.pptx</code>). Main part là gì? Tìm part chứa shared strings và relationship dẫn tới nó. Thử thêm lệnh <code>text</code> và <code>cat &lt;file&gt; /xl/workbook.xml</code>.</li>
+    <li><strong>Example và thư mục out/.</strong> Chạy <code>cargo run -p openxml-docx --example create_report -- out/report.docx</code> (trên máy mình in ra <code>wrote … (35 paragraphs, 1 tables, 2 sections, 1 comments)</code>), rồi <code>cargo run -p openxml-cli -- info out/report.docx</code>. So sánh với <code>sample.docx</code>: có part nào mới? Kiểm tra <code>git status</code> — vì sao <code>out/</code> không hiện ra?</li>
+  </ol>
+</section>
+
+<section>
+  <h2 id="tu-kiem-tra">Tự kiểm tra</h2>
+  <details><summary>1. Khác nhau giữa rustup, rustc và cargo?</summary>
+    <div class="answer"><code>rustc</code> là trình biên dịch; <code>cargo</code> quản lý dự án (đọc Cargo.toml, tải dependency, gọi rustc, chạy test, sinh doc); <code>rustup</code> cài và chuyển đổi các bộ toolchain (rustc + cargo + rustfmt + clippy…).</div></details>
+  <details><summary>2. <code>edition = "2024"</code> và <code>rust-version = "1.88"</code> khác nhau thế nào? Vì sao 1.88?</summary>
+    <div class="answer">Edition là bộ quy tắc ngôn ngữ mà crate được viết theo (mỗi crate tự chọn, các edition dùng chung được). rust-version là phiên bản rustc tối thiểu để build được. 1.88 là bản ổn định hoá <em>let chains</em> (<code>if let … &amp;&amp; let …</code>) cho edition 2024, thứ dự án dùng ở nhiều chỗ.</div></details>
+  <details><summary>3. Trong <code>cargo run -p openxml-cli -- info a.docx</code>, dấu <code>--</code> để làm gì?</summary>
+    <div class="answer">Ngăn cách tham số của cargo với tham số của chương trình được chạy. <code>info a.docx</code> được chuyển nguyên cho binary <code>openxml</code>.</div></details>
+  <details><summary>4. <code>[profile.dev.package."*"] opt-level = 1</code> tối ưu cái gì, và vì sao đáng làm?</summary>
+    <div class="answer">Tối ưu nhẹ mọi package không thuộc workspace (quick-xml, zip, flate2…) khi build dev/test. Test dành phần lớn thời gian giải nén ZIP và phân tích XML trong các dependency đó, nên chạy nhanh hơn; dependency chỉ biên dịch một lần nên chi phí gần như không có, còn code của dự án vẫn opt-level 0 để biên dịch lại nhanh.</div></details>
+  <details><summary>5. Vì sao <code>check.sh</code> viết <code>${OPENXML_CORPUS:-}</code> chứ không phải <code>$OPENXML_CORPUS</code>?</summary>
+    <div class="answer">Vì script bật <code>set -u</code>: đọc một biến chưa gán là lỗi và script dừng. <code>:-</code> cho giá trị mặc định (ở đây chuỗi rỗng) khi biến chưa được đặt.</div></details>
+  <details><summary>6. Bước "generated code is up to date" kiểm tra điều gì, và nếu nó báo lỗi thì làm gì?</summary>
+    <div class="answer">Nó sinh lại code từ <code>schemas/transitional/*.xsd</code> (+ <code>spec-index.json</code>), định dạng bằng rustfmt với <code>rustfmt.toml</code>, rồi so từng file với <code>crates/openxml-schema/src/generated/</code>. Khác nhau → báo file "stale". Sửa bằng cách chạy <code>cargo run -p openxml-codegen</code> để ghi lại các file đó (và commit chúng).</div></details>
+</section>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Bài sau</span>
+  <p>Công cụ đã sẵn sàng. Bài 0.3 mình sẽ trải "bản đồ" toàn dự án: từng thư mục, 12 crate, crate nào to nhỏ ra sao, 215 nghìn dòng code sinh nằm ở đâu, và cách đọc một codebase lớn mà không bị ngợp.</p>
+</div>
+
+</main>
+</body>
+</html>
