@@ -1,0 +1,1075 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.5 Ghi XML: XmlWriter · Học Rust qua open-xml-rust</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/vendor/highlight.min.js" defer></script>
+<script src="assets/app.js" defer></script>
+</head>
+<body data-lesson="p2-5">
+<main class="content">
+
+<header>
+  <p class="crumb">Phần 2 · Tầng XML (openxml-xml)</p>
+  <h1>2.5 Ghi XML: XmlWriter</h1>
+  <p class="lead">Ghi XML nghe dễ hơn đọc: chỉ là nối chuỗi <code>"&lt;" + tên + "&gt;"</code>… cho tới khi namespace xuất hiện. Prefix nào? Khai báo <code>xmlns</code> ở thẻ nào? Trùng prefix thì sao? Bài này mổ <code>XmlWriter</code> — một máy trạng thái nhỏ cộng một cái stack — và qua đó học thêm <code>Default</code>, iterator vô hạn, <code>matches!</code>, let chains, và chuyện "tiêu thụ" <code>self</code>.</p>
+  <div class="meta"><span>⏱ ~90 phút</span><span>Crate: <code>openxml-xml</code></span><span>File: <code>crates/openxml-xml/src/writer.rs</code></span></div>
+</header>
+
+<section class="goals">
+  <h3>🎯 Học xong bài này bạn sẽ</h3>
+  <ul>
+    <li>Hiểu vì sao ghi XML <strong>đúng namespace</strong> khó: khai báo ở đâu, prefix trùng, default namespace, <code>xmlns=""</code>.</li>
+    <li>Đọc được cấu trúc dữ liệu của <code>XmlWriter</code>: chuỗi <code>out</code>, cờ <code>open</code>, stack <code>frames</code> và <code>bindings</code> — push khi mở thẻ, <code>truncate</code> khi đóng.</li>
+    <li>Theo dõi được thuật toán chọn prefix: <code>visible_prefix</code> (shadowing), <code>fresh_prefix</code> (iterator vô hạn), vì sao <strong>attribute không bao giờ dùng default namespace</strong>.</li>
+    <li>Hiểu kỹ thuật escape "chép đoạn chưa đổi" với <code>char_indices</code>, và <code>is_xml_char</code> viết bằng <code>matches!</code> + range pattern.</li>
+    <li>Nắm <code>#[derive(Default)]</code>, <code>finish(self)</code> (move), <code>debug_assert!</code>, <code>std::mem::take</code>, <code>if let ... &amp;&amp; ...</code>, <code>is_some_and</code>.</li>
+    <li>Biết các chi tiết OpenXML: khai báo <code>standalone="yes"</code> + <code>\r\n</code>, <code>xml:space="preserve"</code> cho SpreadsheetML, và vì sao phải giữ nguyên khai báo gốc để <code>mc:Ignorable</code> còn đúng.</li>
+  </ul>
+</section>
+
+<div class="callout tip">
+  <span class="callout-title">💡 Trước khi đọc</span>
+  <p>Bài này dùng lại nhiều thứ của <a href="p2-4-xml-reader.html">bài 2.4</a> (borrow, <code>&amp;str</code>, <code>Range</code>, <code>Cow</code>) và <a href="p2-1-namespace.html">bài 2.1</a> (<code>Ns</code>, <code>Ns::OTHER</code>, <code>ns.prefix()</code>). Code writer dễ đọc hơn reader — không có lifetime trên struct! — nhưng thuật toán namespace thì cần tập trung. Mình sẽ dùng bảng "trạng thái sau mỗi lệnh" để bạn theo dõi bằng mắt.</p>
+</div>
+
+<h2 id="van-de">1. Vấn đề: ghi XML đúng namespace không đơn giản</h2>
+<p>Nhắc lại từ bài 2.1: danh tính thật của một thẻ là <strong>(URI namespace, tên local)</strong>; prefix chỉ là biệt danh, phải được <em>khai báo</em> bằng <code>xmlns:p="URI"</code> trên chính thẻ đó hoặc một thẻ tổ tiên. Code sinh ra chỉ nói "ghi thẻ <code>(Ns::W, "p")</code>" — nó không muốn lo chuyện prefix. Người viết writer phải trả lời:</p>
+<ol>
+  <li><strong>Đã có prefix nào trỏ tới URI này mà còn "nhìn thấy" được không?</strong> Nếu có thì dùng lại, đừng khai báo lại ở mọi thẻ.</li>
+  <li><strong>Chưa có thì khai báo ở đâu?</strong> Ngay trên thẻ đang mở. Và khai báo đó chỉ có hiệu lực trong thẻ ấy (scope) — anh em bên cạnh không thấy.</li>
+  <li><strong>Prefix muốn dùng đã bị chiếm bởi URI khác?</strong> (Ví dụ file nguồn lỡ dùng <code>w:</code> cho một namespace lạ.) Phải chọn tên khác: <code>w1</code>, <code>w2</code>…</li>
+  <li><strong>Default namespace</strong> (<code>xmlns="..."</code>, không prefix): Excel quen viết <code>&lt;worksheet xmlns="…spreadsheetml…"&gt;</code> không có <code>x:</code>. Tiện cho thẻ — nhưng <strong>không áp dụng cho attribute</strong>: attribute không prefix luôn ở "không namespace".</li>
+  <li><strong>Thẻ không namespace nằm trong default namespace</strong>: phải "tắt" default bằng <code>xmlns=""</code>, nếu không thẻ đó sẽ bị hiểu nhầm là thuộc namespace cha.</li>
+  <li><strong>Prefix được nhắc trong <em>giá trị</em> attribute</strong> (<code>mc:Ignorable="w14 wp14"</code>): writer không "hiểu" giá trị, nên nếu tự ý đổi/bỏ khai báo thì giá trị đó trỏ vào prefix không tồn tại.</li>
+</ol>
+<p>Doc comment đầu file tóm tắt đúng chiến lược của dự án:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L1-L18">crates/openxml-xml/src/writer.rs:1–18</figcaption>
+<pre><code class="language-rust">//! Namespace-aware XML writer.
+//!
+//! The writer keeps track of the namespace bindings in scope. Elements and
+//! attributes are named by [`Ns`] (or by URI for foreign namespaces); prefixes
+//! are chosen automatically, reusing existing bindings and declaring new ones
+//! on demand. Declarations captured from a source document (see
+//! [`crate::RawAttribute::namespace_declaration`]) are re-emitted as-is so
+//! that prefixes referenced from attribute values (e.g. `mc:Ignorable`) stay
+//! valid.
+
+use std::ops::Range;
+
+use crate::ns::Ns;
+use crate::raw::{RawAttribute, RawName};
+use crate::value::XmlValue;
+
+/// The XML declaration written at the top of every OOXML part.
+pub const XML_DECLARATION: &amp;str = "&lt;?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?&gt;\r\n";</code></pre>
+</figure>
+
+<h2 id="cau-truc">2. Struct <code>XmlWriter</code>: stack và scope</h2>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L20-L60">crates/openxml-xml/src/writer.rs:20–60</figcaption>
+<pre><code class="language-rust">#[derive(Debug, Clone)]
+struct Binding {
+    prefix: String,
+    ns: Ns,
+    /// URI for [`Ns::OTHER`] bindings.
+    uri: Option&lt;String&gt;,
+}
+
+impl Binding {
+    fn matches(&amp;self, ns: Ns, uri: Option&lt;&amp;str&gt;) -&gt; bool {
+        if self.ns != ns {
+            return false;
+        }
+        ns != Ns::OTHER || self.uri.as_deref() == uri
+    }
+
+    fn uri(&amp;self) -&gt; &amp;str {
+        match &amp;self.uri {
+            Some(u) =&gt; u,
+            None =&gt; self.ns.uri(),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct Frame {
+    name: Range&lt;usize&gt;,
+    bindings_len: usize,
+}
+
+/// Streaming XML writer producing a `String`.
+#[derive(Debug, Default)]
+pub struct XmlWriter {
+    out: String,
+    open: bool,
+    frames: Vec&lt;Frame&gt;,
+    names: String,
+    bindings: Vec&lt;Binding&gt;,
+    predeclare: Vec&lt;Ns&gt;,
+    scratch: String,
+}</code></pre>
+</figure>
+<div class="table-wrap"><table>
+  <tr><th>Trường</th><th>Kiểu</th><th>Ý nghĩa</th></tr>
+  <tr><td><code>out</code></td><td><code>String</code></td><td>Kết quả — XML được nối dần vào đây</td></tr>
+  <tr><td><code>open</code></td><td><code>bool</code></td><td>Thẻ vừa mở còn "dở" (đã ghi <code>&lt;w:p ...</code> nhưng chưa ghi <code>&gt;</code>)?</td></tr>
+  <tr><td><code>frames</code></td><td><code>Vec&lt;Frame&gt;</code></td><td><strong>Stack</strong> các thẻ đang mở; mỗi frame nhớ tên thẻ (vị trí trong <code>names</code>) và số binding lúc mở</td></tr>
+  <tr><td><code>names</code></td><td><code>String</code></td><td>Một chuỗi duy nhất chứa tên (có prefix) của mọi thẻ đang mở, nối liền nhau</td></tr>
+  <tr><td><code>bindings</code></td><td><code>Vec&lt;Binding&gt;</code></td><td><strong>Stack</strong> các khai báo prefix → namespace đang có hiệu lực</td></tr>
+  <tr><td><code>predeclare</code></td><td><code>Vec&lt;Ns&gt;</code></td><td>Namespace cần khai báo sẵn trên thẻ tiếp theo (thường là gốc)</td></tr>
+  <tr><td><code>scratch</code></td><td><code>String</code></td><td>Bộ đệm tạm dùng lại để định dạng giá trị (mục 9)</td></tr>
+</table></div>
+
+<h3 id="stack-scope">2.1 Stack và scope — ý tưởng bằng ví dụ nhỏ</h3>
+<p>Khai báo <code>xmlns</code> trong XML có <strong>phạm vi</strong> (scope) giống biến trong khối <code>{ }</code>: sinh ra ở thẻ mở, chết ở thẻ đóng, khai báo bên trong <em>che</em> (shadow) khai báo cùng tên bên ngoài. Cấu trúc dữ liệu tự nhiên cho scope lồng nhau là <strong>stack</strong>: vào scope thì ghi nhớ độ cao stack, khai báo thì push, ra scope thì cắt stack về độ cao cũ. Tra cứu thì tìm <em>từ đỉnh xuống</em> — cái gặp đầu tiên là cái "gần nhất".</p>
+<figure class="code">
+  <figcaption>Tự viết — scope bằng stack (mình đã chạy thử)</figcaption>
+<pre><code class="language-rust">struct Scope {
+    stack: Vec&lt;(String, String)&gt;,   // (prefix, uri)
+    frames: Vec&lt;usize&gt;,             // độ cao stack lúc vào mỗi scope
+}
+
+impl Scope {
+    fn enter(&amp;mut self) { self.frames.push(self.stack.len()); }
+    fn bind(&amp;mut self, p: &amp;str, uri: &amp;str) { self.stack.push((p.into(), uri.into())); }
+    fn lookup(&amp;self, p: &amp;str) -&gt; Option&lt;&amp;str&gt; {
+        self.stack.iter().rev().find(|(q, _)| q == p).map(|(_, u)| u.as_str())
+    }
+    fn leave(&amp;mut self) {
+        let n = self.frames.pop().unwrap();
+        self.stack.truncate(n);         // bỏ mọi khai báo của scope vừa đóng
+    }
+}
+
+// enter; bind("w","urn:A"); enter; bind("w","urn:B");
+// lookup("w") == Some("urn:B")   ← khai báo trong che khai báo ngoài
+// leave;  lookup("w") == Some("urn:A")
+// leave;  lookup("w") == None</code></pre>
+</figure>
+<p><code>XmlWriter</code> làm y hệt: <code>Frame.bindings_len</code> là "độ cao stack lúc vào", <code>end()</code> gọi <code>self.bindings.truncate(frame.bindings_len)</code>. <code>truncate(n)</code> cắt vector còn <code>n</code> phần tử, <strong>không trả lại bộ nhớ</strong> — lần push sau dùng lại chỗ cũ, không cấp phát.</p>
+
+<h3 id="names-buffer">2.2 Mẹo <code>names</code> + <code>Range</code>: một chuỗi cho mọi tên thẻ</h3>
+<p>Khi ghi thẻ đóng <code>&lt;/w:p&gt;</code> ta cần nhớ tên đã ghi ở thẻ mở (kể cả prefix đã chọn). Cách ngây thơ: <code>frames: Vec&lt;String&gt;</code> — mỗi thẻ một <code>String</code>, tức mỗi thẻ một lần cấp phát. Với 1 triệu ô Excel là 1 triệu lần cấp phát. Cách của dự án: nối mọi tên vào <strong>một</strong> <code>String</code> là <code>names</code>, frame chỉ nhớ <code>Range&lt;usize&gt;</code>. Đây đúng là kỹ thuật "index thay cho tham chiếu" ở bài 2.4, lần này để <em>giảm cấp phát</em>:</p>
+<figure class="code">
+  <figcaption>Khi đang ở trong &lt;w:p&gt;&lt;w:r&gt;&lt;w:t&gt;</figcaption>
+<pre class="diagram"><code>names  = "w:pw:rw:t"
+          0  3  6  9
+frames = [ {name: 0..3, bindings_len: 0},    ← w:p
+           {name: 3..6, bindings_len: 1},    ← w:r
+           {name: 6..9, bindings_len: 1} ]   ← w:t   (đỉnh stack)
+
+end():  pop frame 6..9 → ghi "&lt;/" + names[6..9] + "&gt;"  → names.truncate(6)</code></pre>
+</figure>
+
+<h2 id="default">3. <code>#[derive(Default)]</code> và <code>Self::default()</code></h2>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L62-L91">crates/openxml-xml/src/writer.rs:62–91</figcaption>
+<pre><code class="language-rust">impl XmlWriter {
+    /// Creates an empty writer.
+    pub fn new() -&gt; Self {
+        Self::default()
+    }
+
+    /// Creates a writer whose output starts with the standard OOXML XML declaration.
+    pub fn with_declaration() -&gt; Self {
+        let mut w = Self::new();
+        w.out.push_str(XML_DECLARATION);
+        w
+    }
+
+    /// Requests namespace declarations for `namespaces` on the next element that
+    /// is started (typically the root). Namespaces that are already bound are
+    /// skipped.
+    pub fn predeclare(&amp;mut self, namespaces: &amp;[Ns]) {
+        self.predeclare.extend_from_slice(namespaces);
+    }
+
+    /// Number of currently open elements.
+    pub fn depth(&amp;self) -&gt; usize {
+        self.frames.len()
+    }
+
+    /// Returns the XML written so far.
+    pub fn finish(self) -&gt; String {
+        debug_assert!(self.frames.is_empty(), "unclosed elements");
+        self.out
+    }</code></pre>
+</figure>
+<p><code>Default</code> là một <strong>trait</strong> (bài 2.6 sẽ nói kỹ về trait) với đúng một hàm <code>fn default() -&gt; Self</code>: "giá trị mặc định của kiểu này". <code>#[derive(Default)]</code> bảo compiler tự viết hàm đó: mỗi trường nhận giá trị mặc định của kiểu của nó — <code>String</code> → <code>""</code>, <code>bool</code> → <code>false</code>, <code>Vec</code> → rỗng. Chỉ derive được khi <em>mọi trường</em> đều có <code>Default</code>.</p>
+<figure class="code">
+  <figcaption>Tự viết</figcaption>
+<pre><code class="language-rust">#[derive(Debug, Default)]
+struct Cfg { ten: String, so: u32, bat: bool, ds: Vec&lt;u8&gt; }
+
+println!("{:?}", Cfg::default());
+// Cfg { ten: "", so: 0, bat: false, ds: [] }</code></pre>
+</figure>
+<ul>
+  <li><code>pub fn new() -&gt; Self { Self::default() }</code> — <code>Self</code> là bí danh của kiểu đang impl (<code>XmlWriter</code>). Có cả <code>new()</code> lẫn <code>Default</code> là thói quen tốt trong Rust (công cụ lint Clippy còn nhắc nếu bạn có <code>new()</code> không tham số mà thiếu <code>Default</code>): người dùng gọi <code>XmlWriter::new()</code> cho quen tay, còn code generic cần <code>T: Default</code> vẫn dùng được.</li>
+  <li><code>with_declaration()</code> — tạo writer rồi ghi ngay dòng <code>&lt;?xml ...?&gt;</code>. Kiểu "constructor có tên" (named constructor): Rust không có overload, nên mỗi cách tạo khác nhau là một hàm tên khác nhau.</li>
+  <li><code>predeclare(&amp;mut self, namespaces: &amp;[Ns])</code> — <code>extend_from_slice</code> chép các <code>Ns</code> vào vector (<code>Ns</code> là <code>Copy</code>, chép rẻ).</li>
+  <li><code>depth()</code> — số thẻ đang mở chính là độ cao stack <code>frames</code>.</li>
+</ul>
+
+<h2 id="start-end">4. <code>start</code> / <code>attr</code> / <code>text</code> / <code>end</code>: máy trạng thái <code>open</code></h2>
+<h3 id="open-van-de">4.1 Vấn đề</h3>
+<p>Writer là streaming: ghi tới đâu nối vào <code>out</code> tới đó, không quay lại sửa. Khi gọi <code>start(Ns::W, "p")</code>, writer ghi <code>&lt;w:p</code> — nhưng <strong>chưa biết</strong> nên ghi tiếp <code>&gt;</code> hay <code>/&gt;</code>: còn attribute nào không? Thẻ có con không, hay rỗng? Lời giải: để thẻ "mở dở", đánh dấu <code>open = true</code>, và quyết định khi biết lệnh tiếp theo:</p>
+<figure class="code">
+  <figcaption>Máy trạng thái của cờ open</figcaption>
+<pre class="diagram"><code>                    start(): ghi "&lt;w:p" + các xmlns
+   ┌──────────┐    ─────────────────────────────▶   ┌──────────────────────┐
+   │ open =   │                                     │ open = true          │
+   │ false    │ ◀─── end(): ghi "/&gt;"  ───────────── │ (thẻ đang dở)        │ ◀─┐
+   └──────────┘                                     └──────────────────────┘   │ attr(): ghi ` a="v"`
+        │  ▲                                            │                 └────┘  (chỉ hợp lệ ở đây)
+        │  │ end(): ghi "&lt;/w:p&gt;"                        │ text() / start() con:
+        │  └────────────────────────────────────────────┘ close_start_tag() ghi "&gt;"
+        │                                                  rồi open = false
+        └─ text(): ghi text bình thường</code></pre>
+</figure>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L93-L98">crates/openxml-xml/src/writer.rs:93–98</figcaption>
+<pre><code class="language-rust">    fn close_start_tag(&amp;mut self) {
+        if self.open {
+            self.out.push('&gt;');
+            self.open = false;
+        }
+    }</code></pre>
+</figure>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L369-L391">crates/openxml-xml/src/writer.rs:369–391</figcaption>
+<pre><code class="language-rust">    /// Ends the innermost open element.
+    pub fn end(&amp;mut self) {
+        let frame = self.frames.pop().expect("end() without matching start");
+        if self.open {
+            self.out.push_str("/&gt;");
+            self.open = false;
+        } else {
+            self.out.push_str("&lt;/");
+            self.out.push_str(&amp;self.names[frame.name.clone()]);
+            self.out.push('&gt;');
+        }
+        self.names.truncate(frame.name.start);
+        self.bindings.truncate(frame.bindings_len);
+    }
+
+    /// Writes a complete element containing only text.
+    pub fn text_element(&amp;mut self, ns: Ns, local: &amp;str, text: &amp;str) {
+        self.start(ns, local);
+        if !text.is_empty() {
+            self.text(text);
+        }
+        self.end();
+    }</code></pre>
+</figure>
+<ul>
+  <li><code>close_start_tag</code> — "nếu thẻ còn dở thì đóng nó bằng <code>&gt;</code>". Được gọi ở đầu <code>open_element</code> (mở thẻ con), <code>text</code>, <code>text_value</code>. Gọi thừa cũng vô hại — đó là thiết kế <strong>idempotent</strong> (gọi nhiều lần như một lần).</li>
+  <li><code>end</code> — <code>self.frames.pop().expect("...")</code>: lấy frame trên đỉnh; không có (gọi <code>end</code> nhiều hơn <code>start</code>) thì <strong>panic</strong> — đó là lỗi lập trình của người gọi, không phải lỗi dữ liệu, nên panic là phù hợp (xem bài 2.3 về panic vs <code>Result</code>). Nếu <code>open</code> còn true → thẻ không có nội dung → ghi <code>/&gt;</code>. Ngược lại ghi thẻ đóng lấy tên từ <code>names[frame.name.clone()]</code> (<code>Range</code> không <code>Copy</code> nên phải <code>clone()</code> — rẻ, chỉ hai số). Cuối cùng cắt <code>names</code> và <code>bindings</code>.</li>
+  <li><code>text_element</code> — tiện ích: start + text (nếu không rỗng) + end. Text rỗng → <code>&lt;w:t/&gt;</code>.</li>
+</ul>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L288-L305">crates/openxml-xml/src/writer.rs:288–305</figcaption>
+<pre><code class="language-rust">    fn attr_name(&amp;mut self, ns: Ns, uri: Option&lt;&amp;str&gt;, hint: Option&lt;&amp;str&gt;, local: &amp;str) {
+        debug_assert!(self.open, "attributes must be written before content");
+        let prefix = self.attribute_prefix(ns, uri, hint);
+        self.out.push(' ');
+        if let Some(p) = prefix {
+            self.out.push_str(&amp;p);
+            self.out.push(':');
+        }
+        self.out.push_str(local);
+        self.out.push_str("=\"");
+    }
+
+    /// Writes an attribute of the current element.
+    pub fn attr(&amp;mut self, ns: Ns, local: &amp;str, value: &amp;str) {
+        self.attr_name(ns, None, None, local);
+        escape_attr(&amp;mut self.out, value);
+        self.out.push('"');
+    }</code></pre>
+</figure>
+<p><code>debug_assert!(self.open, "attributes must be written before content")</code> — attribute chỉ hợp lệ khi thẻ còn dở. Nếu bạn gọi <code>text()</code> rồi mới <code>attr()</code>, XML sẽ hỏng (<code>&lt;w:p&gt;abc w:x="1"</code>). <code>debug_assert!</code> kiểm tra điều này trong bản debug (lúc chạy test), còn bản release thì bị bỏ hẳn — không tốn chi phí. Đây là cách Rust diễn tả <strong>tiền điều kiện</strong> (precondition) của API.</p>
+
+<h3 id="trace">4.2 Theo dõi bằng bảng</h3>
+<p>Lấy test đầu tiên của file:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L450-L463">crates/openxml-xml/src/writer.rs:450–463</figcaption>
+<pre><code class="language-rust">    #[test]
+    fn writes_prefixed_elements_with_declarations() {
+        let mut w = XmlWriter::new();
+        w.start(Ns::W, "p");
+        w.attr(Ns::W, "rsidR", "00AB");
+        w.start(Ns::W, "r");
+        w.text_element(Ns::W, "t", "a &lt; b &amp; c &gt; d");
+        w.end();
+        w.end();
+        assert_eq!(
+            w.finish(),
+            r#"&lt;w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:rsidR="00AB"&gt;&lt;w:r&gt;&lt;w:t&gt;a &amp;lt; b &amp;amp; c &amp;gt; d&lt;/w:t&gt;&lt;/w:r&gt;&lt;/w:p&gt;"#
+        );
+    }</code></pre>
+</figure>
+<div class="table-wrap"><table>
+  <tr><th>Lệnh</th><th>Ghi thêm vào <code>out</code></th><th><code>open</code></th><th><code>names</code></th><th><code>bindings</code></th></tr>
+  <tr><td><code>start(W,"p")</code></td><td><code>&lt;w:p xmlns:w="…main"</code></td><td>true</td><td><code>w:p</code></td><td>[w→W]</td></tr>
+  <tr><td><code>attr(W,"rsidR","00AB")</code></td><td><code> w:rsidR="00AB"</code></td><td>true</td><td><code>w:p</code></td><td>[w→W]</td></tr>
+  <tr><td><code>start(W,"r")</code></td><td><code>&gt;</code> rồi <code>&lt;w:r</code></td><td>true</td><td><code>w:pw:r</code></td><td>[w→W]</td></tr>
+  <tr><td><code>text_element(W,"t",…)</code></td><td><code>&gt;&lt;w:t&gt;a &amp;lt; b &amp;amp; c &amp;gt; d&lt;/w:t&gt;</code></td><td>false</td><td><code>w:pw:r</code></td><td>[w→W]</td></tr>
+  <tr><td><code>end()</code></td><td><code>&lt;/w:r&gt;</code></td><td>false</td><td><code>w:p</code></td><td>[w→W]</td></tr>
+  <tr><td><code>end()</code></td><td><code>&lt;/w:p&gt;</code></td><td>false</td><td>(rỗng)</td><td>[]</td></tr>
+</table></div>
+<p>Chú ý: <code>w:r</code> và <code>w:t</code> không khai báo lại <code>xmlns:w</code> vì binding <code>w→W</code> của <code>w:p</code> vẫn còn trong stack — "nhìn thấy" được.</p>
+
+<h2 id="prefix">5. Chọn prefix</h2>
+<p>Đây là trái tim của writer. Bốn hàm, đọc từ dưới lên:</p>
+
+<h3 id="binding">5.1 <code>Binding</code>: một dòng khai báo</h3>
+<p>Mỗi <code>Binding</code> (dòng 20–42 ở trên) là một khai báo <code>prefix → namespace</code>. <code>uri</code> chỉ có giá trị khi <code>ns == Ns::OTHER</code> (namespace ngoài danh sách không suy ra URI được từ <code>Ns</code>). <code>matches(ns, uri)</code> so sánh: khác <code>Ns</code> → không khớp; cùng <code>Ns</code> và không phải OTHER → khớp; OTHER thì phải so thêm URI. Prefix rỗng <code>""</code> nghĩa là <strong>default namespace</strong>.</p>
+
+<h3 id="visible">5.2 <code>visible_prefix</code>: tìm prefix còn nhìn thấy (shadowing)</h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L100-L119">crates/openxml-xml/src/writer.rs:100–119</figcaption>
+<pre><code class="language-rust">    /// Finds the prefix of a visible (non-shadowed) binding for the namespace.
+    fn visible_prefix(&amp;self, ns: Ns, uri: Option&lt;&amp;str&gt;, allow_default: bool) -&gt; Option&lt;&amp;str&gt; {
+        for (i, b) in self.bindings.iter().enumerate().rev() {
+            if !b.matches(ns, uri) || (!allow_default &amp;&amp; b.prefix.is_empty()) {
+                continue;
+            }
+            let shadowed = self.bindings[i + 1..]
+                .iter()
+                .any(|later| later.prefix == b.prefix);
+            if !shadowed {
+                return Some(&amp;b.prefix);
+            }
+        }
+        None
+    }
+
+    /// The binding currently visible for `prefix`, if any.
+    fn binding_of_prefix(&amp;self, prefix: &amp;str) -&gt; Option&lt;&amp;Binding&gt; {
+        self.bindings.iter().rev().find(|b| b.prefix == prefix)
+    }</code></pre>
+</figure>
+<p>Duyệt <code>bindings</code> <strong>từ đỉnh xuống</strong> (<code>.enumerate().rev()</code> — đánh số rồi đảo chiều, để vẫn biết chỉ số <code>i</code>). Với mỗi binding khớp namespace:</p>
+<ul>
+  <li>Nếu <code>!allow_default &amp;&amp; b.prefix.is_empty()</code> → bỏ qua (dùng cho attribute — mục 5.5).</li>
+  <li>Kiểm tra <strong>bị che</strong> (shadowed): có binding nào <em>sau</em> nó (<code>self.bindings[i + 1..]</code>) dùng cùng prefix không? Nếu có thì prefix đó giờ trỏ tới namespace khác — không dùng được.</li>
+</ul>
+<p>Ví dụ shadowing: gốc khai báo <code>w → W</code>; thẻ con khai báo lại <code>w → urn:not-word</code>. Trong thẻ con, tìm prefix cho <code>Ns::W</code>: binding cũ <code>w → W</code> khớp nhưng bị binding mới cùng tên <code>w</code> che → không dùng được → phải khai báo prefix mới. <code>binding_of_prefix(prefix)</code> thì ngược lại: "prefix này hiện đang trỏ đi đâu?" — lấy binding gần đỉnh nhất có tên đó.</p>
+<p>Để ý kiểu trả về <code>Option&lt;&amp;str&gt;</code>: kết quả <strong>mượn</strong> từ <code>self.bindings</code> (luật elision thứ 3 của bài 2.4). Vì thế ở chỗ gọi luôn thấy <code>.to_owned()</code> — ta cần thả mượn ra để còn sửa <code>self</code> (push binding, ghi <code>out</code>).</p>
+
+<h3 id="fresh">5.3 <code>fresh_prefix</code>: iterator vô hạn</h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L121-L138">crates/openxml-xml/src/writer.rs:121–138</figcaption>
+<pre><code class="language-rust">    /// Chooses a prefix that can be bound on the current element without
+    /// conflicting with bindings in scope.
+    fn fresh_prefix(&amp;self, wanted: &amp;str) -&gt; String {
+        let usable =
+            |p: &amp;str| !p.is_empty() &amp;&amp; p != "xml" &amp;&amp; p != "xmlns" &amp;&amp; self.binding_of_prefix(p).is_none();
+        if usable(wanted) {
+            return wanted.to_owned();
+        }
+        let base = if wanted.is_empty() || wanted == "xml" || wanted == "xmlns" {
+            "ns"
+        } else {
+            wanted
+        };
+        (1..)
+            .map(|i| format!("{base}{i}"))
+            .find(|p| usable(p))
+            .expect("an unused prefix exists")
+    }</code></pre>
+</figure>
+<ol class="steps">
+  <li><code>let usable = |p: &amp;str| ...</code> — closure kiểm tra một prefix có dùng được không: không rỗng, không phải hai tên dành riêng <code>xml</code>/<code>xmlns</code>, và <strong>chưa bị binding nào đang có hiệu lực chiếm</strong>. Closure này mượn <code>self</code> (đọc <code>self.binding_of_prefix</code>) — được, vì <code>fresh_prefix</code> chỉ nhận <code>&amp;self</code>.</li>
+  <li>Nếu prefix mong muốn (<code>wanted</code>, ví dụ <code>"w"</code>) dùng được thì trả luôn.</li>
+  <li>Không thì chọn "gốc" để đánh số: tên rỗng/dành riêng → <code>"ns"</code>, còn lại giữ tên muốn.</li>
+  <li><code>(1..).map(|i| format!("{base}{i}")).find(|p| usable(p))</code> — đây là chỗ đẹp nhất. <code>1..</code> là <strong>range không có điểm cuối</strong>: 1, 2, 3, … mãi mãi. Nhưng iterator trong Rust là <strong>lười</strong>: <code>map</code> không chạy gì cả cho tới khi <code>find</code> kéo từng phần tử; <code>find</code> dừng ngay khi gặp phần tử đầu tiên thoả mãn. Kết quả: thử <code>w1</code>, <code>w2</code>… và dừng ở cái đầu tiên còn trống.</li>
+  <li><code>.expect("an unused prefix exists")</code> — <code>find</code> trả <code>Option</code>; về lý thuyết iterator vô hạn luôn tìm được (số binding hữu hạn), nên <code>expect</code> ghi lại "điều này không thể xảy ra" kèm lời giải thích.</li>
+</ol>
+<figure class="code">
+  <figcaption>Tự viết — cùng kỹ thuật</figcaption>
+<pre><code class="language-rust">fn prefix_moi(da_dung: &amp;[&amp;str], muon: &amp;str) -&gt; String {
+    if !da_dung.contains(&amp;muon) {
+        return muon.to_owned();
+    }
+    (1..)
+        .map(|i| format!("{muon}{i}"))
+        .find(|p| !da_dung.contains(&amp;p.as_str()))
+        .expect("luôn tìm được")
+}
+// prefix_moi(&amp;["w", "w1"], "w") == "w2"</code></pre>
+</figure>
+
+<h3 id="element-prefix">5.4 <code>element_prefix</code>: prefix cho thẻ</h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L140-L189">crates/openxml-xml/src/writer.rs:140–189</figcaption>
+<pre><code class="language-rust">    fn push_binding(&amp;mut self, prefix: String, ns: Ns, uri: Option&lt;&amp;str&gt;) {
+        self.bindings.push(Binding {
+            prefix,
+            ns,
+            uri: if ns == Ns::OTHER {
+                uri.map(str::to_owned)
+            } else {
+                None
+            },
+        });
+    }
+
+    fn write_binding(&amp;mut self, index: usize) {
+        let b = &amp;self.bindings[index];
+        self.out.push_str(" xmlns");
+        if !b.prefix.is_empty() {
+            self.out.push(':');
+            self.out.push_str(&amp;b.prefix);
+        }
+        self.out.push_str("=\"");
+        escape_attr(&amp;mut self.out, b.uri());
+        self.out.push('"');
+    }
+
+    fn element_prefix(&amp;mut self, ns: Ns, uri: Option&lt;&amp;str&gt;, hint: Option&lt;&amp;str&gt;) -&gt; String {
+        if ns == Ns::NONE {
+            // Unqualified element: make sure no default namespace applies.
+            if let Some(b) = self.binding_of_prefix("")
+                &amp;&amp; b.ns != Ns::NONE
+            {
+                self.push_binding(String::new(), Ns::NONE, None);
+            }
+            return String::new();
+        }
+        if ns == Ns::XML {
+            return "xml".into();
+        }
+        if let Some(p) = self.visible_prefix(ns, uri, true) {
+            return p.to_owned();
+        }
+        let wanted = hint.unwrap_or(ns.prefix());
+        let prefix = if wanted.is_empty() {
+            // The element was unprefixed in its source: bind the default namespace.
+            String::new()
+        } else {
+            self.fresh_prefix(wanted)
+        };
+        self.push_binding(prefix.clone(), ns, uri);
+        prefix
+    }</code></pre>
+</figure>
+<p>Hai hàm phụ ở đầu đoạn: <code>push_binding</code> đẩy một binding lên stack (chỉ lưu URI khi <code>ns == Ns::OTHER</code> — <code>uri.map(str::to_owned)</code> đổi <code>Option&lt;&amp;str&gt;</code> thành <code>Option&lt;String&gt;</code>); <code>write_binding</code> ghi binding thứ <code>index</code> ra <code>out</code> dạng <code> xmlns="…"</code> hoặc <code> xmlns:p="…"</code>, URI được escape như giá trị attribute. Còn quy trình quyết định cho một <strong>thẻ</strong>:</p>
+<ol>
+  <li><strong><code>Ns::NONE</code></strong> (thẻ không namespace): nếu default namespace đang trỏ vào một namespace thật, push binding <code>"" → NONE</code>. Binding này sẽ được <code>write_binding</code> ghi thành <code>xmlns=""</code> (vì <code>Ns::NONE.uri()</code> là chuỗi rỗng). Trả prefix rỗng.</li>
+  <li><strong><code>Ns::XML</code></strong>: prefix <code>xml</code> luôn có sẵn, không bao giờ khai báo.</li>
+  <li><strong>Đã có prefix nhìn thấy</strong> (kể cả default — <code>allow_default = true</code>): dùng lại.</li>
+  <li><strong>Chưa có</strong>: lấy gợi ý (<code>hint</code> — prefix trong file nguồn, nếu thẻ đọc từ file) hoặc prefix quen dùng <code>ns.prefix()</code>. Gợi ý rỗng (thẻ nguồn không có prefix) → bind luôn default namespace; không thì <code>fresh_prefix</code>. Push binding mới — nó sẽ được ghi thành <code>xmlns:…</code> trong <code>open_element</code>.</li>
+</ol>
+<p>Kết quả trả về là <code>String</code> (sở hữu) chứ không phải <code>&amp;str</code>: <code>element_prefix</code> nhận <code>&amp;mut self</code> và có thể push binding, nên không thể trả về một thứ đang mượn <code>self.bindings</code> rồi để người gọi tiếp tục sửa <code>self</code>. Một <code>String</code> ngắn như <code>"w"</code> là cái giá nhỏ để code đơn giản.</p>
+<p>Chạy thử trường hợp 1 (mình viết example tạm):</p>
+<figure class="code">
+  <figcaption>Tự viết</figcaption>
+<pre><code class="language-rust">let mut w = XmlWriter::new();
+w.predeclare(&amp;[Ns::X]);
+w.start(Ns::X, "worksheet");
+w.start(Ns::NONE, "foo");
+w.end();
+w.end();
+println!("{}", w.finish());</code></pre>
+</figure>
+<figure class="code">
+  <figcaption>Output thật</figcaption>
+<pre><code class="language-xml">&lt;worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"&gt;&lt;foo xmlns=""/&gt;&lt;/worksheet&gt;</code></pre>
+</figure>
+<p>Nếu thiếu <code>xmlns=""</code>, reader (và Excel) sẽ đọc <code>&lt;foo&gt;</code> thành <code>{spreadsheetml}foo</code> — sai danh tính.</p>
+
+<h3 id="attribute-prefix">5.5 <code>attribute_prefix</code>: attribute không bao giờ dùng default namespace</h3>
+<p>Đây là luật của chuẩn <em>Namespaces in XML</em>: <strong>default namespace chỉ áp dụng cho tên thẻ</strong>. Attribute không prefix thì ở "không namespace" — bất kể <code>xmlns="…"</code> đang là gì. Ở bài 2.4 bạn đã thấy reader tuân thủ luật này (<code>ResolveResult::Unbound</code> → <code>Ns::NONE</code>). Writer phải làm chiều ngược lại: attribute thuộc một namespace thật thì <strong>bắt buộc có prefix</strong>, kể cả khi namespace đó đang là default.</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L191-L206">crates/openxml-xml/src/writer.rs:191–206</figcaption>
+<pre><code class="language-rust">    fn attribute_prefix(&amp;mut self, ns: Ns, uri: Option&lt;&amp;str&gt;, hint: Option&lt;&amp;str&gt;) -&gt; Option&lt;String&gt; {
+        match ns {
+            Ns::NONE =&gt; return None,
+            Ns::XML =&gt; return Some("xml".into()),
+            _ =&gt; {}
+        }
+        if let Some(p) = self.visible_prefix(ns, uri, false) {
+            return Some(p.to_owned());
+        }
+        let wanted = hint.filter(|h| !h.is_empty()).unwrap_or(ns.prefix());
+        let prefix = self.fresh_prefix(wanted);
+        self.push_binding(prefix.clone(), ns, uri);
+        let idx = self.bindings.len() - 1;
+        self.write_binding(idx);
+        Some(prefix)
+    }</code></pre>
+</figure>
+<ul>
+  <li><code>Ns::NONE</code> → <code>None</code> (không prefix); <code>Ns::XML</code> → <code>xml</code>. Để ý <code>return</code> bên trong nhánh <code>match</code>, còn <code>_ =&gt; {}</code> thì "đi tiếp".</li>
+  <li><code>visible_prefix(ns, uri, false)</code> — <code>allow_default = false</code>: bỏ qua binding prefix rỗng.</li>
+  <li><code>hint.filter(|h| !h.is_empty())</code> — <code>Option::filter</code> giữ giá trị nếu thoả điều kiện, không thì thành <code>None</code>; rồi <code>unwrap_or(ns.prefix())</code>.</li>
+  <li>Khác với thẻ: khai báo mới được <strong>ghi ngay</strong> (<code>write_binding(idx)</code>), vì lúc này ta đang ở giữa thẻ mở dở — ghi <code> xmlns:x="…"</code> ngay trước attribute vẫn nằm trong thẻ. Binding vẫn được push vào stack nên <code>end()</code> dọn đúng.</li>
+</ul>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L489-L500">crates/openxml-xml/src/writer.rs:489–500 — cùng URI, hai khai báo</figcaption>
+<pre><code class="language-rust">    #[test]
+    fn attributes_never_use_the_default_namespace() {
+        let mut w = XmlWriter::new();
+        w.predeclare(&amp;[Ns::X]);
+        w.start(Ns::X, "a");
+        w.attr(Ns::X, "b", "1");
+        w.end();
+        assert_eq!(
+            w.finish(),
+            r#"&lt;a xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main" x:b="1"/&gt;"#
+        );
+    }</code></pre>
+</figure>
+<p>Kết quả trông "thừa" — cùng một URI khai báo hai lần, một default, một <code>x:</code> — nhưng là cách <em>duy nhất</em> đúng để thẻ không prefix và attribute thuộc SpreadsheetML cùng tồn tại.</p>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — let chains (edition 2024) và <code>is_some_and</code></span>
+  <p>Dòng 167–169: <code>if let Some(b) = self.binding_of_prefix("") &amp;&amp; b.ns != Ns::NONE { ... }</code>. Đây là <strong>let chain</strong>: nối <code>if let</code> với điều kiện thường bằng <code>&amp;&amp;</code>. Tính năng này chỉ có từ <strong>edition 2024</strong> (workspace khai báo <code>edition = "2024"</code>, <code>rust-version = "1.88"</code> ở <code>Cargo.toml</code> gốc). Trước đó phải viết lồng hai tầng <code>if let Some(b) = … { if b.ns != Ns::NONE { … } }</code>. Tinh tế hơn: <code>b</code> mượn <code>self</code>, nhưng trong thân <code>if</code> lại gọi <code>self.push_binding(...)</code> (cần <code>&amp;mut self</code>). Hợp lệ vì <code>b</code> không được dùng trong thân — compiler (NLL, "non-lexical lifetimes") biết mượn đã kết thúc sau điều kiện.</p>
+  <p>Anh em của nó là <code>Option::is_some_and</code> ở dòng 225: <code>self.binding_of_prefix(prefix).is_some_and(|b| b.matches(target, Some(&amp;a.value)))</code> — "có binding <em>và</em> binding đó khớp". Gọn hơn <code>match</code> hay <code>map(...).unwrap_or(false)</code>.</p>
+</div>
+<figure class="code">
+  <figcaption>Tự viết — hai cách viết cùng ý</figcaption>
+<pre><code class="language-rust">let x: Option&lt;u32&gt; = Some(3);
+if let Some(n) = x &amp;&amp; n &gt; 2 { println!("let chain"); }   // edition 2024
+if x.is_some_and(|n| n &gt; 2) { println!("is_some_and"); }</code></pre>
+</figure>
+
+<h2 id="open-element">6. <code>open_element</code>: ráp mọi thứ lại</h2>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L208-L267">crates/openxml-xml/src/writer.rs:208–267</figcaption>
+<pre><code class="language-rust">    fn open_element(
+        &amp;mut self,
+        ns: Ns,
+        uri: Option&lt;&amp;str&gt;,
+        hint: Option&lt;&amp;str&gt;,
+        local: &amp;str,
+        attrs: &amp;[RawAttribute],
+    ) {
+        self.close_start_tag();
+        let start = self.bindings.len();
+        // Explicit declarations captured from the source document.
+        for a in attrs.iter().filter(|a| a.is_namespace_declaration()) {
+            let prefix: &amp;str = &amp;a.name.local;
+            let declared_here = self.bindings[start..].iter().any(|b| b.prefix == prefix);
+            let target = Ns::classify(&amp;a.value);
+            let redundant = self
+                .binding_of_prefix(prefix)
+                .is_some_and(|b| b.matches(target, Some(&amp;a.value)));
+            if declared_here || redundant || prefix == "xml" || prefix == "xmlns" {
+                continue;
+            }
+            self.push_binding(prefix.to_owned(), target, Some(&amp;a.value));
+        }
+        // Declarations requested for the root element of a part.
+        for ns in std::mem::take(&amp;mut self.predeclare) {
+            if !ns.is_known() || ns == Ns::XML || ns == Ns::XMLNS {
+                continue;
+            }
+            if self.visible_prefix(ns, None, true).is_some() {
+                continue;
+            }
+            let default_free = !self.bindings[start..].iter().any(|b| b.prefix.is_empty())
+                &amp;&amp; self.binding_of_prefix("").is_none();
+            let prefix = if ns.default_on_root() &amp;&amp; default_free {
+                String::new()
+            } else if self.binding_of_prefix(ns.prefix()).is_none() {
+                ns.prefix().to_owned()
+            } else {
+                continue;
+            };
+            self.push_binding(prefix, ns, None);
+        }
+        let prefix = self.element_prefix(ns, uri, hint);
+        self.out.push('&lt;');
+        let name_start = self.names.len();
+        if !prefix.is_empty() {
+            self.names.push_str(&amp;prefix);
+            self.names.push(':');
+        }
+        self.names.push_str(local);
+        self.out.push_str(&amp;self.names[name_start..]);
+        for i in start..self.bindings.len() {
+            self.write_binding(i);
+        }
+        self.frames.push(Frame {
+            name: name_start..self.names.len(),
+            bindings_len: start,
+        });
+        self.open = true;
+    }</code></pre>
+</figure>
+<p>Theo thứ tự:</p>
+<ol class="steps">
+  <li><strong>Đóng thẻ cha nếu dở</strong> và ghi nhớ <code>start = self.bindings.len()</code> — mọi binding từ vị trí này trở đi thuộc về thẻ đang mở.</li>
+  <li><strong>Khai báo gốc từ file nguồn</strong> (<code>attrs</code> lọc bằng <code>is_namespace_declaration</code>): khi đọc một file rồi ghi lại, các <code>xmlns:…</code> trong file nguồn được giữ trong <code>extra_attrs</code> (bài 2.7). Mỗi khai báo bị bỏ qua nếu: trùng prefix đã khai báo trên chính thẻ này (<code>declared_here</code>), thừa vì tổ tiên đã khai báo y hệt (<code>redundant</code>), hoặc là <code>xml</code>/<code>xmlns</code>. Còn lại thì push — <strong>giữ đúng prefix gốc</strong>. <code>Ns::classify(&amp;a.value)</code> đổi URI sang <code>Ns</code> (URI lạ → <code>OTHER</code>).</li>
+  <li><strong>Predeclare</strong>: <code>for ns in std::mem::take(&amp;mut self.predeclare)</code>. Mỗi namespace: bỏ qua nếu không phải namespace thật hoặc đã nhìn thấy; nếu <code>ns.default_on_root()</code> và default còn trống → dùng làm default; nếu prefix quen dùng còn trống → dùng; còn không thì bỏ (để <code>element_prefix</code>/<code>attribute_prefix</code> lo khi thật sự cần).</li>
+  <li><strong>Prefix cho chính thẻ</strong>: <code>element_prefix</code>.</li>
+  <li><strong>Ghi</strong>: <code>&lt;</code> + tên (vừa nối vào <code>names</code>, rồi chép từ <code>names</code> sang <code>out</code>) + mọi binding từ <code>start</code> (<code> xmlns:…="…"</code>). Push frame, bật <code>open</code>.</li>
+</ol>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — <code>std::mem::take</code> để "rút" dữ liệu khỏi <code>self</code></span>
+  <p>Vì sao không viết <code>for ns in &amp;self.predeclare { ... self.push_binding(...) }</code>? Vì vòng lặp đang mượn <code>self.predeclare</code> (đọc) trong khi thân vòng lặp gọi method <code>&amp;mut self</code> — mượn ghi toàn bộ <code>self</code>. Hai cái chồng nhau → lỗi mượn. <code>std::mem::take(&amp;mut x)</code> thay <code>x</code> bằng giá trị <code>Default</code> (vector rỗng) và trả lại giá trị cũ cho bạn <strong>sở hữu</strong>. Vòng lặp duyệt vector đã rút ra, không còn dính gì tới <code>self</code>. Thêm một lợi ích đúng ý đồ: predeclare "dùng một lần" — sau thẻ gốc, danh sách tự rỗng. Đây là họ hàng của <code>Option::take</code> bạn đã gặp ở bài 2.4.</p>
+</div>
+
+<h3 id="predeclare">6.1 Predeclare và <code>default_on_root</code></h3>
+<p>Office quen khai báo mọi namespace của part ngay trên thẻ gốc, và với Excel thì dùng SpreadsheetML làm default. Nếu chỉ khai báo "khi cần", thẻ <code>r:id</code> nằm sâu bên trong sẽ mang <code>xmlns:r</code> riêng ở từng thẻ — hợp lệ nhưng lặp lại và khác thói quen Office. <code>predeclare</code> giải quyết điều đó. Test sau (mình chép đúng output mà test khẳng định):</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L465-L487">crates/openxml-xml/src/writer.rs:465–487</figcaption>
+<pre><code class="language-rust">    #[test]
+    fn predeclares_root_namespaces_and_default_namespace() {
+        let mut w = XmlWriter::with_declaration();
+        w.predeclare(&amp;[Ns::X, Ns::R, Ns::MC]);
+        w.start(Ns::X, "worksheet");
+        w.start(Ns::X, "sheetData");
+        w.end();
+        w.start(Ns::X, "drawing");
+        w.attr(Ns::R, "id", "rId1");
+        w.end();
+        w.end();
+        let xml = w.finish();
+        assert_eq!(
+            xml,
+            concat!(
+                "&lt;?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?&gt;\r\n",
+                r#"&lt;worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" "#,
+                r#"xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" "#,
+                r#"xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"&gt;"#,
+                r#"&lt;sheetData/&gt;&lt;drawing r:id="rId1"/&gt;&lt;/worksheet&gt;"#
+            )
+        );
+    }</code></pre>
+</figure>
+<p>Lần theo vòng predeclare với <code>[X, R, MC]</code>:</p>
+<ul>
+  <li><code>X</code>: <code>Ns::X.default_on_root()</code> là <code>true</code> (khai báo trong bảng namespace ở <code>ns.rs</code>, cùng với <code>EP</code>, <code>OP</code>, <code>CT</code>, <code>PR</code> — các part Excel, docProps và OPC) và chưa có default → prefix rỗng → <code>xmlns="…spreadsheetml…"</code>.</li>
+  <li><code>R</code>: không default_on_root; prefix <code>r</code> còn trống → <code>xmlns:r</code>.</li>
+  <li><code>MC</code>: tương tự → <code>xmlns:mc</code>.</li>
+  <li>Sau đó <code>element_prefix(X)</code> tìm thấy binding default → <code>&lt;worksheet</code> không prefix. Ở <code>drawing</code>, <code>attr(Ns::R, "id", …)</code> dùng lại <code>r</code> đã khai báo ở gốc → <code>r:id="rId1"</code> mà không khai báo lại.</li>
+</ul>
+<p>Trong dự án, <code>ElementDef::to_xml</code> (dùng để ghi mọi part từ struct sinh ra) gọi đúng bộ ba này:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/element.rs#L139-L152">crates/openxml-xml/src/element.rs:139–152</figcaption>
+<pre><code class="language-rust">impl&lt;T: XmlWrite&gt; ElementDef&lt;T&gt; {
+    /// Serializes a value as a complete XML document with this element as root.
+    pub fn to_xml(&amp;self, value: &amp;T) -&gt; String {
+        let mut w = XmlWriter::with_declaration();
+        w.predeclare(self.namespaces);
+        value.write_xml(&amp;mut w, self.ns, self.local);
+        w.finish()
+    }
+
+    /// Serializes a value as UTF-8 document bytes.
+    pub fn to_bytes(&amp;self, value: &amp;T) -&gt; Vec&lt;u8&gt; {
+        self.to_xml(value).into_bytes()
+    }
+}</code></pre>
+</figure>
+<p><code>into_bytes()</code> ở <code>to_bytes</code> biến <code>String</code> thành <code>Vec&lt;u8&gt;</code> mà <strong>không chép</strong> — String vốn là Vec byte UTF-8 bên trong, chỉ là "bóc vỏ".</p>
+
+<h3 id="conflict">6.2 Trường hợp xung đột prefix</h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L518-L543">crates/openxml-xml/src/writer.rs:518–543</figcaption>
+<pre><code class="language-rust">    #[test]
+    fn conflicting_prefixes_get_fresh_names() {
+        let mut w = XmlWriter::new();
+        let decl = RawAttribute::namespace_declaration("w", "urn:not-word");
+        w.start_raw(
+            &amp;RawName::with_uri("urn:not-word", Some("w"), "root"),
+            std::slice::from_ref(&amp;decl),
+        );
+        w.start(Ns::W, "p");
+        w.end();
+        w.end();
+        let xml = w.finish();
+        assert_eq!(
+            xml,
+            format!(
+                r#"&lt;w:root xmlns:w="urn:not-word"&gt;&lt;w1:p xmlns:w1="{}"/&gt;&lt;/w:root&gt;"#,
+                Ns::W.uri()
+            )
+        );
+        // The output must be well-formed and resolve to the right namespaces.
+        let mut r = XmlReader::new(&amp;xml);
+        let root = r.root().unwrap();
+        assert_eq!(root.ns(), Ns::OTHER);
+        let p = r.next_child().unwrap().unwrap();
+        assert_eq!(p.ns(), Ns::W);
+    }</code></pre>
+</figure>
+<p>File nguồn dùng <code>w</code> cho <code>urn:not-word</code>. Bên trong, ghi một <code>Ns::W</code>: <code>visible_prefix(W)</code> không thấy gì (binding <code>w</code> hiện trỏ URI lạ) → <code>fresh_prefix("w")</code>: <code>w</code> bị chiếm → thử <code>w1</code> → trống → <code>&lt;w1:p xmlns:w1="…main"/&gt;</code>. Test còn đọc lại bằng <code>XmlReader</code> (bài 2.4) để chắc output resolve đúng namespace. Mình mở rộng ví dụ để thấy scope đóng lại thì <code>w</code> "hồi sinh":</p>
+<figure class="code">
+  <figcaption>Output thật — thêm một &lt;w:p&gt; sau khi thẻ lạ đóng</figcaption>
+<pre><code class="language-xml">&lt;w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"&gt;&lt;w:inner xmlns:w="urn:not-word"&gt;&lt;w1:p xmlns:w1="http://schemas.openxmlformats.org/wordprocessingml/2006/main"/&gt;&lt;/w:inner&gt;&lt;w:p/&gt;&lt;/w:document&gt;</code></pre>
+</figure>
+<p>Sau <code>&lt;/w:inner&gt;</code>, <code>truncate</code> xoá binding <code>w → urn:not-word</code>; binding gốc <code>w → W</code> hết bị che, nên <code>&lt;w:p/&gt;</code> cuối dùng lại <code>w</code>.</p>
+
+<h2 id="escape">7. Escape: <code>escape_text</code>, <code>escape_attr</code>, <code>is_xml_char</code></h2>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L394-L443">crates/openxml-xml/src/writer.rs:394–443</figcaption>
+<pre><code class="language-rust">/// Whether text needs `xml:space="preserve"` to survive whitespace handling of consumers.
+pub fn needs_space_preserve(s: &amp;str) -&gt; bool {
+    s.starts_with(char::is_whitespace) || s.ends_with(char::is_whitespace) || s.contains(['\n', '\t'])
+}
+
+fn is_xml_char(c: char) -&gt; bool {
+    matches!(c, '\u{9}' | '\u{A}' | '\u{D}' | '\u{20}'..='\u{D7FF}' | '\u{E000}'..='\u{FFFD}' | '\u{10000}'..)
+}
+
+/// Escapes character data. Characters that XML 1.0 cannot represent are dropped.
+pub fn escape_text(out: &amp;mut String, s: &amp;str) {
+    let mut last = 0;
+    for (i, c) in s.char_indices() {
+        let rep = match c {
+            '&amp;' =&gt; "&amp;amp;",
+            '&lt;' =&gt; "&amp;lt;",
+            '&gt;' =&gt; "&amp;gt;",
+            '\r' =&gt; "&amp;#xD;",
+            c if !is_xml_char(c) =&gt; "",
+            _ =&gt; continue,
+        };
+        out.push_str(&amp;s[last..i]);
+        out.push_str(rep);
+        last = i + c.len_utf8();
+    }
+    out.push_str(&amp;s[last..]);
+}
+
+/// Escapes an attribute value so that it survives attribute-value normalization.
+/// Characters that XML 1.0 cannot represent are dropped.
+pub fn escape_attr(out: &amp;mut String, s: &amp;str) {
+    let mut last = 0;
+    for (i, c) in s.char_indices() {
+        let rep = match c {
+            '&amp;' =&gt; "&amp;amp;",
+            '&lt;' =&gt; "&amp;lt;",
+            '&gt;' =&gt; "&amp;gt;",
+            '"' =&gt; "&amp;quot;",
+            '\t' =&gt; "&amp;#x9;",
+            '\n' =&gt; "&amp;#xA;",
+            '\r' =&gt; "&amp;#xD;",
+            c if !is_xml_char(c) =&gt; "",
+            _ =&gt; continue,
+        };
+        out.push_str(&amp;s[last..i]);
+        out.push_str(rep);
+        last = i + c.len_utf8();
+    }
+    out.push_str(&amp;s[last..]);
+}</code></pre>
+</figure>
+
+<h3 id="chep-doan">7.1 Kỹ thuật "chép đoạn chưa đổi"</h3>
+<p>Cách ngây thơ để escape: duyệt từng ký tự, ký tự thường thì <code>out.push(c)</code>, ký tự đặc biệt thì <code>out.push_str("&amp;amp;")</code>. Đúng, nhưng push từng ký tự một thì chậm. Hầu hết text <em>không</em> có ký tự đặc biệt — tốt nhất là chép cả đoạn một lần. Kỹ thuật: giữ <code>last</code> = vị trí bắt đầu đoạn "chưa chép". Mỗi khi gặp ký tự cần thay ở vị trí <code>i</code>: chép nguyên đoạn <code>s[last..i]</code>, chép chuỗi thay thế, dời <code>last</code> qua ký tự đó. Hết vòng thì chép đoạn cuối <code>s[last..]</code>. Text không có ký tự đặc biệt → đúng <strong>một</strong> lệnh <code>push_str</code>.</p>
+<figure class="code">
+  <figcaption>Tự viết — bản rút gọn chỉ escape &amp;</figcaption>
+<pre><code class="language-rust">fn escape_amp(out: &amp;mut String, s: &amp;str) {
+    let mut last = 0;
+    for (i, c) in s.char_indices() {
+        if c == '&amp;' {
+            out.push_str(&amp;s[last..i]);   // đoạn chưa đổi
+            out.push_str("&amp;amp;");
+            last = i + c.len_utf8();     // nhảy qua ký tự vừa thay
+        }
+    }
+    out.push_str(&amp;s[last..]);            // đoạn cuối
+}
+// escape_amp(&amp;mut out, "a&amp;b&amp;c")  →  "a&amp;amp;b&amp;amp;c"</code></pre>
+</figure>
+<ul>
+  <li><code>s.char_indices()</code> cho cặp <code>(vị trí byte, ký tự)</code>. Phải dùng vị trí <strong>byte</strong> vì slice <code>&amp;s[a..b]</code> tính theo byte (bài 2.4, mục 2.2). Dùng <code>.chars().enumerate()</code> sẽ ra chỉ số <em>ký tự</em> — sai ngay khi gặp chữ có dấu.</li>
+  <li><code>c.len_utf8()</code> — số byte của ký tự (1–4), để nhảy đúng qua nó.</li>
+  <li>Trong code thật, <code>let rep = match c { ... _ =&gt; continue };</code> — ký tự thường thì <code>continue</code> (kiểu <code>!</code>, như ở <code>read_raw</code> bài 2.4); ký tự đặc biệt cho ra chuỗi thay thế. Ký tự không hợp lệ (<code>c if !is_xml_char(c) =&gt; ""</code>) thay bằng chuỗi rỗng = <strong>xoá</strong>.</li>
+  <li>Hàm nhận <code>out: &amp;mut String</code> thay vì trả về <code>String</code> mới: ghi thẳng vào bộ đệm của writer, không cấp phát chuỗi trung gian. Đây là kiểu API "output parameter" rất hay gặp trong code Rust cần nhanh.</li>
+</ul>
+
+<h3 id="vi-sao-escape">7.2 Vì sao escape khác nhau giữa text và attribute?</h3>
+<div class="table-wrap"><table>
+  <tr><th>Ký tự</th><th>Trong text</th><th>Trong attribute</th><th>Lý do</th></tr>
+  <tr><td><code>&amp;</code> <code>&lt;</code></td><td>escape</td><td>escape</td><td>Bắt buộc theo cú pháp XML</td></tr>
+  <tr><td><code>&gt;</code></td><td>escape</td><td>escape</td><td>Không bắt buộc (trừ chuỗi <code>]]&gt;</code>), escape cho an toàn</td></tr>
+  <tr><td><code>"</code></td><td>giữ</td><td><code>&amp;quot;</code></td><td>Giá trị attribute được bao bằng <code>"</code></td></tr>
+  <tr><td><code>\t</code> <code>\n</code></td><td>giữ</td><td><code>&amp;#x9;</code> <code>&amp;#xA;</code></td><td>Reader chuẩn hoá tab/xuống dòng <em>chữ</em> trong attribute thành dấu cách</td></tr>
+  <tr><td><code>\r</code></td><td><code>&amp;#xD;</code></td><td><code>&amp;#xD;</code></td><td>Reader đổi <code>\r\n</code> → <code>\n</code>; chỉ tham chiếu ký tự mới sống sót</td></tr>
+</table></div>
+<p>Nhớ test <code>normalises_line_endings_and_attribute_whitespace</code> ở bài 2.4? Writer là "nửa kia" của nó: escape đúng những ký tự mà reader sẽ chuẩn hoá, để dữ liệu đi <strong>một vòng ghi → đọc</strong> không đổi. Hai test dưới kiểm chứng đúng điều đó bằng cách đọc lại output qua <code>XmlReader</code>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L562-L584">crates/openxml-xml/src/writer.rs:562–584</figcaption>
+<pre><code class="language-rust">    #[test]
+    fn escapes_attribute_whitespace_and_quotes() {
+        let mut w = XmlWriter::new();
+        w.start(Ns::NONE, "a");
+        w.attr(Ns::NONE, "v", "x\t\"y\"\n\r&amp;&lt;&gt;");
+        w.end();
+        let xml = w.finish();
+        assert_eq!(xml, r#"&lt;a v="x&amp;#x9;&amp;quot;y&amp;quot;&amp;#xA;&amp;#xD;&amp;amp;&amp;lt;&amp;gt;"/&gt;"#);
+        let mut r = XmlReader::new(&amp;xml);
+        let a = r.root().unwrap();
+        assert_eq!(a.attr(Ns::NONE, "v").as_deref(), Some("x\t\"y\"\n\r&amp;&lt;&gt;"));
+    }
+
+    #[test]
+    fn text_round_trips_carriage_returns_and_drops_invalid_chars() {
+        let mut w = XmlWriter::new();
+        w.text_element(Ns::NONE, "t", "a\r\nb\u{1}c\u{FFFF}");
+        let xml = w.finish();
+        assert_eq!(xml, "&lt;t&gt;a&amp;#xD;\nbc&lt;/t&gt;");
+        let mut r = XmlReader::new(&amp;xml);
+        let t = r.root().unwrap();
+        assert_eq!(r.read_text(&amp;t).unwrap(), "a\r\nbc");
+    }</code></pre>
+</figure>
+
+<h3 id="is-xml-char">7.3 <code>is_xml_char</code>: <code>matches!</code> và range pattern</h3>
+<p>XML 1.0 không biểu diễn được mọi ký tự Unicode: ký tự điều khiển như <code>U+0001</code> hay <code>U+FFFF</code> là cấm, kể cả dưới dạng <code>&amp;#x1;</code>. Chuẩn liệt kê các khoảng hợp lệ: <code>#x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]</code>. Code chép gần như nguyên văn:</p>
+<ul>
+  <li><code>matches!(giá_trị, pattern)</code> — macro trả <code>bool</code>: "giá trị có khớp pattern không?". Tương đương <code>match c { pattern =&gt; true, _ =&gt; false }</code> nhưng gọn.</li>
+  <li><code>'\u{20}'..='\u{D7FF}'</code> — <strong>range pattern</strong> đóng hai đầu (<code>..=</code>), dùng được với <code>char</code> và số.</li>
+  <li><code>'\u{10000}'..</code> — range pattern không có đầu trên: "từ U+10000 trở lên". Vì <code>char</code> của Rust tối đa là <code>U+10FFFF</code>, nó trùng khớp đúng khoảng cuối của chuẩn.</li>
+  <li><code>|</code> nối nhiều pattern: khớp một trong số đó.</li>
+</ul>
+<figure class="code">
+  <figcaption>Tự viết</figcaption>
+<pre><code class="language-rust">fn la_chu_so_hoac_gach(c: char) -&gt; bool {
+    matches!(c, '0'..='9' | '-' | '_')
+}</code></pre>
+</figure>
+<p>Chính sách "gặp ký tự cấm thì <strong>xoá</strong>" (test ở dòng 575–584: <code>"a\r\nb\u{1}c\u{FFFF}"</code> → <code>"a&amp;#xD;\nbc"</code>) là một lựa chọn: thay vì làm hỏng cả file (parser XML 1.0 chuẩn sẽ từ chối cả <code>&amp;#x1;</code>, nên Office không mở được), dự án chấp nhận mất vài ký tự vô hình. Lựa chọn khác là trả lỗi — nhưng khi đó mọi hàm ghi phải trả <code>Result</code>.</p>
+
+<h2 id="finish">8. <code>finish(self)</code>: tiêu thụ writer</h2>
+<p>Nhìn lại chữ ký ở mục 3: <code>pub fn finish(self) -&gt; String</code>. Không phải <code>&amp;self</code>, không phải <code>&amp;mut self</code> — mà là <code>self</code>: method <strong>lấy luôn quyền sở hữu</strong> writer. Sau khi gọi, biến writer đã bị move, không dùng được nữa:</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ</figcaption>
+<pre><code class="language-rust">let mut w = XmlWriter::new();
+w.text_element(Ns::NONE, "a", "x");
+let xml: String = w.finish();   // w bị "tiêu thụ"
+// w.start(Ns::NONE, "b");      // lỗi E0382: borrow of moved value: `w`</code></pre>
+</figure>
+<p>Lợi ích kép:</p>
+<ul>
+  <li><strong>Không chép</strong>: <code>self.out</code> được move thẳng ra ngoài — không cần <code>clone()</code> chuỗi có thể dài vài chục MB. Với <code>&amp;self</code> thì chỉ có thể trả bản sao hoặc tham chiếu.</li>
+  <li><strong>API không dùng sai được</strong>: "ghi tiếp sau khi đã lấy kết quả" bị compiler chặn. Đây là pattern <strong>consuming builder</strong> — dùng hệ thống ownership để mã hoá vòng đời của đối tượng.</li>
+</ul>
+<p><code>debug_assert!(self.frames.is_empty(), "unclosed elements")</code> — quên <code>end()</code> thì trong test sẽ panic ngay với thông điệp rõ ràng; ở bản release không kiểm (tiết kiệm), và bạn nhận về XML thiếu thẻ đóng. Lựa chọn này hợp lý vì code gọi writer chủ yếu là code sinh ra, đã được test kỹ.</p>
+<figure class="code">
+  <figcaption>Tự viết — cùng ý tưởng</figcaption>
+<pre><code class="language-rust">struct Hop { giay: Vec&lt;String&gt; }
+impl Hop {
+    fn dong_goi(self) -&gt; Vec&lt;String&gt; { self.giay }   // move ra, không chép
+}</code></pre>
+</figure>
+
+<h2 id="scratch">9. Bộ đệm <code>scratch</code>: dùng lại để giảm cấp phát</h2>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L307-L314">crates/openxml-xml/src/writer.rs:307–314</figcaption>
+<pre><code class="language-rust">    /// Writes an attribute whose value is a schema simple type.
+    pub fn attr_value&lt;T: XmlValue&gt;(&amp;mut self, ns: Ns, local: &amp;str, value: &amp;T) {
+        self.attr_name(ns, None, None, local);
+        self.scratch.clear();
+        value.write_xml(&amp;mut self.scratch);
+        escape_attr(&amp;mut self.out, &amp;self.scratch);
+        self.out.push('"');
+    }</code></pre>
+</figure>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L341-L367">crates/openxml-xml/src/writer.rs:341–367</figcaption>
+<pre><code class="language-rust">    /// Writes a simple-type value as character data.
+    pub fn text_value&lt;T: XmlValue&gt;(&amp;mut self, value: &amp;T) {
+        self.close_start_tag();
+        self.scratch.clear();
+        value.write_xml(&amp;mut self.scratch);
+        escape_text(&amp;mut self.out, &amp;self.scratch);
+    }
+
+    /// Writes a complete element whose content is a simple-type value.
+    ///
+    /// In SpreadsheetML, `xml:space="preserve"` is added when the text has
+    /// leading or trailing whitespace or contains line breaks or tabs: Excel
+    /// relies on it (and writes it itself) although the schema does not
+    /// declare it. Other vocabularies keep whitespace without the attribute.
+    pub fn simple_element&lt;T: XmlValue&gt;(&amp;mut self, ns: Ns, local: &amp;str, value: &amp;T) {
+        self.scratch.clear();
+        value.write_xml(&amp;mut self.scratch);
+        self.start(ns, local);
+        if ns == Ns::X &amp;&amp; needs_space_preserve(&amp;self.scratch) {
+            self.attr(Ns::XML, "space", "preserve");
+        }
+        if !self.scratch.is_empty() {
+            self.close_start_tag();
+            escape_text(&amp;mut self.out, &amp;self.scratch);
+        }
+        self.end();
+    }</code></pre>
+</figure>
+<p>Giá trị kiểu schema (số, bool, enum… — trait <code>XmlValue</code>, <a href="p2-6-xml-value.html">bài 2.6</a>) phải được định dạng thành chữ rồi mới escape. Cần một chuỗi tạm. Nếu mỗi lần tạo <code>String::new()</code> mới → mỗi attribute một lần cấp phát. Thay vào đó writer giữ <code>scratch</code> làm trường: <code>self.scratch.clear()</code> xoá nội dung nhưng <strong>giữ nguyên dung lượng</strong> đã cấp, nên sau vài lần đầu, <code>scratch</code> đủ lớn và không bao giờ cấp phát nữa. Cùng tinh thần với <code>names</code> (mục 2.2) và <code>truncate</code> (mục 2.1): <strong>tái sử dụng bộ nhớ trong vòng lặp nóng</strong>.</p>
+<p>Để ý <code>escape_attr(&amp;mut self.out, &amp;self.scratch)</code> — mượn ghi <code>self.out</code> và mượn đọc <code>self.scratch</code> cùng lúc. Hợp lệ vì là hai trường khác nhau (disjoint field borrow, bài 2.4 mục 10.4). Nếu <code>escape_attr</code> là method <code>&amp;mut self</code> thì không làm vậy được — lý do nó là hàm tự do nhận <code>out: &amp;mut String</code>.</p>
+<p><code>simple_element</code> cũng dùng <code>scratch</code>: định dạng giá trị trước, rồi mới <code>start</code> (để biết có cần <code>xml:space</code> không — phải ghi attribute trước nội dung). Nếu chuỗi rỗng thì không <code>close_start_tag</code> → <code>end()</code> ghi <code>/&gt;</code>.</p>
+
+<h2 id="ooxml">10. Góc OpenXML: những chi tiết "giống Office"</h2>
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — dòng khai báo <code>standalone="yes"</code> + <code>\r\n</code></span>
+  <p>Hằng <code>XML_DECLARATION</code> (dòng 17–18) là <code>&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;</code> theo sau là <code>\r\n</code> — y hệt những gì Word/Excel/PowerPoint ghi ở đầu mỗi part (mở một file Office thật sẽ thấy). <code>standalone="yes"</code> nói "tài liệu không phụ thuộc khai báo DTD bên ngoài". Parser không cần những chi tiết này, nhưng ghi giống Office giúp so sánh (diff) file dễ hơn và tránh làm "lạ mắt" các công cụ khó tính. Sau dòng này là thẻ gốc liền một dòng, không thụt lề — Office cũng không pretty-print.</p>
+</div>
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — <code>xml:space="preserve"</code> chỉ tự thêm cho SpreadsheetML</span>
+  <p>Doc comment của <code>simple_element</code> (dòng 351–354) nói rõ: trong SpreadsheetML (<code>Ns::X</code>), writer tự thêm <code>xml:space="preserve"</code> khi text có khoảng trắng đầu/cuối, hoặc chứa xuống dòng/tab (<code>needs_space_preserve</code>) — vì <strong>Excel dựa vào nó</strong> (và chính Excel cũng ghi nó), dù schema không khai báo. Các vocabulary khác giữ khoảng trắng mà không cần. Còn Word <code>w:t</code> thì <code>xml:space</code> là attribute <em>có trong schema</em>, được code sinh ra ghi như attribute thường (<code>w.attr(Ns::XML, "space", "preserve")</code> — prefix <code>xml</code> không bao giờ được khai báo, test <code>xml_namespace_is_never_declared</code>). Test sau cho thấy khác biệt giữa <code>x:t</code> và <code>a:t</code>:</p>
+</div>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L610-L633">crates/openxml-xml/src/writer.rs:610–633</figcaption>
+<pre><code class="language-rust">    #[test]
+    fn simple_elements_preserve_significant_whitespace() {
+        let x = Ns::X.uri();
+        let mut w = XmlWriter::new();
+        w.predeclare(&amp;[Ns::X]);
+        w.start(Ns::X, "r");
+        w.simple_element(Ns::X, "t", &amp;String::from("plain"));
+        w.simple_element(Ns::X, "t", &amp;String::from(" lead"));
+        w.simple_element(Ns::X, "t", &amp;String::from("two\nlines"));
+        w.simple_element(Ns::X, "t", &amp;String::new());
+        w.simple_element(Ns::X, "n", &amp;42u32);
+        w.simple_element(Ns::A, "t", &amp;String::from(" drawingml keeps spaces "));
+        w.end();
+        let a = Ns::A.uri();
+        assert_eq!(
+            w.finish(),
+            format!(
+                r#"&lt;r xmlns="{x}"&gt;&lt;t&gt;plain&lt;/t&gt;&lt;t xml:space="preserve"&gt; lead&lt;/t&gt;&lt;t xml:space="preserve"&gt;two
+lines&lt;/t&gt;&lt;t/&gt;&lt;n&gt;42&lt;/n&gt;&lt;a:t xmlns:a="{a}"&gt; drawingml keeps spaces &lt;/a:t&gt;&lt;/r&gt;"#
+            )
+        );
+        assert!(needs_space_preserve("a\tb"));
+        assert!(!needs_space_preserve("a b"));
+    }</code></pre>
+</figure>
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — <code>mc:Ignorable="w14 wp14"</code> và vì sao phải giữ khai báo gốc</span>
+  <p>Markup Compatibility (ECMA-376 Part 3) cho phép Word 2010+ thêm thẻ/attribute mới (<code>w14:paraId</code>…) mà Word 2007 vẫn mở được: thẻ gốc ghi <code>mc:Ignorable="w14 wp14"</code> — "nếu không hiểu namespace có prefix <code>w14</code>, <code>wp14</code> thì cứ bỏ qua". Điểm mấu chốt: <strong>giá trị attribute chứa prefix</strong>. Writer không phân tích giá trị attribute, nên nếu nó tự đặt lại prefix (ví dụ đổi <code>w14</code> thành <code>ns1</code>) hoặc không khai báo <code>w14</code> vì không thẻ nào dùng, thì <code>mc:Ignorable</code> trỏ vào prefix không tồn tại — Word báo file hỏng. Vì thế <code>open_element</code> ghi lại <em>nguyên văn</em> (cùng prefix) các khai báo đọc được từ file nguồn. Mình chạy thử: đọc thẻ gốc bằng <code>XmlReader</code>, lấy attribute qua <code>to_raw()</code>, rồi ghi lại hai kiểu — giữ và bỏ khai báo:</p>
+</div>
+<figure class="code">
+  <figcaption>Output thật — giữ khai báo gốc (start_with + attrs_raw)</figcaption>
+<pre><code class="language-xml">&lt;w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" mc:Ignorable="w14"&gt;&lt;w:body/&gt;&lt;/w:document&gt;</code></pre>
+</figure>
+<figure class="code">
+  <figcaption>Output thật — lọc bỏ khai báo, chỉ giữ attribute thường</figcaption>
+<pre><code class="language-xml">&lt;w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="w14"&gt;&lt;w:body/&gt;&lt;/w:document&gt;</code></pre>
+</figure>
+<p>Ở bản thứ hai, <code>xmlns:mc</code> vẫn được writer tự thêm (vì attribute <code>mc:Ignorable</code> cần prefix <code>mc</code>) nhưng <code>w14</code> thì biến mất — writer không có cách nào biết <code>"w14"</code> trong giá trị là một prefix. Đó là lý do cả kiến trúc "giữ khai báo gốc" tồn tại. Code sinh ra làm đúng cặp lệnh này:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-schema/src/generated/shared_additional_characteristics.rs#L117-L129">crates/openxml-schema/src/generated/shared_additional_characteristics.rs:117–129 — start_with + attrs_raw trong code sinh ra</figcaption>
+<pre><code class="language-rust">impl XmlWrite for CT_AdditionalCharacteristics {
+    fn write_xml(&amp;self, w: &amp;mut XmlWriter, ns: Ns, local: &amp;str) {
+        w.start_with(ns, local, &amp;self.extra_attrs);
+        w.attrs_raw(&amp;self.extra_attrs);
+        for (k, v) in self.characteristic.iter().enumerate() {
+            rt::write_extras_at(w, &amp;self.extra_children, 0, k);
+            v.write_xml(w, Ns::AC, "characteristic");
+        }
+        rt::write_extras_after(w, &amp;self.extra_children, 0, self.characteristic.len());
+        rt::write_extras(w, &amp;self.extra_children, 1);
+        w.end();
+    }
+}</code></pre>
+</figure>
+<p><code>start_with</code> áp dụng các khai báo trong <code>extra_attrs</code>; <code>attrs_raw</code> ghi phần còn lại (<code>attr_raw</code> tự bỏ qua khai báo — dòng 318–321). Test <code>duplicate_and_redundant_declarations_are_dropped</code> (dòng 545–560) đảm bảo việc "giữ nguyên" không sinh ra khai báo lặp.</p>
+
+<h2 id="thuc-hanh">11. Thực hành: tự dựng một <code>document.xml</code></h2>
+<p>Tạo example tạm <code>crates/openxml-xml/examples/dem_w.rs</code>:</p>
+<figure class="code">
+  <figcaption>Tự viết — crates/openxml-xml/examples/dem_w.rs (file tạm)</figcaption>
+<pre><code class="language-rust">use openxml_xml::{Ns, RawAttribute, RawName, XmlWriter};
+
+fn main() {
+    // 1. document.xml tối thiểu: một đoạn văn, một run, một text
+    let mut w = XmlWriter::with_declaration();
+    w.predeclare(&amp;[Ns::W, Ns::R]);
+    w.start(Ns::W, "document");
+    w.start(Ns::W, "body");
+    w.start(Ns::W, "p");
+    w.start(Ns::W, "r");
+    w.start(Ns::W, "t");
+    w.attr(Ns::XML, "space", "preserve");
+    w.text("Xin chào &amp; tạm biệt ");
+    w.end(); // t
+    w.end(); // r
+    w.end(); // p
+    w.end(); // body
+    w.end(); // document
+    println!("{}", w.finish());
+    println!("-----");
+
+    // 2. attribute thuộc namespace lạ: có gợi ý prefix, không gợi ý, và Ns::R
+    let mut w = XmlWriter::new();
+    w.start(Ns::W, "p");
+    let a = RawAttribute {
+        name: RawName::with_uri("urn:vi-du:ghi-chu", Some("gc"), "nhan"),
+        value: "quan-trong".into(),
+    };
+    w.attr_raw(&amp;a);
+    let b = RawAttribute {
+        name: RawName::with_uri("urn:vi-du:khac", None, "x"),
+        value: "1".into(),
+    };
+    w.attr_raw(&amp;b);
+    w.attr(Ns::R, "id", "rId1");
+    w.end();
+    println!("{}", w.finish());
+}</code></pre>
+</figure>
+<figure class="code">
+  <figcaption>Chạy</figcaption>
+<pre><code class="language-bash">cargo run -p openxml-xml --example dem_w</code></pre>
+</figure>
+<figure class="code">
+  <figcaption>Output thật (mình đã chạy)</figcaption>
+<pre><code class="language-xml">&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;
+&lt;w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"&gt;&lt;w:body&gt;&lt;w:p&gt;&lt;w:r&gt;&lt;w:t xml:space="preserve"&gt;Xin chào &amp;amp; tạm biệt &lt;/w:t&gt;&lt;/w:r&gt;&lt;/w:p&gt;&lt;/w:body&gt;&lt;/w:document&gt;
+-----
+&lt;w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:gc="urn:vi-du:ghi-chu" gc:nhan="quan-trong" xmlns:ns1="urn:vi-du:khac" ns1:x="1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rId1"/&gt;</code></pre>
+</figure>
+<p>Đọc output:</p>
+<ul>
+  <li>Phần 1: <code>Ns::W</code> không có <code>default_on_root</code> nên dùng prefix <code>w</code>; <code>&amp;</code> được escape; <code>xml:space</code> không cần khai báo. Theo schema, <code>w:body</code> không bắt buộc có <code>w:sectPr</code>, nên đây là nội dung tối thiểu hợp lệ. Bạn có thể thử thay nó vào bản giải nén của <code>sample.docx</code> (bài 0.1), nén lại rồi mở bằng Word/LibreOffice.</li>
+  <li>Phần 2: attribute có gợi ý <code>gc</code> → dùng <code>gc</code>. Attribute không gợi ý (<code>Ns::OTHER</code> có <code>prefix()</code> rỗng) → <code>fresh_prefix("")</code> chọn gốc <code>"ns"</code> → <code>ns1</code>. <code>Ns::R</code> → prefix quen dùng <code>r</code>. Mọi <code>xmlns:…</code> đều được ghi <strong>ngay trước</strong> attribute dùng nó, trong cùng thẻ mở dở (mục 5.5).</li>
+</ul>
+<p>Thử xong nhớ <code>rm crates/openxml-xml/examples/dem_w.rs</code>.</p>
+
+<section class="exercise">
+  <h3>🛠 Bài tập</h3>
+  <ol>
+    <li><strong>Đoạn văn in đậm.</strong> Mở rộng phần 1 của <code>dem_w.rs</code>: thêm đoạn thứ hai có run in đậm (<code>w:r</code> → <code>w:rPr</code> → <code>w:b</code> rỗng, rồi <code>w:t</code>). Dùng <code>text_element</code> cho <code>w:t</code>. Đếm số lần gọi <code>end()</code> phải bằng số <code>start()</code> — thử quên một cái, chạy lại và xem <code>debug_assert!</code> trong <code>finish</code> báo gì.</li>
+    <li><strong>Khứ hồi (round-trip).</strong> Lấy chuỗi output của phần 1, đọc lại bằng chương trình đếm <code>w:p</code> của <a href="p2-4-xml-reader.html">bài 2.4</a>. Text đọc ra có đúng <code>"Xin chào &amp; tạm biệt "</code> (kể cả dấu cách cuối) không? Sau đó thử text chứa <code>"a\r\nb\u{1}"</code> và giải thích kết quả bằng bảng ở mục 7.2.</li>
+    <li><strong>Prefix đụng hàng.</strong> Viết một test tạm (cuối <code>writer.rs</code>, xoá sau khi thử) mở thẻ gốc bằng <code>start_raw</code> với khai báo <code>RawAttribute::namespace_declaration("r", "urn:khong-phai-rel")</code>, rồi bên trong gọi <code>w.attr(Ns::R, "id", "rId1")</code>. Đoán output trước, rồi chạy <code>cargo test -p openxml-xml ten_test -- --nocapture</code> để kiểm (in bằng <code>println!</code>).</li>
+    <li><strong>Đọc hiểu.</strong> Trong <code>open_element</code>, nếu bỏ <code>std::mem::take</code> và viết <code>for ns in self.predeclare.clone()</code> thì chương trình vẫn biên dịch — nhưng hành vi đổi thế nào? (Gợi ý: trong trường hợp thường output <em>không</em> đổi — tìm dòng code giải thích vì sao. Rồi nghĩ về chi phí ở mỗi thẻ, và về trường hợp một thẻ con khai báo lại default namespace <code>xmlns="urn:khac"</code> khi gốc đã predeclare <code>Ns::X</code>.)</li>
+  </ol>
+</section>
+
+<section>
+  <h2 id="tu-kiem-tra">Tự kiểm tra</h2>
+  <details><summary>1. Cờ <code>open</code> dùng để làm gì? Vì sao writer không ghi luôn <code>&gt;</code> khi <code>start()</code>?</summary>
+    <div class="answer">Khi <code>start()</code>, writer chưa biết còn attribute nào nữa không, và thẻ có nội dung hay rỗng. Nó để thẻ "mở dở" (<code>open = true</code>): lệnh sau là <code>attr</code> thì ghi thêm attribute; là <code>text</code>/<code>start</code> con thì <code>close_start_tag</code> ghi <code>&gt;</code>; là <code>end</code> ngay thì ghi <code>/&gt;</code> (thẻ rỗng).</div></details>
+  <details><summary>2. Vì sao test <code>attributes_never_use_the_default_namespace</code> ra hai khai báo cùng URI?</summary>
+    <div class="answer">Default namespace chỉ áp dụng cho tên thẻ; attribute không prefix luôn ở "không namespace". Thẻ <code>a</code> dùng default (<code>xmlns="…"</code>), còn attribute <code>b</code> thuộc SpreadsheetML thì bắt buộc có prefix → <code>visible_prefix(..., false)</code> bỏ qua binding rỗng, <code>fresh_prefix("x")</code> khai báo thêm <code>xmlns:x</code>.</div></details>
+  <details><summary>3. <code>bindings.truncate(frame.bindings_len)</code> trong <code>end()</code> thực hiện luật nào của XML?</summary>
+    <div class="answer">Luật phạm vi: khai báo <code>xmlns</code> chỉ có hiệu lực trong thẻ khai báo nó (và con cháu). Khi thẻ đóng, mọi binding push từ lúc mở thẻ bị cắt khỏi stack; các binding bị che trước đó "hiện" trở lại.</div></details>
+  <details><summary>4. <code>(1..).map(...).find(...)</code> có chạy mãi không? Vì sao?</summary>
+    <div class="answer">Không. Iterator lười: <code>map</code> chỉ tính khi <code>find</code> kéo phần tử, và <code>find</code> dừng ở phần tử đầu tiên thoả mãn. Vì số binding hữu hạn nên chắc chắn có <code>{base}N</code> còn trống; <code>expect</code> ghi lại giả định đó.</div></details>
+  <details><summary>5. Vì sao <code>escape_attr</code> đổi <code>\t</code> thành <code>&amp;#x9;</code> còn <code>escape_text</code> thì không?</summary>
+    <div class="answer">Reader XML chuẩn hoá giá trị attribute: tab/xuống dòng dạng chữ thành dấu cách. Chỉ tham chiếu ký tự mới giữ được ký tự gốc. Trong text thì tab và <code>\n</code> được giữ nguyên, chỉ <code>\r</code> bị đổi (chuẩn hoá xuống dòng) nên chỉ <code>\r</code> cần <code>&amp;#xD;</code>.</div></details>
+  <details><summary>6. <code>finish(self)</code> khác gì nếu viết <code>finish(&amp;self) -&gt; String</code>?</summary>
+    <div class="answer">Với <code>self</code>, <code>out</code> được move ra, không chép, và writer không dùng được nữa (compiler chặn ghi tiếp). Với <code>&amp;self</code>, phải <code>self.out.clone()</code> (chép toàn bộ XML) và writer vẫn tồn tại, có thể bị ghi tiếp sau khi đã "xong".</div></details>
+</section>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Bài sau</span>
+  <p>Bạn đã thấy <code>attr_value&lt;T: XmlValue&gt;</code> và <code>simple_element&lt;T: XmlValue&gt;</code> — những hàm <strong>generic</strong> nhận "bất kỳ kiểu nào biết tự định dạng thành chữ". Bài 2.6 mở trait <code>XmlValue</code>: trait là gì, <code>T: Trait</code> nghĩa là gì, và làm sao một hàm dùng được cho cả <code>bool</code>, <code>i32</code>, <code>f64</code> lẫn hàng nghìn enum sinh ra.</p>
+</div>
+
+</main>
+</body>
+</html>

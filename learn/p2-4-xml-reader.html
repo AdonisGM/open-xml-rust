@@ -1,0 +1,1235 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.4 Đọc XML: XmlReader, lifetime, Cow · Học Rust qua open-xml-rust</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/vendor/highlight.min.js" defer></script>
+<script src="assets/app.js" defer></script>
+</head>
+<body data-lesson="p2-4">
+<main class="content">
+
+<header>
+  <p class="crumb">Phần 2 · Tầng XML (openxml-xml)</p>
+  <h1>2.4 Đọc XML: XmlReader, lifetime, Cow</h1>
+  <p class="lead">Đây là bài khó nhất Phần 2 — và cũng là bài "đáng tiền" nhất. File <code>reader.rs</code> chỉ hơn 500 dòng code (chưa tính test) nhưng gói gần như mọi thứ khiến người mới thấy Rust khó: borrow (mượn), lifetime (vòng đời), <code>Cow</code>, closure, slice pattern. Mình sẽ đi thật chậm, từng khái niệm một, mỗi khái niệm đều có ví dụ nhỏ trước rồi mới quay lại code thật.</p>
+  <div class="meta"><span>⏱ ~120 phút (nên chia 2–3 buổi)</span><span>Crate: <code>openxml-xml</code></span><span>File: <code>crates/openxml-xml/src/reader.rs</code></span></div>
+</header>
+
+<section class="goals">
+  <h3>🎯 Học xong bài này bạn sẽ</h3>
+  <ul>
+    <li>Phân biệt hai cách parse XML: <strong>DOM</strong> (dựng cây) và <strong>pull/streaming</strong> (kéo từng sự kiện), biết vì sao dự án chọn pull.</li>
+    <li>Nắm chắc <code>String</code> vs <code>&amp;str</code>, slice, borrow — và đọc được chữ ký như <code>XmlReader&lt;'i&gt;</code>, <code>Event&lt;'i&gt;</code>, <code>fn local(&amp;self) -&gt; &amp;str</code>.</li>
+    <li>Hiểu <code>Cow&lt;'i, str&gt;</code>: khi nào "mượn", khi nào "sở hữu", và <code>to_mut()</code> / <code>into_owned()</code> làm gì.</li>
+    <li>Đọc được các kỹ thuật: slice pattern <code>[0xEF, 0xBB, 0xBF, rest @ ..]</code>, <code>let ... else</code>, <code>Option::take</code>, <code>impl Iterator + '_</code>, closure <code>move</code>.</li>
+    <li>Biết "hợp đồng" giữa <code>XmlReader</code> và code sinh ra: <code>root</code> → <code>next_child</code> → (đọc hoặc <code>skip</code>) — và cái gì vỡ nếu phá hợp đồng.</li>
+    <li>Hiểu các đòi hỏi OpenXML mà reader lo giúp: <code>xml:space="preserve"</code>, chuẩn hoá xuống dòng, entity &amp; CDATA, namespace Strict.</li>
+    <li>Tự viết một chương trình nhỏ dùng <code>openxml_xml::XmlReader</code> đếm đoạn văn trong <code>document.xml</code>.</li>
+  </ul>
+</section>
+
+<div class="callout tip">
+  <span class="callout-title">💡 Cách đọc bài này</span>
+  <p>Mục 2–4 là <strong>kiến thức Rust nền</strong> (ownership, lifetime, Cow) — đọc kỹ, gõ lại ví dụ. Mục 5–11 là <strong>mổ code thật</strong>. Nếu mệt ở mục 10 (StartTag, con trỏ, Range) thì cứ đọc lướt ý tưởng — bạn sẽ gặp lại chúng khi đọc code sinh ra ở Phần 4. Bài trước (<a href="p2-3-xu-ly-loi.html">bài 2.3</a>) đã giải thích <code>Result</code>, <code>?</code> và <code>Error</code>; bài <a href="p2-1-namespace.html">2.1</a> giải thích <code>Ns</code>. Ở đây mình dùng chúng như đồ quen.</p>
+</div>
+
+<h2 id="dom-vs-pull">1. Hai cách đọc XML: DOM và pull</h2>
+<p>Giả sử bạn có một <code>document.xml</code> 20 MB (100.000 đoạn văn). Có hai chiến lược đọc:</p>
+
+<h3 id="dom">1.1 DOM — đọc hết thành cây rồi mới làm</h3>
+<p>Parser đọc toàn bộ file, dựng một <strong>cây</strong> (Document Object Model) trong bộ nhớ: mỗi thẻ là một node, có danh sách con, có cha. Sau đó bạn đi lại tuỳ ý trên cây: "cho tôi con thứ 3", "cha của node này là gì", "tìm mọi <code>w:t</code>". Trình duyệt web dùng cách này. Trong dự án, <strong>codegen</strong> dùng thư viện <code>roxmltree</code> (DOM chỉ đọc) để đọc file XSD:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-codegen/src/xsd.rs#L632-L636">crates/openxml-codegen/src/xsd.rs:632–636 — codegen đọc XSD bằng DOM</figcaption>
+<pre><code class="language-rust">/// Parses one schema document.
+pub fn parse_schema(file: &amp;str, text: &amp;str) -&gt; Result&lt;Schema&gt; {
+    let doc = Document::parse(text).map_err(|e| ParseError(format!("{file}: {e}")))?;
+    let root = doc.root_element();
+    if !is_xs(root, "schema") {</code></pre>
+</figure>
+<p><code>Document::parse(text)</code> dựng cả cây; <code>doc.root_element()</code> lấy gốc; rồi code tự do gọi <code>.children()</code>, <code>.attribute("name")</code>… File XSD nhỏ (vài trăm KB), chỉ đọc một lần lúc sinh code, nên DOM là lựa chọn thoải mái nhất.</p>
+
+<h3 id="pull">1.2 Pull (streaming) — kéo từng sự kiện</h3>
+<p>Parser <strong>không dựng cây</strong>. Mỗi lần bạn gọi "cho tôi cái tiếp theo", nó đọc thêm một đoạn và trả về một <em>sự kiện</em> (event): "mở thẻ <code>w:p</code>", "chữ <code>Xin chào</code>", "đóng thẻ". Bạn tự quyết định làm gì với sự kiện đó rồi mới kéo cái tiếp theo. Chữ "pull" (kéo) để phân biệt với kiểu "push" (SAX — parser gọi callback của bạn).</p>
+
+<figure class="code">
+  <figcaption>Cùng một đoạn XML, hai cách nhìn</figcaption>
+<pre class="diagram"><code>XML:  &lt;w:p&gt;&lt;w:r&gt;&lt;w:t&gt;Xin chào&lt;/w:t&gt;&lt;/w:r&gt;&lt;/w:p&gt;
+
+DOM (cây trong bộ nhớ):            Pull (dòng sự kiện, lần lượt):
+      w:p                            1. Start  w:p
+       └─ w:r                        2. Start  w:r
+           └─ w:t                    3. Start  w:t
+               └─ "Xin chào"         4. Text   "Xin chào"
+                                     5. End    (w:t)
+  → giữ TẤT CẢ node cùng lúc         6. End    (w:r)
+                                     7. End    (w:p)
+                                     8. Eof
+                                   → tại mỗi thời điểm chỉ giữ 1 sự kiện</code></pre>
+</figure>
+
+<div class="table-wrap"><table>
+  <tr><th></th><th>DOM</th><th>Pull</th></tr>
+  <tr><td>Bộ nhớ</td><td>Cả cây (thường gấp nhiều lần kích thước file)</td><td>Chỉ sự kiện hiện tại</td></tr>
+  <tr><td>Đi lại tự do</td><td>Có (lên cha, sang anh em…)</td><td>Không — chỉ tiến, không lùi</td></tr>
+  <tr><td>Tốc độ</td><td>Chậm hơn (phải cấp phát node)</td><td>Nhanh</td></tr>
+  <tr><td>Hợp với</td><td>File nhỏ, truy vấn phức tạp</td><td>File lớn, chuyển thẳng sang struct</td></tr>
+</table></div>
+
+<p>Dự án đọc file Office — có thể là sheet 1 triệu ô. Và đích đến không phải một cây XML chung chung mà là <strong>struct Rust</strong> (<code>CT_P</code>, <code>CT_Row</code>… sinh từ XSD). Vậy dựng cây DOM rồi lại chép sang struct là làm hai lần. Pull reader cho phép code sinh ra "kéo" sự kiện và đổ thẳng vào struct. <code>ARCHITECTURE.md</code> ghi số đo (bản release, một luồng):</p>
+<div class="table-wrap"><table>
+  <tr><th>Workload (trích <code>ARCHITECTURE.md</code>, mục Performance)</th><th>Kích thước</th><th>Parse</th><th>Write</th></tr>
+  <tr><td>worksheet, 1 000 000 ô</td><td>34 MB</td><td>~70 MB/s</td><td>~340 MB/s</td></tr>
+  <tr><td>document, 100 000 đoạn văn</td><td>20 MB</td><td>~95 MB/s</td><td>~230 MB/s</td></tr>
+</table></div>
+<p>"Parse" ở đây là cả quá trình từ XML ra struct đã gõ kiểu (chạy bằng <code>cargo run --release -p openxml-schema --example bench</code>), không chỉ riêng <code>XmlReader</code>.</p>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — quick-xml</span>
+  <p><code>XmlReader</code> không tự parse ký tự <code>&lt;</code> <code>&gt;</code>; nó bọc thư viện <code>quick-xml</code> (bản 0.42, khai báo ở <code>Cargo.toml</code> gốc), cụ thể là kiểu <code>NsReader</code> — pull reader có theo dõi namespace. Công việc của <code>reader.rs</code> là "gọt" API của quick-xml thành đúng những gì code sinh ra cần: gộp text, bỏ comment, map URI sang <code>Ns</code>, chặn lồng quá sâu. Repo có sẵn một benchmark so sánh hai thứ: <code>cargo run --release -p openxml-xml --example reader_bench</code>. Trên máy container của mình nó in <code>34.9 MB: quick-xml 90 MB/s, XmlReader 48 MB/s</code> — con số tuỳ máy, nhưng bạn thấy được "giá" của lớp bọc (resolve namespace, chuẩn hoá attribute) so với quick-xml thô.</p>
+</div>
+
+<h2 id="ownership">2. Ôn nhanh: ownership, borrow, <code>String</code> vs <code>&amp;str</code></h2>
+<p>Trước khi nói lifetime, phải chắc phần nền. Nếu bạn đã vững thì lướt qua.</p>
+
+<h3 id="owner">2.1 Mỗi giá trị có đúng một chủ</h3>
+<p>Trong Rust, mỗi giá trị trên heap (như nội dung của một <code>String</code>) có đúng <strong>một chủ sở hữu</strong> (owner). Khi chủ ra khỏi phạm vi (scope), giá trị bị giải phóng — không cần garbage collector. Gán sang biến khác là <strong>move</strong> (chuyển quyền sở hữu):</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — move</figcaption>
+<pre><code class="language-rust">let s = String::from("xin chào");
+let t = s;            // quyền sở hữu chuyển từ s sang t
+// println!("{s}");   // lỗi E0382: borrow of moved value: `s`
+println!("{t}");      // OK</code></pre>
+</figure>
+<p>Nếu hàm nào cũng phải "lấy luôn" giá trị thì rất bất tiện. Vì vậy có <strong>borrow (mượn)</strong>: đưa cho người khác một <em>tham chiếu</em> <code>&amp;T</code> để đọc (hoặc <code>&amp;mut T</code> để sửa), chủ vẫn giữ quyền sở hữu.</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — borrow</figcaption>
+<pre><code class="language-rust">fn do_dai(s: &amp;str) -&gt; usize { s.len() }   // chỉ mượn để đọc
+
+let t = String::from("xin chào");
+println!("{}", do_dai(&amp;t));   // cho mượn; t vẫn dùng được sau đó</code></pre>
+</figure>
+<p>Luật mượn chỉ có hai câu, nhưng mọi thứ trong bài này xoay quanh nó:</p>
+<ol>
+  <li>Tại một thời điểm: <strong>nhiều</strong> <code>&amp;T</code> <em>hoặc</em> <strong>một</strong> <code>&amp;mut T</code>, không bao giờ cả hai.</li>
+  <li>Tham chiếu <strong>không được sống lâu hơn</strong> giá trị nó trỏ tới (không có "con trỏ treo").</li>
+</ol>
+
+<h3 id="str">2.2 <code>String</code>, <code>&amp;str</code> và slice</h3>
+<dl class="glossary">
+  <dt>String</dt><dd>Chuỗi <strong>sở hữu</strong>: một vùng nhớ heap (con trỏ + độ dài + sức chứa) do biến này quản lý. Sửa được, nối thêm được. Tạo ra nó là <strong>cấp phát</strong> (allocation) — tốn thời gian.</dd>
+  <dt>&amp;str</dt><dd>"String slice" — một <strong>cửa sổ nhìn vào</strong> chuỗi của người khác: chỉ gồm con trỏ + độ dài. Tạo ra nó gần như miễn phí, không chép dữ liệu.</dd>
+</dl>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — slice là cửa sổ, không phải bản sao</figcaption>
+<pre><code class="language-rust">let t = String::from("xin chào");
+let tu_dau: &amp;str = &amp;t[0..3];   // "xin" — trỏ vào byte 0..3 của t, không chép
+let tu_sau: &amp;str = &amp;t[4..];    // "chào"
+// &amp;t[0..5] sẽ PANIC: byte 5 nằm giữa chữ "à" (UTF-8 dùng 2 byte cho "à")</code></pre>
+</figure>
+<p>Chỉ số của slice là <strong>byte</strong>, không phải ký tự. Mọi text trong Rust là UTF-8, chữ tiếng Việt có dấu chiếm 2–3 byte. Nhớ điều này — nó quay lại ở mục 10 (vị trí attribute) và ở bài 2.5 (<code>char_indices</code>).</p>
+
+<div class="callout pattern">
+  <span class="callout-title">🧩 Zero-copy — ý tưởng lớn của cả file reader.rs</span>
+  <p>Khi đọc <code>&lt;w:t&gt;Xin chào&lt;/w:t&gt;</code> từ một chuỗi input đã nằm sẵn trong bộ nhớ, ta <em>có thể</em> trả về <code>"Xin chào"</code> dưới dạng <code>&amp;str</code> trỏ thẳng vào input — không cấp phát <code>String</code> mới. Với 1 triệu ô Excel, "không cấp phát" nghĩa là nhanh hơn rất nhiều. Kỹ thuật này gọi là <strong>zero-copy parsing</strong>. Cái giá phải trả: kết quả <em>mượn</em> input, nên Rust phải biết "mượn tới bao giờ" → đó chính là <strong>lifetime</strong>.</p>
+</div>
+
+<h2 id="lifetime">3. Lifetime: dữ liệu mượn không được sống lâu hơn chủ</h2>
+
+<h3 id="lifetime-y-tuong">3.1 Vấn đề</h3>
+<p>Xét hàm lấy tên thẻ đầu tiên trong một chuỗi XML:</p>
+<figure class="code">
+  <figcaption>Tự viết — hàm trả về một slice của input</figcaption>
+<pre><code class="language-rust">fn ten_the&lt;'a&gt;(xml: &amp;'a str) -&gt; &amp;'a str {
+    let bat_dau = xml.find('&lt;').map_or(0, |i| i + 1);
+    let ket_thuc = xml[bat_dau..]
+        .find(|c: char| c == ' ' || c == '&gt;' || c == '/')
+        .map_or(xml.len(), |i| bat_dau + i);
+    &amp;xml[bat_dau..ket_thuc]
+}
+// ten_the("&lt;w:p w:rsidR=\"1\"&gt;") == "w:p"</code></pre>
+</figure>
+<p>Kết quả trỏ vào bên trong <code>xml</code>. Nếu chuỗi <code>xml</code> bị giải phóng trong khi ai đó còn giữ kết quả, ta có con trỏ treo. <code>'a</code> (đọc là "lifetime a") là cái <strong>nhãn</strong> nói với trình biên dịch: "kết quả sống được tối đa bằng <code>xml</code>". Lifetime <strong>không</strong> làm dữ liệu sống lâu hơn, không sinh code chạy — nó chỉ là <em>lời hứa</em> để compiler kiểm tra.</p>
+
+<h3 id="lifetime-struct">3.2 Struct chứa tham chiếu phải mang lifetime</h3>
+<p>Một struct giữ <code>&amp;str</code> bên trong cũng phải khai báo nhãn, vì bản thân struct đó cũng "đang mượn":</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ</figcaption>
+<pre><code class="language-rust">struct Token&lt;'i&gt; {
+    text: &amp;'i str,     // mượn từ đâu đó sống ít nhất 'i
+}</code></pre>
+</figure>
+<p>Giờ đọc code thật. Chữ <code>'i</code> trong dự án là viết tắt của <strong>input</strong>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L242-L257">crates/openxml-xml/src/reader.rs:242–257 — XmlReader và hàm new</figcaption>
+<pre><code class="language-rust">/// Streaming reader over an in-memory XML document.
+///
+/// The reader resolves namespaces, merges adjacent character data and skips
+/// comments, processing instructions and the XML declaration.
+pub struct XmlReader&lt;'i&gt; {
+    inner: NsReader&lt;&amp;'i [u8]&gt;,
+    pending: Option&lt;Event&lt;'i&gt;&gt;,
+    depth: usize,
+    /// Recently classified namespace URIs; documents use few namespaces, so
+    /// this avoids matching every element's URI against the whole registry.
+    ns_cache: Vec&lt;(Box&lt;str&gt;, Ns)&gt;,
+}
+
+impl&lt;'i&gt; XmlReader&lt;'i&gt; {
+    /// Creates a reader over XML text.
+    pub fn new(xml: &amp;'i str) -&gt; Self {</code></pre>
+</figure>
+<p>Đọc từng dòng:</p>
+<ul>
+  <li><code>pub struct XmlReader&lt;'i&gt;</code> — "một reader đang mượn một input sống ít nhất <code>'i</code>".</li>
+  <li><code>inner: NsReader&lt;&amp;'i [u8]&gt;</code> — reader của quick-xml đọc từ một slice byte mượn trong <code>'i</code>.</li>
+  <li><code>pending: Option&lt;Event&lt;'i&gt;&gt;</code> — một sự kiện "để dành" (mục 8), cũng có thể chứa dữ liệu mượn input.</li>
+  <li><code>pub fn new(xml: &amp;'i str) -&gt; Self</code> — nhận input có lifetime <code>'i</code>; <code>Self</code> ở đây là <code>XmlReader&lt;'i&gt;</code>. Tức là: <strong>reader không được sống lâu hơn chuỗi XML</strong>.</li>
+</ul>
+<p>Các kiểu sự kiện cũng mang <code>'i</code>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L64-L75">crates/openxml-xml/src/reader.rs:64–75</figcaption>
+<pre><code class="language-rust">/// An event returned by [`XmlReader::next_event`].
+#[derive(Debug)]
+pub enum Event&lt;'i&gt; {
+    /// Start of an element (also used for empty elements, see [`StartTag::is_empty`]).
+    Start(StartTag&lt;'i&gt;),
+    /// End of the current element.
+    End,
+    /// Character data, with entity references resolved and adjacent pieces merged.
+    Text(Cow&lt;'i, str&gt;),
+    /// End of input.
+    Eof,
+}</code></pre>
+</figure>
+<p><code>Event&lt;'i&gt;</code> chứa <code>StartTag&lt;'i&gt;</code> hoặc <code>Cow&lt;'i, str&gt;</code> — cả hai có thể trỏ thẳng vào input. Hãy vẽ ra:</p>
+
+<figure class="code">
+  <figcaption>Ai mượn ai — mọi mũi tên đều trỏ về chuỗi input</figcaption>
+<pre class="diagram"><code>  let xml: String = ...;         ◀── CHỦ SỞ HỮU (sống lâu nhất)
+        ▲
+        │ &amp;'i str
+  XmlReader&lt;'i&gt; ── inner: NsReader&lt;&amp;'i [u8]&gt;
+        │
+        │ next_event() trả về
+        ▼
+  Event&lt;'i&gt; ── Start(StartTag&lt;'i&gt;) ── raw: BytesStart&lt;'i&gt; (Cow&lt;'i, str&gt; bên trong)
+            └─ Text(Cow&lt;'i, str&gt;)  ── Borrowed(&amp;'i str)  → trỏ vào xml
+                                     Owned(String)     → bản riêng, không trỏ đi đâu
+
+  Luật: không cái gì ở dưới được sống lâu hơn `xml`.</code></pre>
+</figure>
+
+<p>Muốn thấy compiler "bắt lỗi" thật, mình viết thử đoạn này (một example tạm trong repo) và chạy <code>cargo build</code>:</p>
+<figure class="code">
+  <figcaption>Tự viết — cố tình giữ StartTag lâu hơn chuỗi XML</figcaption>
+<pre><code class="language-rust">use openxml_xml::{StartTag, XmlReader};
+
+fn main() {
+    let tag: StartTag;
+    {
+        let xml = String::from("&lt;a x=\"1\"/&gt;");
+        let mut r = XmlReader::new(&amp;xml);
+        tag = r.root().unwrap();
+    }                              // xml bị giải phóng ở đây
+    println!("{}", tag.local());   // ...nhưng tag vẫn đang mượn nó
+}</code></pre>
+</figure>
+<figure class="code">
+  <figcaption>Output thật của cargo build</figcaption>
+<pre><code class="language-plaintext">error[E0597]: `xml` does not live long enough
+  --&gt; crates/openxml-xml/examples/dem_life.rs:7:36
+   |
+ 6 |         let xml = String::from("&lt;a x=\"1\"/&gt;");
+   |             --- binding `xml` declared here
+ 7 |         let mut r = XmlReader::new(&amp;xml);
+   |                                    ^^^^ borrowed value does not live long enough
+ 8 |         tag = r.root().unwrap();
+ 9 |     }
+   |     - `xml` dropped here while still borrowed
+10 |     println!("{}", tag.local());
+   |                    --- borrow later used here</code></pre>
+</figure>
+<p>Đây là thứ C/C++ không bắt được lúc biên dịch. Lưu ý dòng thứ hai của lỗi: compiler lần theo chuỗi <code>xml → r → tag</code> chính là nhờ nhãn <code>'i</code> trên <code>XmlReader::new</code> và <code>root()</code>.</p>
+
+<h3 id="elision">3.3 Lifetime elision và <code>'_</code></h3>
+<p>Nếu hàm nào cũng phải viết <code>'a</code> thì rất mệt. Rust có luật <strong>lifetime elision</strong> (lược bỏ lifetime) — ba luật đơn giản compiler tự áp dụng:</p>
+<ol>
+  <li>Mỗi tham số tham chiếu được một lifetime riêng.</li>
+  <li>Nếu chỉ có <strong>một</strong> lifetime đầu vào, kết quả dùng lifetime đó.</li>
+  <li>Nếu là method có <code>&amp;self</code> / <code>&amp;mut self</code>, kết quả dùng lifetime của <code>self</code>.</li>
+</ol>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L155-L162">crates/openxml-xml/src/reader.rs:155–162 — luật 3: kết quả mượn từ &amp;self</figcaption>
+<pre><code class="language-rust">    /// Local name of the element.
+    pub fn local(&amp;self) -&gt; &amp;str {
+        let name = self.raw.name().0;
+        match name.find(':') {
+            Some(i) =&gt; &amp;name[i + 1..],
+            None =&gt; name,
+        }
+    }</code></pre>
+</figure>
+<p><code>fn local(&amp;self) -&gt; &amp;str</code> thực ra là <code>fn local&lt;'s&gt;(&amp;'s self) -&gt; &amp;'s str</code>: tên thẻ mượn <strong>từ StartTag</strong> (chính xác là từ <code>raw.name()</code>), không phải từ input <code>'i</code>. Hệ quả thực tế ở hàm <code>root_name</code>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L57-L62">crates/openxml-xml/src/reader.rs:57–62</figcaption>
+<pre><code class="language-rust">/// Returns the namespace and local name of a document's root element.
+pub fn root_name(xml: &amp;str) -&gt; Result&lt;(Ns, String)&gt; {
+    let mut r = XmlReader::new(xml);
+    let root = r.root()?;
+    Ok((root.ns(), root.local().to_owned()))
+}</code></pre>
+</figure>
+<p><code>root</code> là biến cục bộ, sẽ chết khi hàm kết thúc, nên <code>root.local()</code> (mượn từ <code>root</code>) không thể trả ra ngoài → phải <code>.to_owned()</code> thành <code>String</code>. Đây là lựa chọn điển hình: <strong>trả ra ngoài thì sở hữu, dùng tại chỗ thì mượn</strong>.</p>
+<p>Còn <code>'_</code> là "lifetime ẩn danh" — bạn viết nó khi cú pháp <em>bắt buộc</em> có chỗ cho lifetime nhưng muốn compiler tự suy theo luật elision. Ví dụ:</p>
+<ul>
+  <li><code>pub fn decode_xml_bytes(bytes: &amp;[u8]) -&gt; Result&lt;Cow&lt;'_, str&gt;&gt;</code> — <code>Cow</code> cần một lifetime; <code>'_</code> = "cùng lifetime với <code>bytes</code>" (luật 2).</li>
+  <li><code>pub fn skip(&amp;mut self, tag: &amp;StartTag&lt;'_&gt;)</code> — "StartTag với lifetime nào cũng được, mình không quan tâm".</li>
+  <li><code>impl Attr&lt;'_&gt; { ... }</code> — viết impl cho mọi lifetime mà không cần đặt tên.</li>
+</ul>
+
+<div class="callout warn">
+  <span class="callout-title">⚠️ Chỗ hay nhầm</span>
+  <p><code>'i</code> không phải "thời gian chạy". Nó là một <em>vùng code</em> mà compiler chứng minh tham chiếu còn hợp lệ. Bạn không bao giờ "gán" lifetime, chỉ <em>mô tả quan hệ</em>: "cái này sống không lâu hơn cái kia". Nếu thấy mình muốn "kéo dài lifetime", câu trả lời gần như luôn là: chuyển sang dữ liệu sở hữu (<code>String</code>, <code>to_owned()</code>, <code>into_owned()</code>).</p>
+</div>
+
+<h2 id="cow">4. <code>Cow&lt;'i, str&gt;</code>: mượn khi được, sở hữu khi buộc phải</h2>
+
+<h3 id="cow-van-de">4.1 Vấn đề</h3>
+<p>Text trong XML có thể chứa entity: <code>Tom &amp;amp; Jerry</code> phải được đọc ra là <code>Tom &amp; Jerry</code>. Với text <em>không</em> có entity, ta trả <code>&amp;str</code> trỏ vào input (zero-copy). Nhưng với text <em>có</em> entity thì chuỗi kết quả <strong>không tồn tại</strong> ở đâu trong input — phải tạo <code>String</code> mới. Vậy hàm trả về kiểu gì? <code>&amp;str</code> thì không làm được trường hợp 2; <code>String</code> thì bắt trường hợp 1 cấp phát vô ích.</p>
+
+<h3 id="cow-giai-phap">4.2 Cow = "Clone on write"</h3>
+<p><code>std::borrow::Cow</code> là một enum hai nhánh (rút gọn cho <code>str</code>):</p>
+<figure class="code">
+  <figcaption>Ý tưởng của Cow (rút gọn từ thư viện chuẩn)</figcaption>
+<pre><code class="language-rust">enum Cow&lt;'a, str&gt; {
+    Borrowed(&amp;'a str),   // đang mượn — rẻ
+    Owned(String),       // đang sở hữu — đã cấp phát
+}</code></pre>
+</figure>
+<figure class="code">
+  <figcaption>Tự viết — giải mã &amp;amp; chỉ khi cần</figcaption>
+<pre><code class="language-rust">use std::borrow::Cow;
+
+fn giai_ma_amp(s: &amp;str) -&gt; Cow&lt;'_, str&gt; {
+    if s.contains("&amp;amp;") {
+        Cow::Owned(s.replace("&amp;amp;", "&amp;"))   // buộc phải tạo chuỗi mới
+    } else {
+        Cow::Borrowed(s)                      // trả lại đúng cửa sổ cũ
+    }
+}
+
+let a = giai_ma_amp("Tom &amp;amp; Jerry");   // Owned("Tom &amp; Jerry")
+let b = giai_ma_amp("Tom và Jerry");      // Borrowed — không cấp phát
+println!("{a} / {b}");                    // dùng như &amp;str nhờ Deref</code></pre>
+</figure>
+<p>Ba thao tác bạn sẽ gặp trong reader:</p>
+<dl class="glossary">
+  <dt>Deref</dt><dd><code>Cow&lt;str&gt;</code> tự "giả làm" <code>&amp;str</code>: gọi được <code>.trim()</code>, <code>.len()</code>, so sánh <code>== "abc"</code>… không cần quan tâm đang ở nhánh nào.</dd>
+  <dt>to_mut()</dt><dd>"Cho tôi <code>&amp;mut String</code> để sửa". Nếu đang Borrowed thì <strong>lúc này mới</strong> chép sang Owned (đúng nghĩa "clone on write"); nếu đã Owned thì trả luôn, không chép lại.</dd>
+  <dt>into_owned()</dt><dd>Tiêu thụ Cow, trả về <code>String</code>. Owned thì lấy luôn; Borrowed thì chép một lần. Dùng khi cần cắt đứt quan hệ mượn (ví dụ để lưu lâu dài).</dd>
+</dl>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — to_mut và into_owned</figcaption>
+<pre><code class="language-rust">let mut c = giai_ma_amp("abc");   // Borrowed
+c.to_mut().push('!');             // chép sang Owned rồi mới sửa
+let s: String = c.into_owned();   // "abc!" — không chép thêm lần nào nữa</code></pre>
+</figure>
+
+<h3 id="cow-trong-du-an">4.3 Cow trong reader.rs</h3>
+<p>Nhìn lại <code>Event::Text(Cow&lt;'i, str&gt;)</code>. Nhánh nào xảy ra khi nào?</p>
+<div class="table-wrap"><table>
+  <tr><th>Input</th><th>Kết quả</th><th>Vì sao</th></tr>
+  <tr><td><code>&lt;w:t&gt;Xin chào&lt;/w:t&gt;</code></td><td>Borrowed</td><td>Chuỗi y hệt input, trỏ thẳng vào</td></tr>
+  <tr><td><code>&lt;w:t&gt;Tom &amp;amp; Jerry&lt;/w:t&gt;</code></td><td>Owned</td><td>Ba mảnh <code>"Tom "</code> + <code>"&amp;"</code> + <code>" Jerry"</code> phải ghép lại (mục 8)</td></tr>
+  <tr><td>Text có <code>\r\n</code></td><td>Owned</td><td>Phải đổi thành <code>\n</code> (mục 12)</td></tr>
+</table></div>
+<p>Mình đã chạy thật chương trình ở mục 13 và in ra nhánh của từng <code>w:t</code>:</p>
+<figure class="code">
+  <figcaption>Output thật</figcaption>
+<pre><code class="language-plaintext">w:t = "Xin chào"  (Borrowed, preserve = false)
+w:t = "Tom &amp; Jerry "  (Owned, preserve = true)
+w:t = "in đậm"  (Borrowed, preserve = false)
+Số đoạn văn (w:p): 3</code></pre>
+</figure>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — vì sao <code>Cow&lt;'i, str&gt;</code> chứ không phải <code>Cow&lt;'_, str&gt;</code>?</span>
+  <p>Text mượn từ <em>input</em> chứ không mượn từ <em>reader</em>. Nhờ ghi rõ <code>'i</code>, bạn có thể giữ một <code>Event::Text</code> trong tay rồi vẫn gọi <code>r.next_event()</code> tiếp (cần <code>&amp;mut r</code>) — không xung đột mượn, vì text không dính gì tới <code>r</code>. Nếu API trả <code>Cow&lt;'_, str&gt;</code> gắn với <code>&amp;mut self</code>, bạn sẽ phải dùng xong text rồi mới được đọc tiếp. Đây là điểm thiết kế tinh tế: <strong>nhãn lifetime quyết định độ "thoải mái" của API</strong>.</p>
+</div>
+
+<h2 id="decode">5. Từ bytes đến text: <code>decode_xml_bytes</code></h2>
+<p>File trong ZIP là <strong>bytes</strong> (<code>&amp;[u8]</code>), còn <code>XmlReader::new</code> nhận <code>&amp;str</code>. Ai chuyển đổi? Hàm này:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L21-L55">crates/openxml-xml/src/reader.rs:21–55</figcaption>
+<pre><code class="language-rust">/// Decodes the bytes of an XML part into text.
+///
+/// OOXML parts are UTF-8 or UTF-16 (ECMA-376 Part 2 §8.1.4). A byte order mark
+/// is removed; UTF-16 input is transcoded.
+pub fn decode_xml_bytes(bytes: &amp;[u8]) -&gt; Result&lt;Cow&lt;'_, str&gt;&gt; {
+    fn utf16(bytes: &amp;[u8], le: bool) -&gt; Result&lt;Cow&lt;'static, str&gt;&gt; {
+        if !bytes.len().is_multiple_of(2) {
+            return Err(Error::Encoding("odd number of bytes in UTF-16 input".into()));
+        }
+        let units = bytes.as_chunks::&lt;2&gt;().0.iter().map(|c| {
+            if le {
+                u16::from_le_bytes([c[0], c[1]])
+            } else {
+                u16::from_be_bytes([c[0], c[1]])
+            }
+        });
+        char::decode_utf16(units)
+            .collect::&lt;std::result::Result&lt;String, _&gt;&gt;()
+            .map(Cow::Owned)
+            .map_err(|e| Error::Encoding(e.to_string()))
+    }
+    let utf8 = |b| {
+        std::str::from_utf8(b)
+            .map(Cow::Borrowed)
+            .map_err(|e| Error::Encoding(e.to_string()))
+    };
+    match bytes {
+        [0xEF, 0xBB, 0xBF, rest @ ..] =&gt; utf8(rest),
+        [0xFF, 0xFE, rest @ ..] =&gt; utf16(rest, true),
+        [0xFE, 0xFF, rest @ ..] =&gt; utf16(rest, false),
+        [b'&lt;', 0, ..] =&gt; utf16(bytes, true),
+        [0, b'&lt;', ..] =&gt; utf16(bytes, false),
+        _ =&gt; utf8(bytes),
+    }
+}</code></pre>
+</figure>
+
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — mã hoá của part XML</span>
+  <p>Comment trong code dẫn ECMA-376 Part 2 §8.1.4: part XML phải là <strong>UTF-8 hoặc UTF-16</strong>. Thực tế Office ghi UTF-8, nhưng file do công cụ khác tạo có thể là UTF-16. Cách nhận biết: <strong>BOM</strong> (byte order mark) — vài byte "ký hiệu" ở đầu file: <code>EF BB BF</code> = UTF-8, <code>FF FE</code> = UTF-16 little-endian, <code>FE FF</code> = UTF-16 big-endian. Không có BOM thì nhìn byte đầu: file XML luôn bắt đầu bằng <code>&lt;</code> (0x3C); ở UTF-16 LE nó thành <code>3C 00</code>, UTF-16 BE thành <code>00 3C</code>.</p>
+</div>
+
+<h3 id="slice-pattern">5.1 Slice pattern: <code>[0xEF, 0xBB, 0xBF, rest @ ..]</code></h3>
+<p><code>match</code> không chỉ khớp số hay enum — nó khớp được cả <strong>hình dạng của slice</strong>:</p>
+<ul>
+  <li><code>[0xEF, 0xBB, 0xBF, rest @ ..]</code> — "ba byte đầu đúng là EF BB BF; phần còn lại (<code>..</code>, có thể rỗng) đặt tên là <code>rest</code>". <code>@</code> là "gắn tên cho phần khớp được". <code>rest</code> có kiểu <code>&amp;[u8]</code> — một slice con, không chép.</li>
+  <li><code>[b'&lt;', 0, ..]</code> — byte đầu là ký tự <code>&lt;</code>, byte hai là 0, sau đó gì cũng được.</li>
+  <li><code>_</code> — mọi trường hợp còn lại (kể cả slice rỗng).</li>
+</ul>
+<figure class="code">
+  <figcaption>Tự viết — thêm vài dạng slice pattern</figcaption>
+<pre><code class="language-rust">fn nhan_dien(bytes: &amp;[u8]) -&gt; &amp;'static str {
+    match bytes {
+        [0xEF, 0xBB, 0xBF, ..] =&gt; "UTF-8 có BOM",
+        [0xFF, 0xFE, ..] =&gt; "UTF-16 LE",
+        [] =&gt; "rỗng",
+        [first, .., last] if first == last =&gt; "đầu = cuối",
+        _ =&gt; "khác",
+    }
+}</code></pre>
+</figure>
+<p>So với cách viết C-style <code>if bytes.len() &gt;= 3 &amp;&amp; bytes[0] == 0xEF &amp;&amp; ...</code>, slice pattern vừa ngắn vừa <strong>không thể index lố</strong> — compiler tự lo kiểm tra độ dài.</p>
+
+<h3 id="closure-fn">5.2 Hàm lồng trong hàm và closure</h3>
+<p>Bên trong <code>decode_xml_bytes</code> có hai "hàm phụ" viết theo hai kiểu khác nhau:</p>
+<ul>
+  <li><code>fn utf16(bytes: &amp;[u8], le: bool) -&gt; ...</code> — một <strong>hàm lồng</strong> (nested fn). Nó là hàm bình thường, chỉ là tầm nhìn giới hạn trong hàm cha. Phải ghi đủ kiểu tham số, kiểu trả về; <strong>không</strong> truy cập được biến cục bộ của hàm cha.</li>
+  <li><code>let utf8 = |b| { ... };</code> — một <strong>closure</strong> (hàm ẩn danh gán vào biến). Kiểu của <code>b</code> được <em>suy luận</em> từ chỗ dùng (<code>utf8(rest)</code> → <code>&amp;[u8]</code>). Closure có thể "bắt" (capture) biến xung quanh — ở đây không cần.</li>
+</ul>
+<p>Để ý kiểu trả về: <code>utf16</code> trả <code>Cow&lt;'static, str&gt;</code>. Vì UTF-16 luôn phải chuyển mã sang chuỗi mới → luôn là <code>Owned</code>, không mượn gì, nên hợp với mọi lifetime — <code>'static</code> là "sống bao lâu cũng được". Nó tự "co" về <code>Cow&lt;'_, str&gt;</code> khi trả ra ngoài. Còn <code>utf8</code> trả <code>Cow::Borrowed</code> — UTF-8 hợp lệ thì chính các byte đó <em>là</em> chuỗi, chỉ cần kiểm tra (<code>std::str::from_utf8</code>) chứ không chép. Đây lại là zero-copy: 99% file Office là UTF-8 nên đường nhanh nhất rơi vào đúng trường hợp phổ biến nhất.</p>
+
+<h3 id="utf16">5.3 Chuyển mã UTF-16 từng bước</h3>
+<ol class="steps">
+  <li><strong><code>bytes.len().is_multiple_of(2)</code></strong> — UTF-16 dùng đơn vị 2 byte; số byte lẻ là file hỏng. (<code>is_multiple_of</code> là method mới của số nguyên không dấu, tương đương <code>% 2 == 0</code> nhưng đọc rõ nghĩa hơn.)</li>
+  <li><strong><code>bytes.as_chunks::&lt;2&gt;()</code></strong> — cắt slice thành các mảng cố định <code>[u8; 2]</code>. Trả về cặp <code>(các chunk đủ 2 byte, phần dư)</code>; <code>.0</code> lấy phần đầu. Cú pháp <code>::&lt;2&gt;</code> gọi là <em>turbofish</em> — chỉ định tham số generic (ở đây là một hằng số: const generic).</li>
+  <li><strong><code>.map(|c| u16::from_le_bytes([c[0], c[1]]))</code></strong> — ghép 2 byte thành một <code>u16</code> theo thứ tự byte (LE: byte thấp trước). Closure này bắt biến <code>le</code> từ ngoài.</li>
+  <li><strong><code>char::decode_utf16(units)</code></strong> — biến dãy <code>u16</code> thành dãy <code>Result&lt;char, _&gt;</code> (UTF-16 có "cặp surrogate" cho ký tự ngoài BMP như emoji; hàm chuẩn lo hết).</li>
+  <li><strong><code>.collect::&lt;std::result::Result&lt;String, _&gt;&gt;()</code></strong> — mẹo hay của Rust: <em>collect một iterator các <code>Result&lt;char, E&gt;</code> thành <code>Result&lt;String, E&gt;</code></em>. Tất cả Ok → <code>Ok(String)</code>; gặp Err đầu tiên → dừng và trả Err đó. Phải viết đầy đủ <code>std::result::Result</code> vì trong file, <code>Result</code> đã bị "che" bởi alias <code>crate::error::Result</code> (chỉ có một tham số — xem <a href="p2-3-xu-ly-loi.html">bài 2.3</a>).</li>
+  <li><strong><code>.map(Cow::Owned)</code> / <code>.map_err(...)</code></strong> — bọc String vào Cow; đổi lỗi chuẩn thành <code>Error::Encoding</code>. Để ý <code>Cow::Owned</code> được dùng như một <em>hàm</em>: biến thể enum có dữ liệu chính là một hàm dựng.</li>
+</ol>
+<p>Test <code>decodes_encodings</code> kiểm đủ các nhánh — kể cả <code>b"\xFF\xFE&lt;"</code> (BOM + 1 byte lẻ → lỗi) và <code>b"&lt;a&gt;\xC3&lt;/a&gt;"</code> (UTF-8 hỏng → lỗi):</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L694-L712">crates/openxml-xml/src/reader.rs:694–712</figcaption>
+<pre><code class="language-rust">    #[test]
+    fn decodes_encodings() {
+        assert_eq!(decode_xml_bytes(b"&lt;a/&gt;").unwrap(), "&lt;a/&gt;");
+        assert_eq!(decode_xml_bytes(b"\xEF\xBB\xBF&lt;a/&gt;").unwrap(), "&lt;a/&gt;");
+        let le: Vec&lt;u8&gt; = "\u{feff}&lt;a&gt;é&lt;/a&gt;"
+            .encode_utf16()
+            .flat_map(|u| u.to_le_bytes())
+            .collect();
+        assert_eq!(decode_xml_bytes(&amp;le).unwrap(), "&lt;a&gt;é&lt;/a&gt;");
+        let be: Vec&lt;u8&gt; = "\u{feff}&lt;a/&gt;"
+            .encode_utf16()
+            .flat_map(|u| u.to_be_bytes())
+            .collect();
+        assert_eq!(decode_xml_bytes(&amp;be).unwrap(), "&lt;a/&gt;");
+        let le_nobom: Vec&lt;u8&gt; = "&lt;a/&gt;".encode_utf16().flat_map(|u| u.to_le_bytes()).collect();
+        assert_eq!(decode_xml_bytes(&amp;le_nobom).unwrap(), "&lt;a/&gt;");
+        assert!(decode_xml_bytes(b"\xFF\xFE&lt;").is_err());
+        assert!(decode_xml_bytes(b"&lt;a&gt;\xC3&lt;/a&gt;").is_err());
+    }</code></pre>
+</figure>
+
+<h2 id="struct">6. Struct <code>XmlReader</code> và cấu hình <code>NsReader</code></h2>
+<p>Định nghĩa struct bạn đã thấy ở mục 3.2 (dòng 242–253). Bốn trường, mỗi trường một nhiệm vụ:</p>
+<div class="table-wrap"><table>
+  <tr><th>Trường</th><th>Kiểu</th><th>Để làm gì</th></tr>
+  <tr><td><code>inner</code></td><td><code>NsReader&lt;&amp;'i [u8]&gt;</code></td><td>quick-xml làm phần nặng: tách thẻ, theo dõi khai báo <code>xmlns</code></td></tr>
+  <tr><td><code>pending</code></td><td><code>Option&lt;Event&lt;'i&gt;&gt;</code></td><td>Sự kiện đã đọc trước nhưng chưa trả (mục 8)</td></tr>
+  <tr><td><code>depth</code></td><td><code>usize</code></td><td>Số thẻ đang mở — để chặn lồng quá sâu</td></tr>
+  <tr><td><code>ns_cache</code></td><td><code>Vec&lt;(Box&lt;str&gt;, Ns)&gt;</code></td><td>Nhớ vài URI vừa phân loại (mục 11)</td></tr>
+</table></div>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L255-L274">crates/openxml-xml/src/reader.rs:255–274</figcaption>
+<pre><code class="language-rust">impl&lt;'i&gt; XmlReader&lt;'i&gt; {
+    /// Creates a reader over XML text.
+    pub fn new(xml: &amp;'i str) -&gt; Self {
+        let mut inner = NsReader::from_str(xml);
+        let config = inner.config_mut();
+        config.trim_text(false);
+        config.expand_empty_elements = false;
+        config.check_end_names = true;
+        XmlReader {
+            inner,
+            pending: None,
+            depth: 0,
+            ns_cache: Vec::new(),
+        }
+    }
+
+    /// Current element depth (number of open elements).
+    pub fn depth(&amp;self) -&gt; usize {
+        self.depth
+    }</code></pre>
+</figure>
+<p>Trong <code>new</code>, <code>inner.config_mut()</code> trả về <code>&amp;mut</code> tới cấu hình để chỉnh ba cờ:</p>
+<ul>
+  <li><code>config.trim_text(false)</code> — <strong>không</strong> cắt khoảng trắng đầu/cuối text. Bắt buộc với OpenXML: <code>&lt;w:t xml:space="preserve"&gt; a &lt;/w:t&gt;</code> phải giữ hai dấu cách (test <code>xml_prefix_is_predeclared</code> kiểm đúng điều này).</li>
+  <li><code>config.expand_empty_elements = false</code> — thẻ rỗng <code>&lt;w:b/&gt;</code> trả về một sự kiện <code>Empty</code> riêng thay vì giả thành Start + End. Nhờ vậy reader biết <code>is_empty()</code> và không tốn thêm sự kiện.</li>
+  <li><code>config.check_end_names = true</code> — kiểm tra thẻ đóng khớp thẻ mở: <code>&lt;a&gt;&lt;b&gt;&lt;/a&gt;</code> là lỗi (test <code>reports_errors</code>).</li>
+</ul>
+<p>Cuối cùng <code>XmlReader { inner, pending: None, ... }</code> dùng cú pháp viết tắt: <code>inner</code> tương đương <code>inner: inner</code> khi tên biến trùng tên trường.</p>
+
+<h2 id="read-raw">7. <code>read_raw</code>: dịch sự kiện quick-xml sang sự kiện của mình</h2>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L327-L368">crates/openxml-xml/src/reader.rs:327–368</figcaption>
+<pre><code class="language-rust">    fn read_raw(&amp;mut self) -&gt; Result&lt;Option&lt;Event&lt;'i&gt;&gt;&gt; {
+        loop {
+            let ev = self.inner.read_event()?;
+            return Ok(Some(match ev {
+                QEvent::Start(e) =&gt; {
+                    self.depth += 1;
+                    if self.depth &gt; MAX_DEPTH {
+                        return Err(Error::TooDeep);
+                    }
+                    Event::Start(self.resolve_start(e, false)?)
+                }
+                QEvent::Empty(e) =&gt; {
+                    if self.depth + 1 &gt; MAX_DEPTH {
+                        return Err(Error::TooDeep);
+                    }
+                    Event::Start(self.resolve_start(e, true)?)
+                }
+                QEvent::End(_) =&gt; {
+                    self.depth = self.depth.saturating_sub(1);
+                    Event::End
+                }
+                QEvent::Text(t) =&gt; Event::Text(t.xml10_content()),
+                QEvent::CData(c) =&gt; Event::Text(c.xml10_content()),
+                QEvent::GeneralRef(r) =&gt; {
+                    let resolved = match r.resolve_char_ref()? {
+                        Some(ch) =&gt; Cow::Owned(ch.to_string()),
+                        None =&gt; match quick_xml::escape::resolve_predefined_entity(&amp;r) {
+                            Some(s) =&gt; Cow::Borrowed(s),
+                            None =&gt; {
+                                return Err(Error::Syntax(format!("undefined entity reference &amp;{};", &amp;*r)));
+                            }
+                        },
+                    };
+                    Event::Text(resolved)
+                }
+                QEvent::Eof =&gt; Event::Eof,
+                QEvent::Comment(_) | QEvent::PI(_) | QEvent::Decl(_) | QEvent::DocType(_) =&gt; {
+                    continue;
+                }
+            }));
+        }
+    }</code></pre>
+</figure>
+
+<h3 id="loop-match">7.1 Khung <code>loop</code> + <code>return match</code> + <code>continue</code></h3>
+<p>Nhìn kỹ hình dạng: một <code>loop</code> vô hạn, bên trong <em>luôn</em> <code>return Ok(Some(match ev { ... }))</code>. Vậy loop dùng để làm gì? Để nhánh cuối — comment, processing instruction (<code>&lt;?pi?&gt;</code>), khai báo <code>&lt;?xml?&gt;</code>, DOCTYPE — gọi <code>continue</code>: "bỏ sự kiện này, đọc cái tiếp". Mọi nhánh khác tạo ra một <code>Event</code> và trả về ngay.</p>
+<p>Sao <code>continue</code> lại đứng được trong một <code>match</code> mà các nhánh khác là giá trị <code>Event</code>? Vì <code>continue</code> (cũng như <code>return</code>, <code>break</code>, <code>panic!</code>) có kiểu đặc biệt <code>!</code> — "never type", kiểu của biểu thức <em>không bao giờ cho ra giá trị</em>. <code>!</code> khớp với mọi kiểu, nên compiler vui vẻ chấp nhận.</p>
+
+<h3 id="tung-nhanh">7.2 Từng nhánh</h3>
+<ul>
+  <li><strong><code>QEvent::Start(e)</code></strong> — tăng <code>depth</code>, nếu vượt <code>MAX_DEPTH</code> (256) thì trả <code>Error::TooDeep</code>. Sau đó <code>resolve_start</code> (mục 10) biến <code>BytesStart</code> thô thành <code>StartTag</code> đã resolve namespace.</li>
+  <li><strong><code>QEvent::Empty(e)</code></strong> — thẻ rỗng không có thẻ đóng, nên <em>không</em> tăng depth (tăng rồi sẽ không ai giảm); chỉ kiểm tra "nếu mở thì có lố không" bằng <code>self.depth + 1 &gt; MAX_DEPTH</code>. Vẫn trả <code>Event::Start</code> nhưng với <code>empty = true</code>.</li>
+  <li><strong><code>QEvent::End(_)</code></strong> — giảm depth bằng <code>saturating_sub(1)</code>: trừ nhưng dừng ở 0 thay vì tràn số (với <code>usize</code>, <code>0 - 1</code> sẽ panic ở bản debug).</li>
+  <li><strong><code>Text</code> / <code>CData</code></strong> — cả hai thành <code>Event::Text</code>. <code>xml10_content()</code> của quick-xml trả <code>Cow&lt;'i, str&gt;</code> đã <strong>chuẩn hoá xuống dòng</strong> theo XML 1.0 (<code>\r\n</code>, <code>\r</code> → <code>\n</code>); chỉ cấp phát khi thực sự có <code>\r</code>.</li>
+  <li><strong><code>GeneralRef</code></strong> — quick-xml 0.42 báo mỗi tham chiếu <code>&amp;...;</code> là một sự kiện riêng. Ta thử lần lượt: tham chiếu ký tự (<code>&amp;#65;</code>, <code>&amp;#x42;</code>) → <code>resolve_char_ref</code> trả <code>Some(char)</code> → <code>Cow::Owned(ch.to_string())</code>; nếu không phải thì thử 5 entity định sẵn (<code>lt gt amp apos quot</code>) → <code>resolve_predefined_entity</code> trả <code>&amp;'static str</code> → <code>Cow::Borrowed</code>; còn lại (<code>&amp;bogus;</code>) → lỗi <code>Syntax</code>.</li>
+  <li><strong><code>Eof</code></strong> — hết input.</li>
+</ul>
+
+<div class="callout pattern">
+  <span class="callout-title">🧩 Adapter / anti-corruption layer</span>
+  <p><code>read_raw</code> là một <strong>adapter</strong>: nó "phiên dịch" enum 11 nhánh của quick-xml thành enum 4 nhánh (<code>Start</code>, <code>End</code>, <code>Text</code>, <code>Eof</code>) của dự án. Hàng nghìn file code sinh ra chỉ phải biết 4 nhánh này. Nếu mai kia đổi sang parser khác, hoặc quick-xml đổi API (nó đã đổi nhiều lần — <code>GeneralRef</code> là sự kiện mới gần đây), chỉ <code>reader.rs</code> phải sửa.</p>
+</div>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — hằng số MAX_DEPTH và vì sao cần nó</span>
+  <p>Comment ở dòng 15–18 nói rõ: code sinh ra đọc mỗi tầng thẻ bằng một lần <strong>gọi đệ quy</strong> (<code>read_xml</code> của cha gọi <code>read_xml</code> của con). Một file độc hại lồng 1 triệu thẻ <code>&lt;a&gt;</code> sẽ làm tràn stack (stack overflow) — chương trình chết cứng, không bắt được như lỗi thường. Giới hạn 256 biến chuyện đó thành <code>Err(Error::TooDeep)</code> bình thường. Test <code>depth_limit_is_enforced</code> dựng chuỗi <code>"&lt;a&gt;".repeat(261)</code> để kiểm.</p>
+</div>
+
+<p>Nhỏ nhưng đáng biết: <code>read_raw</code> trả <code>Result&lt;Option&lt;Event&gt;&gt;</code>, nhưng đọc kỹ bạn sẽ thấy nó <em>không bao giờ</em> trả <code>Ok(None)</code> — mọi đường đều là <code>Ok(Some(..))</code> hoặc <code>Err</code>. Các nhánh <code>None</code> ở <code>next_event</code> vì vậy chỉ là phòng xa. Đọc code thật đôi khi sẽ gặp những chỗ như thế — không sao, quan trọng là bạn tự kiểm chứng được.</p>
+
+<h2 id="next-event">8. <code>next_event</code>: gộp text bằng kỹ thuật "pending"</h2>
+<h3 id="gop-text-van-de">8.1 Vấn đề</h3>
+<p>Với input <code>&lt;a&gt;x &amp;amp; y &amp;#65;&amp;#x42;&lt;![CDATA[&lt;c&gt;]]&gt;z&lt;/a&gt;</code>, quick-xml trả về một loạt mảnh: Text <code>"x "</code>, GeneralRef <code>amp</code>, Text <code>" y "</code>, GeneralRef <code>#65</code>, GeneralRef <code>#x42</code>, CData <code>"&lt;c&gt;"</code>, Text <code>"z"</code>. Code sinh ra không muốn quan tâm chuyện này — nó muốn <strong>một</strong> text <code>"x &amp; y AB&lt;c&gt;z"</code> (test <code>merges_text_entities_and_cdata</code>).</p>
+<p>Muốn gộp thì phải đọc tiếp tới khi gặp thứ <em>không phải</em> text. Nhưng khi đã đọc phải cái đó (ví dụ <code>End</code>), ta không thể "nhả" nó lại vào quick-xml. Giải pháp: <strong>cất nó vào túi</strong> (<code>pending</code>), lần gọi sau trả nó ra trước.</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L370-L393">crates/openxml-xml/src/reader.rs:370–393</figcaption>
+<pre><code class="language-rust">    /// Returns the next event.
+    pub fn next_event(&amp;mut self) -&gt; Result&lt;Event&lt;'i&gt;&gt; {
+        if let Some(ev) = self.pending.take() {
+            return Ok(ev);
+        }
+        let first = match self.read_raw()? {
+            Some(ev) =&gt; ev,
+            None =&gt; return Ok(Event::Eof),
+        };
+        let Event::Text(mut text) = first else {
+            return Ok(first);
+        };
+        // Merge adjacent character data (text, CDATA and entity references).
+        loop {
+            match self.read_raw()? {
+                Some(Event::Text(more)) =&gt; text.to_mut().push_str(&amp;more),
+                Some(other) =&gt; {
+                    self.pending = Some(other);
+                    return Ok(Event::Text(text));
+                }
+                None =&gt; return Ok(Event::Text(text)),
+            }
+        }
+    }</code></pre>
+</figure>
+
+<h3 id="take">8.2 <code>Option::take()</code></h3>
+<p><code>self.pending.take()</code> làm hai việc một lúc: lấy giá trị ra khỏi <code>Option</code> <em>và</em> để lại <code>None</code> ở chỗ cũ. Vì sao không viết <code>if let Some(ev) = self.pending { ... }</code>? Vì <code>Event</code> không <code>Copy</code> — lấy nó ra bằng pattern là <strong>move</strong> ra khỏi một trường của <code>self</code> đang bị mượn (<code>&amp;mut self</code>), compiler cấm (sẽ để lại một trường "rỗng ruột"). <code>take()</code> đổi chỗ an toàn: trường luôn có giá trị hợp lệ (<code>None</code>).</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — take</figcaption>
+<pre><code class="language-rust">let mut tui: Option&lt;String&gt; = Some("End".into());
+let lay_ra = tui.take();   // lay_ra = Some("End"), tui = None</code></pre>
+</figure>
+
+<h3 id="let-else">8.3 <code>let ... else</code></h3>
+<p><code>let Event::Text(mut text) = first else { return Ok(first); };</code> đọc là: "nếu <code>first</code> là <code>Text</code> thì bóc lấy nội dung vào biến <code>text</code> (có thể sửa) và đi tiếp; <strong>ngược lại</strong> chạy khối <code>else</code>" — khối này bắt buộc phải thoát ra (<code>return</code>, <code>break</code>, <code>continue</code>, <code>panic!</code>). Lợi ích: code "đường chính" không bị thụt lề vào trong một <code>if let</code> lớn. Đây là kiểu viết <strong>early return / guard clause</strong>.</p>
+
+<h3 id="vong-gop">8.4 Vòng gộp</h3>
+<ul>
+  <li><code>Some(Event::Text(more)) =&gt; text.to_mut().push_str(&amp;more)</code> — lại gặp text: nối vào. Lần nối đầu tiên, <code>to_mut()</code> biến <code>text</code> từ Borrowed thành Owned (chép 1 lần); các lần sau nối thẳng. Nếu không có mảnh thứ hai, <code>text</code> vẫn Borrowed — zero-copy được giữ cho trường hợp phổ biến.</li>
+  <li><code>Some(other)</code> — thứ không phải text: cất vào <code>pending</code>, trả text đã gộp.</li>
+</ul>
+
+<h3 id="depth-peek">8.5 Hệ quả tinh tế: <code>depth()</code> "nhìn trước" một bước</h3>
+<p>Vì đọc trước, bộ đếm <code>depth</code> đôi khi đã tính cả sự kiện đang nằm trong túi. Mình viết một example in depth sau mỗi <code>next_event</code>:</p>
+<figure class="code">
+  <figcaption>Output thật — input: &lt;?xml?&gt;\n&lt;!-- ghi chú --&gt;\n&lt;w:p ...&gt;&lt;w:r&gt;&lt;w:t&gt;A &amp;amp; B&lt;![CDATA[ &lt;x&gt; ]]&gt;&lt;/w:t&gt;&lt;/w:r&gt;&lt;w:r/&gt;&lt;/w:p&gt;</figcaption>
+<pre><code class="language-plaintext">depth=1  Text "\n\n"
+depth=1  Start Ns::W p empty=false
+depth=2  Start Ns::W r empty=false
+depth=3  Start Ns::W t empty=false
+depth=2  Text "A &amp; B &lt;x&gt; "
+depth=2  End
+depth=1  End
+depth=1  Start Ns::W r empty=true
+depth=0  End
+depth=0  Eof</code></pre>
+</figure>
+<p>Dòng đầu: hai ký tự xuống dòng (sau <code>&lt;?xml?&gt;</code> và sau comment — comment bị bỏ nên hai mảnh text dính nhau) được gộp; để biết đã hết text, reader đọc luôn Start của <code>w:p</code> → depth đã là 1. Tương tự dòng <code>Text "A &amp; B &lt;x&gt; "</code> báo depth 2 vì End của <code>w:t</code> đã nằm trong túi. Code sinh ra không dùng <code>depth()</code> để điều hướng nên không bị ảnh hưởng — nhưng nếu bạn tự dùng, hãy nhớ điều này.</p>
+
+<h2 id="api">9. API cho code sinh ra: <code>root</code>, <code>next_child</code>, <code>skip</code>, <code>read_text</code></h2>
+<p><code>next_event</code> vẫn còn "thô". Code sinh ra dùng bốn hàm cấp cao hơn, tất cả xây trên <code>next_event</code>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L395-L422">crates/openxml-xml/src/reader.rs:395–422</figcaption>
+<pre><code class="language-rust">    /// Returns the root element's start tag, skipping the prolog.
+    pub fn root(&amp;mut self) -&gt; Result&lt;StartTag&lt;'i&gt;&gt; {
+        loop {
+            match self.next_event()? {
+                Event::Start(tag) =&gt; return Ok(tag),
+                Event::Text(t) if t.trim().is_empty() =&gt; continue,
+                Event::Text(_) =&gt; return Err(Error::Syntax("text before the root element".into())),
+                Event::End =&gt; return Err(Error::Syntax("unexpected end tag".into())),
+                Event::Eof =&gt; return Err(Error::NoRootElement),
+            }
+        }
+    }
+
+    /// Returns the next child element of the current element, or `None` when
+    /// the current element ends. Character data is skipped.
+    ///
+    /// Callers must fully consume every returned child (by reading it or
+    /// calling [`XmlReader::skip`]) before asking for the next one.
+    pub fn next_child(&amp;mut self) -&gt; Result&lt;Option&lt;StartTag&lt;'i&gt;&gt;&gt; {
+        loop {
+            match self.next_event()? {
+                Event::Start(tag) =&gt; return Ok(Some(tag)),
+                Event::End =&gt; return Ok(None),
+                Event::Text(_) =&gt; continue,
+                Event::Eof =&gt; return Err(Error::UnexpectedEof),
+            }
+        }
+    }</code></pre>
+</figure>
+<ul>
+  <li><strong><code>root()</code></strong> — bỏ qua phần mở đầu (chỉ chấp nhận text toàn khoảng trắng — <code>Event::Text(t) if t.trim().is_empty()</code> là <em>match guard</em>: nhánh chỉ khớp khi điều kiện đúng), trả thẻ gốc. Không có gốc → <code>Error::NoRootElement</code>.</li>
+  <li><strong><code>next_child()</code></strong> — "con tiếp theo của thẻ hiện tại": gặp Start → trả con; gặp End → <code>None</code> (thẻ hiện tại đã đóng); gặp text → bỏ qua (khoảng trắng giữa các thẻ).</li>
+</ul>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L424-L467">crates/openxml-xml/src/reader.rs:424–467</figcaption>
+<pre><code class="language-rust">    /// Skips the remaining content of the element opened by `tag`.
+    pub fn skip(&amp;mut self, tag: &amp;StartTag&lt;'_&gt;) -&gt; Result&lt;()&gt; {
+        if tag.is_empty() {
+            return Ok(());
+        }
+        let mut level = 1usize;
+        loop {
+            match self.next_event()? {
+                Event::Start(t) =&gt; {
+                    if !t.is_empty() {
+                        level += 1;
+                    }
+                }
+                Event::End =&gt; {
+                    level -= 1;
+                    if level == 0 {
+                        return Ok(());
+                    }
+                }
+                Event::Text(_) =&gt; {}
+                Event::Eof =&gt; return Err(Error::UnexpectedEof),
+            }
+        }
+    }
+
+    /// Reads the character content of the element opened by `tag` up to its end
+    /// tag. Nested elements are skipped (their text is ignored).
+    pub fn read_text(&amp;mut self, tag: &amp;StartTag&lt;'_&gt;) -&gt; Result&lt;Cow&lt;'i, str&gt;&gt; {
+        if tag.is_empty() {
+            return Ok(Cow::Borrowed(""));
+        }
+        let mut out: Option&lt;Cow&lt;'i, str&gt;&gt; = None;
+        loop {
+            match self.next_event()? {
+                Event::Text(t) =&gt; match &amp;mut out {
+                    None =&gt; out = Some(t),
+                    Some(acc) =&gt; acc.to_mut().push_str(&amp;t),
+                },
+                Event::Start(child) =&gt; self.skip(&amp;child)?,
+                Event::End =&gt; return Ok(out.unwrap_or(Cow::Borrowed(""))),
+                Event::Eof =&gt; return Err(Error::UnexpectedEof),
+            }
+        }
+    }</code></pre>
+</figure>
+<ul>
+  <li><strong><code>skip(tag)</code></strong> — bỏ qua toàn bộ nội dung của <code>tag</code>. Kỹ thuật <strong>đếm tầng</strong>: bắt đầu <code>level = 1</code> (đang ở trong <code>tag</code>), mỗi Start không rỗng <code>+1</code>, mỗi End <code>-1</code>, về 0 là đã tới thẻ đóng của <code>tag</code>. Thẻ rỗng không cộng vì nó không có End. <code>1usize</code> là cách ghi kiểu ngay trên số.</li>
+  <li><strong><code>read_text(tag)</code></strong> — gom mọi text tới thẻ đóng, thẻ con thì <code>skip</code>. Để ý <code>out: Option&lt;Cow&lt;'i, str&gt;&gt;</code>: mảnh đầu tiên được giữ nguyên (có thể vẫn Borrowed), chỉ từ mảnh thứ hai mới <code>to_mut()</code>. <code>match &amp;mut out</code> mượn <code>out</code> để sửa tại chỗ. Cuối cùng <code>out.unwrap_or(Cow::Borrowed(""))</code> — chưa có mảnh nào thì trả chuỗi rỗng (không cấp phát).</li>
+</ul>
+
+<h3 id="hop-dong">9.1 Hợp đồng: "mỗi con trả về phải được tiêu thụ hết"</h3>
+<p>Đọc lại doc comment của <code>next_child</code>: <em>"Callers must fully consume every returned child (by reading it or calling skip) before asking for the next one."</em> Vì sao? Vì <code>next_child</code> không hề biết "thẻ hiện tại" là thẻ nào — nó chỉ đọc sự kiện kế tiếp. Nếu bạn nhận con <code>w:r</code> mà không đọc/skip nó, lần gọi sau sẽ trả về <em>cháu</em> <code>w:t</code> như thể nó là con, và End của <code>w:r</code> sẽ bị hiểu nhầm là "cha đã đóng":</p>
+<figure class="code">
+  <figcaption>Phá hợp đồng thì cấu trúc bị lệch</figcaption>
+<pre class="diagram"><code>Đang đọc &lt;w:p&gt;, input:  &lt;w:p&gt; &lt;w:r&gt; &lt;w:t&gt;A&lt;/w:t&gt; &lt;/w:r&gt; &lt;w:r/&gt; &lt;/w:p&gt;
+
+ĐÚNG:  next_child → w:r ; skip(w:r) ăn hết "&lt;w:t&gt;A&lt;/w:t&gt;&lt;/w:r&gt;"
+       next_child → w:r (empty) ; skip → không làm gì
+       next_child → None   (gặp &lt;/w:p&gt;)            ✔ w:p có 2 con
+
+SAI:   next_child → w:r ; (quên skip)
+       next_child → w:t   ← thực ra là CHÁU
+       next_child → None  ← thực ra là &lt;/w:t&gt;, tưởng w:p đã đóng
+       ... cha của w:p sẽ nhận nhầm &lt;/w:r&gt;, &lt;/w:p&gt; → dây chuyền sai</code></pre>
+</figure>
+<p>Và đây là code sinh ra thật tuân thủ hợp đồng — mỗi con hoặc được <code>XmlRead::read_xml(r, &amp;child)</code> đọc hết, hoặc được <code>RawElement::read</code> giữ nguyên dạng thô (bài <a href="p2-7-raw-node.html">2.7</a>) — cũng đọc hết:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-schema/src/generated/shared_additional_characteristics.rs#L87-L115">crates/openxml-schema/src/generated/shared_additional_characteristics.rs:87–115 — code sinh ra dùng XmlReader</figcaption>
+<pre><code class="language-rust">impl XmlRead for CT_AdditionalCharacteristics {
+    fn read_xml(r: &amp;mut XmlReader&lt;'_&gt;, tag: &amp;StartTag&lt;'_&gt;) -&gt; Result&lt;Self&gt; {
+        let mut this = Self::default();
+        for a in tag.attributes() {
+            this.extra_attrs.push(a.to_raw());
+        }
+        if !tag.is_empty() {
+            let mut pos: u16 = 0;
+            while let Some(child) = r.next_child()? {
+                match (child.ns(), child.local()) {
+                    (Ns::AC, "characteristic") =&gt; {
+                        this.characteristic.push(XmlRead::read_xml(r, &amp;child)?);
+                        pos = 1;
+                    }
+                    _ =&gt; match pos {
+                        1 =&gt; rt::push_extra_at(
+                            &amp;mut this.extra_children,
+                            0,
+                            this.characteristic.len(),
+                            RawElement::read(r, &amp;child)?,
+                        ),
+                        _ =&gt; rt::push_extra(&amp;mut this.extra_children, pos, RawElement::read(r, &amp;child)?),
+                    },
+                }
+            }
+        }
+        Ok(this)
+    }
+}</code></pre>
+</figure>
+<div class="callout warn">
+  <span class="callout-title">⚠️ Chỗ hay nhầm — thẻ rỗng</span>
+  <p>Để ý dòng <code>if !tag.is_empty() {</code> trước vòng <code>while let Some(child) = r.next_child()?</code>. Với thẻ rỗng <code>&lt;x/&gt;</code> không có End; nếu vẫn gọi <code>next_child</code>, nó sẽ đọc sang sự kiện của <em>anh em</em> hoặc của cha! <code>skip</code> và <code>read_text</code> tự kiểm tra <code>is_empty()</code> ở dòng đầu; còn vòng <code>next_child</code> thì người gọi phải tự kiểm. Đây là một <strong>hợp đồng ngầm</strong> — codegen đảm bảo, nhưng nếu bạn tự viết code dùng <code>XmlReader</code> thì phải nhớ.</p>
+</div>
+<div class="callout pattern">
+  <span class="callout-title">🧩 Recursive descent trên luồng sự kiện</span>
+  <p>Kiểu "hàm đọc của cha lặp <code>next_child</code>, gặp con nào gọi hàm đọc của con đó" chính là <strong>recursive descent parser</strong> — cách viết parser kinh điển, ở đây chạy trên luồng sự kiện pull. Mỗi hàm chỉ lo đúng một tầng; hợp đồng "tiêu thụ hết" là thứ giữ cho các tầng không giẫm lên nhau. Thử nghiệm <code>next_child_and_skip</code> (dòng 623–638) minh hoạ trọn vẹn quy trình này.</p>
+</div>
+
+<h2 id="start-tag">10. <code>StartTag</code>: attribute zero-copy bằng <code>Range</code></h2>
+<p>Phần này khó nhất bài — đọc chậm, nhưng nếu thấy nặng thì chỉ cần nắm <strong>ý tưởng</strong> ở 10.1 và 10.3.</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L77-L102">crates/openxml-xml/src/reader.rs:77–102</figcaption>
+<pre><code class="language-rust">#[derive(Debug)]
+enum Slot {
+    Borrowed(Range&lt;usize&gt;),
+    Owned(String),
+}
+
+#[derive(Debug)]
+struct AttrSlot {
+    ns: Ns,
+    uri: Option&lt;Box&lt;str&gt;&gt;,
+    /// Range of the qualified name inside the raw attribute text.
+    key: Range&lt;usize&gt;,
+    /// Offset of the local name inside the raw attribute text.
+    local_start: usize,
+    value: Slot,
+}
+
+/// A resolved start tag.
+#[derive(Debug)]
+pub struct StartTag&lt;'i&gt; {
+    raw: BytesStart&lt;'i&gt;,
+    ns: Ns,
+    uri: Option&lt;Box&lt;str&gt;&gt;,
+    attrs: Vec&lt;AttrSlot&gt;,
+    empty: bool,
+}</code></pre>
+</figure>
+
+<h3 id="range-y-tuong">10.1 Ý tưởng: lưu "vị trí" thay vì lưu chuỗi</h3>
+<p><code>StartTag&lt;'i&gt;</code> giữ nguyên thẻ thô <code>raw: BytesStart&lt;'i&gt;</code> của quick-xml. Bên trong <code>BytesStart</code> là một <code>Cow&lt;'i, str&gt;</code> chứa toàn bộ nội dung giữa <code>&lt;</code> và <code>&gt;</code>: tên thẻ + mọi attribute. Muốn nhớ attribute mà không chép, tự nhiên ta nghĩ: lưu <code>&amp;str</code> trỏ vào đó. Nhưng có vấn đề: <code>&amp;str</code> trỏ vào <em>trường khác của chính struct</em> là <strong>self-referential struct</strong> (struct tự tham chiếu) — Rust an toàn không có cách diễn tả "mượn từ một trường khác của chính mình". Lý do sâu xa: struct có thể bị move sang chỗ khác bất cứ lúc nào, và khi đó những con trỏ trỏ vào "chính nó" có thể trỏ vào chỗ cũ.</p>
+<p>Lời giải của dự án: lưu <strong>vị trí</strong> (<code>Range&lt;usize&gt;</code>, ví dụ <code>60..67</code>) thay vì con trỏ. Range chỉ là hai con số, không mượn gì cả — struct thoải mái di chuyển. Khi cần chuỗi, cắt lại: <code>&amp;text[range]</code>. Kỹ thuật này gọi là <strong>index thay cho tham chiếu</strong> (indices instead of references) — rất phổ biến trong Rust.</p>
+<figure class="code">
+  <figcaption>Tự viết — cùng kỹ thuật, bản mini</figcaption>
+<pre><code class="language-rust">use std::ops::Range;
+
+struct Doc {
+    text: String,
+    words: Vec&lt;Range&lt;usize&gt;&gt;,   // vị trí từng từ trong text — không chép chuỗi
+}
+
+impl Doc {
+    fn words(&amp;self) -&gt; impl Iterator&lt;Item = &amp;str&gt; + '_ {
+        let text = &amp;self.text;
+        self.words.iter().map(move |r| &amp;text[r.clone()])
+    }
+}
+// Doc::new("  mot hai  ba ").words() → ["mot", "hai", "ba"]</code></pre>
+</figure>
+
+<h3 id="slot">10.2 enum <code>Slot</code>: Borrowed(Range) hay Owned(String)</h3>
+<p>Giá trị attribute không phải lúc nào cũng cắt ra được từ input — nếu có entity (<code>ghi="Tom &amp;amp; Jerry"</code>) hoặc cần chuẩn hoá khoảng trắng thì kết quả là chuỗi mới. <code>Slot</code> chính là "Cow tự chế" dùng Range: <code>Borrowed(Range&lt;usize&gt;)</code> hoặc <code>Owned(String)</code>. Hàm <code>slot_for</code> chọn nhánh:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L470-L478">crates/openxml-xml/src/reader.rs:470–478</figcaption>
+<pre><code class="language-rust">fn slot_for(text: &amp;str, value: Cow&lt;'_, str&gt;) -&gt; Slot {
+    match &amp;value {
+        Cow::Borrowed(s) =&gt; match offset_in(text, s) {
+            Some(r) =&gt; Slot::Borrowed(r),
+            None =&gt; Slot::Owned((*s).to_owned()),
+        },
+        Cow::Owned(s) =&gt; Slot::Owned(s.clone()),
+    }
+}</code></pre>
+</figure>
+<p>Nó nhận một <code>Cow</code> (từ quick-xml): nếu Borrowed thì thử tìm vị trí của nó trong <code>text</code> bằng <code>offset_in</code>; tìm được → <code>Slot::Borrowed(range)</code>; còn lại → <code>Slot::Owned</code>.</p>
+
+<h3 id="offset-in">10.3 <code>offset_in</code>: tính vị trí bằng địa chỉ con trỏ</h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L139-L147">crates/openxml-xml/src/reader.rs:139–147</figcaption>
+<pre><code class="language-rust">fn offset_in(base: &amp;str, sub: &amp;str) -&gt; Option&lt;Range&lt;usize&gt;&gt; {
+    let b = base.as_ptr() as usize;
+    let s = sub.as_ptr() as usize;
+    if s &gt;= b &amp;&amp; s + sub.len() &lt;= b + base.len() {
+        Some(s - b..s - b + sub.len())
+    } else {
+        None
+    }
+}</code></pre>
+</figure>
+<p>Ý tưởng (không cần nắm chi tiết): quick-xml trả tên và giá trị attribute dưới dạng <code>&amp;str</code> trỏ vào bên trong <code>text</code>, nhưng không cho biết <em>vị trí</em>. Mà một <code>&amp;str</code> thì có địa chỉ bộ nhớ (<code>as_ptr()</code>). Lấy địa chỉ của <code>sub</code> trừ địa chỉ đầu của <code>base</code> là ra vị trí. Hàm kiểm tra <code>sub</code> thực sự nằm gọn trong <code>base</code>; nếu không (ví dụ chuỗi mới cấp phát) thì trả <code>None</code>. Chỉ <em>so sánh địa chỉ như số</em> (<code>as usize</code>), không đọc bộ nhớ qua con trỏ, nên hoàn toàn là code an toàn — <code>Cargo.toml</code> gốc còn đặt <code>unsafe_code = "forbid"</code> trong <code>[workspace.lints.rust]</code> (mọi crate đều bật <code>[lints] workspace = true</code>), nghĩa là cả dự án không được có một dòng <code>unsafe</code> nào.</p>
+
+<h3 id="resolve-start">10.4 <code>resolve_start</code>: dựng StartTag</h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L276-L325">crates/openxml-xml/src/reader.rs:276–325</figcaption>
+<pre><code class="language-rust">    fn resolve_start(&amp;mut self, raw: BytesStart&lt;'i&gt;, empty: bool) -&gt; Result&lt;StartTag&lt;'i&gt;&gt; {
+        let resolver = self.inner.resolver();
+        let cache = &amp;mut self.ns_cache;
+        let (res, _) = resolver.resolve_element(raw.name());
+        let (ns, uri) = classify(cache, res)?;
+        let mut attrs = Vec::new();
+        let text = raw.attributes_raw();
+        for attr in raw.attributes() {
+            let attr = attr?;
+            let key = attr.key.0;
+            let key_range =
+                offset_in(text, key).ok_or_else(|| Error::Syntax("attribute name outside of tag".into()))?;
+            let colon = key.find(':');
+            let local_start = key_range.start + colon.map_or(0, |i| i + 1);
+            let (ns, uri, value) = match attr.key.as_namespace_binding() {
+                Some(_) =&gt; {
+                    // Normalise Strict namespace URIs to their Transitional form.
+                    let uri_text = attr.normalized_value(XmlVersion::Implicit1_0)?;
+                    let canonical = match Ns::from_uri(&amp;uri_text) {
+                        Some(known) if known.uri() != uri_text =&gt; Slot::Owned(known.uri().into()),
+                        _ =&gt; slot_for(text, uri_text),
+                    };
+                    (Ns::XMLNS, None, canonical)
+                }
+                None =&gt; {
+                    let (res, _) = resolver.resolve_attribute(QName(key));
+                    let (ns, uri) = match res {
+                        ResolveResult::Unbound =&gt; (Ns::NONE, None),
+                        other =&gt; classify(cache, other)?,
+                    };
+                    let value = attr.normalized_value(XmlVersion::Implicit1_0)?;
+                    (ns, uri, slot_for(text, value))
+                }
+            };
+            attrs.push(AttrSlot {
+                ns,
+                uri,
+                key: key_range,
+                local_start,
+                value,
+            });
+        }
+        Ok(StartTag {
+            raw,
+            ns,
+            uri,
+            attrs,
+            empty,
+        })
+    }</code></pre>
+</figure>
+<p>Từng bước:</p>
+<ol class="steps">
+  <li><strong>Resolve tên thẻ.</strong> <code>resolver.resolve_element(raw.name())</code> hỏi quick-xml "prefix này đang trỏ tới URI nào?", rồi <code>classify</code> (mục 11) đổi URI sang <code>Ns</code>.</li>
+  <li><strong>Duyệt attribute.</strong> Với mỗi attribute: tìm <code>key_range</code> (vị trí tên), <code>local_start</code> (vị trí sau dấu <code>:</code> nếu có). <code>colon.map_or(0, |i| i + 1)</code>: không có <code>:</code> thì 0, có thì nhảy qua nó.</li>
+  <li><strong>Nếu là khai báo namespace</strong> (<code>as_namespace_binding()</code> nhận ra <code>xmlns</code> / <code>xmlns:p</code>): chuẩn hoá URI Strict → Transitional (xem Góc OpenXML dưới), đánh dấu <code>Ns::XMLNS</code>.</li>
+  <li><strong>Nếu là attribute thường:</strong> <code>resolve_attribute</code>. Attribute không prefix → <code>Unbound</code> → <code>Ns::NONE</code>. (Luật XML Namespaces: <strong>default namespace không áp dụng cho attribute</strong> — nhớ kỹ, bài 2.5 sẽ gặp lại.) Giá trị lấy qua <code>normalized_value</code>: giải entity + chuẩn hoá khoảng trắng.</li>
+</ol>
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — mượn tách trường (disjoint field borrow)</span>
+  <p>Dòng 277–278: <code>let resolver = self.inner.resolver();</code> (mượn <em>đọc</em> trường <code>inner</code>) rồi <code>let cache = &amp;mut self.ns_cache;</code> (mượn <em>ghi</em> trường <code>ns_cache</code>) — cùng lúc. Hợp lệ vì hai trường khác nhau: compiler theo dõi mượn <strong>theo từng trường</strong> khi bạn truy cập trực tiếp. Đó cũng là lý do <code>classify</code> là một <em>hàm tự do</em> nhận <code>cache</code> làm tham số, chứ không phải method <code>&amp;mut self</code>: nếu viết <code>self.classify(res)</code> trong khi <code>res</code> còn mượn từ <code>self.inner</code>, compiler sẽ báo <code>E0502: cannot borrow *self as mutable because it is also borrowed as immutable</code> — method <code>&amp;mut self</code> khoá <em>cả</em> <code>self</code>, không chỉ một trường. (Mình đã thử bản rút gọn để chắc lỗi này thật sự xảy ra.)</p>
+</div>
+<p>Để thấy tận mắt dữ liệu bên trong, mình in <code>{:#?}</code> của một StartTag có đủ ba tình huống (khai báo Strict, attribute thường, attribute có entity):</p>
+<figure class="code">
+  <figcaption>Output thật — input: &lt;w:p xmlns:w="http://purl.oclc.org/ooxml/wordprocessingml/main" w:rsidR="00AB" ghi="Tom &amp;amp; Jerry"/&gt;</figcaption>
+<pre><code class="language-plaintext">StartTag {
+    raw: BytesStart { buf: Borrowed("w:p xmlns:w=\"http://purl.oclc.org/ooxml/wordprocessingml/main\" w:rsidR=\"00AB\" ghi=\"Tom &amp;amp; Jerry\""), name_len: 3 },
+    ns: Ns::W,
+    uri: None,
+    attrs: [
+        AttrSlot {
+            ns: Ns::XMLNS,
+            uri: None,
+            key: 1..8,
+            local_start: 7,
+            value: Owned(
+                "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
+            ),
+        },
+        AttrSlot {
+            ns: Ns::W,
+            uri: None,
+            key: 60..67,
+            local_start: 62,
+            value: Borrowed(
+                69..73,
+            ),
+        },
+        AttrSlot {
+            ns: Ns::NONE,
+            uri: None,
+            key: 75..78,
+            local_start: 75,
+            value: Owned(
+                "Tom &amp; Jerry",
+            ),
+        },
+    ],
+    empty: true,
+}</code></pre>
+</figure>
+<p>Đối chiếu: <code>raw.buf</code> là <code>Borrowed</code> — trỏ thẳng vào input. Các vị trí tính trong <code>attributes_raw()</code> = phần <em>sau tên thẻ</em>, bắt đầu bằng dấu cách (nên <code>xmlns:w</code> ở vị trí 1..8). URI Strict bị thay bằng URI Transitional → Owned. <code>00AB</code> cắt được → <code>Borrowed(69..73)</code>, không cấp phát. <code>Tom &amp;amp; Jerry</code> phải giải mã → Owned.</p>
+
+<h3 id="attributes">10.5 <code>attributes()</code>: <code>impl Iterator + '_</code> và closure <code>move</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L188-L224">crates/openxml-xml/src/reader.rs:188–224</figcaption>
+<pre><code class="language-rust">    /// Iterates over the attributes, including namespace declarations.
+    pub fn attributes(&amp;self) -&gt; impl Iterator&lt;Item = Attr&lt;'_&gt;&gt; + '_ {
+        let text = self.raw.attributes_raw();
+        self.attrs.iter().map(move |slot| {
+            let key = &amp;text[slot.key.clone()];
+            let local = &amp;text[slot.local_start..slot.key.end];
+            let prefix = if slot.local_start &gt; slot.key.start {
+                Some(&amp;key[..slot.local_start - slot.key.start - 1])
+            } else {
+                None
+            };
+            let (prefix, local) = if slot.ns == Ns::XMLNS {
+                // `xmlns:p` declares prefix `p`; `xmlns` declares the default namespace.
+                (Some("xmlns"), if prefix.is_some() { local } else { "" })
+            } else {
+                (prefix, local)
+            };
+            let value = match &amp;slot.value {
+                Slot::Borrowed(r) =&gt; Cow::Borrowed(&amp;text[r.clone()]),
+                Slot::Owned(s) =&gt; Cow::Borrowed(s.as_str()),
+            };
+            Attr {
+                ns: slot.ns,
+                uri: slot.uri.as_deref(),
+                prefix,
+                local,
+                value,
+            }
+        })
+    }
+
+    /// Returns the value of the attribute with the given namespace and local name.
+    pub fn attr(&amp;self, ns: Ns, local: &amp;str) -&gt; Option&lt;Cow&lt;'_, str&gt;&gt; {
+        self.attributes()
+            .find(|a| a.ns == ns &amp;&amp; a.local == local)
+            .map(|a| a.value)
+    }</code></pre>
+</figure>
+<p>Chữ ký <code>pub fn attributes(&amp;self) -&gt; impl Iterator&lt;Item = Attr&lt;'_&gt;&gt; + '_</code> đọc là:</p>
+<ul>
+  <li><code>impl Iterator&lt;Item = Attr&lt;'_&gt;&gt;</code> — "trả về <em>một kiểu nào đó</em> là iterator sinh ra <code>Attr</code>". Kiểu thật (<code>Map&lt;slice::Iter&lt;AttrSlot&gt;, [closure]&gt;</code>) dài và không viết ra được (closure không có tên), nên dùng <code>impl Trait</code> — người gọi chỉ biết "nó là Iterator".</li>
+  <li><code>+ '_</code> — "iterator này mượn <code>self</code>, không được sống lâu hơn StartTag". <code>Attr&lt;'_&gt;</code> cũng thế: mọi <code>&amp;str</code> trong <code>Attr</code> mượn từ StartTag.</li>
+  <li>Iterator là <strong>lazy</strong> (lười): chưa có <code>Attr</code> nào được dựng cho tới khi ai đó lặp. <code>attr(ns, local)</code> dùng <code>.find(...)</code> nên dừng ngay khi gặp attribute cần tìm.</li>
+</ul>
+<p>Còn <code>move</code> trong <code>map(move |slot| ...)</code>? Closure dùng biến cục bộ <code>text</code>. Nếu closure <em>mượn</em> một biến cục bộ, rồi closure bị trả ra ngoài hàm (nằm trong iterator), thì biến cục bộ đã chết mà closure còn mượn → lỗi. <code>move</code> nghĩa là "chép/chuyển các biến dùng tới <em>vào</em> closure". Ví dụ kinh điển, mình chạy thật:</p>
+<figure class="code">
+  <figcaption>Tự viết — thiếu move</figcaption>
+<pre><code class="language-rust">fn cong_them(v: &amp;[i32], n: i32) -&gt; impl Iterator&lt;Item = i32&gt; + '_ {
+    v.iter().map(|x| x + n)
+}</code></pre>
+</figure>
+<figure class="code">
+  <figcaption>Output thật của cargo build (rút gọn)</figcaption>
+<pre><code class="language-plaintext">error[E0373]: closure may outlive the current function, but it borrows `n`, which is owned by the current function
+help: to force the closure to take ownership of `n` (and any other referenced variables), use the `move` keyword
+  |
+2 |     v.iter().map(move |x| x + n)</code></pre>
+</figure>
+<p>Nói thật một chi tiết: trong <code>attributes()</code>, <code>text</code> là một <code>&amp;str</code> và closure chỉ dùng <code>*text</code>, nên với luật "capture chính xác" từ edition 2021, compiler vẫn chịu dịch kể cả khi bỏ <code>move</code> (mình đã thử bản mini). <code>move</code> ở đây là cách viết <strong>rõ ý đồ và an toàn</strong>: closure sắp bị trả ra ngoài thì cứ cho nó sở hữu những gì nó cần (chép một <code>&amp;str</code> chỉ là chép con trỏ + độ dài).</p>
+<p>Nhánh <code>slot.ns == Ns::XMLNS</code> xử lý khai báo namespace thành dạng thống nhất: <code>xmlns:w</code> → prefix <code>"xmlns"</code>, local <code>"w"</code>; <code>xmlns</code> (default) → prefix <code>"xmlns"</code>, local <code>""</code>. Và để ý: <code>Slot::Owned(s) =&gt; Cow::Borrowed(s.as_str())</code> — kể cả giá trị đã sở hữu cũng được <em>cho mượn</em> ra ngoài, vì <code>Attr</code> mượn từ StartTag, và StartTag đang sở hữu chuỗi đó. Muốn giữ attribute lâu hơn StartTag thì gọi <code>to_raw()</code> (dòng 124–137) để có <code>RawAttribute</code> sở hữu toàn bộ — code sinh ra làm đúng điều này ở dòng 90–92 phía trên.</p>
+
+<h2 id="ns-cache">11. <code>classify</code> và <code>ns_cache</code> 8 phần tử</h2>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L480-L507">crates/openxml-xml/src/reader.rs:480–507</figcaption>
+<pre><code class="language-rust">const NS_CACHE_SIZE: usize = 8;
+
+fn classify(cache: &amp;mut Vec&lt;(Box&lt;str&gt;, Ns)&gt;, res: ResolveResult&lt;'_&gt;) -&gt; Result&lt;(Ns, Option&lt;Box&lt;str&gt;&gt;)&gt; {
+    match res {
+        ResolveResult::Unbound =&gt; Ok((Ns::NONE, None)),
+        ResolveResult::Bound(ns) =&gt; {
+            let uri = ns.0;
+            let known = match cache.iter().find(|(u, _)| &amp;**u == uri) {
+                Some((_, n)) =&gt; *n,
+                None =&gt; {
+                    let n = Ns::from_uri(uri).unwrap_or(Ns::OTHER);
+                    if cache.len() == NS_CACHE_SIZE {
+                        cache.remove(0);
+                    }
+                    cache.push((uri.into(), n));
+                    n
+                }
+            };
+            match known {
+                Ns::OTHER =&gt; Ok((Ns::OTHER, Some(uri.into()))),
+                n =&gt; Ok((n, None)),
+            }
+        }
+        ResolveResult::Unknown(prefix) =&gt; {
+            Err(Error::Syntax(format!("undeclared namespace prefix `{prefix}`")))
+        }
+    }
+}</code></pre>
+</figure>
+<p>Mỗi thẻ, mỗi attribute có prefix đều phải đổi URI → <code>Ns</code>. <code>Ns::from_uri</code> so khớp URI với cả bảng ~36 namespace (cả bản Transitional lẫn Strict — <a href="p2-2-macro.html">bài 2.2</a>). Làm việc đó cho <em>mỗi</em> thẻ trong file 1 triệu ô là lãng phí, vì một part thực tế chỉ dùng vài namespace. Nên có một cache nhỏ:</p>
+<ol>
+  <li>Tìm URI trong cache (<code>cache.iter().find(...)</code>). <code>&amp;**u == uri</code>: <code>u</code> là <code>&amp;Box&lt;str&gt;</code>, deref hai lần ra <code>str</code>, lấy <code>&amp;</code> để so với <code>&amp;str</code>.</li>
+  <li>Không thấy → tra bảng thật, <code>unwrap_or(Ns::OTHER)</code> nếu URI lạ. Cache đầy 8 → <code>cache.remove(0)</code> xoá phần tử cũ nhất (kiểu hàng đợi FIFO), rồi <code>push</code> cái mới.</li>
+  <li><code>Ns::OTHER</code> thì trả kèm URI (<code>Some(uri.into())</code>) vì <code>Ns</code> không mang được URI lạ; namespace đã biết thì URI có sẵn trong bảng → <code>None</code>.</li>
+  <li><code>ResolveResult::Unknown(prefix)</code> — dùng prefix chưa khai báo (<code>&lt;p:a/&gt;</code>) → lỗi <code>undeclared namespace prefix</code>.</li>
+</ol>
+<div class="callout pattern">
+  <span class="callout-title">🧩 Tối ưu nhỏ, có lý do ghi rõ</span>
+  <p>Comment trên trường <code>ns_cache</code> (dòng 250–251) giải thích <em>vì sao</em>: "documents use few namespaces, so this avoids matching every element's URI against the whole registry". Vì sao là <code>Vec</code> 8 phần tử chứ không phải <code>HashMap</code>? Với 8 phần tử, duyệt tuần tự một mảng liền nhau thường nhanh hơn băm, và <code>remove(0)</code> trên 8 phần tử rẻ không đáng kể. <code>Box&lt;str&gt;</code> thay vì <code>String</code>: chuỗi không bao giờ sửa nên không cần trường "sức chứa" — nhỏ hơn một chút. Bài học: <strong>tối ưu ở chỗ nóng (hot path), và ghi lý do vào comment</strong>.</p>
+</div>
+
+<h2 id="ooxml">12. Những gì OpenXML đòi hỏi ở một reader</h2>
+<p>Gom lại các chi tiết spec mà <code>XmlReader</code> lo giúp code phía trên:</p>
+
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — <code>xml:space="preserve"</code> trong <code>w:t</code></span>
+  <p>Theo XML, khoảng trắng đầu/cuối text có thể bị ứng dụng coi là "không quan trọng". Word vì vậy ghi <code>&lt;w:t xml:space="preserve"&gt;Tom &amp;amp; Jerry &lt;/w:t&gt;</code> khi text có dấu cách ở đầu/cuối — nếu thiếu, Word có thể nuốt mất dấu cách giữa hai run. Prefix <code>xml:</code> là <strong>đặc biệt</strong>: luôn được khai báo sẵn, không ai viết <code>xmlns:xml=...</code>. Reader xử lý đúng (test <code>xml_prefix_is_predeclared</code>: <code>tag.attr(Ns::XML, "space")</code> trả <code>"preserve"</code> và text <code>" a "</code> giữ nguyên). Đó cũng là lý do bắt buộc <code>trim_text(false)</code> ở mục 6.</p>
+</div>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L686-L692">crates/openxml-xml/src/reader.rs:686–692</figcaption>
+<pre><code class="language-rust">    #[test]
+    fn xml_prefix_is_predeclared() {
+        let mut r = XmlReader::new(r#"&lt;t xml:space="preserve"&gt; a &lt;/t&gt;"#);
+        let t = r.root().unwrap();
+        assert_eq!(t.attr(Ns::XML, "space").as_deref(), Some("preserve"));
+        assert_eq!(r.read_text(&amp;t).unwrap(), " a ");
+    }</code></pre>
+</figure>
+
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — chuẩn hoá xuống dòng và khoảng trắng trong attribute</span>
+  <p>Chuẩn XML 1.0 bắt parser: (1) đổi mọi <code>\r\n</code> và <code>\r</code> trong text thành <code>\n</code>; (2) trong giá trị attribute, đổi tab/xuống dòng <em>chữ</em> thành dấu cách (attribute-value normalization), còn tham chiếu ký tự như <code>&amp;#10;</code> thì giữ đúng ký tự đó. Test dưới kiểm cả hai: attribute <code>"1\t2&amp;#10;3"</code> đọc ra <code>"1 2\n3"</code> (tab thật → cách; <code>&amp;#10;</code> → xuống dòng thật), text <code>"l1\r\nl2"</code> → <code>"l1\nl2"</code>. Nhớ bài test này — bài 2.5 sẽ thấy writer phải "escape ngược" <code>\t \n \r</code> thành <code>&amp;#x9;</code>… để dữ liệu đi một vòng ghi–đọc không bị biến dạng.</p>
+</div>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/reader.rs#L608-L615">crates/openxml-xml/src/reader.rs:608–615</figcaption>
+<pre><code class="language-rust">    #[test]
+    fn normalises_line_endings_and_attribute_whitespace() {
+        let xml = "&lt;a v=\"1\t2&amp;#10;3\"&gt;l1\r\nl2&lt;/a&gt;";
+        let mut r = XmlReader::new(xml);
+        let tag = r.root().unwrap();
+        assert_eq!(tag.attr(Ns::NONE, "v").as_deref(), Some("1 2\n3"));
+        assert_eq!(r.read_text(&amp;tag).unwrap(), "l1\nl2");
+    }</code></pre>
+</figure>
+
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — entity và CDATA</span>
+  <p>Office thường chỉ dùng 5 entity định sẵn (<code>&amp;amp; &amp;lt; &amp;gt; &amp;quot; &amp;apos;</code>) và tham chiếu số (<code>&amp;#xD;</code>). CDATA (<code>&lt;![CDATA[...]]&gt;</code>) hiếm trong file Office nhưng hợp lệ XML, và file do công cụ khác tạo có thể có. Với reader, tất cả đều chỉ là "text": gộp thành một <code>Event::Text</code>. Reader không xử lý DTD (sự kiện <code>DocType</code> bị bỏ qua), nên không có entity tự định nghĩa — <code>&amp;bogus;</code> là lỗi. Không mở rộng entity tự định nghĩa cũng có nghĩa là miễn nhiễm với kiểu tấn công "entity nở ra hàng tỷ lần" (billion laughs).</p>
+</div>
+
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — namespace Strict được chuẩn hoá ngay tại khai báo</span>
+  <p>File Strict viết <code>xmlns:w="http://purl.oclc.org/ooxml/wordprocessingml/main"</code>. Như <a href="p2-1-namespace.html">bài 2.1</a> đã nói, dự án đọc Strict bằng model Transitional. <code>classify</code> đã map URI Strict sang <code>Ns::W</code> cho tên thẻ; nhưng <code>resolve_start</code> còn làm thêm một việc ở dòng 290–298: <strong>giá trị</strong> của chính attribute khai báo <code>xmlns:w</code> cũng được thay bằng URI Transitional (<code>Slot::Owned(known.uri().into())</code>). Vì sao? Vì khai báo này được giữ lại (trong <code>extra_attrs</code>) và ghi ra lại khi lưu (bài 2.5). Nếu giữ URI Strict, file lưu ra sẽ là một "con lai": thẻ theo model Transitional nhưng khai báo Strict. Chuẩn hoá ngay từ lúc đọc → file ghi ra nhất quán là Transitional. Test <code>strict_namespace_maps_to_transitional</code> (dòng 551–567) khẳng định: <code>attrs[0].value == W</code> — "declaration URI is canonicalised".</p>
+</div>
+
+<h2 id="thuc-hanh">13. Thực hành: đếm <code>w:p</code> và in text của <code>w:t</code></h2>
+<p>Giờ tự dùng <code>XmlReader</code> như một người dùng thư viện. Tạo file example tạm trong crate (thư mục <code>examples/</code> đã có sẵn <code>reader_bench.rs</code>):</p>
+<figure class="code">
+  <figcaption>Tự viết — crates/openxml-xml/examples/dem_p.rs (file tạm, xoá sau khi thử)</figcaption>
+<pre><code class="language-rust">use std::borrow::Cow;
+
+use openxml_xml::{Event, Ns, XmlReader};
+
+const DOC: &amp;str = r#"&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;
+&lt;w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"&gt;
+  &lt;w:body&gt;
+    &lt;w:p&gt;&lt;w:r&gt;&lt;w:t&gt;Xin chào&lt;/w:t&gt;&lt;/w:r&gt;&lt;/w:p&gt;
+    &lt;w:p&gt;
+      &lt;w:r&gt;&lt;w:t xml:space="preserve"&gt;Tom &amp;amp; Jerry &lt;/w:t&gt;&lt;/w:r&gt;
+      &lt;w:r&gt;&lt;w:rPr&gt;&lt;w:b/&gt;&lt;/w:rPr&gt;&lt;w:t&gt;in đậm&lt;/w:t&gt;&lt;/w:r&gt;
+    &lt;/w:p&gt;
+    &lt;w:p/&gt;
+  &lt;/w:body&gt;
+&lt;/w:document&gt;"#;
+
+fn main() -&gt; Result&lt;(), openxml_xml::Error&gt; {
+    let mut r = XmlReader::new(DOC);
+    let mut paragraphs = 0;
+    loop {
+        match r.next_event()? {
+            Event::Start(tag) if tag.ns() == Ns::W &amp;&amp; tag.local() == "p" =&gt; paragraphs += 1,
+            Event::Start(tag) if tag.ns() == Ns::W &amp;&amp; tag.local() == "t" =&gt; {
+                let preserve = tag.attr(Ns::XML, "space").as_deref() == Some("preserve");
+                let text = r.read_text(&amp;tag)?;
+                let kind = match &amp;text {
+                    Cow::Borrowed(_) =&gt; "Borrowed",
+                    Cow::Owned(_) =&gt; "Owned",
+                };
+                println!("w:t = {text:?}  ({kind}, preserve = {preserve})");
+            }
+            Event::Eof =&gt; break,
+            _ =&gt; {}
+        }
+    }
+    println!("Số đoạn văn (w:p): {paragraphs}");
+    Ok(())
+}</code></pre>
+</figure>
+<figure class="code">
+  <figcaption>Chạy</figcaption>
+<pre><code class="language-bash">cargo run -p openxml-xml --example dem_p</code></pre>
+</figure>
+<figure class="code">
+  <figcaption>Output thật (mình đã chạy)</figcaption>
+<pre><code class="language-plaintext">w:t = "Xin chào"  (Borrowed, preserve = false)
+w:t = "Tom &amp; Jerry "  (Owned, preserve = true)
+w:t = "in đậm"  (Borrowed, preserve = false)
+Số đoạn văn (w:p): 3</code></pre>
+</figure>
+<p>Vài điểm đáng chú ý trong chương trình:</p>
+<ul>
+  <li>Mình dùng <code>next_event</code> (mức thấp) chứ không dùng <code>next_child</code>, vì chỉ muốn "quét" mọi thẻ bất kể tầng. Thẻ <code>w:p</code> rỗng (<code>&lt;w:p/&gt;</code>) vẫn là <code>Event::Start</code> nên được đếm — 3 đoạn.</li>
+  <li>Với <code>w:t</code>, gọi <code>r.read_text(&amp;tag)</code> — nó tiêu thụ luôn thẻ đóng <code>&lt;/w:t&gt;</code>. Đây là "tiêu thụ hết" như hợp đồng mục 9.</li>
+  <li><code>tag.attr(...)</code> trả <code>Option&lt;Cow&lt;str&gt;&gt;</code>; <code>.as_deref()</code> đổi thành <code>Option&lt;&amp;str&gt;</code> để so với <code>Some("preserve")</code>.</li>
+  <li><code>fn main() -&gt; Result&lt;(), openxml_xml::Error&gt;</code> cho phép dùng <code>?</code> ngay trong <code>main</code> (<a href="p2-3-xu-ly-loi.html">bài 2.3</a>).</li>
+  <li>Kết quả <code>Owned</code> ở dòng 2 đúng như lý thuyết: <code>"Tom "</code> + <code>&amp;amp;</code> + <code>" Jerry "</code> bị gộp.</li>
+</ul>
+<p>Thử xong nhớ xoá file: <code>rm crates/openxml-xml/examples/dem_p.rs</code> (đừng commit file tạm).</p>
+
+<section class="exercise">
+  <h3>🛠 Bài tập</h3>
+  <ol>
+    <li><strong>Đếm run in đậm.</strong> Sửa <code>dem_p.rs</code>: đếm số <code>w:r</code> có <code>w:rPr/w:b</code>. Gợi ý: khi gặp Start <code>w:r</code>, dùng <code>next_child</code> lặp các con của nó (nhớ kiểm <code>is_empty()</code> trước!), gặp <code>w:rPr</code> thì lặp tiếp con của nó tìm <code>w:b</code>; con nào không cần thì <code>r.skip(&amp;child)?</code>. Bạn đang tự viết một recursive descent parser nhỏ.</li>
+    <li><strong>Đọc file thật.</strong> Giải nén <code>fixtures/poi/sample.docx</code> (bài 0.1), đọc <code>word/document.xml</code> bằng <code>std::fs::read</code> → <code>openxml_xml::decode_xml_bytes(&amp;bytes)?</code> → <code>XmlReader::new(&amp;text)</code>. Đếm <code>w:p</code>, in 5 <code>w:t</code> đầu. Câu hỏi: vì sao phải giữ biến <code>text</code> sống suốt vòng lặp? Thử viết <code>XmlReader::new(&amp;decode_xml_bytes(&amp;bytes)?)</code> gộp một dòng rồi dùng reader ở dòng sau — đọc thông báo lỗi của compiler.</li>
+    <li><strong>Phá hợp đồng.</strong> Trong một test tạm (<code>#[test]</code> cuối <code>reader.rs</code>, xoá sau khi thử), dựng <code>"&lt;r&gt;&lt;a&gt;&lt;b/&gt;&lt;/a&gt;&lt;c/&gt;&lt;/r&gt;"</code>, gọi <code>root()</code>, <code>next_child()</code> (được <code>a</code>) rồi <em>không</em> skip mà gọi tiếp <code>next_child()</code> hai lần. In <code>local()</code> ra — bạn nhận được gì thay vì <code>c</code>? Chạy bằng <code>cargo test -p openxml-xml ten_test -- --nocapture</code>.</li>
+    <li><strong>Cow trong tay.</strong> Viết hàm <code>fn chuan_hoa_xuong_dong(s: &amp;str) -&gt; Cow&lt;'_, str&gt;</code> đổi <code>\r\n</code> thành <code>\n</code>, chỉ cấp phát khi thực sự có <code>\r</code>. Kiểm tra bằng <code>matches!(ket_qua, Cow::Borrowed(_))</code>.</li>
+  </ol>
+</section>
+
+<section>
+  <h2 id="tu-kiem-tra">Tự kiểm tra</h2>
+  <details><summary>1. Vì sao dự án dùng pull reader cho file Office nhưng codegen lại dùng DOM (roxmltree)?</summary>
+    <div class="answer">File Office có thể rất lớn và đích đến là struct Rust, nên kéo sự kiện rồi đổ thẳng vào struct vừa nhanh vừa ít bộ nhớ. File XSD nhỏ, đọc một lần lúc sinh code, lại cần đi lại tự do trên cây (tìm con, đọc attribute) — DOM tiện hơn và hiệu năng không quan trọng.</div></details>
+  <details><summary>2. <code>'i</code> trong <code>XmlReader&lt;'i&gt;</code> nói điều gì? Và vì sao <code>root_name</code> phải gọi <code>.to_owned()</code>?</summary>
+    <div class="answer"><code>'i</code> nói reader (và mọi <code>Event&lt;'i&gt;</code>, <code>StartTag&lt;'i&gt;</code> nó sinh ra) mượn chuỗi input nên không được sống lâu hơn input. Trong <code>root_name</code>, <code>root.local()</code> có chữ ký <code>fn local(&amp;self) -&gt; &amp;str</code> — theo luật elision nó mượn từ <code>root</code>, một biến cục bộ sắp chết khi hàm trả về; muốn trả ra ngoài thì phải chép thành <code>String</code>.</div></details>
+  <details><summary>3. Khi nào <code>Event::Text</code> là <code>Cow::Borrowed</code>, khi nào là <code>Owned</code>?</summary>
+    <div class="answer">Borrowed khi text là một mảnh liền trong input, không cần sửa (không có <code>\r</code>). Owned khi phải tạo chuỗi mới: có entity/CDATA khiến nhiều mảnh phải gộp (<code>to_mut()</code> chép lúc nối mảnh thứ hai), có <code>\r</code> cần chuẩn hoá, hoặc là tham chiếu ký tự <code>&amp;#65;</code> đứng một mình.</div></details>
+  <details><summary>4. <code>pending</code> dùng để làm gì, và vì sao phải <code>take()</code> thay vì <code>if let Some(ev) = self.pending</code>?</summary>
+    <div class="answer">Để gộp text, reader phải đọc lố một sự kiện (Start/End…); sự kiện đó được cất vào <code>pending</code> và trả ra ở lần gọi sau. <code>take()</code> lấy giá trị ra và để lại <code>None</code>; không thể move một giá trị không-Copy ra khỏi trường của <code>self</code> đang được mượn qua <code>&amp;mut self</code> bằng pattern thường.</div></details>
+  <details><summary>5. Tại sao <code>StartTag</code> lưu attribute bằng <code>Range&lt;usize&gt;</code> chứ không bằng <code>&amp;str</code>?</summary>
+    <div class="answer">Các <code>&amp;str</code> đó sẽ trỏ vào trường <code>raw</code> của chính StartTag — một struct tự tham chiếu, Rust an toàn không cho phép. Range chỉ là hai số, không mượn gì, vẫn zero-copy: khi cần thì cắt <code>&amp;text[range]</code>. Giá trị không cắt được (có entity, URI Strict đã đổi…) thì lưu <code>Slot::Owned(String)</code>.</div></details>
+  <details><summary>6. Nếu gọi <code>next_child()</code> lặp trên một thẻ rỗng <code>&lt;x/&gt;</code> thì chuyện gì xảy ra?</summary>
+    <div class="answer">Thẻ rỗng không có End, nên <code>next_child</code> sẽ đọc sang sự kiện kế tiếp của <em>cha</em>: có thể trả anh em của <code>x</code> như thể là con, hoặc gặp End của cha và trả <code>None</code> — cấu trúc bị lệch. Vì thế code sinh ra luôn bọc vòng lặp trong <code>if !tag.is_empty()</code>, còn <code>skip</code>/<code>read_text</code> tự kiểm tra ở dòng đầu.</div></details>
+</section>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Bài sau</span>
+  <p>Đọc xong rồi thì ghi. Bài 2.5 mổ <code>XmlWriter</code>: làm sao chọn prefix cho namespace, khi nào khai báo <code>xmlns</code>, vì sao attribute không bao giờ dùng default namespace, và cách escape để dữ liệu đi một vòng ghi → đọc (bằng chính reader bài này) mà không sai một ký tự.</p>
+</div>
+
+</main>
+</body>
+</html>
