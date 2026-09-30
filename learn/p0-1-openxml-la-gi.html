@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>0.1 Office Open XML là gì? · Học Rust qua open-xml-rust</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/vendor/highlight.min.js" defer></script>
+<script src="assets/app.js" defer></script>
+</head>
+<body data-lesson="p0-1">
+<main class="content">
+
+<header>
+  <p class="crumb">Phần 0 · Khởi động</p>
+  <h1>0.1 Office Open XML là gì?</h1>
+  <p class="lead">Trước khi viết một dòng Rust nào, mình cần hiểu thứ mà dự án này xử lý. Tin vui: một file <code>.docx</code> thực ra chỉ là một file ZIP chứa vài file XML. Bài này mình sẽ "mổ" nó ra cùng bạn.</p>
+  <div class="meta"><span>⏱ ~30 phút</span><span>Không cần biết Rust</span><span>Dụng cụ: trình giải nén, trình soạn thảo</span></div>
+</header>
+
+<section class="goals">
+  <h3>🎯 Học xong bài này bạn sẽ</h3>
+  <ul>
+    <li>Biết Office Open XML (OOXML) là gì, chuẩn ECMA-376 gồm những phần nào.</li>
+    <li>Tự tay giải nén một file <code>.docx</code> và hiểu từng file bên trong.</li>
+    <li>Nắm 4 khái niệm nền: <strong>package</strong>, <strong>part</strong>, <strong>content type</strong>, <strong>relationship</strong>.</li>
+    <li>Đọc được đoạn XML đơn giản nhất của Word: <code>w:p</code> → <code>w:r</code> → <code>w:t</code>.</li>
+    <li>Hiểu vì sao dự án được chia thành các tầng như hiện tại (liên hệ với những gì vừa thấy).</li>
+  </ul>
+</section>
+
+<h2 id="tai-sao">1. Tại sao bắt đầu từ OpenXML mà không phải Rust?</h2>
+<p>Khi học một ngôn ngữ qua một dự án thật, chỗ dễ "lạc" nhất không phải cú pháp mà là <em>không hiểu code đang giải quyết bài toán gì</em>. Bạn sẽ thấy những cái tên như <code>PartName</code>, <code>Relationships</code>, <code>Ns::W</code>, <code>CT_P</code>… Nếu không biết chúng đến từ đâu, mọi thứ trông rất ma thuật.</p>
+<p>Nên chiến lược của cả khoá học là: <strong>mỗi tầng code đi kèm đúng phần kiến thức OpenXML mà tầng đó cần</strong>. Bài này là phần "bức tranh toàn cảnh" — những bài sau sẽ đào sâu từng mảnh khi cần tới.</p>
+
+<h2 id="ooxml">2. Office Open XML trong 3 phút</h2>
+<p><strong>Office Open XML</strong> (viết tắt OOXML, hay gọi tắt "OpenXML") là định dạng file mà Word, Excel, PowerPoint dùng từ Office 2007: <code>.docx</code>, <code>.xlsx</code>, <code>.pptx</code>. Nó được chuẩn hoá thành <strong>ECMA-376</strong> (và ISO/IEC 29500). Chuẩn này rất dày — hơn 5.000 trang — nhưng chia thành 4 phần:</p>
+<div class="table-wrap"><table>
+  <tr><th>Phần</th><th>Nội dung</th><th>Trong dự án ở đâu?</th></tr>
+  <tr><td>Part 1 – Fundamentals</td><td>Từ vựng XML của Word (WordprocessingML), Excel (SpreadsheetML), PowerPoint (PresentationML), hình vẽ/biểu đồ (DrawingML)…</td><td><code>openxml-schema</code>, <code>openxml-docx/xlsx/pptx</code>, <code>openxml-chart</code></td></tr>
+  <tr><td>Part 2 – Open Packaging Conventions (OPC)</td><td>Cách "đóng gói" nhiều file vào một ZIP: part, content type, relationship</td><td><code>openxml-opc</code></td></tr>
+  <tr><td>Part 3 – Markup Compatibility (MCE)</td><td>Cách để phiên bản mới thêm tính năng mà phiên bản cũ vẫn mở được (<code>mc:AlternateContent</code>…)</td><td>Rải rác, chủ yếu ở <code>openxml-xml</code> (raw node)</td></tr>
+  <tr><td>Part 4 – Transitional</td><td>Các tính năng "di sản" (VML, …) và bộ schema nới lỏng mà Office thực sự ghi ra</td><td><code>schemas/transitional/</code> — nguồn để sinh code</td></tr>
+</table></div>
+
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — Transitional vs Strict</span>
+  <p>Chuẩn có hai "phiên bản": <strong>Strict</strong> (sạch sẽ, đúng chuẩn ISO) và <strong>Transitional</strong> (có thêm đồ cũ để tương thích). Thực tế Office gần như luôn ghi file Transitional. Dự án này dùng schema Transitional làm gốc, còn khi gặp file Strict thì "đổi tên" namespace của nó sang Transitional. Bạn sẽ gặp lại chuyện này ở bài 2.1 khi đọc hàm <code>Ns::from_uri</code>.</p>
+</div>
+
+<h2 id="mo-docx">3. Thực hành: mổ một file .docx</h2>
+<p>Repo có sẵn thư mục <code>fixtures/</code> chứa file Office thật (lấy từ bộ test của Apache POI). Mình dùng <code>fixtures/poi/sample.docx</code>.</p>
+
+<ol class="steps">
+  <li><strong>Copy và đổi đuôi.</strong> Copy <code>sample.docx</code> ra chỗ khác, đổi tên thành <code>sample.zip</code>. (Hoặc dùng lệnh bên dưới — không cần đổi tên.)</li>
+  <li><strong>Giải nén.</strong> Mở như một file ZIP bình thường.</li>
+  <li><strong>Mở từng file bằng trình soạn thảo</strong> (VS Code chẳng hạn, bật "Format Document" để XML dễ đọc).</li>
+</ol>
+
+<figure class="code">
+  <figcaption>Terminal (macOS / Linux / Git Bash trên Windows)</figcaption>
+<pre><code class="language-bash">mkdir -p /tmp/sample &amp;&amp; cd /tmp/sample
+unzip ~/open-xml-rust/fixtures/poi/sample.docx
+find . -type f | sort</code></pre>
+</figure>
+
+<p>Kết quả (mình đã chạy thật trên file này):</p>
+<figure class="code">
+  <figcaption>Nội dung bên trong sample.docx</figcaption>
+<pre class="diagram"><code>.
+├── [Content_Types].xml          ← "mục lục kiểu dữ liệu" của cả gói
+├── _rels/
+│   └── .rels                    ← quan hệ cấp gói: "tài liệu chính nằm ở đâu?"
+├── docProps/
+│   ├── app.xml                  ← thuộc tính ứng dụng (số trang, số chữ…)
+│   └── core.xml                 ← tác giả, tiêu đề, ngày tạo…
+└── word/
+    ├── document.xml             ← NỘI DUNG CHÍNH của văn bản
+    ├── _rels/
+    │   └── document.xml.rels    ← document.xml "liên kết" tới styles, header, ảnh…
+    ├── styles.xml               ← định nghĩa style (Heading 1, Normal…)
+    ├── settings.xml, fontTable.xml, webSettings.xml
+    ├── header1..3.xml, footer1..3.xml
+    ├── footnotes.xml, endnotes.xml
+    └── theme/theme1.xml         ← bảng màu, font của theme</code></pre>
+</figure>
+
+<div class="callout tip">
+  <span class="callout-title">💡 Mẹo</span>
+  <p>Sau khi học xong Phần 7 bạn sẽ có công cụ riêng làm việc này: <code>cargo run -p openxml-cli -- info fixtures/poi/sample.docx</code> in ra danh sách part, content type và relationship. Còn bây giờ cứ giải nén bằng tay để "thấy tận mắt".</p>
+</div>
+
+<h2 id="bon-khai-niem">4. Bốn khái niệm nền tảng (OPC)</h2>
+
+<h3 id="package-part">4.1 Package và Part</h3>
+<p>Cả file ZIP gọi là <strong>package</strong> (gói). Mỗi file bên trong gọi là một <strong>part</strong>. Mỗi part có một <strong>tên part</strong> (part name) bắt đầu bằng <code>/</code>, ví dụ <code>/word/document.xml</code>.</p>
+<p>Nghe thì giống "đường dẫn file" — nhưng chuẩn có những luật riêng: không phân biệt hoa thường (<code>/Word/Document.xml</code> và <code>/word/document.xml</code> là <em>cùng một part</em>), không được kết thúc bằng <code>/</code>, không được có đoạn rỗng <code>//</code>… Vì có luật riêng nên trong dự án, tên part không phải là <code>String</code> trơn mà là một kiểu riêng: <code>PartName</code> (crate <code>openxml-opc</code>). Đây là một kỹ thuật Rust rất hay tên là <strong>newtype</strong> — ta sẽ học ở Phần 3.</p>
+
+<h3 id="content-types">4.2 Content type — "part này là loại gì?"</h3>
+<p>File ZIP không cho biết <code>word/document.xml</code> là nội dung chính hay chỉ là một file XML bất kỳ. Vì vậy mỗi package có một file đặc biệt <code>[Content_Types].xml</code> ở gốc:</p>
+<figure class="code">
+  <figcaption>[Content_Types].xml (rút gọn, đã xuống dòng cho dễ đọc)</figcaption>
+<pre><code class="language-xml">&lt;Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"&gt;
+  &lt;Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/&gt;
+  &lt;Default Extension="xml"  ContentType="application/xml"/&gt;
+  &lt;Override PartName="/word/document.xml"
+            ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/&gt;
+  &lt;Override PartName="/word/styles.xml"
+            ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/&gt;
+  ...
+&lt;/Types&gt;</code></pre>
+</figure>
+<ul>
+  <li><code>Default</code>: "mọi part có đuôi <code>.xml</code> mặc định là <code>application/xml</code>".</li>
+  <li><code>Override</code>: "riêng part <code>/word/document.xml</code> thì là <em>document.main</em>" — ghi đè cái mặc định.</li>
+</ul>
+<p>Trong dự án, file này được đọc/ghi bởi <code>crates/openxml-opc/src/content_types.rs</code>. Một chi tiết thú vị ghi trong <code>ARCHITECTURE.md</code>: khi lưu file, bảng này được <em>dựng lại</em> từ các part — nếu mọi part cùng đuôi có chung kiểu thì dùng <code>Default</code>, ngược lại thì dùng <code>Override</code>.</p>
+
+<h3 id="relationships">4.3 Relationship — "part này liên kết tới part nào?"</h3>
+<p>Làm sao Word biết tài liệu chính là <code>word/document.xml</code> chứ không phải file khác? Nó <strong>không đoán theo tên</strong>. Nó đọc file <code>_rels/.rels</code>:</p>
+<figure class="code">
+  <figcaption>_rels/.rels — quan hệ cấp package</figcaption>
+<pre><code class="language-xml">&lt;Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"&gt;
+  &lt;Relationship Id="rId3"
+    Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties"
+    Target="docProps/app.xml"/&gt;
+  &lt;Relationship Id="rId2"
+    Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties"
+    Target="docProps/core.xml"/&gt;
+  &lt;Relationship Id="rId1"
+    Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
+    Target="word/document.xml"/&gt;
+&lt;/Relationships&gt;</code></pre>
+</figure>
+<p>Mỗi <code>Relationship</code> có ba thứ:</p>
+<ul>
+  <li><strong>Id</strong> (<code>rId1</code>…): tên ngắn để part nguồn nhắc tới.</li>
+  <li><strong>Type</strong>: một URI nói <em>loại quan hệ</em>. <code>.../officeDocument</code> nghĩa là "đây là tài liệu chính".</li>
+  <li><strong>Target</strong>: part đích, là đường dẫn <em>tương đối</em> so với part nguồn.</li>
+</ul>
+<p>Part nào cũng có thể có file quan hệ riêng. Quy tắc đặt tên: quan hệ của <code>/word/document.xml</code> nằm ở <code>/word/_rels/document.xml.rels</code>. Trong <code>document.xml</code>, khi cần chèn ảnh, Word không ghi đường dẫn ảnh mà ghi <code>r:embed="rId5"</code>; muốn biết <code>rId5</code> là file nào thì tra trong <code>document.xml.rels</code>.</p>
+
+<figure class="code">
+  <figcaption>Hành trình Word mở file</figcaption>
+<pre class="diagram"><code>[Content_Types].xml ─────────── "part nào là loại gì"
+
+_rels/.rels
+   └─ rId1 (officeDocument) ──▶ /word/document.xml
+                                   │
+                word/_rels/document.xml.rels
+                                   ├─ rId1 (styles)  ──▶ /word/styles.xml
+                                   ├─ rId6 (header)  ──▶ /word/header1.xml
+                                   ├─ rId13 (theme)  ──▶ /word/theme/theme1.xml
+                                   └─ ...</code></pre>
+</figure>
+
+<div class="callout warn">
+  <span class="callout-title">⚠️ Chỗ hay nhầm</span>
+  <p>Target là đường dẫn <strong>tương đối so với thư mục của part nguồn</strong>, không phải so với gốc ZIP. Trong <code>word/_rels/document.xml.rels</code>, <code>Target="styles.xml"</code> nghĩa là <code>/word/styles.xml</code>. Target cũng có thể là <code>../media/image1.png</code>. Tính toán đường dẫn đúng chuẩn (xử lý <code>../</code>, ký tự mã hoá <code>%20</code>…) là việc của <code>PartName</code> trong <code>openxml-opc/src/part_name.rs</code> — dài 425 dòng chỉ cho chuyện này!</p>
+</div>
+
+<h3 id="xml-namespace">4.4 Nội dung: XML có namespace</h3>
+<p>Giờ mở <code>word/document.xml</code>. Bỏ qua phần khai báo dài dòng ở đầu, lõi của nó trông như sau (mình rút gọn thuộc tính <code>w:rsid…</code> cho dễ đọc):</p>
+<figure class="code">
+  <figcaption>word/document.xml (rút gọn)</figcaption>
+<pre><code class="language-xml">&lt;w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+            xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"&gt;
+  &lt;w:body&gt;
+    &lt;w:p&gt;                                   &lt;!-- paragraph: đoạn văn --&gt;
+      &lt;w:r&gt;                                 &lt;!-- run: một khúc chữ cùng định dạng --&gt;
+        &lt;w:t xml:space="preserve"&gt;Lorem ipsum dolor sit amet, ... &lt;/w:t&gt;
+      &lt;/w:r&gt;
+      &lt;w:r&gt;
+        &lt;w:rPr&gt;&lt;w:lang w:val="es-ES_tradnl"/&gt;&lt;/w:rPr&gt;   &lt;!-- run properties --&gt;
+        &lt;w:t xml:space="preserve"&gt;Nullam consequat lacus vitae mi. &lt;/w:t&gt;
+      &lt;/w:r&gt;
+    &lt;/w:p&gt;
+    ...
+  &lt;/w:body&gt;
+&lt;/w:document&gt;</code></pre>
+</figure>
+<p>Ba thẻ quan trọng nhất của Word, bạn nên thuộc lòng:</p>
+<dl class="glossary">
+  <dt>w:p</dt><dd><strong>Paragraph</strong> — một đoạn văn. Định dạng đoạn (căn lề, giãn dòng) nằm trong <code>w:pPr</code>.</dd>
+  <dt>w:r</dt><dd><strong>Run</strong> — một khúc chữ liền nhau có <em>cùng</em> định dạng. Câu "Doanh thu tăng <b>12%</b>" có ít nhất 2 run: một run thường và một run in đậm. Định dạng run nằm trong <code>w:rPr</code>.</dd>
+  <dt>w:t</dt><dd><strong>Text</strong> — chữ thật sự. <code>xml:space="preserve"</code> để giữ khoảng trắng ở đầu/cuối.</dd>
+</dl>
+
+<p>Còn <code>w:</code> là gì? Đó là <strong>prefix</strong> (tiền tố) của một <strong>namespace</strong>. Dòng <code>xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"</code> nói: "chữ <code>w</code> ở đây là viết tắt của URI dài kia". Điều quan trọng: <strong>cái định danh thật là URI, không phải chữ <code>w</code></strong>. Một file khác hoàn toàn có thể viết <code>xmlns:abc="…wordprocessingml/2006/main"</code> rồi dùng <code>&lt;abc:p&gt;</code> — và nó vẫn là cùng một thẻ paragraph. Chuyện này ảnh hưởng lớn tới cách dự án đọc XML; bài 2.1 sẽ phân tích kỹ.</p>
+
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — các "ngôn ngữ con" (vocabulary)</span>
+  <div class="table-wrap"><table>
+    <tr><th>Prefix quen dùng</th><th>Tên</th><th>Dùng cho</th></tr>
+    <tr><td><code>w:</code></td><td>WordprocessingML</td><td>Word (§17 của Part 1)</td></tr>
+    <tr><td><code>x:</code> (thường là namespace mặc định)</td><td>SpreadsheetML</td><td>Excel (§18)</td></tr>
+    <tr><td><code>p:</code></td><td>PresentationML</td><td>PowerPoint (§19)</td></tr>
+    <tr><td><code>a:</code>, <code>pic:</code>, <code>c:</code>…</td><td>DrawingML</td><td>Hình, ảnh, biểu đồ — dùng chung cho cả 3 (§20–21)</td></tr>
+    <tr><td><code>r:</code></td><td>Relationships</td><td>Thuộc tính trỏ tới rId (ví dụ <code>r:embed="rId5"</code>)</td></tr>
+    <tr><td><code>mc:</code></td><td>Markup Compatibility</td><td>Bọc tính năng mới cho phiên bản cũ (Part 3)</td></tr>
+  </table></div>
+  <p>Nhìn danh sách này bạn đã hiểu tại sao có crate <code>openxml-chart</code> riêng: biểu đồ (DrawingML <code>c:</code>) được dùng chung cho Word, Excel và PowerPoint.</p>
+</div>
+
+<h2 id="lien-he">5. Từ những gì vừa thấy → kiến trúc dự án</h2>
+<p>Giờ hãy tự hỏi: nếu <em>bạn</em> phải viết thư viện đọc/ghi file .docx từ đầu, bạn cần những gì? Trả lời lần lượt từ dưới lên:</p>
+<ol>
+  <li>Đọc/ghi được <strong>XML có namespace</strong> một cách chính xác → <code>openxml-xml</code>.</li>
+  <li>Mở/đóng <strong>gói ZIP</strong>, hiểu part, content type, relationship → <code>openxml-opc</code>.</li>
+  <li>Biết <strong>mỗi thẻ XML có những gì</strong> (<code>w:p</code> chứa <code>w:pPr</code> và nhiều <code>w:r</code>…) → <code>openxml-schema</code>. Vì có hàng nghìn thẻ nên thay vì viết tay, dự án <strong>sinh code tự động</strong> từ file XSD bằng <code>openxml-codegen</code>.</li>
+  <li>Những thứ dùng chung: lỗi, đơn vị đo (Word đo bằng twip, DrawingML đo bằng EMU!), ảnh → <code>openxml-core</code>.</li>
+  <li>Một <strong>API dễ dùng</strong> cho người dùng cuối: <code>doc.add_paragraph("…")</code> thay vì tự dựng <code>w:p</code> → <code>openxml-docx</code>, <code>-xlsx</code>, <code>-pptx</code>.</li>
+</ol>
+
+<div class="layers">
+  <div><b>openxml-docx / xlsx / pptx</b><small>API thân thiện: Document, Workbook, Presentation</small></div>
+  <div><b>openxml-chart · openxml-core</b><small>dùng chung: biểu đồ, lỗi, đơn vị, ảnh</small></div>
+  <div><b>openxml-schema ◀ openxml-codegen</b><small>struct/enum cho mọi thẻ XML, sinh từ XSD</small></div>
+  <div><b>openxml-opc</b><small>ZIP, part, content type, relationship</small></div>
+  <div><b>openxml-xml</b><small>đọc/ghi XML có namespace</small></div>
+</div>
+<p>Đây chính là thứ tự chúng ta sẽ học: <strong>từ dưới lên</strong>. Tầng dưới nhỏ, ít phụ thuộc và dễ đọc — rất hợp để học Rust cơ bản. Càng lên cao code càng lớn nhưng bạn đã có nền.</p>
+
+<div class="callout pattern">
+  <span class="callout-title">🧩 Ý tưởng thiết kế xuyên suốt: "không làm mất dữ liệu" (lossless round-trip)</span>
+  <p>Mục tiêu lớn của dự án (ghi ở đầu <code>README.md</code>): mở một file rồi lưu lại thì <strong>không được mất gì</strong>, kể cả những thẻ thư viện không hiểu (ví dụ phần mở rộng <code>w14:</code> của Word 2010). Cứ nhớ câu này — nó giải thích rất nhiều quyết định "trông có vẻ phức tạp" mà bạn sẽ gặp: kiểu <code>RawElement</code>, trường <code>extra_attrs</code>, việc lưu part dưới dạng bytes, v.v.</p>
+</div>
+
+<h2 id="thu-them">6. Thử thêm với Excel và PowerPoint</h2>
+<p>Làm lại bước giải nén với <code>fixtures/poi/sample.xlsx</code> và <code>fixtures/poi/sample.pptx</code>. Bạn sẽ thấy cấu trúc y hệt: vẫn <code>[Content_Types].xml</code>, <code>_rels/.rels</code>, <code>docProps/</code>; chỉ khác thư mục chính là <code>xl/</code> hoặc <code>ppt/</code>. Đó là sức mạnh của OPC: <strong>một cách đóng gói, ba loại tài liệu</strong> — và cũng là lý do <code>openxml-opc</code> không hề biết gì về Word hay Excel.</p>
+
+<section class="exercise">
+  <h3>🛠 Bài tập</h3>
+  <ol>
+    <li>Giải nén <code>fixtures/poi/sample.xlsx</code>. Tìm part chứa dữ liệu của sheet đầu tiên. Bạn đi theo những relationship nào để tìm ra nó?</li>
+    <li>Trong <code>xl/worksheets/sheet1.xml</code>, ô chứa chữ thường có <code>t="s"</code> và giá trị là một con số. Con số đó trỏ tới đâu? (Gợi ý: có một part tên <code>sharedStrings.xml</code>.)</li>
+    <li><strong>Thử phá file:</strong> sửa một chữ trong <code>word/document.xml</code> của bản giải nén, nén lại thành <code>.docx</code> (chú ý: nén <em>nội dung</em> thư mục, không nén cả thư mục cha), mở bằng Word/LibreOffice. Sau đó thử xoá dòng <code>Override</code> của <code>document.xml</code> trong <code>[Content_Types].xml</code> — chuyện gì xảy ra?</li>
+  </ol>
+</section>
+
+<section>
+  <h2 id="tu-kiem-tra">Tự kiểm tra</h2>
+  <details><summary>1. Một file .docx thực chất là gì?</summary>
+    <div class="answer">Một file ZIP (gọi là <em>package</em>) chứa nhiều file (gọi là <em>part</em>), phần lớn là XML, được tổ chức theo quy ước OPC (ECMA-376 Part 2).</div></details>
+  <details><summary>2. Word tìm ra part nội dung chính bằng cách nào?</summary>
+    <div class="answer">Đọc <code>_rels/.rels</code>, tìm relationship có Type kết thúc bằng <code>/officeDocument</code>, rồi lấy Target của nó. Không dựa vào tên file.</div></details>
+  <details><summary>3. <code>&lt;w:p&gt;</code> và <code>&lt;abc:p&gt;</code> có thể là cùng một thẻ không?</summary>
+    <div class="answer">Có, nếu <code>abc</code> được khai báo trỏ tới cùng URI <code>http://schemas.openxmlformats.org/wordprocessingml/2006/main</code>. Prefix chỉ là biệt danh; namespace URI mới là danh tính thật.</div></details>
+  <details><summary>4. Khác nhau giữa <code>Default</code> và <code>Override</code> trong [Content_Types].xml?</summary>
+    <div class="answer"><code>Default</code> gán content type theo đuôi file; <code>Override</code> gán cho đúng một part cụ thể và được ưu tiên hơn.</div></details>
+  <details><summary>5. Vì sao dự án cần crate riêng <code>openxml-chart</code>?</summary>
+    <div class="answer">Biểu đồ là DrawingML (<code>c:</code>), được dùng chung bởi cả Word, Excel và PowerPoint; tách riêng để ba API cùng dùng mà không lặp code.</div></details>
+</section>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Bài sau</span>
+  <p>Đủ lý thuyết OpenXML rồi! Bài 0.2 mình sẽ cài Rust, làm quen các lệnh <code>cargo</code> và chạy bộ test của dự án lần đầu tiên.</p>
+</div>
+
+</main>
+</body>
+</html>

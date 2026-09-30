@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Học Rust qua open-xml-rust</title>
+<meta name="description" content="Khoá học tiếng Việt: học Rust và Office Open XML bằng cách đọc lại và xây lại dự án open-xml-rust từ đầu.">
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/vendor/highlight.min.js" defer></script>
+<script src="assets/app.js" defer></script>
+</head>
+<body data-lesson="home">
+<main class="content">
+
+<section class="hero">
+  <p class="crumb">Khoá học tự học · Tiếng Việt</p>
+  <h1>Học Rust qua dự án thật: <span style="color:var(--accent)">open-xml-rust</span></h1>
+  <p class="lead">Dự án này đọc và ghi file Word, Excel, PowerPoint bằng Rust, và được xây từ chính đặc tả ECMA-376. Khoá học đi lại con đường đó cùng bạn, từ file <code>Cargo.toml</code> đầu tiên đến API <code>doc.add_paragraph(…)</code>. Bạn sẽ học Rust và Office Open XML song song, mỗi tầng code đi kèm đúng phần kiến thức cần cho tầng đó.</p>
+  <div class="meta"><span>Dành cho: người mới học Rust cơ bản</span><span>~286.000 dòng code, 12 crate</span><span>Học từ dưới lên</span></div>
+</section>
+
+<h2 id="cach-hoc">Cách học khoá này</h2>
+<ol class="steps">
+  <li><strong>Đọc theo thứ tự.</strong> Bài sau dùng kiến thức bài trước. Mục lục bên trái (trên điện thoại thì bấm ☰) có dấu ✓ cho bài đã học.</li>
+  <li><strong>Mở code song song.</strong> Mỗi đoạn code thật đều ghi <code>đường/dẫn/file.rs:dòng</code> và có link sang GitHub. Tốt nhất là clone repo về máy rồi mở bằng VS Code (cài thêm rust-analyzer) để bấm "Go to definition".</li>
+  <li><strong>Tự gõ lại.</strong> Mỗi bài có phần 🛠 Bài tập. Đọc hiểu một lần không bằng tự gõ lại một lần.</li>
+  <li><strong>Trả lời phần "Tự kiểm tra" trước khi mở đáp án.</strong> Nếu sai, đọc lại đúng mục đó.</li>
+  <li><strong>Đừng cố hiểu 100% ngay.</strong> Lifetime hay macro thường phải gặp vài lần mới "ngấm". Bài học sẽ nói rõ chỗ nào có thể đọc lướt rồi quay lại sau.</li>
+</ol>
+
+<h2 id="ky-hieu">Các hộp màu trong bài</h2>
+<div class="callout ooxml"><span class="callout-title">📦 Góc OpenXML</span><p>Kiến thức về đặc tả ECMA-376: package, part, namespace, các thẻ <code>w:p</code>, <code>mc:AlternateContent</code>…, được đưa vào đúng lúc cần.</p></div>
+<div class="callout rust"><span class="callout-title">🦀 Góc Rust</span><p>Một khái niệm của ngôn ngữ, giải thích từ gốc.</p></div>
+<div class="callout pattern"><span class="callout-title">🧩 Design pattern / kỹ thuật</span><p>Tên một kỹ thuật thiết kế đang được dùng (newtype, facade, builder, escape hatch…), vì sao dùng nó và khi nào bạn nên dùng.</p></div>
+<div class="callout tip"><span class="callout-title">💡 Mẹo</span><p>Mẹo thực hành, lệnh hữu ích.</p></div>
+<div class="callout warn"><span class="callout-title">⚠️ Chỗ hay nhầm</span><p>Những cái bẫy mà người mới hay rơi vào.</p></div>
+
+<h2 id="lo-trinh">Lộ trình</h2>
+<p>Dự án được chia thành các tầng, tầng trên chỉ dùng tầng dưới. Khoá học đi <strong>từ dưới lên</strong>: tầng dưới nhỏ và ít phụ thuộc nên hợp để học Rust cơ bản, càng lên cao code càng lớn nhưng lúc đó bạn đã có nền.</p>
+<div class="layers">
+  <div><b>Phần 6</b> openxml-docx / xlsx / pptx <small>API thân thiện cho người dùng</small></div>
+  <div><b>Phần 5, 7</b> openxml-core · openxml-chart · CLI <small>phần dùng chung, dòng lệnh, test</small></div>
+  <div><b>Phần 4</b> openxml-codegen → openxml-schema <small>sinh 215.000 dòng code từ XSD</small></div>
+  <div><b>Phần 3</b> openxml-opc <small>ZIP, part, relationship</small></div>
+  <div><b>Phần 2</b> openxml-xml <small>đọc/ghi XML có namespace</small></div>
+  <div><b>Phần 0–1</b> Nền móng <small>OpenXML là gì, công cụ, cấu trúc dự án</small></div>
+</div>
+
+<div class="cards">
+  <a class="card" href="p0-1-openxml-la-gi.html" style="text-decoration:none;color:inherit">
+    <h3>Phần 0 · Khởi động</h3>
+    <p>Mổ một file .docx, cài công cụ, đi một vòng quanh dự án.</p></a>
+  <a class="card" href="p1-1-cargo-workspace.html" style="text-decoration:none;color:inherit">
+    <h3>Phần 1 · Cấu trúc dự án</h3>
+    <p>Cargo workspace, crate, module, <code>pub</code>, kiến trúc phân tầng, facade.</p></a>
+  <a class="card" href="p2-1-namespace.html" style="text-decoration:none;color:inherit">
+    <h3>Phần 2 · Tầng XML</h3>
+    <p>Newtype, macro, xử lý lỗi, lifetime, <code>Cow</code>, trait, generic, cấu trúc dữ liệu đệ quy.</p></a>
+  <div class="card soon"><h3>Phần 3 · Đóng gói OPC <span class="tag">sắp có</span></h3><p>ZIP, <code>PartName</code>, content type, relationship.</p></div>
+  <div class="card soon"><h3>Phần 4 · Sinh code <span class="tag">sắp có</span></h3><p>XSD → IR → Rust: một "compiler" nhỏ.</p></div>
+  <div class="card soon"><h3>Phần 5–8 <span class="tag">sắp có</span></h3><p>Core, API tài liệu (builder, view), chart, CLI, test, tự viết mini-openxml.</p></div>
+</div>
+
+<h2 id="chuan-bi">Bạn cần chuẩn bị gì?</h2>
+<ul>
+  <li>Đã đọc qua vài chương đầu của <a href="https://doc.rust-lang.org/book/" target="_blank" rel="noopener">The Rust Programming Language</a> (hoặc bản dịch tiếng Việt): biến, hàm, <code>struct</code>, <code>enum</code>, <code>match</code>. Chưa vững cũng không sao, khoá học sẽ ôn lại khi cần.</li>
+  <li>Một máy tính có thể cài Rust (bài 0.2 hướng dẫn).</li>
+  <li>Clone repo: <code>git clone https://github.com/AdonisGM/open-xml-rust</code></li>
+</ul>
+
+<div class="callout tip">
+  <span class="callout-title">💡 Bắt đầu</span>
+  <p>Vào <a href="p0-1-openxml-la-gi.html">bài 0.1 — Office Open XML là gì?</a>. Bài này chưa cần Rust.</p>
+</div>
+
+</main>
+</body>
+</html>

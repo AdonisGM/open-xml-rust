@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.8 Tổng kết & bài tập lớn · Học Rust qua open-xml-rust</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/vendor/highlight.min.js" defer></script>
+<script src="assets/app.js" defer></script>
+</head>
+<body data-lesson="p2-8">
+<main class="content">
+
+<header>
+  <p class="crumb">Phần 2 · Tầng XML (openxml-xml)</p>
+  <h1>2.8 Tổng kết đợt 1 &amp; bài tập lớn</h1>
+  <p class="lead">Bạn đã đi qua nền móng của dự án: định dạng file, công cụ, cấu trúc workspace, và toàn bộ tầng XML. Bài này gom lại mọi thứ đã học thành một bảng tra cứu, rồi cho bạn tự viết chương trình Rust đầu tiên dùng chính crate <code>openxml-xml</code>: một công cụ lấy chữ từ file <code>.docx</code>.</p>
+  <div class="meta"><span>⏱ 1–2 giờ (phần lớn là tự code)</span><span>Crate: openxml-xml + zip</span></div>
+</header>
+
+<section class="goals">
+  <h3>🎯 Học xong bài này bạn sẽ</h3>
+  <ul>
+    <li>Có một bảng tra cứu các khái niệm Rust, design pattern và kiến thức OpenXML của Phần 0 đến Phần 2.</li>
+    <li>Tự tạo một crate mới dùng <code>openxml-xml</code> qua path dependency.</li>
+    <li>Tự xử lý lỗi từ ba nguồn khác nhau (IO, ZIP, XML) bằng một enum lỗi và <code>From</code> + <code>?</code>.</li>
+    <li>Duyệt cây XML bằng đệ quy với <code>XmlReader::next_child</code> / <code>read_text</code>.</li>
+    <li>Tự làm bằng tay đúng việc mà Phần 3 (<code>openxml-opc</code>) sẽ làm cho bạn, để thấy vì sao cần tầng đó.</li>
+  </ul>
+</section>
+
+<h2 id="bang-rust">1. Bảng tổng kết: Rust đã học</h2>
+<div class="table-wrap"><table>
+  <tr><th>Khái niệm</th><th>Gặp ở đâu trong dự án</th><th>Bài</th></tr>
+  <tr><td>Cargo workspace, <code>[workspace.dependencies]</code>, kế thừa <code>.workspace = true</code></td><td><code>Cargo.toml</code> gốc và của từng crate</td><td><a href="p1-1-cargo-workspace.html">1.1</a></td></tr>
+  <tr><td>Feature flag, <code>default-features = false</code></td><td>dependency <code>zip</code></td><td><a href="p1-1-cargo-workspace.html">1.1</a></td></tr>
+  <tr><td>Lint cấp workspace, <code>unsafe_code = "forbid"</code></td><td><code>[workspace.lints.rust]</code></td><td><a href="p1-1-cargo-workspace.html">1.1</a></td></tr>
+  <tr><td><code>mod</code> / <code>pub mod</code> / <code>pub use</code> (re-export)</td><td><code>openxml-xml/src/lib.rs</code></td><td><a href="p1-2-crate-module.html">1.2</a></td></tr>
+  <tr><td>Doc comment <code>//!</code> <code>///</code>, <code>#![warn(missing_docs)]</code></td><td>mọi <code>lib.rs</code></td><td><a href="p1-2-crate-module.html">1.2</a></td></tr>
+  <tr><td>Unit test <code>#[cfg(test)]</code>, integration test <code>tests/</code>, doc-test</td><td>khắp nơi</td><td><a href="p0-2-cong-cu.html">0.2</a>, <a href="p1-2-crate-module.html">1.2</a></td></tr>
+  <tr><td>Newtype / tuple struct <code>struct Ns(u16)</code></td><td><code>ns.rs</code>, <code>HexBinary</code>, <code>XmlList</code></td><td><a href="p2-1-namespace.html">2.1</a>, <a href="p2-6-xml-value.html">2.6</a></td></tr>
+  <tr><td><code>derive</code>: Clone, Copy, PartialEq, Eq, Hash, Ord, Debug, Default</td><td><code>Ns</code>, <code>Error</code>, <code>XmlWriter</code></td><td><a href="p2-1-namespace.html">2.1</a></td></tr>
+  <tr><td>Associated const, <code>&amp;'static str</code></td><td><code>Ns::W</code>, <code>NsInfo</code></td><td><a href="p2-1-namespace.html">2.1</a></td></tr>
+  <tr><td><code>macro_rules!</code>, internal rules, <code>stringify!</code></td><td><code>namespaces!</code>, <code>int_value!</code>, <code>say!</code></td><td><a href="p2-2-macro.html">2.2</a></td></tr>
+  <tr><td><code>const</code> vs <code>static</code></td><td><code>MAX_DEPTH</code>, <code>TABLE</code></td><td><a href="p2-2-macro.html">2.2</a></td></tr>
+  <tr><td><code>Result</code>, enum lỗi, <code>Display</code>, <code>std::error::Error</code>, <code>From</code>, <code>?</code></td><td><code>error.rs</code> (xml, opc, core)</td><td><a href="p2-3-xu-ly-loi.html">2.3</a></td></tr>
+  <tr><td><code>#[non_exhaustive]</code>, alias <code>Result&lt;T, E = Error&gt;</code></td><td><code>openxml-xml/src/error.rs</code></td><td><a href="p2-3-xu-ly-loi.html">2.3</a></td></tr>
+  <tr><td>Lifetime (<code>'i</code>, <code>'_</code>), borrow từ input</td><td><code>XmlReader&lt;'i&gt;</code>, <code>StartTag&lt;'i&gt;</code></td><td><a href="p2-4-xml-reader.html">2.4</a></td></tr>
+  <tr><td><code>Cow&lt;'_, str&gt;</code>: mượn khi được, sở hữu khi phải</td><td><code>Event::Text</code>, <code>decode_xml_bytes</code></td><td><a href="p2-4-xml-reader.html">2.4</a></td></tr>
+  <tr><td>Slice pattern <code>[a, b, rest @ ..]</code>, <code>let … else</code>, <code>Option::take</code></td><td><code>reader.rs</code></td><td><a href="p2-4-xml-reader.html">2.4</a></td></tr>
+  <tr><td>Closure, <code>move</code>, <code>impl Iterator</code></td><td><code>StartTag::attributes</code></td><td><a href="p2-4-xml-reader.html">2.4</a></td></tr>
+  <tr><td>Stack/scope bằng <code>Vec</code> + <code>truncate</code>, buffer tái sử dụng</td><td><code>XmlWriter</code></td><td><a href="p2-5-xml-writer.html">2.5</a></td></tr>
+  <tr><td>Method nhận <code>self</code> (tiêu thụ): <code>finish(self)</code></td><td><code>XmlWriter::finish</code></td><td><a href="p2-5-xml-writer.html">2.5</a></td></tr>
+  <tr><td>Trait, default method, trait bound, generic</td><td><code>XmlValue</code>, <code>XmlList&lt;T&gt;</code></td><td><a href="p2-6-xml-value.html">2.6</a></td></tr>
+  <tr><td><code>collect::&lt;Option&lt;Vec&lt;_&gt;&gt;&gt;()</code>, iterator adapter</td><td><code>value.rs</code></td><td><a href="p2-6-xml-value.html">2.6</a></td></tr>
+  <tr><td>Kiểu đệ quy, <code>Box&lt;str&gt;</code>, <code>PhantomData</code>, impl có điều kiện</td><td><code>RawElement</code>, <code>ElementDef&lt;T&gt;</code></td><td><a href="p2-7-raw-node.html">2.7</a></td></tr>
+</table></div>
+
+<h2 id="bang-pattern">2. Bảng tổng kết: design pattern và kỹ thuật</h2>
+<div class="table-wrap"><table>
+  <tr><th>Pattern / kỹ thuật</th><th>Ý tưởng một câu</th><th>Ví dụ trong dự án</th></tr>
+  <tr><td><strong>Layered architecture</strong></td><td>Chia hệ thống thành tầng, tầng trên chỉ dùng tầng dưới.</td><td>12 crate: xml → opc → schema → core → docx…</td></tr>
+  <tr><td><strong>Facade</strong></td><td>Một cửa vào gọn gàng che đi nhiều thành phần bên trong.</td><td>crate <code>openxml</code>, và <code>pub use</code> trong <code>lib.rs</code></td></tr>
+  <tr><td><strong>Newtype</strong></td><td>Bọc một kiểu có sẵn trong kiểu mới để có ý nghĩa và luật riêng.</td><td><code>Ns(u16)</code>, <code>HexBinary(Vec&lt;u8&gt;)</code>, sắp tới là <code>PartName</code></td></tr>
+  <tr><td><strong>Single source of truth + macro</strong></td><td>Khai báo dữ liệu đúng một lần, sinh ra mọi thứ khác từ đó.</td><td>bảng <code>namespaces!</code></td></tr>
+  <tr><td><strong>Error conversion chain</strong></td><td>Mỗi tầng có kiểu lỗi riêng, chuyển lên tầng trên bằng <code>From</code>.</td><td><code>quick_xml::Error</code> → <code>openxml_xml::Error</code> → …</td></tr>
+  <tr><td><strong>Pull parser + peek (pending)</strong></td><td>Người gọi chủ động kéo từng sự kiện; khi cần "nhìn trước" thì cất sự kiện lại.</td><td><code>XmlReader::next_event</code></td></tr>
+  <tr><td><strong>Zero-copy / Cow</strong></td><td>Chỉ copy dữ liệu khi thật sự phải biến đổi.</td><td><code>Slot::Borrowed(Range)</code>, <code>Cow&lt;str&gt;</code></td></tr>
+  <tr><td><strong>Scope stack</strong></td><td>Mở một phạm vi thì push, đóng thì pop/truncate.</td><td>namespace binding của <code>XmlWriter</code>, path của <code>Validator</code></td></tr>
+  <tr><td><strong>Preserve unknown / lossless round-trip</strong></td><td>Cái gì không hiểu thì giữ nguyên dạng thô để ghi lại.</td><td><code>RawElement</code>, <code>ExtraChild</code>, <code>extra_attrs</code></td></tr>
+  <tr><td><strong>Escape hatch</strong></td><td>API cấp cao luôn chừa cửa để xuống cấp thấp khi cần.</td><td><code>from_typed</code>/<code>to_typed</code>, sau này là <code>raw_mut()</code></td></tr>
+  <tr><td><strong>Phantom type</strong></td><td>Gắn thông tin kiểu vào một giá trị mà không chứa dữ liệu kiểu đó.</td><td><code>ElementDef&lt;T&gt;</code></td></tr>
+  <tr><td><strong>Defensive limit</strong></td><td>Chặn input độc hại bằng giới hạn cứng.</td><td><code>MAX_DEPTH = 256</code></td></tr>
+</table></div>
+
+<h2 id="bang-ooxml">3. Bảng tổng kết: OpenXML đã học</h2>
+<dl class="glossary">
+  <dt>Package / part</dt><dd>File ZIP và các file bên trong; tên part như <code>/word/document.xml</code>, không phân biệt hoa thường.</dd>
+  <dt>[Content_Types].xml</dt><dd>Khai báo kiểu của mỗi part (<code>Default</code> theo đuôi, <code>Override</code> theo tên).</dd>
+  <dt>Relationship</dt><dd><code>Id</code> + <code>Type</code> + <code>Target</code>, lưu trong <code>_rels/*.rels</code>; tìm part bằng quan hệ chứ không bằng tên.</dd>
+  <dt>Namespace</dt><dd>URI mới là danh tính thật, prefix chỉ là biệt danh. Attribute không có prefix thì không thuộc namespace nào.</dd>
+  <dt>Transitional / Strict</dt><dd>Hai bộ URI namespace; dự án đọc cả hai, ghi ra Transitional.</dd>
+  <dt>w:p / w:r / w:t</dt><dd>Đoạn văn / khúc chữ cùng định dạng / chữ.</dd>
+  <dt>Simple type</dt><dd>Giá trị dạng chữ có luật (xsd:boolean, hexBinary, <code>ST_…</code>); "1" và "true" là cùng giá trị.</dd>
+  <dt>mc:AlternateContent</dt><dd>Markup Compatibility (Part 3): phiên bản mới kèm phương án dự phòng cho phiên bản cũ.</dd>
+  <dt>xml:space="preserve"</dt><dd>Giữ khoảng trắng đầu/cuối của chữ.</dd>
+</dl>
+
+<h2 id="bai-tap-lon">4. Bài tập lớn: <code>docx-text</code></h2>
+<p><strong>Đề bài:</strong> viết chương trình dòng lệnh <code>docx-text &lt;file.docx&gt;</code> in ra chữ của từng đoạn văn, mỗi đoạn một dòng, kèm số thứ tự. Bỏ qua đoạn rỗng. Nếu có lỗi thì in thông báo dễ hiểu và thoát với mã khác 0.</p>
+<figure class="code">
+  <figcaption>Kết quả mong muốn (chạy trên fixtures/poi/sample.docx, đã cắt ngắn)</figcaption>
+<pre><code class="language-bash">$ cargo run -q -- ~/open-xml-rust/fixtures/poi/sample.docx
+[0] Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Nunc at risus vel erat ...
+[1] Nullam sapien. Quisque ligula tellus, consectetuer at, elementum eget, interdum ...
+[2] Fusce blandit, augue eu luctus posuere, mi arcu consequat lorem, non volutpat ...
+
+$ cargo run -q -- ~/open-xml-rust/fixtures/poi/sample.xlsx
+lỗi: file ZIP có vấn đề: specified file not found in archive
+
+$ cargo run -q -- khong-co.docx
+lỗi: không đọc được file: No such file or directory (os error 2)</code></pre>
+</figure>
+
+<div class="callout warn">
+  <span class="callout-title">⚠️ Luật chơi</span>
+  <p>Chỉ được dùng <code>openxml-xml</code> và crate <code>zip</code>. Không dùng <code>openxml-opc</code> hay <code>openxml-docx</code>, vì chúng thuộc các phần sau. Chính vì phải tự làm bằng tay, bạn sẽ thấy rõ vì sao cần các tầng đó.</p>
+</div>
+
+<h3 id="buoc-1">Bước 1: tạo crate và khai báo dependency</h3>
+<p>Tạo crate <strong>bên ngoài</strong> repo, để không làm bẩn workspace của dự án:</p>
+<figure class="code">
+  <figcaption>Terminal</figcaption>
+<pre><code class="language-bash">cd ~            # hoặc thư mục làm bài tập của bạn
+cargo new docx-text
+cd docx-text</code></pre>
+</figure>
+<figure class="code">
+  <figcaption>docx-text/Cargo.toml (sửa đường dẫn cho khớp máy bạn)</figcaption>
+<pre><code class="language-toml">[package]
+name = "docx-text"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+openxml-xml = { path = "../open-xml-rust/crates/openxml-xml" }
+zip = { version = "8.6", default-features = false, features = ["deflate-flate2-zlib-rs"] }</code></pre>
+</figure>
+<div class="callout rust">
+  <span class="callout-title">🦀 Path dependency</span>
+  <p><code>path = "…"</code> bảo Cargo lấy crate từ thư mục trên máy, không tải từ crates.io. Đây đúng là cách các crate trong workspace dùng nhau (<a href="p1-1-cargo-workspace.html">bài 1.1</a>). Chú ý: tên crate trong Cargo.toml là <code>openxml-xml</code> (gạch ngang), còn trong code thì viết <code>openxml_xml</code> (gạch dưới).</p>
+</div>
+
+<h3 id="buoc-2">Bước 2: đọc part <code>word/document.xml</code> từ ZIP</h3>
+<p>Viết <code>fn read_part(path: &amp;str, part: &amp;str) -&gt; Result&lt;Vec&lt;u8&gt;, AppError&gt;</code>. Gợi ý API của crate <code>zip</code>:</p>
+<ul>
+  <li><code>zip::ZipArchive::new(File::open(path)?)?</code> mở archive.</li>
+  <li><code>archive.by_name("word/document.xml")?</code> lấy entry. Chú ý tên entry trong ZIP <strong>không</strong> có dấu <code>/</code> ở đầu, khác với tên part.</li>
+  <li>Entry implement <code>std::io::Read</code>, nên dùng được <code>read_to_end(&amp;mut bytes)</code> (nhớ <code>use std::io::Read;</code>).</li>
+</ul>
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML: bạn đang "ăn gian"</span>
+  <p>Viết cứng <code>"word/document.xml"</code> là <strong>sai về nguyên tắc</strong>. Như bài 0.1 đã nói, cách đúng là đọc <code>_rels/.rels</code>, tìm relationship có Type <code>…/officeDocument</code> rồi lấy Target. Hầu hết file do Word tạo đều đặt ở đó nên chương trình vẫn chạy, nhưng một file hợp lệ hoàn toàn có thể đặt ở <code>/content/main.xml</code>. Việc làm đúng chuẩn (và còn xử lý tên part không phân biệt hoa thường, Target tương đối, <code>%20</code>…) chính là việc của <code>openxml-opc</code> ở Phần 3.</p>
+</div>
+
+<h3 id="buoc-3">Bước 3: một enum lỗi cho cả chương trình</h3>
+<p>Ba nguồn lỗi: <code>std::io::Error</code>, <code>zip::result::ZipError</code>, <code>openxml_xml::Error</code>. Hãy làm đúng như tầng <code>openxml-xml</code> đã làm với <code>quick_xml::Error</code> (<a href="p2-3-xu-ly-loi.html">bài 2.3</a>):</p>
+<ol>
+  <li><code>enum AppError { Io(…), Zip(…), Xml(…) }</code></li>
+  <li><code>impl From&lt;…&gt; for AppError</code> cho từng loại, để dùng được <code>?</code>.</li>
+  <li><code>impl Display</code> để in thông báo tiếng Việt dễ hiểu.</li>
+</ol>
+
+<h3 id="buoc-4">Bước 4: giải mã bytes và duyệt cây</h3>
+<ul>
+  <li><code>decode_xml_bytes(&amp;bytes)?</code> trả về <code>Cow&lt;str&gt;</code>: UTF-8 thì mượn, UTF-16 thì tạo chuỗi mới (<a href="p2-4-xml-reader.html">bài 2.4</a>).</li>
+  <li><code>XmlReader::new(&amp;xml)</code> rồi <code>r.root()?</code> để lấy thẻ gốc <code>w:document</code>.</li>
+  <li>Viết hàm đệ quy <code>walk(r, tag, current, paragraphs)</code>:
+    <ul>
+      <li>Nếu thẻ là <code>(Ns::W, "t")</code> thì <code>r.read_text(tag)?</code> và nối vào <code>current</code>. <code>read_text</code> đã tiêu thụ luôn thẻ đóng, nên return ngay.</li>
+      <li>Nếu không, và thẻ không rỗng, thì lặp <code>while let Some(child) = r.next_child()? { walk(…)?; }</code>.</li>
+      <li>Sau vòng lặp, nếu thẻ là <code>(Ns::W, "p")</code> thì đẩy đoạn vừa gom vào danh sách. Mẹo: <code>std::mem::take(current)</code> lấy chuỗi ra và để lại chuỗi rỗng, không cần clone.</li>
+    </ul>
+  </li>
+</ul>
+<div class="callout warn">
+  <span class="callout-title">⚠️ Hợp đồng của next_child</span>
+  <p>Như bài 2.4 đã nói: mỗi child do <code>next_child</code> trả về <strong>phải được tiêu thụ hết</strong> (đọc hết, <code>read_text</code>, hoặc <code>skip</code>) trước khi hỏi child tiếp theo. Hàm <code>walk</code> đệ quy đảm bảo điều đó. Nếu bạn quên, reader sẽ "lạc nhịp" và các thẻ sẽ bị gán nhầm cha.</p>
+</div>
+<div class="callout tip">
+  <span class="callout-title">💡 So sánh bằng Ns, không bằng prefix</span>
+  <p>Dùng <code>tag.ns() == Ns::W &amp;&amp; tag.local() == "p"</code>, <strong>không</strong> dùng <code>tag.prefix() == Some("w")</code>. Nhờ vậy chương trình chạy đúng cả với file dùng prefix lạ và file Strict (vì reader đã đổi URI Strict sang <code>Ns::W</code>). Đây là thành quả của bài 2.1.</p>
+</div>
+
+<h3 id="buoc-5">Bước 5: <code>main</code></h3>
+<p>Lấy đối số bằng <code>std::env::args().nth(1)</code>, dùng <code>let Some(path) = … else { … }</code> để báo cách dùng. Gọi hàm chính, <code>match</code> kết quả, lỗi thì <code>eprintln!</code> và <code>std::process::exit(1)</code>. Sau cùng chạy <code>cargo clippy</code> và sửa hết cảnh báo.</p>
+
+<details><summary>👀 Lời giải đầy đủ (tự làm trước rồi hãy mở!)</summary>
+<div class="answer">
+<p>Mình đã chạy lời giải này và <code>cargo clippy</code> không báo cảnh báo nào.</p>
+<figure class="code">
+  <figcaption>docx-text/src/main.rs</figcaption>
+<pre><code class="language-rust">use std::fs::File;
+use std::io::Read;
+
+use openxml_xml::{Ns, StartTag, XmlReader, decode_xml_bytes};
+
+/// Lỗi của chương trình: gom lỗi ZIP, lỗi đọc file và lỗi XML về một kiểu.
+#[derive(Debug)]
+enum AppError {
+    Io(std::io::Error),
+    Zip(zip::result::ZipError),
+    Xml(openxml_xml::Error),
+}
+
+impl std::fmt::Display for AppError {
+    fn fmt(&amp;self, f: &amp;mut std::fmt::Formatter&lt;'_&gt;) -&gt; std::fmt::Result {
+        match self {
+            AppError::Io(e) =&gt; write!(f, "không đọc được file: {e}"),
+            AppError::Zip(e) =&gt; write!(f, "file ZIP có vấn đề: {e}"),
+            AppError::Xml(e) =&gt; write!(f, "XML không hợp lệ: {e}"),
+        }
+    }
+}
+
+impl From&lt;std::io::Error&gt; for AppError {
+    fn from(e: std::io::Error) -&gt; Self {
+        AppError::Io(e)
+    }
+}
+impl From&lt;zip::result::ZipError&gt; for AppError {
+    fn from(e: zip::result::ZipError) -&gt; Self {
+        AppError::Zip(e)
+    }
+}
+impl From&lt;openxml_xml::Error&gt; for AppError {
+    fn from(e: openxml_xml::Error) -&gt; Self {
+        AppError::Xml(e)
+    }
+}
+
+/// Đọc bytes của một part trong gói ZIP.
+fn read_part(path: &amp;str, part: &amp;str) -&gt; Result&lt;Vec&lt;u8&gt;, AppError&gt; {
+    let mut archive = zip::ZipArchive::new(File::open(path)?)?;
+    let mut entry = archive.by_name(part)?;
+    let mut bytes = Vec::new();
+    entry.read_to_end(&amp;mut bytes)?;
+    Ok(bytes)
+}
+
+/// Duyệt đệ quy một element, gom chữ của mọi `w:t` vào `current`,
+/// và đẩy một đoạn mới vào `paragraphs` mỗi khi một `w:p` kết thúc.
+fn walk(
+    r: &amp;mut XmlReader&lt;'_&gt;,
+    tag: &amp;StartTag&lt;'_&gt;,
+    current: &amp;mut String,
+    paragraphs: &amp;mut Vec&lt;String&gt;,
+) -&gt; Result&lt;(), AppError&gt; {
+    let is_w = tag.ns() == Ns::W;
+    if is_w &amp;&amp; tag.local() == "t" {
+        current.push_str(&amp;r.read_text(tag)?);
+        return Ok(());
+    }
+    if is_w &amp;&amp; tag.local() == "tab" {
+        current.push('\t');
+    }
+    if !tag.is_empty() {
+        while let Some(child) = r.next_child()? {
+            walk(r, &amp;child, current, paragraphs)?;
+        }
+    }
+    if is_w &amp;&amp; tag.local() == "p" {
+        paragraphs.push(std::mem::take(current));
+    }
+    Ok(())
+}
+
+fn document_text(path: &amp;str) -&gt; Result&lt;Vec&lt;String&gt;, AppError&gt; {
+    let bytes = read_part(path, "word/document.xml")?;
+    let xml = decode_xml_bytes(&amp;bytes)?;
+    let mut r = XmlReader::new(&amp;xml);
+    let root = r.root()?;
+    let mut paragraphs = Vec::new();
+    let mut current = String::new();
+    walk(&amp;mut r, &amp;root, &amp;mut current, &amp;mut paragraphs)?;
+    Ok(paragraphs)
+}
+
+fn main() {
+    let Some(path) = std::env::args().nth(1) else {
+        eprintln!("cách dùng: docx-text &lt;file.docx&gt;");
+        std::process::exit(2);
+    };
+    match document_text(&amp;path) {
+        Ok(paragraphs) =&gt; {
+            for (i, p) in paragraphs.iter().enumerate().filter(|(_, p)| !p.is_empty()) {
+                println!("[{i}] {p}");
+            }
+        }
+        Err(e) =&gt; {
+            eprintln!("lỗi: {e}");
+            std::process::exit(1);
+        }
+    }
+}</code></pre>
+</figure>
+<p>Một vài điểm đáng chú ý trong lời giải:</p>
+<ul>
+  <li><code>walk</code> nhận <code>&amp;mut XmlReader&lt;'_&gt;</code>: cả chương trình chỉ có <strong>một</strong> reader, được mượn mutable lần lượt qua từng tầng đệ quy. Borrow checker cho phép vì tại mỗi thời điểm chỉ một lời gọi <code>walk</code> đang dùng nó.</li>
+  <li>Đệ quy ở đây an toàn vì <code>XmlReader</code> đã giới hạn độ sâu (<code>MAX_DEPTH = 256</code>). Code sinh ra trong <code>openxml-schema</code> cũng đệ quy y như vậy, đúng như comment của <code>MAX_DEPTH</code> nói.</li>
+  <li>Không có <code>unwrap()</code> nào: mọi lỗi đều đi qua <code>?</code> rồi lên <code>main</code>.</li>
+  <li><code>xml</code> (kiểu <code>Cow&lt;str&gt;</code>) phải sống lâu hơn reader, vì reader mượn từ nó (lifetime <code>'i</code>). Thử chuyển <code>decode_xml_bytes</code> vào một hàm con trả về <code>XmlReader</code> xem, compiler sẽ báo lỗi. Đó là bài tập nhỏ về lifetime rất đáng làm.</li>
+</ul>
+</div></details>
+
+<h3 id="mo-rong">Mở rộng (chọn làm)</h3>
+<ol>
+  <li><strong>Đánh dấu heading:</strong> trong <code>w:pPr</code> có <code>&lt;w:pStyle w:val="Heading1"/&gt;</code>. In <code># </code> trước đoạn là Heading1, <code>## </code> trước Heading2… Gợi ý: <code>tag.attr(Ns::W, "val")</code>.</li>
+  <li><strong>Đếm run in đậm:</strong> run có <code>&lt;w:rPr&gt;&lt;w:b/&gt;&lt;/w:rPr&gt;</code>. Chú ý <code>&lt;w:b w:val="0"/&gt;</code> nghĩa là <em>không</em> đậm. Dùng <code>bool::parse_xml</code> từ trait <code>XmlValue</code> (<a href="p2-6-xml-value.html">bài 2.6</a>) để hiểu cả "0", "false", "1", "true". (Kiểu ST_OnOff của Word còn chấp nhận "on"/"off", bạn tự xử lý thêm nhé.)</li>
+  <li><strong>Excel:</strong> viết <code>xlsx-cells</code> in giá trị các ô của <code>xl/worksheets/sheet1.xml</code>. Ô có <code>t="s"</code> thì giá trị là chỉ số trong <code>xl/sharedStrings.xml</code>, nên bạn phải đọc hai part.</li>
+  <li><strong>Round-trip:</strong> đọc <code>word/document.xml</code> bằng <code>RawElement::parse</code>, ghi lại bằng <code>to_xml()</code>, rồi so sánh với bản gốc bằng <code>openxml_xml::compare::semantic_diff</code>. Có khác biệt nào không? (<a href="p2-7-raw-node.html">bài 2.7</a>)</li>
+</ol>
+
+<h2 id="nhin-lai">5. Nhìn lại và nhìn tới</h2>
+<p>Trong bài tập bạn đã phải tự làm ba việc "bẩn":</p>
+<ol>
+  <li>Mở ZIP và viết cứng tên part. Phần 3 (<code>openxml-opc</code>) làm đúng chuẩn: <code>Package</code>, <code>PartName</code>, <code>Relationships</code>.</li>
+  <li>So sánh tên thẻ bằng chuỗi <code>"p"</code>, <code>"t"</code>. Phần 4 sinh ra struct <code>CT_P</code>, <code>CT_R</code>, <code>CT_Text</code> để compiler kiểm tra thay bạn.</li>
+  <li>Tự nối text của đoạn văn. Phần 6 có sẵn <code>Document::open(path)?.text()</code>, gọn trong một dòng.</li>
+</ol>
+<p>Cảm giác "sao phải làm tay cực thế này" chính là động lực để học các tầng tiếp theo. Mỗi tầng tồn tại để gỡ đi một nỗi khổ của tầng dưới.</p>
+
+<section>
+  <h2 id="tu-kiem-tra">Tự kiểm tra (ôn cả đợt 1)</h2>
+  <details><summary>1. Vì sao crate <code>openxml-xml</code> không biết gì về Word hay ZIP?</summary>
+    <div class="answer">Vì nó là tầng thấp nhất trong kiến trúc phân tầng: chỉ lo XML có namespace. Nhờ vậy nó nhỏ, dễ test, dùng lại được, và không thể phụ thuộc vòng với tầng trên.</div></details>
+  <details><summary>2. Khi nào <code>Event::Text</code> chứa <code>Cow::Owned</code> thay vì <code>Cow::Borrowed</code>?</summary>
+    <div class="answer">Khi chữ phải biến đổi so với input: có entity (<code>&amp;amp;</code>), phải chuẩn hoá xuống dòng, hoặc nhiều khúc text/CDATA liền nhau được gộp lại (<code>to_mut().push_str</code>).</div></details>
+  <details><summary>3. Toán tử <code>?</code> cần điều kiện gì để đổi <code>zip::result::ZipError</code> thành <code>AppError</code>?</summary>
+    <div class="answer">Phải có <code>impl From&lt;zip::result::ZipError&gt; for AppError</code>, và hàm phải trả về <code>Result&lt;_, AppError&gt;</code>. <code>?</code> gọi <code>From::from</code> trên lỗi rồi <code>return Err(...)</code>.</div></details>
+  <details><summary>4. <code>RawElement</code> giải quyết vấn đề gì của mục tiêu "lossless round-trip"?</summary>
+    <div class="answer">Nó giữ nguyên các thẻ và attribute mà mô hình có kiểu không mô tả (w14:, mc:AlternateContent, markup của hãng khác), để khi ghi lại không mất gì.</div></details>
+  <details><summary>5. Tại sao so sánh <code>tag.ns() == Ns::W</code> tốt hơn so sánh prefix <code>"w"</code>?</summary>
+    <div class="answer">Prefix chỉ là biệt danh tuỳ file; URI namespace mới là danh tính. <code>Ns</code> đã được reader chuẩn hoá (kể cả URI Strict), nên so sánh bằng <code>Ns</code> vừa đúng vừa nhanh (so hai số u16).</div></details>
+  <details><summary>6. Kể tên 3 design pattern bạn đã gặp và nơi xuất hiện.</summary>
+    <div class="answer">Ví dụ: Facade (crate <code>openxml</code>), Newtype (<code>Ns</code>, <code>HexBinary</code>), Preserve-unknown (<code>RawElement</code>/<code>ExtraChild</code>), Scope stack (<code>XmlWriter</code>), Phantom type (<code>ElementDef&lt;T&gt;</code>).</div></details>
+</section>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Đợt tiếp theo</span>
+  <p>Phần 3 · <code>openxml-opc</code>: newtype <code>PartName</code> với validation theo §6.2.2, <code>HashMap</code>/<code>BTreeMap</code>, làm việc với ZIP, tính đường dẫn tương đối, và vì sao part được giữ dưới dạng bytes. Chúc mừng bạn đã xong nền móng! 🎉</p>
+</div>
+
+</main>
+</body>
+</html>
