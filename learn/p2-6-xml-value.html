@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.6 Trait XmlValue &amp; generic · Học Rust qua open-xml-rust</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/vendor/highlight.min.js" defer></script>
+<script src="assets/app.js" defer></script>
+</head>
+<body data-lesson="p2-6">
+<main class="content">
+
+<header>
+  <p class="crumb">Phần 2 · Tầng XML (openxml-xml)</p>
+  <h1>2.6 Trait XmlValue &amp; generic</h1>
+  <p class="lead">Trong XML, mọi thứ đều là chữ: <code>w:val="center"</code>, <code>w:b="1"</code>, <code>w:rsidR="00EA68DC"</code>. Còn trong Rust, mình muốn làm việc với <code>enum</code>, <code>bool</code>, <code>Vec&lt;u8&gt;</code>. Cây cầu nối hai thế giới đó là một <strong>trait</strong> dài đúng 14 dòng: <code>XmlValue</code>. Bài này dùng nó làm "cửa ngõ" để bạn học hai khái niệm quan trọng bậc nhất của Rust: <strong>trait</strong> và <strong>generic</strong>.</p>
+  <div class="meta"><span>⏱ ~60 phút</span><span>Crate: <code>openxml-xml</code></span><span>File: <code>value.rs</code>, <code>writer.rs</code>, <code>element.rs</code></span><span>Liên quan: <code>openxml-schema/src/generated</code></span></div>
+</header>
+
+<section class="goals">
+  <h3>🎯 Học xong bài này bạn sẽ</h3>
+  <ul>
+    <li>Hiểu <strong>trait</strong> là gì (một "hợp đồng hành vi"), khác gì <em>interface</em> ở Java/C#, và đọc được <code>pub trait XmlValue: Sized</code> từng chữ một.</li>
+    <li>Phân biệt method bắt buộc và <strong>default method</strong>; hiểu vì sao <code>write_xml</code> nhận <code>&amp;mut String</code> thay vì trả về <code>String</code>.</li>
+    <li>Đọc được hai macro <code>int_value!</code> / <code>float_value!</code> sinh ra 10 impl chỉ trong ~40 dòng, và các chi tiết như <code>use std::fmt::Write as _</code>, <code>let _ = write!(…)</code>.</li>
+    <li>Nắm kỹ thuật <strong>newtype</strong> (<code>HexBinary</code>, <code>Base64Binary</code>), đọc được code dịch bit (<code>&lt;&lt;</code>, <code>|</code>, <code>&amp;</code>) mà không sợ.</li>
+    <li>Viết và đọc <strong>generic</strong>: <code>XmlList&lt;T&gt;</code>, trait bound <code>T: XmlValue</code>, mẹo <code>collect::&lt;Option&lt;Vec&lt;T&gt;&gt;&gt;()</code>.</li>
+    <li>Biết <strong>monomorphization</strong> khác <code>dyn Trait</code> thế nào và dự án dùng cái nào ở đâu.</li>
+    <li>Về OpenXML: hiểu <em>simple type</em> trong XSD (<code>ST_Jc</code>, <code>ST_OnOff</code>, <code>ST_LongHexNumber</code>…), <em>lexical form</em> vs <em>value</em>, và <em>canonical form</em> khi ghi ra.</li>
+  </ul>
+</section>
+
+<h2 id="van-de">1. Bài toán: chữ trong XML ⇄ giá trị trong Rust</h2>
+<p>Ở <a href="p2-4-xml-reader.html">bài 2.4</a> bạn đã thấy <code>XmlReader</code> trả cho ta giá trị attribute dưới dạng chuỗi (<code>Cow&lt;str&gt;</code>). Ở <a href="p2-5-xml-writer.html">bài 2.5</a>, <code>XmlWriter</code> ghi ra chuỗi. Nhưng người dùng thư viện không muốn cầm chuỗi. Hãy nhìn một đoạn Word:</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — một đoạn văn căn giữa, in đậm</figcaption>
+<pre><code class="language-xml">&lt;w:p w:rsidR="00EA68DC"&gt;
+  &lt;w:pPr&gt;&lt;w:jc w:val="center"/&gt;&lt;/w:pPr&gt;
+  &lt;w:r&gt;&lt;w:rPr&gt;&lt;w:b w:val="1"/&gt;&lt;/w:rPr&gt;&lt;w:t&gt;Xin chào&lt;/w:t&gt;&lt;/w:r&gt;
+&lt;/w:p&gt;</code></pre>
+</figure>
+<p>Ba giá trị, ba "kiểu" hoàn toàn khác nhau:</p>
+<div class="table-wrap"><table>
+  <tr><th>Chữ trong XML</th><th>Ý nghĩa</th><th>Kiểu Rust mình muốn</th></tr>
+  <tr><td><code>"center"</code></td><td>một trong 12 cách căn lề</td><td><code>enum ST_Jc { Start, Center, … }</code></td></tr>
+  <tr><td><code>"1"</code></td><td>bật/tắt — <code>"1"</code>, <code>"true"</code>, <code>"on"</code> đều là "bật"</td><td><code>bool</code> (bọc trong <code>ST_OnOff</code>)</td></tr>
+  <tr><td><code>"00EA68DC"</code></td><td>4 byte viết dạng hex</td><td><code>HexBinary(Vec&lt;u8&gt;)</code></td></tr>
+</table></div>
+<p>Mỗi kiểu cần hai thao tác: <strong>đọc</strong> (chữ → giá trị, có thể thất bại) và <strong>ghi</strong> (giá trị → chữ, không bao giờ thất bại). Dự án có <em>hàng nghìn</em> kiểu như vậy (sinh tự động từ XSD). Làm sao để <code>XmlWriter</code> viết <strong>một</strong> hàm <code>attr_value</code> mà ghi được bất kỳ kiểu nào trong số đó? Câu trả lời của Rust: <strong>trait + generic</strong>.</p>
+
+<h2 id="trait-la-gi">2. Trait là gì? Một "hợp đồng hành vi"</h2>
+<p>Hãy nghĩ tới ổ cắm điện. Ổ cắm không quan tâm bạn cắm quạt, nồi cơm hay sạc điện thoại — nó chỉ yêu cầu: "thiết bị phải có phích cắm 2 chân đúng chuẩn". Phích cắm chính là một <strong>hợp đồng</strong>: ai tuân thủ thì cắm được.</p>
+<p>Trong Rust, <strong>trait</strong> là một hợp đồng như vậy: nó liệt kê các hàm mà một kiểu <em>phải có</em>. Một kiểu "ký hợp đồng" bằng cách viết <code>impl TênTrait for TênKiểu { … }</code>. Sau đó, code nào chỉ cần "thứ gì đó có hành vi X" sẽ nhận <em>bất kỳ</em> kiểu nào đã ký.</p>
+<figure class="code">
+  <figcaption>Tự viết — trait nhỏ nhất có thể</figcaption>
+<pre><code class="language-rust">trait Chao {
+    fn loi_chao(&amp;self) -&gt; String;          // bắt buộc: kiểu nào ký phải tự viết
+
+    fn chao_to(&amp;self) -&gt; String {           // default method: có sẵn thân hàm
+        self.loi_chao().to_uppercase()
+    }
+}
+
+struct Meo;
+struct Cho { ten: String }
+
+impl Chao for Meo {
+    fn loi_chao(&amp;self) -&gt; String { "meo meo".to_string() }
+}
+impl Chao for Cho {
+    fn loi_chao(&amp;self) -&gt; String { format!("gâu, tôi là {}", self.ten) }
+}
+
+// Hàm này nhận MỌI kiểu đã ký hợp đồng Chao:
+fn in_ra&lt;T: Chao&gt;(x: &amp;T) {
+    println!("{}", x.chao_to());
+}
+
+fn main() {
+    in_ra(&amp;Meo);                                  // MEO MEO
+    in_ra(&amp;Cho { ten: "Vàng".into() });           // GÂU, TÔI LÀ VÀNG
+}</code></pre>
+</figure>
+<p>Ba điều cần để ý ngay:</p>
+<ul>
+  <li><code>loi_chao</code> <strong>không có thân</strong> → mọi <code>impl</code> phải tự viết (gọi là <em>required method</em>).</li>
+  <li><code>chao_to</code> <strong>có thân</strong> → là <em>default method</em>: kiểu nào ký cũng được "tặng" miễn phí, và có quyền viết đè nếu muốn.</li>
+  <li><code>fn in_ra&lt;T: Chao&gt;</code> đọc là: "hàm <code>in_ra</code> có một tham số kiểu <code>T</code>, với điều kiện <code>T</code> đã ký <code>Chao</code>". Phần <code>T: Chao</code> gọi là <strong>trait bound</strong> (ràng buộc trait). Đây chính là <strong>generic</strong>.</li>
+</ul>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — trait khác interface ở đâu?</span>
+  <p>Nếu bạn từng học Java/C#, trait trông giống <code>interface</code>. Giống ở chỗ: đều là danh sách method mà kiểu phải cung cấp, đều có thể có method mặc định. Nhưng có vài khác biệt quan trọng mà bài này sẽ dùng tới:</p>
+  <ul>
+    <li><strong>Ký hợp đồng ở bất cứ đâu.</strong> Trong Java, <code>class Foo implements Bar</code> phải viết ngay lúc định nghĩa <code>Foo</code>. Trong Rust, <code>impl XmlValue for bool</code> được viết trong crate <code>openxml-xml</code>, dù <code>bool</code> là kiểu có sẵn của ngôn ngữ! (Luật duy nhất — gọi là <em>orphan rule</em>: hoặc trait, hoặc kiểu phải thuộc crate của bạn.)</li>
+    <li><strong>Có "hàm của kiểu", không chỉ "hàm của đối tượng".</strong> Trait có thể chứa hàm không nhận <code>self</code>, ví dụ <code>fn parse_xml(s: &amp;str) -&gt; Option&lt;Self&gt;</code> — giống <em>static method</em> nhưng vẫn thuộc hợp đồng. Java interface gần như không làm được việc "hãy tạo cho tôi một <code>T</code> từ chuỗi" một cách tự nhiên.</li>
+    <li><strong>Mặc định là tĩnh.</strong> Code generic được biên dịch riêng cho từng kiểu (mục 8), không cần đối tượng nằm trên heap hay bảng tra method lúc chạy.</li>
+  </ul>
+</div>
+
+<h2 id="dinh-nghia">3. Đọc định nghĩa <code>XmlValue</code> từng dòng</h2>
+<p>Đây là toàn bộ trait — nhỏ đến bất ngờ:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/value.rs#L1-L22">crates/openxml-xml/src/value.rs:1–22</figcaption>
+<pre><code class="language-rust">//! Conversion between XML Schema simple-type lexical forms and Rust values.
+
+use std::fmt::Write as _;
+
+/// A value with an XML Schema lexical representation.
+///
+/// Implemented for the Rust types that the code generator maps XML Schema
+/// built-in types to, and for every generated simple type.
+pub trait XmlValue: Sized {
+    /// Parses the lexical form. Returns `None` if the text is not a valid value.
+    fn parse_xml(s: &amp;str) -&gt; Option&lt;Self&gt;;
+
+    /// Appends the canonical lexical form to `out`.
+    fn write_xml(&amp;self, out: &amp;mut String);
+
+    /// Returns the lexical form as a new `String`.
+    fn to_xml_string(&amp;self) -&gt; String {
+        let mut s = String::new();
+        self.write_xml(&amp;mut s);
+        s
+    }
+}</code></pre>
+</figure>
+<dl class="glossary">
+  <dt>pub trait XmlValue</dt>
+  <dd>Khai báo một trait công khai. Nó được re-export ở <code>lib.rs</code> (<code>pub use value::{Base64Binary, HexBinary, XmlList, XmlValue};</code>) nên crate khác gọi là <code>openxml_xml::XmlValue</code>.</dd>
+  <dt>: Sized</dt>
+  <dd>Một <strong>supertrait</strong>: "muốn ký <code>XmlValue</code> thì trước hết phải là <code>Sized</code>". <code>Sized</code> nghĩa là "compiler biết kích thước của kiểu lúc biên dịch" — gần như mọi kiểu bạn từng viết đều <code>Sized</code>; ngoại lệ là <code>str</code>, <code>[u8]</code>, <code>dyn Trait</code> (kích thước chỉ biết lúc chạy, nên luôn phải nằm sau con trỏ như <code>&amp;str</code>, <code>Box&lt;[u8]&gt;</code>). Vì sao cần? Vì <code>parse_xml</code> trả về <code>Option&lt;Self&gt;</code> — trả một giá trị <em>theo giá trị</em> thì compiler phải biết nó to bao nhiêu để cấp chỗ trên stack. Hệ quả phụ (mục 8): trait này <em>không thể</em> dùng dưới dạng <code>dyn XmlValue</code>.</dd>
+  <dt>fn parse_xml(s: &amp;str) -&gt; Option&lt;Self&gt;</dt>
+  <dd>Không có <code>self</code> → đây là "hàm của kiểu" (associated function). Gọi bằng <code>bool::parse_xml("1")</code>, <code>ST_Jc::parse_xml("center")</code>, hoặc <code>T::parse_xml(s)</code> trong code generic. <code>Self</code> (chữ S hoa) là "kiểu đang implement trait này". Trả <code>Option</code> chứ không phải <code>Result</code>: thất bại chỉ có một lý do ("chữ này không phải giá trị hợp lệ"), không cần mô tả lỗi — người gọi sẽ tự quyết định giữ chữ gốc lại (bài 2.7).</dd>
+  <dt>fn write_xml(&amp;self, out: &amp;mut String)</dt>
+  <dd>Nhận <code>&amp;self</code> (mượn giá trị để đọc) và <code>&amp;mut String</code> (mượn <em>có quyền sửa</em> một chuỗi của người khác) rồi <strong>nối thêm</strong> dạng chữ vào cuối. Không trả về gì. Doc comment nói rõ: ghi ra <em>canonical lexical form</em> — dạng chữ "chuẩn" (mục 11).</dd>
+  <dt>fn to_xml_string(&amp;self) -&gt; String { … }</dt>
+  <dd>Default method: tạo chuỗi rỗng, nhờ <code>write_xml</code> đổ vào, trả chuỗi ra. Không kiểu nào trong dự án viết đè nó — tất cả dùng bản mặc định. Tiện cho test và cho chỗ nào thật sự cần một <code>String</code> riêng.</dd>
+</dl>
+
+<h3 id="vi-sao-mut-string">3.1 Vì sao <code>write_xml</code> nhận <code>&amp;mut String</code> thay vì trả về <code>String</code>?</h3>
+<p>Thiết kế "tự nhiên" hơn sẽ là <code>fn write_xml(&amp;self) -&gt; String</code>. Nhưng mỗi <code>String</code> mới là một lần <strong>cấp phát bộ nhớ trên heap</strong> (xin hệ điều hành một vùng nhớ, sau đó phải trả lại). Một file <code>document.xml</code> lớn có thể có hàng trăm nghìn attribute — trăm nghìn lần cấp phát rồi giải phóng chỉ để ghi <code>"center"</code> hay <code>"1"</code>.</p>
+<p>Nhớ lại ở <a href="p2-5-xml-writer.html">bài 2.5</a>, <code>XmlWriter</code> có một trường tên <code>scratch</code> ("giấy nháp"):</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L51-L60">crates/openxml-xml/src/writer.rs:51–60</figcaption>
+<pre><code class="language-rust">#[derive(Debug, Default)]
+pub struct XmlWriter {
+    out: String,
+    open: bool,
+    frames: Vec&lt;Frame&gt;,
+    names: String,
+    bindings: Vec&lt;Binding&gt;,
+    predeclare: Vec&lt;Ns&gt;,
+    scratch: String,
+}</code></pre>
+</figure>
+<p>Và đây là nơi <code>XmlValue</code> gặp <code>XmlWriter</code>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/writer.rs#L307-L314">crates/openxml-xml/src/writer.rs:307–314</figcaption>
+<pre><code class="language-rust">    /// Writes an attribute whose value is a schema simple type.
+    pub fn attr_value&lt;T: XmlValue&gt;(&amp;mut self, ns: Ns, local: &amp;str, value: &amp;T) {
+        self.attr_name(ns, None, None, local);
+        self.scratch.clear();
+        value.write_xml(&amp;mut self.scratch);
+        escape_attr(&amp;mut self.out, &amp;self.scratch);
+        self.out.push('"');
+    }</code></pre>
+</figure>
+<ul>
+  <li><code>attr_value&lt;T: XmlValue&gt;</code> — một hàm generic: nhận <em>bất kỳ</em> <code>T</code> nào đã ký <code>XmlValue</code>.</li>
+  <li><code>self.scratch.clear()</code> — xoá chữ trong giấy nháp, <strong>nhưng giữ nguyên vùng nhớ đã cấp</strong> (capacity không đổi). Lần sau ghi vào không cần xin thêm bộ nhớ, trừ khi giá trị dài hơn mọi lần trước.</li>
+  <li><code>value.write_xml(&amp;mut self.scratch)</code> — giá trị tự viết mình ra giấy nháp. Hàm <code>attr_value</code> không cần biết <code>T</code> là enum hay số.</li>
+  <li><code>escape_attr(&amp;mut self.out, &amp;self.scratch)</code> — rồi mới escape (<code>&amp;</code> → <code>&amp;amp;</code>, <code>"</code> → <code>&amp;quot;</code>…) và chép vào output thật.</li>
+</ul>
+<p>Vì sao không ghi thẳng vào <code>self.out</code>? Vì giá trị cần được <em>escape</em>; mà <code>write_xml</code> của từng kiểu không nên phải biết chuyện escape. Tách "tạo chữ" và "escape chữ" làm hai bước thì mỗi phần đơn giản hơn. Kết quả: cả quá trình ghi một attribute gần như <strong>không cấp phát</strong> gì mới.</p>
+<div class="callout pattern">
+  <span class="callout-title">🧩 Kỹ thuật: "out-parameter" + buffer tái sử dụng</span>
+  <p>Mẫu <code>fn write_to(&amp;self, out: &amp;mut String)</code> rất phổ biến trong Rust hiệu năng cao — chính thư viện chuẩn cũng làm vậy với <code>std::fmt::Write</code> / <code>std::io::Write</code>. Người gọi <em>sở hữu</em> bộ đệm và quyết định tái sử dụng nó; người được gọi chỉ <em>mượn</em> để nối thêm. Khi cần tiện, ta bọc thêm một hàm tiện ích trả <code>String</code> (ở đây là <code>to_xml_string</code>). Nhớ quy tắc ngón tay cái: <strong>API cốt lõi nhận buffer, API tiện ích trả giá trị</strong>.</p>
+</div>
+
+<h2 id="impl-co-ban">4. Impl đầu tiên: <code>String</code> và <code>bool</code></h2>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/value.rs#L24-L45">crates/openxml-xml/src/value.rs:24–45</figcaption>
+<pre><code class="language-rust">impl XmlValue for String {
+    fn parse_xml(s: &amp;str) -&gt; Option&lt;Self&gt; {
+        Some(s.to_owned())
+    }
+    fn write_xml(&amp;self, out: &amp;mut String) {
+        out.push_str(self);
+    }
+}
+
+impl XmlValue for bool {
+    /// `xsd:boolean`: `true`, `false`, `1` or `0` (surrounding whitespace allowed).
+    fn parse_xml(s: &amp;str) -&gt; Option&lt;Self&gt; {
+        match s.trim() {
+            "true" | "1" =&gt; Some(true),
+            "false" | "0" =&gt; Some(false),
+            _ =&gt; None,
+        }
+    }
+    fn write_xml(&amp;self, out: &amp;mut String) {
+        out.push_str(if *self { "true" } else { "false" });
+    }
+}</code></pre>
+</figure>
+<p><strong>String</strong> là trường hợp dễ nhất: mọi chuỗi đều là một <code>String</code> hợp lệ, nên <code>parse_xml</code> luôn trả <code>Some</code>. <code>s.to_owned()</code> biến <code>&amp;str</code> (mượn) thành <code>String</code> (sở hữu) — phải sao chép vì giá trị trả về cần sống lâu hơn chuỗi đầu vào. Chú ý: <strong>không <code>trim()</code></strong> — khoảng trắng trong chuỗi là dữ liệu thật (test <code>strings_are_verbatim</code> kiểm tra <code>"  a b  "</code> giữ nguyên).</p>
+<p><strong>bool</strong> theo đúng định nghĩa <code>xsd:boolean</code> của XML Schema: chấp nhận bốn dạng chữ <code>true</code>, <code>false</code>, <code>1</code>, <code>0</code>. Vài chi tiết:</p>
+<ul>
+  <li><code>s.trim()</code> — XML Schema quy định kiểu boolean "thu gọn khoảng trắng" (whitespace collapse), nên <code>" false "</code> hợp lệ.</li>
+  <li><code>"true" | "1" =&gt; …</code> — một nhánh <code>match</code> khớp nhiều mẫu, nối bằng <code>|</code>.</li>
+  <li>Phân biệt hoa thường: <code>"TRUE"</code> → <code>None</code> (test <code>booleans</code> kiểm tra điều này). Chuẩn XML Schema chỉ cho chữ thường.</li>
+  <li><code>*self</code> — <code>self</code> ở đây là <code>&amp;bool</code>; dấu <code>*</code> "đi theo tham chiếu" để lấy <code>bool</code> thật dùng trong <code>if</code>.</li>
+  <li>Khi ghi, luôn ra <code>"true"</code>/<code>"false"</code>, không bao giờ <code>"1"</code>/<code>"0"</code>. Đọc <code>"1"</code> vào, ghi ra <code>"true"</code> — đây là <em>canonical form</em>, mình sẽ quay lại ở mục 11.</li>
+</ul>
+
+<h2 id="macro-so">5. Macro sinh impl cho 10 kiểu số</h2>
+<p>Có 8 kiểu số nguyên (<code>i8</code>…<code>u64</code>) và 2 kiểu số thực. Viết tay 10 khối <code>impl</code> gần như giống hệt nhau thì vừa dài vừa dễ sai. Dự án dùng <code>macro_rules!</code> — thứ bạn đã học ở <a href="p2-2-macro.html">bài 2.2</a>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/value.rs#L47-L59">crates/openxml-xml/src/value.rs:47–59</figcaption>
+<pre><code class="language-rust">macro_rules! int_value {
+    ($($t:ty),*) =&gt; {$(
+        impl XmlValue for $t {
+            fn parse_xml(s: &amp;str) -&gt; Option&lt;Self&gt; {
+                s.trim().parse().ok()
+            }
+            fn write_xml(&amp;self, out: &amp;mut String) {
+                let _ = write!(out, "{self}");
+            }
+        }
+    )*};
+}
+int_value!(i8, i16, i32, i64, u8, u16, u32, u64);</code></pre>
+</figure>
+<ul>
+  <li><code>($($t:ty),*)</code> — mẫu đầu vào: "không hoặc nhiều <em>kiểu</em> (<code>ty</code>), ngăn bởi dấu phẩy, mỗi cái gọi là <code>$t</code>".</li>
+  <li><code>{$( impl XmlValue for $t { … } )*}</code> — với mỗi <code>$t</code>, lặp lại khối <code>impl</code>. Dòng cuối gọi macro với 8 kiểu → sinh 8 impl.</li>
+  <li><code>s.trim().parse().ok()</code> — <code>str::parse</code> là hàm generic của thư viện chuẩn: "parse chuỗi thành kiểu mà ngữ cảnh cần". Ngữ cảnh ở đây là <code>Option&lt;Self&gt;</code>, nên Rust tự suy ra phải parse thành <code>i8</code>, <code>u32</code>… tuỳ bản impl. <code>parse</code> trả <code>Result</code>; <code>.ok()</code> đổi <code>Result&lt;T, E&gt;</code> thành <code>Option&lt;T&gt;</code> (vứt thông tin lỗi đi).</li>
+  <li>Parse của Rust rất khớp với XML Schema cho số nguyên: chấp nhận dấu <code>+</code> (<code>"+7"</code> → 7), từ chối <code>"256"</code> cho <code>u8</code> (tràn), từ chối <code>"-1"</code> cho <code>u32</code>, từ chối <code>"1.0"</code> cho <code>i32</code>. Tất cả đều có trong test <code>integers</code>.</li>
+</ul>
+
+<h3 id="write-macro">5.1 <code>use std::fmt::Write as _</code> và <code>let _ = write!(…)</code></h3>
+<p><code>write!(out, "{self}")</code> là họ hàng của <code>format!</code>: thay vì tạo <code>String</code> mới, nó <em>nối</em> kết quả định dạng vào <code>out</code> (đúng tinh thần mục 3.1!). Nhưng <code>write!</code> chỉ là macro gọi method <code>out.write_fmt(…)</code>, và method đó thuộc trait <code>std::fmt::Write</code>. Trong Rust, <strong>method của trait chỉ gọi được khi trait đang nằm trong phạm vi</strong> (đã <code>use</code>). Vì thế dòng 3:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/value.rs#L3">crates/openxml-xml/src/value.rs:3</figcaption>
+<pre><code class="language-rust">use std::fmt::Write as _;</code></pre>
+</figure>
+<p><code>as _</code> nghĩa là: "đưa trait vào phạm vi để dùng method của nó, nhưng <strong>đừng chiếm cái tên <code>Write</code></strong>". Lợi ích: không đụng tên với <code>std::io::Write</code> (trait khác hẳn, dùng cho file/socket) nếu sau này ai đó cần import nó, và người đọc hiểu ngay "mình chỉ cần method, không nhắc tên trait".</p>
+<p>Còn <code>let _ = …</code>? <code>write!</code> trả <code>std::fmt::Result</code>. Rust đánh dấu <code>Result</code> là <code>#[must_use]</code>: bỏ qua mà không xử lý thì compiler cảnh báo. Ghi vào <code>String</code> thì <strong>không bao giờ lỗi</strong> (chỉ nối thêm vào bộ nhớ), nên <code>let _ =</code> là cách nói rõ ràng: "mình biết có <code>Result</code>, và cố ý bỏ qua". Dùng <code>.unwrap()</code> cũng được nhưng sẽ gợi cảm giác "có thể panic ở đây" — sai ý.</p>
+
+<h3 id="float">5.2 Số thực và <code>INF</code> / <code>-INF</code> / <code>NaN</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/value.rs#L61-L91">crates/openxml-xml/src/value.rs:61–91</figcaption>
+<pre><code class="language-rust">macro_rules! float_value {
+    ($($t:ty),*) =&gt; {$(
+        impl XmlValue for $t {
+            /// `xsd:double` / `xsd:float` / `xsd:decimal`, including `INF`, `-INF` and `NaN`.
+            fn parse_xml(s: &amp;str) -&gt; Option&lt;Self&gt; {
+                match s.trim() {
+                    "INF" | "+INF" =&gt; Some(&lt;$t&gt;::INFINITY),
+                    "-INF" =&gt; Some(&lt;$t&gt;::NEG_INFINITY),
+                    "NaN" =&gt; Some(&lt;$t&gt;::NAN),
+                    t =&gt; {
+                        // Rust accepts spellings such as "inf" or "infinity" that XML Schema does not.
+                        if t.bytes().any(|b| b.is_ascii_alphabetic() &amp;&amp; b != b'e' &amp;&amp; b != b'E') {
+                            return None;
+                        }
+                        t.parse().ok()
+                    }
+                }
+            }
+            fn write_xml(&amp;self, out: &amp;mut String) {
+                if self.is_nan() {
+                    out.push_str("NaN");
+                } else if self.is_infinite() {
+                    out.push_str(if *self &gt; 0.0 { "INF" } else { "-INF" });
+                } else {
+                    let _ = write!(out, "{self}");
+                }
+            }
+        }
+    )*};
+}
+float_value!(f32, f64);</code></pre>
+</figure>
+<p>Đây là một ví dụ đẹp về <strong>hai "từ điển" không khớp nhau</strong>. XML Schema viết vô cực là <code>INF</code>, <code>-INF</code>, "không phải số" là <code>NaN</code> — đúng hoa thường. Còn <code>"…".parse::&lt;f64&gt;()</code> của Rust thì dễ dãi hơn: nó chấp nhận <code>"inf"</code>, <code>"infinity"</code>, <code>"nan"</code>, không phân biệt hoa thường. Mình chạy thử thật:</p>
+<figure class="code">
+  <figcaption>Output thật (chương trình thử trong một <code>cargo new</code> riêng)</figcaption>
+<pre><code class="language-bash">f64::parse_xml("INF")  = Some(inf)
+f64::parse_xml("inf")  = None          ← chặn đúng như XML Schema
+"inf".parse::&lt;f64&gt;()   = Ok(inf)       ← Rust thuần thì nhận</code></pre>
+</figure>
+<p>Nên code xử lý ba chữ đặc biệt trước, rồi với các chữ còn lại: nếu có bất kỳ chữ cái nào <em>khác</em> <code>e</code>/<code>E</code> (dùng cho số mũ như <code>1e3</code>) thì từ chối luôn, trước khi đưa cho <code>parse</code>. Mẹo "lọc trước rồi mới tin thư viện" này rẻ và chắc chắn.</p>
+<ul>
+  <li><code>&lt;$t&gt;::INFINITY</code> — cú pháp <code>&lt;Kiểu&gt;::HẰNG</code>. Viết <code>$t::INFINITY</code> trong macro dễ bị hiểu nhầm cú pháp, nên bọc <code>&lt;…&gt;</code> cho chắc.</li>
+  <li><code>t =&gt; { … }</code> — nhánh "còn lại" nhưng đặt tên biến <code>t</code> để dùng tiếp (khác <code>_</code> là bỏ đi).</li>
+  <li>Khi ghi: <code>{self}</code> với <code>f64</code> in dạng ngắn nhất mà đọc lại vẫn ra đúng số đó. Test <code>floats</code>: <code>"1e3"</code> đọc vào → ghi ra <code>"1000"</code>; <code>"100"</code> → <code>"100"</code>.</li>
+</ul>
+<div class="callout warn">
+  <span class="callout-title">⚠️ Chỗ hay nhầm — NaN không bằng chính nó</span>
+  <p>Test <code>floats</code> không viết <code>rt("NaN", f64::NAN, "NaN")</code> mà viết <code>assert!(f64::parse_xml("NaN").unwrap().is_nan())</code>. Vì sao? Theo chuẩn số thực IEEE 754, <code>NaN == NaN</code> là <code>false</code>! Hàm <code>rt</code> dùng <code>assert_eq!</code> nên sẽ fail. Đó cũng là lý do <code>f64</code> chỉ có <code>PartialEq</code> chứ không có <code>Eq</code> — và vì sao module <code>compare</code> (bài 2.7) phải viết riêng <code>x.is_nan() &amp;&amp; y.is_nan()</code>.</p>
+</div>
+
+<h2 id="newtype">6. Newtype: <code>HexBinary</code> và <code>Base64Binary</code></h2>
+<p>XML Schema có hai kiểu cho dữ liệu nhị phân: <code>xsd:hexBinary</code> (mỗi byte là 2 chữ số hex: <code>00EA68DC</code>) và <code>xsd:base64Binary</code> (mã hoá base64: <code>Zm9vYmFy</code>). Bên trong cả hai đều là "một dãy byte" — tức <code>Vec&lt;u8&gt;</code>. Nhưng <code>Vec&lt;u8&gt;</code> không thể implement <code>XmlValue</code> <em>hai lần</em> theo hai cách khác nhau. Giải pháp: <strong>newtype</strong>.</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/value.rs#L93-L112">crates/openxml-xml/src/value.rs:93–112</figcaption>
+<pre><code class="language-rust">/// Binary data with the `xsd:hexBinary` lexical form.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct HexBinary(pub Vec&lt;u8&gt;);
+
+impl HexBinary {
+    /// Creates a value from bytes.
+    pub fn new(bytes: impl Into&lt;Vec&lt;u8&gt;&gt;) -&gt; Self {
+        HexBinary(bytes.into())
+    }
+
+    /// The bytes.
+    pub fn as_bytes(&amp;self) -&gt; &amp;[u8] {
+        &amp;self.0
+    }
+
+    /// Interprets up to eight bytes as a big-endian unsigned number.
+    pub fn to_u64(&amp;self) -&gt; Option&lt;u64&gt; {
+        (self.0.len() &lt;= 8).then(|| self.0.iter().fold(0u64, |acc, b| (acc &lt;&lt; 8) | u64::from(*b)))
+    }
+}</code></pre>
+</figure>
+<p><code>struct HexBinary(pub Vec&lt;u8&gt;);</code> là một <em>tuple struct</em> có đúng một trường, truy cập bằng <code>.0</code>. Lúc chạy nó <strong>tốn đúng bằng</strong> một <code>Vec&lt;u8&gt;</code> — không thêm byte nào. Nhưng với hệ thống kiểu, <code>HexBinary</code> và <code>Base64Binary</code> là hai kiểu khác hẳn nhau, mỗi kiểu có impl <code>XmlValue</code> riêng. Đây là pattern <strong>newtype</strong> (bạn sẽ gặp nó lần nữa với <code>PartName</code> ở Phần 3).</p>
+<ul>
+  <li><strong><code>bytes: impl Into&lt;Vec&lt;u8&gt;&gt;</code></strong> — "nhận bất cứ thứ gì chuyển được thành <code>Vec&lt;u8&gt;</code>". Nhờ vậy test viết được <code>HexBinary::new([0x01, 0x02])</code> (mảng), <code>HexBinary::new(vec![0; 9])</code> (Vec)… mà không phải gõ <code>.to_vec()</code>. <code>impl Trait</code> ở vị trí tham số thực chất là cách viết tắt của generic: <code>fn new&lt;B: Into&lt;Vec&lt;u8&gt;&gt;&gt;(bytes: B)</code>.</li>
+  <li><strong><code>as_bytes(&amp;self) -&gt; &amp;[u8]</code></strong> — trả về một <em>slice</em> mượn; <code>&amp;self.0</code> là <code>&amp;Vec&lt;u8&gt;</code> được Rust tự "hạ" thành <code>&amp;[u8]</code> (deref coercion).</li>
+  <li><strong><code>(điều_kiện).then(|| …)</code></strong> — <code>bool::then</code>: nếu điều kiện đúng, chạy closure và trả <code>Some(kết_quả)</code>; nếu sai, trả <code>None</code>. Tương đương <code>if cond { Some(…) } else { None }</code> nhưng gọn một dòng. Bạn sẽ gặp lại nó ở <code>RawName::with_uri</code> (bài 2.7).</li>
+</ul>
+
+<h3 id="bit">6.1 Dịch bit — đọc chậm từng bước</h3>
+<p><code>to_u64</code> ghép các byte thành một số. <code>fold(0u64, |acc, b| (acc &lt;&lt; 8) | u64::from(*b))</code> nghĩa là: bắt đầu với <code>acc = 0</code>; với mỗi byte <code>b</code>, dịch <code>acc</code> sang trái 8 bit (nhường chỗ cho một byte mới ở cuối) rồi "đặt" <code>b</code> vào 8 bit cuối bằng phép OR <code>|</code>.</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — to_u64 của [0x01, 0x02]</figcaption>
+<pre class="diagram"><code>acc = 0x0000
+b = 0x01:  acc &lt;&lt; 8 = 0x0000   |  0x01  →  acc = 0x0001
+b = 0x02:  acc &lt;&lt; 8 = 0x0100   |  0x02  →  acc = 0x0102   (= 258)
+
+Nhìn ở mức bit (16 bit cuối):
+  0000 0001 0000 0000     ← 0x01 sau khi dịch trái 8
+| 0000 0000 0000 0010     ← 0x02
+= 0000 0001 0000 0010     ← 0x0102</code></pre>
+</figure>
+<p>"Big-endian" = byte đầu tiên là byte "nặng" nhất (giống cách ta đọc số thập phân từ trái sang). Giới hạn 8 byte vì <code>u64</code> chỉ chứa được 64 bit. Chạy thật với rsid <code>00EA68DC</code> của Word: <code>to_u64()</code> = <code>Some(15362268)</code>.</p>
+
+<p>Giờ tới phần parse hex:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/value.rs#L114-L135">crates/openxml-xml/src/value.rs:114–135</figcaption>
+<pre><code class="language-rust">impl XmlValue for HexBinary {
+    fn parse_xml(s: &amp;str) -&gt; Option&lt;Self&gt; {
+        let s = s.trim();
+        if !s.len().is_multiple_of(2) {
+            return None;
+        }
+        let digits = s.as_bytes();
+        let hex = |b: u8| (b as char).to_digit(16).map(|d| d as u8);
+        digits
+            .as_chunks::&lt;2&gt;()
+            .0
+            .iter()
+            .map(|p| Some(hex(p[0])? &lt;&lt; 4 | hex(p[1])?))
+            .collect::&lt;Option&lt;Vec&lt;u8&gt;&gt;&gt;()
+            .map(HexBinary)
+    }
+    fn write_xml(&amp;self, out: &amp;mut String) {
+        for b in &amp;self.0 {
+            let _ = write!(out, "{b:02X}");
+        }
+    }
+}</code></pre>
+</figure>
+<ol>
+  <li><code>is_multiple_of(2)</code> — số ký tự phải chẵn (mỗi byte 2 chữ số). <code>"abc"</code> → <code>None</code>.</li>
+  <li><code>let hex = |b: u8| …</code> — một <strong>closure</strong> (hàm vô danh gán vào biến): đổi một ký tự <code>'0'..'9' 'a'..'f' 'A'..'F'</code> thành giá trị 0–15, hoặc <code>None</code> nếu không phải chữ số hex. <code>to_digit(16)</code> có sẵn trên <code>char</code>.</li>
+  <li><code>as_chunks::&lt;2&gt;()</code> — cắt slice byte thành các mảng <code>[u8; 2]</code>. Nó trả về một cặp (phần chia đủ, phần dư); <code>.0</code> lấy phần chia đủ (phần dư chắc chắn rỗng vì đã kiểm tra độ dài chẵn). Đây là API khá mới của thư viện chuẩn (ổn định từ Rust 1.88 — khớp với <code>rust-version = "1.88"</code> mà workspace khai báo; <code>is_multiple_of</code> cũng mới tương tự).</li>
+  <li><code>hex(p[0])? &lt;&lt; 4 | hex(p[1])?</code> — chữ số đầu là 4 bit "cao", chữ số sau là 4 bit "thấp". Ví dụ <code>"ff"</code>: <code>15 &lt;&lt; 4 = 240</code> (<code>1111 0000</code>), <code>240 | 15 = 255</code> (<code>1111 1111</code>). Trong Rust, <code>&lt;&lt;</code> được ưu tiên hơn <code>|</code>, nên không cần ngoặc. Dấu <code>?</code> ở đây hoạt động trên <code>Option</code>: gặp <code>None</code> thì closure trả <code>None</code> ngay — vì thế closure được bọc <code>Some(…)</code>.</li>
+  <li><code>.collect::&lt;Option&lt;Vec&lt;u8&gt;&gt;&gt;()</code> — mẹo quan trọng, mình dành riêng mục 7.2 để giải thích.</li>
+  <li><code>.map(HexBinary)</code> — tên tuple struct dùng được như một hàm <code>Vec&lt;u8&gt; -&gt; HexBinary</code>! Đổi <code>Option&lt;Vec&lt;u8&gt;&gt;</code> thành <code>Option&lt;HexBinary&gt;</code>.</li>
+  <li>Khi ghi: <code>{b:02X}</code> = in hex chữ <strong>hoa</strong>, đủ 2 chữ số, thêm 0 ở đầu. Nên <code>"00ff10"</code> đọc vào → ghi ra <code>"00FF10"</code> (test <code>hex_binary</code>).</li>
+</ol>
+
+<h3 id="base64">6.2 Base64 tự cài — không thêm dependency</h3>
+<p>Base64 dùng để nhúng dữ liệu nhị phân (ví dụ mật khẩu đã băm trong <code>w:documentProtection</code>, hay chữ ký) vào XML. Ý tưởng: cứ <strong>3 byte = 24 bit</strong> thì cắt thành <strong>4 nhóm 6 bit</strong>; mỗi nhóm 6 bit (0–63) tra bảng ra một ký tự.</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/value.rs#L141">crates/openxml-xml/src/value.rs:141 — bảng 64 ký tự</figcaption>
+<pre><code class="language-rust">const B64: &amp;[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";</code></pre>
+</figure>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/value.rs#L176-L188">crates/openxml-xml/src/value.rs:176–188 — phần ghi (encode)</figcaption>
+<pre><code class="language-rust">    fn write_xml(&amp;self, out: &amp;mut String) {
+        for chunk in self.0.chunks(3) {
+            let b = [chunk[0], *chunk.get(1).unwrap_or(&amp;0), *chunk.get(2).unwrap_or(&amp;0)];
+            let n = u32::from(b[0]) &lt;&lt; 16 | u32::from(b[1]) &lt;&lt; 8 | u32::from(b[2]);
+            for i in 0..4 {
+                if i &lt;= chunk.len() {
+                    out.push(B64[(n &gt;&gt; (18 - 6 * i) &amp; 63) as usize] as char);
+                } else {
+                    out.push('=');
+                }
+            }
+        }
+    }</code></pre>
+</figure>
+<p>Đi chậm với chữ <code>"f"</code> (byte <code>0x66</code> = <code>0110 0110</code>), kết quả phải là <code>"Zg=="</code>:</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — encode "f"</figcaption>
+<pre class="diagram"><code>chunk = [0x66]   (chỉ 1 byte, 2 byte còn lại coi như 0)
+n = 0x66 &lt;&lt; 16 | 0 &lt;&lt; 8 | 0
+  = 01100110 00000000 00000000        (24 bit)
+    ^^^^^^ ^^^^^^ ^^^^^^ ^^^^^^
+    nhóm0  nhóm1  nhóm2  nhóm3
+
+i=0: n &gt;&gt; 18 &amp; 63 = 011001 = 25 → B64[25] = 'Z'
+i=1: n &gt;&gt; 12 &amp; 63 = 100000 = 32 → B64[32] = 'g'
+i=2: 2 &gt; chunk.len()=1          → '='
+i=3:                             → '='
+Kết quả: "Zg=="</code></pre>
+</figure>
+<ul>
+  <li><code>n &gt;&gt; k</code> đẩy nhóm cần lấy xuống cuối; <code>&amp; 63</code> (63 = <code>111111</code>) là "mặt nạ" giữ lại đúng 6 bit cuối, xoá hết phần trên.</li>
+  <li><code>i &lt;= chunk.len()</code>: <em>k</em> byte dữ liệu cần <em>k</em>+1 ký tự; chỗ còn lại lấp bằng <code>=</code> (padding).</li>
+  <li><code>chunk.get(1).unwrap_or(&amp;0)</code> — <code>get</code> trả <code>Option&lt;&amp;u8&gt;</code> (không panic nếu thiếu), thiếu thì dùng 0.</li>
+</ul>
+<p>Phần đọc (<code>value.rs:143–175</code>) làm ngược lại và kiểm tra khá kỹ: bỏ mọi khoảng trắng (base64 trong XML hay bị xuống dòng — test có <code>"Zm9v\n YmFy"</code>), độ dài phải chia hết cho 4, dấu <code>=</code> chỉ được ở cuối nhóm <em>cuối cùng</em> và tối đa 2 cái. Bạn có thể đọc nó như bài tập sau khi đã hiểu phần ghi.</p>
+<div class="callout pattern">
+  <span class="callout-title">🧩 Quyết định thiết kế: tự viết thay vì thêm crate</span>
+  <p>Có sẵn crate <code>base64</code> và <code>hex</code> rất tốt trên crates.io. Nhưng <code>openxml-xml</code> là tầng thấp nhất — mọi crate khác phụ thuộc nó. <code>Cargo.toml</code> của nó chỉ có đúng <strong>một</strong> dependency là <code>quick-xml</code>. Mỗi dependency thêm vào là thêm thời gian biên dịch, thêm rủi ro cập nhật, thêm thứ phải kiểm tra giấy phép — cho mọi người dùng thư viện. Với ~50 dòng code có test phủ kín (<code>base64_binary</code> test cả 256 giá trị byte), tự viết là lựa chọn hợp lý. Quy tắc chung: <strong>tầng càng thấp, càng nên ít dependency</strong>.</p>
+</div>
+
+<h2 id="generic">7. Generic: <code>XmlList&lt;T&gt;</code></h2>
+<p>XML Schema có kiểu <code>xsd:list</code>: một dãy giá trị cách nhau bởi khoảng trắng, ví dụ <code>"1 2 3"</code> hay <code>"true false true"</code>. Phần tử có thể là bất kỳ simple type nào. Viết <code>ListOfU32</code>, <code>ListOfBool</code>, <code>ListOfST_AxisType</code>… thì vô tận. Rust cho phép viết <strong>một lần cho mọi T</strong>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/value.rs#L191-L222">crates/openxml-xml/src/value.rs:191–222</figcaption>
+<pre><code class="language-rust">/// A whitespace-separated list (`xsd:list`).
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct XmlList&lt;T&gt;(pub Vec&lt;T&gt;);
+
+impl&lt;T&gt; Default for XmlList&lt;T&gt; {
+    fn default() -&gt; Self {
+        XmlList(Vec::new())
+    }
+}
+
+impl&lt;T: XmlValue&gt; XmlValue for XmlList&lt;T&gt; {
+    fn parse_xml(s: &amp;str) -&gt; Option&lt;Self&gt; {
+        s.split_ascii_whitespace()
+            .map(T::parse_xml)
+            .collect::&lt;Option&lt;Vec&lt;T&gt;&gt;&gt;()
+            .map(XmlList)
+    }
+    fn write_xml(&amp;self, out: &amp;mut String) {
+        for (i, item) in self.0.iter().enumerate() {
+            if i &gt; 0 {
+                out.push(' ');
+            }
+            item.write_xml(out);
+        }
+    }
+}
+
+impl&lt;T&gt; From&lt;Vec&lt;T&gt;&gt; for XmlList&lt;T&gt; {
+    fn from(v: Vec&lt;T&gt;) -&gt; Self {
+        XmlList(v)
+    }
+}</code></pre>
+</figure>
+
+<h3 id="trait-bound">7.1 Đọc <code>impl&lt;T: XmlValue&gt; XmlValue for XmlList&lt;T&gt;</code></h3>
+<p>Dòng này đọc thành lời: "<em>Với mọi kiểu <code>T</code> mà <code>T</code> đã ký <code>XmlValue</code>, thì <code>XmlList&lt;T&gt;</code> cũng ký <code>XmlValue</code>, theo cách sau…</em>".</p>
+<ul>
+  <li><code>impl&lt;T …&gt;</code> — khai báo biến kiểu <code>T</code> cho cả khối impl (giống <code>fn foo&lt;T&gt;</code> nhưng cho impl).</li>
+  <li><code>T: XmlValue</code> — trait bound. Nhờ nó, bên trong khối được phép gọi <code>T::parse_xml</code> và <code>item.write_xml(out)</code>. Thiếu bound này, compiler sẽ báo "T có thể là bất cứ gì, sao biết nó có <code>parse_xml</code>?".</li>
+  <li>Hệ quả dây chuyền: vì <code>u32: XmlValue</code> nên <code>XmlList&lt;u32&gt;: XmlValue</code>; vì <code>ST_AxisType: XmlValue</code> nên <code>XmlList&lt;ST_AxisType&gt;: XmlValue</code>… Một impl phủ vô số kiểu. Người ta hay gọi kiểu impl "có điều kiện trên T" này là <em>blanket impl</em> (impl phủ chăn); nói chính xác thì blanket impl "thuần" là dạng <code>impl&lt;T: X&gt; Y for T</code>, còn ở đây là impl generic cho <code>XmlList&lt;T&gt;</code> — tinh thần giống nhau.</li>
+  <li><code>.map(T::parse_xml)</code> — truyền thẳng tên hàm thay vì viết closure <code>|w| T::parse_xml(w)</code>. Gọn và rõ.</li>
+  <li><code>split_ascii_whitespace()</code> — tách theo mọi cụm khoảng trắng, bỏ phần rỗng: <code>"1 2  3"</code> (hai dấu cách) vẫn ra 3 phần tử, ghi lại thành <code>"1 2 3"</code>.</li>
+</ul>
+<p>Trong code sinh tự động, <code>XmlList</code> xuất hiện qua type alias, ví dụ:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-schema/src/generated/dml_diagram.rs#L490-L493">crates/openxml-schema/src/generated/dml_diagram.rs:490–493</figcaption>
+<pre><code class="language-rust">/// A list of booleans. This simple type allows a list of items of the W3C XML Schema boolean datatype.
+///
+/// Schema type `ST_Booleans`.
+pub type ST_Booleans = XmlList&lt;bool&gt;;</code></pre>
+</figure>
+
+<h3 id="collect-option">7.2 Mẹo <code>collect::&lt;Option&lt;Vec&lt;T&gt;&gt;&gt;()</code></h3>
+<p>Sau <code>.map(T::parse_xml)</code>, ta có một iterator sinh ra các <code>Option&lt;T&gt;</code>: <code>Some(1)</code>, <code>Some(2)</code>, <code>None</code>… Ta muốn: "nếu <em>tất cả</em> đều <code>Some</code> thì cho tôi <code>Some(vec![…])</code>; chỉ cần <em>một</em> cái <code>None</code> thì cả kết quả là <code>None</code>".</p>
+<p><code>collect</code> là hàm generic: nó gom iterator vào <em>bất kỳ</em> kiểu nào implement trait <code>FromIterator</code>. Thư viện chuẩn có sẵn impl "nếu gom được <code>T</code> vào <code>V</code>, thì gom được <code>Option&lt;T&gt;</code> vào <code>Option&lt;V&gt;</code>" — với đúng ngữ nghĩa "một <code>None</code> là hỏng cả". Nó còn dừng ngay ở <code>None</code> đầu tiên, không đọc tiếp.</p>
+<figure class="code">
+  <figcaption>Tự viết — so sánh hai cách</figcaption>
+<pre><code class="language-rust">// Cách "tay": dài, dễ quên trường hợp
+let mut v = Vec::new();
+for w in s.split_ascii_whitespace() {
+    match u32::parse_xml(w) {
+        Some(x) =&gt; v.push(x),
+        None =&gt; return None,
+    }
+}
+Some(XmlList(v))
+
+// Cách của dự án: một chuỗi lệnh
+s.split_ascii_whitespace().map(u32::parse_xml).collect::&lt;Option&lt;Vec&lt;u32&gt;&gt;&gt;().map(XmlList)</code></pre>
+</figure>
+<p>Kết quả chạy thật: <code>XmlList::&lt;u32&gt;::parse_xml("1 2  3")</code> = <code>Some(XmlList([1, 2, 3]))</code>, còn <code>parse_xml("1 x 3")</code> = <code>None</code>. Mẹo tương tự cũng có với <code>Result</code>: <code>collect::&lt;Result&lt;Vec&lt;T&gt;, E&gt;&gt;()</code> dừng ở lỗi đầu tiên. Dấu <code>::&lt;…&gt;</code> (người ta gọi vui là "turbofish" 🐟) dùng để chỉ rõ kiểu đích cho hàm generic khi Rust không tự suy ra được.</p>
+
+<h3 id="default-thu-cong">7.3 Vì sao <code>Default</code> viết tay, còn <code>Debug, Clone…</code> thì derive?</h3>
+<p>Khi bạn viết <code>#[derive(Default)]</code> trên <code>struct XmlList&lt;T&gt;</code>, compiler sinh ra:</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — thứ derive sẽ sinh ra</figcaption>
+<pre><code class="language-rust">impl&lt;T: Default&gt; Default for XmlList&lt;T&gt; { … }   // ← thêm điều kiện T: Default</code></pre>
+</figure>
+<p>Derive luôn "cẩn thận quá mức": nó thêm bound <code>T: Default</code> cho mọi tham số kiểu, dù thực tế tạo một <code>Vec</code> rỗng <strong>chẳng cần</strong> tạo <code>T</code> nào cả. Hậu quả: <code>XmlList&lt;X&gt;</code> chỉ có <code>default()</code> khi <code>X</code> cũng có. Nguyên tắc: <strong>đừng đòi hỏi nhiều hơn mức thực sự cần</strong>. Một danh sách rỗng thì luôn tạo được, bất kể <code>T</code> là gì — nên viết tay <code>impl&lt;T&gt; Default</code> (không bound) cho đúng bản chất. (Test <code>lists</code> có dòng <code>XmlList::&lt;u8&gt;::default()</code> kiểm tra impl này.)</p>
+<p>Còn <code>Debug, Clone, PartialEq, Eq, Hash…</code> thì derive là đúng: so sánh hai danh sách <em>thật sự</em> cần so sánh từng phần tử, nên bound <code>T: PartialEq</code> là hợp lý. <code>XmlList&lt;f64&gt;</code> sẽ có <code>PartialEq</code> nhưng không có <code>Eq</code> (vì <code>f64</code> không có) — impl có điều kiện, không lỗi gì. Bạn sẽ gặp lại đúng lập luận này với <code>ElementDef&lt;T&gt;</code> ở bài 2.7 (impl <code>Clone</code>/<code>Copy</code> viết tay).</p>
+<p>Cuối cùng <code>impl&lt;T&gt; From&lt;Vec&lt;T&gt;&gt; for XmlList&lt;T&gt;</code> cho phép <code>XmlList::from(vec![true])</code> hoặc <code>let l: XmlList&lt;bool&gt; = vec![true].into();</code>. Implement <code>From</code> thì được tặng <code>Into</code> theo chiều ngược lại — quy ước chuẩn của Rust (bạn đã gặp ở <a href="p2-3-xu-ly-loi.html">bài 2.3</a> với lỗi).</p>
+
+<h2 id="mono-dyn">8. Monomorphization vs <code>dyn Trait</code></h2>
+<p>Generic trông như "một hàm dùng cho mọi kiểu". Nhưng lúc biên dịch, Rust làm một việc thú vị: với <strong>mỗi kiểu cụ thể</strong> mà bạn thực sự dùng, nó <em>nhân bản</em> hàm generic thành một bản riêng. Gọi là <strong>monomorphization</strong> ("đơn hình hoá").</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — compiler "nhân bản" attr_value</figcaption>
+<pre class="diagram"><code>Bạn viết một lần:           Compiler sinh ra (hình dung):
+                            ┌─────────────────────────────────────────────┐
+fn attr_value&lt;T: XmlValue&gt;  │ fn attr_value_ST_Jc(.., value: &amp;ST_Jc)        │
+   (.., value: &amp;T)     ───▶ │ fn attr_value_bool (.., value: &amp;bool)         │
+                            │ fn attr_value_HexBinary(.., &amp;HexBinary)       │
+                            │ ... một bản cho mỗi kiểu thật sự được dùng    │
+                            └─────────────────────────────────────────────┘
+Mỗi bản gọi thẳng T::write_xml tương ứng → có thể inline, nhanh như viết tay.</code></pre>
+</figure>
+<p>Cách còn lại là <strong><code>dyn Trait</code></strong> (dynamic dispatch — "gọi động"): chỉ có <em>một</em> bản hàm, nhận một con trỏ "béo" gồm (địa chỉ dữ liệu, địa chỉ bảng method — vtable). Lúc chạy mới tra bảng để biết gọi <code>write_xml</code> của kiểu nào. Giống interface trong Java.</p>
+<div class="table-wrap"><table>
+  <tr><th></th><th>Generic <code>&lt;T: Trait&gt;</code></th><th><code>dyn Trait</code></th></tr>
+  <tr><td>Số bản code</td><td>Một bản cho mỗi kiểu (binary to hơn, biên dịch lâu hơn)</td><td>Một bản duy nhất</td></tr>
+  <tr><td>Tốc độ gọi</td><td>Gọi thẳng, inline được</td><td>Tra vtable mỗi lần gọi</td></tr>
+  <tr><td>Trộn nhiều kiểu trong một <code>Vec</code></td><td>Không (<code>Vec&lt;T&gt;</code> chỉ một kiểu)</td><td>Được: <code>Vec&lt;Box&lt;dyn Trait&gt;&gt;</code></td></tr>
+  <tr><td>Yêu cầu với trait</td><td>Không</td><td>Trait phải "dyn compatible"</td></tr>
+</table></div>
+<p><code>XmlValue</code> <strong>không thể</strong> dùng dạng <code>dyn</code>. Mình thử viết <code>Vec&lt;Box&lt;dyn XmlValue&gt;&gt;</code> và compiler (Rust 1.94) trả lời:</p>
+<figure class="code">
+  <figcaption>Output thật của cargo build</figcaption>
+<pre><code class="language-bash">error[E0038]: the trait `XmlValue` is not dyn compatible
+ --&gt; src/bin/dyntest.rs:3:24
+  |
+3 |     let v: Vec&lt;Box&lt;dyn XmlValue&gt;&gt; = Vec::new();
+  |                        ^^^^^^^^ `XmlValue` is not dyn compatible
+  |
+  = note: the trait is not dyn compatible because it requires `Self: Sized`</code></pre>
+</figure>
+<p>Hợp lý thôi: <code>parse_xml</code> là "hãy tạo cho tôi một <code>Self</code>" — nếu không biết <code>Self</code> là kiểu gì thì tạo cái gì? Dù sao dự án cũng không cần <code>dyn</code> ở đây: mỗi trường của struct sinh tự động có kiểu cố định (<code>Option&lt;ST_Jc&gt;</code>, <code>Option&lt;ST_LongHexNumber&gt;</code>…), biết trước lúc biên dịch.</p>
+<p><strong>Dự án dùng cái nào ở đâu?</strong></p>
+<ul>
+  <li><strong>Generic (tĩnh)</strong>: toàn bộ tầng XML — <code>XmlValue</code>, <code>XmlRead</code>, <code>XmlWrite</code>, <code>attr_value&lt;T&gt;</code>, <code>rt::read_simple&lt;T&gt;</code>, <code>ElementDef&lt;T&gt;</code>… Đây là đường "nóng" chạy hàng triệu lần khi đọc/ghi file, cần nhanh.</li>
+  <li><strong><code>dyn</code></strong>: ở tầng trên, chủ yếu cho <em>closure</em> truyền vào các hàm duyệt đệ quy, ví dụ <code>crates/openxml-docx/src/walk.rs:35</code>: <code>pub(crate) fn walk_blocks(items: &amp;mut [EG_BlockLevelElts], f: &amp;mut dyn FnMut(&amp;mut wml::CT_P))</code>. Các hàm <code>walk_blocks</code> → <code>walk_table</code> → <code>walk_blocks</code> gọi vòng lẫn nhau; dùng <code>dyn</code> thì cả cụm chỉ biên dịch một lần thay vì nhân bản cho mỗi closure khác nhau, và tránh được vài rắc rối kiểu khi đệ quy với tham số generic. Ngoài ra còn <code>Box&lt;dyn std::error::Error&gt;</code> trong CLI (<code>crates/openxml-cli/src/main.rs:70</code>) — gom mọi loại lỗi vào một kiểu.</li>
+</ul>
+<div class="callout tip">
+  <span class="callout-title">💡 Quy tắc chọn nhanh</span>
+  <p>Mặc định dùng generic. Chuyển sang <code>dyn</code> khi: cần chứa nhiều kiểu khác nhau trong cùng một collection; hoặc muốn giảm kích thước binary / thời gian biên dịch ở chỗ không cần tốc độ tối đa (callback, xử lý lỗi, hàm đệ quy nhận closure).</p>
+</div>
+
+<h2 id="test-generic">9. Hàm test generic <code>rt</code></h2>
+<p>Test của <code>value.rs</code> tận dụng chính generic để viết một hàm kiểm tra dùng cho mọi kiểu:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/value.rs#L228-L242">crates/openxml-xml/src/value.rs:228–242</figcaption>
+<pre><code class="language-rust">    fn rt&lt;T: XmlValue + PartialEq + std::fmt::Debug&gt;(s: &amp;str, v: T, canonical: &amp;str) {
+        assert_eq!(T::parse_xml(s), Some(v), "parse {s:?}");
+        let parsed = T::parse_xml(s).unwrap();
+        assert_eq!(parsed.to_xml_string(), canonical, "format {s:?}");
+    }
+
+    #[test]
+    fn booleans() {
+        rt("true", true, "true");
+        rt("1", true, "true");
+        rt(" false ", false, "false");
+        rt("0", false, "false");
+        assert_eq!(bool::parse_xml("on"), None);
+        assert_eq!(bool::parse_xml("TRUE"), None);
+    }</code></pre>
+</figure>
+<ul>
+  <li><code>T: XmlValue + PartialEq + std::fmt::Debug</code> — <strong>nhiều bound</strong> nối bằng <code>+</code>. Cần <code>XmlValue</code> để parse/ghi, <code>PartialEq</code> để <code>assert_eq!</code> so sánh được, <code>Debug</code> để <code>assert_eq!</code> in ra giá trị khi fail. Thiếu một cái là không biên dịch.</li>
+  <li>Không ai viết <code>rt::&lt;bool&gt;(…)</code>: Rust <strong>suy ra</strong> <code>T = bool</code> từ tham số <code>v</code> là <code>true</code>. Với <code>rt("42", 42i32, "42")</code>, hậu tố <code>i32</code> quyết định <code>T</code>.</li>
+  <li>Tên <code>rt</code> = "round trip": kiểm tra cả hai chiều — đọc đúng giá trị <em>và</em> ghi ra đúng dạng chuẩn (<code>canonical</code>). Tham số thứ ba chính là chỗ test khẳng định <code>"1"</code> → <code>"true"</code>.</li>
+  <li>Hàm này trùng tên với module <code>rt</code> ở <code>element.rs</code> (bài 2.7) nhưng không liên quan — nó chỉ sống trong <code>mod tests</code>.</li>
+</ul>
+<figure class="code">
+  <figcaption>Terminal — chạy thật trong repo</figcaption>
+<pre><code class="language-bash">$ cargo test -p openxml-xml --lib value::
+test value::tests::booleans ... ok
+test value::tests::base64_binary ... ok
+test value::tests::hex_binary ... ok
+test value::tests::floats ... ok
+test value::tests::integers ... ok
+test value::tests::lists ... ok
+test value::tests::strings_are_verbatim ... ok
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 56 filtered out</code></pre>
+</figure>
+
+<h2 id="noi-tiep">10. Nối sang <code>XmlRead</code> / <code>XmlWrite</code></h2>
+<p><code>XmlValue</code> lo cho <strong>simple type</strong> — giá trị là một chuỗi chữ (nằm trong attribute, hoặc là toàn bộ nội dung chữ của một element như <code>&lt;c:v&gt;42&lt;/c:v&gt;</code>). Còn <strong>complex type</strong> — element có attribute và element con, như <code>w:p</code> — cần hai trait khác, nằm trong <code>element.rs</code>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/element.rs#L12-L27">crates/openxml-xml/src/element.rs:12–27</figcaption>
+<pre><code class="language-rust">/// Deserialization of an element's attributes and content.
+///
+/// A complex type does not know the name of the element it is used for (many
+/// elements share one type), so the caller has already consumed the start tag
+/// and passes it in. The implementation must consume the element's content up
+/// to and including its end tag.
+pub trait XmlRead: Sized {
+    /// Reads the element opened by `tag`.
+    fn read_xml(r: &amp;mut XmlReader&lt;'_&gt;, tag: &amp;StartTag&lt;'_&gt;) -&gt; Result&lt;Self&gt;;
+}
+
+/// Serialization of a value as an element with the given name.
+pub trait XmlWrite {
+    /// Writes the value as element `ns:local`.
+    fn write_xml(&amp;self, w: &amp;mut XmlWriter, ns: Ns, local: &amp;str);
+}</code></pre>
+</figure>
+<p>Cùng một khuôn: <code>XmlRead: Sized</code> có hàm "tạo <code>Self</code>" (giống <code>parse_xml</code>) nhưng đọc từ <code>XmlReader</code> và trả <code>Result</code> (vì XML có thể hỏng cú pháp — lỗi thật, cần mô tả); <code>XmlWrite</code> có <code>&amp;self</code> + buffer để ghi (giống <code>write_xml</code>) nhưng buffer là cả một <code>XmlWriter</code>. Vì sao chúng nhận <code>ns</code>/<code>local</code> từ bên ngoài, và các impl cho <code>Box&lt;T&gt;</code>, <code>RawElement</code> — để dành cho <a href="p2-7-raw-node.html">bài 2.7</a>.</p>
+<p>Code sinh tự động dùng cả ba trait cùng lúc. Đây là cách struct <code>CT_P</code> (đoạn văn Word) đọc attribute <code>w:rsidR</code>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-schema/src/generated/wml.rs#L22560-L22576">crates/openxml-schema/src/generated/wml.rs:22560–22576 (lược phần sau)</figcaption>
+<pre><code class="language-rust">impl XmlRead for CT_P {
+    fn read_xml(r: &amp;mut XmlReader&lt;'_&gt;, tag: &amp;StartTag&lt;'_&gt;) -&gt; Result&lt;Self&gt; {
+        let mut this = Self::default();
+        for a in tag.attributes() {
+            match (a.ns, a.local) {
+                (Ns::W, "rsidRPr") =&gt; {
+                    if let Some(v) = XmlValue::parse_xml(&amp;a.value) {
+                        this.rsid_r_pr = Some(v);
+                        continue;
+                    }
+                }
+                (Ns::W, "rsidR") =&gt; {
+                    if let Some(v) = XmlValue::parse_xml(&amp;a.value) {
+                        this.rsid_r = Some(v);
+                        continue;
+                    }
+                }
+                // ...</code></pre>
+</figure>
+<p>Để ý <code>XmlValue::parse_xml(&amp;a.value)</code> — không ghi kiểu! Rust suy ra từ vế sau: <code>this.rsid_r</code> có kiểu <code>Option&lt;ST_LongHexNumber&gt;</code> (<code>wml.rs:22543</code>), nên <code>v</code> phải là <code>ST_LongHexNumber</code> = <code>HexBinary</code>. Generator không cần biết tên hàm parse của từng kiểu — chỉ cần trait. Nếu parse thất bại, không <code>continue</code>, vòng lặp rơi xuống dòng <code>this.extra_attrs.push(a.to_raw());</code> (<code>wml.rs:22597</code>) — giá trị "lạ" được giữ nguyên dạng chữ. Chiều ghi thì dùng <code>rt::write_attr</code>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/element.rs#L203-L209">crates/openxml-xml/src/element.rs:203–209</figcaption>
+<pre><code class="language-rust">    /// Writes an optional attribute.
+    #[inline]
+    pub fn write_attr&lt;T: XmlValue&gt;(w: &amp;mut XmlWriter, ns: Ns, local: &amp;str, value: &amp;Option&lt;T&gt;) {
+        if let Some(v) = value {
+            w.attr_value(ns, local, v);
+        }
+    }</code></pre>
+</figure>
+<p>…được gọi trong <code>impl XmlWrite for CT_P</code> như <code>rt::write_attr(w, Ns::W, "rsidR", &amp;self.rsid_r);</code> (<code>wml.rs:22665</code>). Chuỗi hoàn chỉnh: <code>CT_P::write_xml</code> → <code>rt::write_attr::&lt;HexBinary&gt;</code> → <code>XmlWriter::attr_value::&lt;HexBinary&gt;</code> → <code>HexBinary::write_xml(&amp;mut scratch)</code>. Tất cả đều là generic, được monomorphize và (nhờ <code>#[inline]</code>) có thể gộp thành code gọn như viết tay.</p>
+<div class="callout warn">
+  <span class="callout-title">⚠️ Chỗ hay nhầm — hai method cùng tên <code>write_xml</code></span>
+  <p><code>XmlValue::write_xml(&amp;self, out: &amp;mut String)</code> và <code>XmlWrite::write_xml(&amp;self, w: &amp;mut XmlWriter, ns, local)</code> trùng tên nhưng là hai hợp đồng khác nhau. Trong thực tế không có kiểu nào ký cả hai (<code>ST_*</code> ký <code>XmlValue</code>, <code>CT_*</code> và <code>RawElement</code> ký <code>XmlWrite</code>), nên không bao giờ mơ hồ. Nếu một ngày có kiểu ký cả hai, bạn phải gọi rõ: <code>XmlValue::write_xml(&amp;x, &amp;mut s)</code> hoặc <code>&lt;T as XmlWrite&gt;::write_xml(…)</code> — cú pháp "fully qualified" này bạn sẽ thấy ngay trong code sinh (<code>&lt;bool as XmlValue&gt;::parse_xml(s)</code>) ở mục sau.</p>
+</div>
+
+<h2 id="ooxml-simple-type">11. Góc OpenXML: simple type, lexical form và canonical form</h2>
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — simple type trong XSD</span>
+  <p>Schema của OOXML (ECMA-376 Part 1, các file <code>.xsd</code> trong <code>schemas/transitional/</code>) chia kiểu thành hai loại: <strong>complex type</strong> (<code>CT_…</code>, có element con/attribute) và <strong>simple type</strong> (<code>ST_…</code>, chỉ là một chuỗi chữ có luật). Simple type được tạo từ kiểu có sẵn của XML Schema (<code>xsd:string</code>, <code>xsd:boolean</code>, <code>xsd:hexBinary</code>, <code>xsd:unsignedLong</code>…) bằng ba cách:</p>
+  <ul>
+    <li><strong>restriction</strong> — thu hẹp: chỉ cho vài giá trị liệt kê (<code>enumeration</code>), hoặc giới hạn độ dài (<code>length</code>), khoảng số (<code>minInclusive</code>), mẫu regex (<code>pattern</code>).</li>
+    <li><strong>union</strong> — hợp: "là kiểu A <em>hoặc</em> kiểu B".</li>
+    <li><strong>list</strong> — danh sách cách nhau bởi khoảng trắng (→ <code>XmlList&lt;T&gt;</code>).</li>
+  </ul>
+  <p>Ba ví dụ thật trong repo:</p>
+<pre><code class="language-xml">&lt;!-- schemas/transitional/wml.xsd:632 — restriction + enumeration --&gt;
+&lt;xsd:simpleType name="ST_Jc"&gt;
+  &lt;xsd:restriction base="xsd:string"&gt;
+    &lt;xsd:enumeration value="start"/&gt;
+    &lt;xsd:enumeration value="center"/&gt;
+    ...
+
+&lt;!-- schemas/transitional/shared-commonSimpleTypes.xsd:64 — union --&gt;
+&lt;xsd:simpleType name="ST_OnOff"&gt;
+  &lt;xsd:union memberTypes="xsd:boolean ST_OnOff1"/&gt;      &lt;!-- ST_OnOff1 = "on" | "off" --&gt;
+&lt;/xsd:simpleType&gt;
+
+&lt;!-- schemas/transitional/wml.xsd:26 — restriction trên hexBinary --&gt;
+&lt;xsd:simpleType name="ST_LongHexNumber"&gt;
+  &lt;xsd:restriction base="xsd:hexBinary"&gt;
+    &lt;xsd:length value="4"/&gt;
+  &lt;/xsd:restriction&gt;
+&lt;/xsd:simpleType&gt;</code></pre>
+  <p>Tương tự <code>ST_TwipsMeasure</code> (đơn vị twip = 1/20 point, dùng cho lề, thụt đầu dòng) là union của <code>ST_UnsignedDecimalNumber</code> (số nguyên như <code>"1440"</code>) và <code>ST_PositiveUniversalMeasure</code> (số kèm đơn vị như <code>"1in"</code>, <code>"2.54cm"</code>).</p>
+</div>
+
+<h3 id="generated-st">11.1 Generated code dùng <code>XmlValue</code> thế nào</h3>
+<p>Mỗi kiểu dạng enumeration được <code>openxml-codegen</code> (Phần 4) biến thành một <code>enum</code> Rust và một impl <code>XmlValue</code>. Đây là <code>ST_Jc</code> (căn lề đoạn văn, §17.18.44):</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-schema/src/generated/wml.rs#L3025-L3036">crates/openxml-schema/src/generated/wml.rs:3025–3036 (rút gọn doc comment, lược các biến thể còn lại)</figcaption>
+<pre><code class="language-rust">/// Horizontal Alignment Type (ECMA-376 Part 1 §17.18.44).
+///
+/// This simple type specifies all types of alignment which are available to be applied to objects in a WordprocessingML document.
+///
+/// Schema type `ST_Jc`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
+pub enum ST_Jc {
+    /// `start`: Align To Leading Edge — ...
+    #[default]
+    Start,
+    /// `center`: Align Center — ...
+    Center,
+    // ... End, Both, MediumKashida, Distribute, NumTab, HighKashida,
+    //     LowKashida, ThaiDistribute, Left, Right</code></pre>
+</figure>
+<figure class="code">
+  <figcaption data-src="crates/openxml-schema/src/generated/wml.rs#L3092-L3113">crates/openxml-schema/src/generated/wml.rs:3092–3113</figcaption>
+<pre><code class="language-rust">impl XmlValue for ST_Jc {
+    fn parse_xml(s: &amp;str) -&gt; Option&lt;Self&gt; {
+        Some(match s.trim() {
+            "start" =&gt; Self::Start,
+            "center" =&gt; Self::Center,
+            "end" =&gt; Self::End,
+            "both" =&gt; Self::Both,
+            "mediumKashida" =&gt; Self::MediumKashida,
+            "distribute" =&gt; Self::Distribute,
+            "numTab" =&gt; Self::NumTab,
+            "highKashida" =&gt; Self::HighKashida,
+            "lowKashida" =&gt; Self::LowKashida,
+            "thaiDistribute" =&gt; Self::ThaiDistribute,
+            "left" =&gt; Self::Left,
+            "right" =&gt; Self::Right,
+            _ =&gt; return None,
+        })
+    }
+    fn write_xml(&amp;self, out: &amp;mut String) {
+        out.push_str(self.as_str());
+    }
+}</code></pre>
+</figure>
+<p>Mẹo nhỏ: <code>Some(match … { … _ =&gt; return None })</code> — cả khối <code>match</code> là một biểu thức cho ra <code>Self</code>, được bọc <code>Some</code>; riêng nhánh <code>_</code> thoát khỏi hàm luôn bằng <code>return None</code>. <code>write_xml</code> dựa vào <code>as_str()</code> (trả <code>&amp;'static str</code>, sinh cùng file) nên không cấp phát gì.</p>
+<p>Union thì sinh thành enum "bọc" các kiểu thành viên, và thử lần lượt theo thứ tự trong XSD:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-schema/src/generated/shared_types.rs#L318-L345">crates/openxml-schema/src/generated/shared_types.rs:318–345</figcaption>
+<pre><code class="language-rust">pub enum ST_OnOff {
+    /// Value of member type `bool`.
+    Boolean(bool),
+    /// Value of member type `ST_OnOff1`.
+    OnOff1(ST_OnOff1),
+}
+impl Default for ST_OnOff {
+    fn default() -&gt; Self {
+        Self::Boolean(Default::default())
+    }
+}
+impl XmlValue for ST_OnOff {
+    fn parse_xml(s: &amp;str) -&gt; Option&lt;Self&gt; {
+        if let Some(v) = &lt;bool as XmlValue&gt;::parse_xml(s) {
+            return Some(Self::Boolean(v));
+        }
+        if let Some(v) = &lt;ST_OnOff1 as XmlValue&gt;::parse_xml(s) {
+            return Some(Self::OnOff1(v));
+        }
+        None
+    }
+    fn write_xml(&amp;self, out: &amp;mut String) {
+        match self {
+            Self::Boolean(v) =&gt; v.write_xml(out),
+            Self::OnOff1(v) =&gt; v.write_xml(out),
+        }
+    }
+}</code></pre>
+</figure>
+<p>Đây là <strong>tái sử dụng qua trait</strong>: <code>ST_OnOff</code> không tự parse <code>"1"</code> — nó nhờ <code>bool</code> (impl ở mục 4). <code>&lt;bool as XmlValue&gt;::parse_xml(s)</code> là cú pháp đầy đủ "hàm <code>parse_xml</code> của <code>bool</code> theo trait <code>XmlValue</code>" — code sinh tự động hay dùng cách viết tường minh này để không bao giờ mơ hồ.</p>
+<p>Còn các simple type "không đặc biệt" thì chỉ là <strong>type alias</strong> trỏ về kiểu Rust sẵn có: <code>pub type ST_LongHexNumber = HexBinary;</code> (<code>wml.rs:3372</code>), <code>pub type ST_HexColorRGB = HexBinary;</code> (<code>shared_types.rs:303</code>), <code>pub type ST_UnsignedDecimalNumber = u64;</code> (<code>shared_types.rs:586</code>). Alias không tạo kiểu mới — nó dùng luôn impl <code>XmlValue</code> của <code>HexBinary</code>/<code>u64</code>.</p>
+
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — lexical form, value và canonical form</span>
+  <p>XML Schema phân biệt <strong>value space</strong> (tập <em>giá trị</em> trừu tượng: "đúng", "sai") và <strong>lexical space</strong> (tập <em>cách viết</em>: <code>true</code>, <code>1</code>…). Một giá trị có thể có nhiều cách viết; trong đó có một cách viết được chọn làm <strong>canonical</strong> (chuẩn tắc). Với <code>xsd:boolean</code>, canonical là <code>true</code>/<code>false</code>. Mình chạy thử thật với kiểu sinh tự động:</p>
+<pre><code class="language-bash">ST_OnOff::parse_xml("1")   = Boolean(true)          → ghi ra "true"
+ST_OnOff::parse_xml("on")  = OnOff1(On)             → ghi ra "on"
+ST_Jc::parse_xml("both")   = Some(Both)
+ST_Jc::parse_xml("justify")= None                   ← không có trong XSD
+HexBinary::parse_xml("00ea68dc") = [0, 234, 104, 220] → ghi ra "00EA68DC", to_u64 = 15362268</code></pre>
+  <p>Vậy <code>&lt;w:b w:val="1"/&gt;</code> đọc vào rồi lưu sẽ thành <code>&lt;w:b w:val="true"/&gt;</code>. Chữ thay đổi, nhưng <em>giá trị</em> không đổi — Word đọc hai cách viết như nhau. Đây là lý do bài 2.7 cần module <code>compare</code> với hàm <code>values_equivalent</code>: khi kiểm tra "round-trip không mất dữ liệu", phải so theo <em>giá trị</em> chứ không so từng ký tự. (Để ý <code>"on"</code> vẫn ra <code>"on"</code> vì nó thuộc nhánh <code>ST_OnOff1</code> của union — giữ đúng thành viên union mà file gốc dùng.)</p>
+  <p><strong><code>w:rsidR="00EA68DC"</code></strong> bạn thấy trên mọi <code>&lt;w:p&gt;</code> ở <code>fixtures/poi/sample.docx</code> (chạy <code>unzip -p fixtures/poi/sample.docx word/document.xml | grep -o '&lt;w:p [^&gt;]*&gt;' | head -1</code> sẽ ra <code>&lt;w:p w:rsidR="00EA68DC" w:rsidRPr="00C703AC" w:rsidRDefault="00EA68DC" w:rsidP="00EA68DC"&gt;</code>) là <em>revision save ID</em>: mỗi phiên chỉnh sửa, Word sinh một số ngẫu nhiên 4 byte và gắn lên những gì được sửa trong phiên đó — dùng khi so sánh/gộp tài liệu. Kiểu của nó là <code>ST_LongHexNumber</code> = <code>hexBinary</code> dài đúng 4 byte.</p>
+</div>
+<div class="callout warn">
+  <span class="callout-title">⚠️ Quan sát khi đọc code — facet không phải lúc nào cũng được kiểm</span>
+  <p>XSD nói <code>ST_LongHexNumber</code> có <code>length value="4"</code>, nhưng code sinh chỉ là <code>pub type ST_LongHexNumber = HexBinary;</code> — mà <code>HexBinary::parse_xml</code> nhận mọi chuỗi hex có độ dài chẵn. Tức là <code>w:rsidR="00EA"</code> (2 byte) vẫn được đọc thành công. Doc comment ở đầu <code>validate.rs</code> cũng nói thẳng rằng validator của dự án chỉ kiểm attribute/element bắt buộc; muốn kiểm đầy đủ theo XSD thì dùng validator ngoài. Đây là đánh đổi có chủ đích: dễ dãi khi đọc (file thật ngoài đời hay "lệch chuẩn" một chút) để không làm hỏng tài liệu của người dùng.</p>
+</div>
+
+<section class="exercise">
+  <h3>🛠 Bài tập</h3>
+  <ol>
+    <li><strong>Chạy thử canonical form.</strong> Tạo project riêng ngoài repo: <code>cargo new thu-xmlvalue</code>, thêm vào <code>[dependencies]</code> của nó:
+<pre><code class="language-toml">openxml-xml = { path = "/đường/dẫn/tới/open-xml-rust/crates/openxml-xml" }
+openxml-schema = { path = "/đường/dẫn/tới/open-xml-rust/crates/openxml-schema" }</code></pre>
+    Trong <code>main.rs</code>, <code>use openxml_xml::XmlValue;</code>, <code>use openxml_schema::shared_types::ST_OnOff;</code>, <code>use openxml_schema::wml::ST_Jc;</code> rồi in <code>ST_OnOff::parse_xml("1").unwrap().to_xml_string()</code>, <code>ST_Jc::parse_xml("justify")</code>, <code>f64::parse_xml("inf")</code>. So với output ở mục 11. (Lần build đầu mất khoảng một phút vì <code>openxml-schema</code> rất lớn.)</li>
+    <li><strong>Tự viết một impl.</strong> Trong cùng project, định nghĩa <code>struct Percent(u8);</code> với lexical form <code>"42%"</code> (0–100). Implement <code>XmlValue</code>: <code>parse_xml</code> dùng <code>s.trim().strip_suffix('%')?</code> rồi <code>u8::parse_xml</code> (tái sử dụng!) và kiểm tra <code>&lt;= 100</code> bằng <code>bool::then_some</code> hoặc <code>filter</code>. Sau đó thử <code>XmlList::&lt;Percent&gt;::parse_xml("10% 20% 30%")</code> — bạn được <code>XmlList</code> miễn phí mà không viết thêm dòng nào. Vì sao?</li>
+    <li><strong>Thử phá derive.</strong> Copy định nghĩa <code>XmlList</code> vào project của bạn thành <code>MyList&lt;T&gt;</code>, dùng <code>#[derive(Default)]</code> thay vì impl tay. Tạo <code>struct KhongDefault;</code> (không derive gì) và viết <code>let x: MyList&lt;KhongDefault&gt; = MyList::default();</code>. Đọc thông báo lỗi, rồi sửa bằng impl tay như dự án.</li>
+    <li><strong>Đọc code.</strong> Đọc <code>Base64Binary::parse_xml</code> (<code>value.rs:143–175</code>) và giải thích bằng lời điều kiện <code>pad &gt; 2 || (pad &gt; 0 &amp;&amp; i + 1 != chunks) || q[..4 - pad].contains(&amp;b'=')</code>. Mỗi vế chặn test nào trong <code>base64_binary</code>?</li>
+  </ol>
+</section>
+
+<section>
+  <h2 id="tu-kiem-tra">Tự kiểm tra</h2>
+  <details><summary>1. Vì sao <code>parse_xml</code> không có tham số <code>self</code>, còn <code>write_xml</code> thì có?</summary>
+    <div class="answer"><code>parse_xml</code> <em>tạo ra</em> một giá trị mới từ chuỗi — lúc gọi chưa có giá trị nào để làm <code>self</code>, nên nó là "hàm của kiểu" (gọi bằng <code>T::parse_xml</code>). <code>write_xml</code> ghi một giá trị <em>đã có</em>, nên mượn nó qua <code>&amp;self</code>.</div></details>
+  <details><summary>2. <code>write_xml</code> nhận <code>&amp;mut String</code> mang lại lợi ích gì cụ thể trong <code>XmlWriter::attr_value</code>?</summary>
+    <div class="answer">Writer dùng lại một bộ đệm <code>scratch</code>: <code>clear()</code> giữ nguyên vùng nhớ đã cấp, giá trị tự ghi vào đó, rồi writer escape và chép vào output. Không phải cấp phát một <code>String</code> mới cho mỗi attribute. Ngoài ra "tạo chữ" và "escape" được tách thành hai bước độc lập.</div></details>
+  <details><summary>3. <code>impl&lt;T: XmlValue&gt; XmlValue for XmlList&lt;T&gt;</code> — nếu bỏ <code>: XmlValue</code> sau <code>T</code> thì sao?</summary>
+    <div class="answer">Không biên dịch được: bên trong impl gọi <code>T::parse_xml</code> và <code>item.write_xml(out)</code>, mà không có bound thì compiler không biết <code>T</code> có những hàm đó. Trait bound là "giấy phép" để dùng method của trait trên kiểu generic.</div></details>
+  <details><summary>4. <code>XmlList::&lt;u32&gt;::parse_xml("1 x 3")</code> trả về gì và nhờ cơ chế nào?</summary>
+    <div class="answer"><code>None</code>. <code>.map(T::parse_xml)</code> sinh <code>Some(1), None, …</code>; <code>collect::&lt;Option&lt;Vec&lt;u32&gt;&gt;&gt;()</code> dừng ở <code>None</code> đầu tiên và trả <code>None</code> cho cả danh sách (impl <code>FromIterator</code> cho <code>Option</code> của thư viện chuẩn).</div></details>
+  <details><summary>5. Vì sao <code>XmlList</code> impl <code>Default</code> bằng tay?</summary>
+    <div class="answer"><code>#[derive(Default)]</code> sẽ sinh <code>impl&lt;T: Default&gt; Default for XmlList&lt;T&gt;</code>, tức chỉ có <code>default()</code> khi <code>T: Default</code> — thừa, vì danh sách rỗng không cần tạo phần tử nào. Impl tay <code>impl&lt;T&gt; Default</code> không có bound nên dùng được với mọi <code>T</code>.</div></details>
+  <details><summary>6. Đọc <code>&lt;w:b w:val="1"/&gt;</code> rồi ghi lại bằng thư viện, bạn được gì? Có mất dữ liệu không?</summary>
+    <div class="answer">Được <code>&lt;w:b w:val="true"/&gt;</code>: <code>ST_OnOff</code> thử <code>bool</code> trước, <code>bool::parse_xml("1")</code> = <code>true</code>, và <code>bool</code> luôn ghi dạng canonical <code>"true"</code>. Không mất dữ liệu — lexical form khác nhưng value giống nhau; <code>compare::values_equivalent("1", "true")</code> trả <code>true</code>.</div></details>
+</section>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Bài sau</span>
+  <p>Giờ bạn đã biết cách một giá trị chữ trở thành kiểu Rust. Nhưng nếu chữ đó <em>không hợp lệ</em>, hoặc cả một element không có trong schema (<code>w14:…</code>, <code>mc:AlternateContent</code>) thì sao? Bài 2.7 giới thiệu <code>RawElement</code> — "lối thoát hiểm" giúp dự án không bao giờ làm mất dữ liệu — cùng <code>XmlRead</code>/<code>XmlWrite</code>, <code>PhantomData</code> và đệ quy.</p>
+</div>
+
+</main>
+</body>
+</html>

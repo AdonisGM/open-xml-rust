@@ -1,0 +1,954 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.7 Raw node &amp; round-trip không mất dữ liệu · Học Rust qua open-xml-rust</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/vendor/highlight.min.js" defer></script>
+<script src="assets/app.js" defer></script>
+</head>
+<body data-lesson="p2-7">
+<main class="content">
+
+<header>
+  <p class="crumb">Phần 2 · Tầng XML (openxml-xml)</p>
+  <h1>2.7 Raw node &amp; round-trip không mất dữ liệu</h1>
+  <p class="lead">Không thư viện nào hiểu hết mọi thẻ mà Word, Excel, PowerPoint — và cả phần mềm của hãng khác — có thể ghi vào file. Nhưng mở ra rồi lưu lại thì <em>không được mất gì</em>. Bài này mổ xẻ cách dự án làm được điều đó: một cây XML "thô" (<code>RawElement</code>) làm lối thoát hiểm, cộng với một bộ công cụ nhỏ để gắn cây thô vào đúng chỗ trong cây có kiểu. Trên đường đi bạn sẽ gặp kiểu đệ quy, <code>Box&lt;str&gt;</code>, iterator, <code>PhantomData</code>, impl có điều kiện và closure <code>FnOnce</code>.</p>
+  <div class="meta"><span>⏱ ~75 phút</span><span>Crate: <code>openxml-xml</code></span><span>File: <code>raw.rs</code>, <code>element.rs</code>, <code>compare.rs</code>, <code>validate.rs</code></span><span>Fixture: <code>poi/style-alternate-content.xlsx</code>, <code>poi/pie-chart.pptx</code></span></div>
+</header>
+
+<section class="goals">
+  <h3>🎯 Học xong bài này bạn sẽ</h3>
+  <ul>
+    <li>Hiểu vì sao cần "giữ nguyên thứ không hiểu" và biết bốn kiểu <code>RawName</code>, <code>RawAttribute</code>, <code>RawNode</code>, <code>RawElement</code>.</li>
+    <li>Giải thích được vì sao <code>RawElement</code> chứa <code>Vec&lt;RawNode&gt;</code> chứa <code>RawElement</code> mà không cần <code>Box</code>, còn chỗ khác thì cần; và vì sao dùng <code>Box&lt;str&gt;</code> thay vì <code>String</code>.</li>
+    <li>Đọc được hàm đệ quy <code>RawElement::read</code>, các iterator <code>elements()</code>, <code>child()</code>, <code>text()</code>, <code>descendants()</code>.</li>
+    <li>Hiểu trait <code>XmlRead</code>/<code>XmlWrite</code>, impl cho <code>Box&lt;T&gt;</code> với <code>?Sized</code>, và <code>ElementDef&lt;T&gt;</code> với <code>PhantomData&lt;fn() -&gt; T&gt;</code>.</li>
+    <li>Nắm cơ chế <code>rt::read_simple</code> (lồng <code>Result</code> có chủ đích), <code>ExtraChild</code> với <code>anchor</code>/<code>index</code>, và <code>from_typed</code>/<code>to_typed</code>.</li>
+    <li>Biết cách dự án <em>chứng minh</em> round-trip bằng <code>compare::semantic_diff</code> và kiểm tra bằng <code>Validator</code>.</li>
+    <li>Về OpenXML: hiểu <strong>Markup Compatibility</strong> (ECMA-376 Part 3) — <code>mc:AlternateContent</code>, <code>mc:Choice Requires</code>, <code>mc:Fallback</code>, <code>mc:Ignorable</code> — qua file thật.</li>
+  </ul>
+</section>
+
+<h2 id="van-de">1. Bài toán: thứ mình không hiểu vẫn phải giữ lại</h2>
+<p>Ở <a href="p0-1-openxml-la-gi.html">bài 0.1</a> mình đã nói: mục tiêu lớn của dự án là <strong>lossless round-trip</strong> — mở rồi lưu thì không mất gì. Nghe đơn giản cho tới khi bạn mở một file thật. Đây là một đoạn trong <code>xl/styles.xml</code> của <code>fixtures/poi/style-alternate-content.xlsx</code> (một file tạo bởi phần mềm văn phòng Hancom của Hàn Quốc) — mình trích bằng <code>unzip -p</code>, chỉ xuống dòng cho dễ đọc:</p>
+<figure class="code">
+  <figcaption>fixtures/poi/style-alternate-content.xlsx → xl/styles.xml (trích, đã xuống dòng)</figcaption>
+<pre><code class="language-xml">&lt;mc:AlternateContent xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"&gt;
+  &lt;mc:Choice xmlns:hs="http://schemas.haansoft.com/office/spreadsheet/8.0" Requires="hs"&gt;
+    &lt;x:font hs:extension="1"&gt;
+      &lt;x:name val="맑은 고딕"/&gt;&lt;x:sz val="9"/&gt;&lt;x:color rgb="ff000000"/&gt;
+      &lt;hs:size val="100"/&gt;&lt;hs:ratio val="100"/&gt;&lt;hs:spacing val="0"/&gt;&lt;hs:offset val="0"/&gt;
+    &lt;/x:font&gt;
+  &lt;/mc:Choice&gt;
+  &lt;mc:Fallback&gt;
+    &lt;x:font&gt;&lt;x:name val="맑은 고딕"/&gt;&lt;x:sz val="9"/&gt;&lt;x:color rgb="ff000000"/&gt;&lt;/x:font&gt;
+  &lt;/mc:Fallback&gt;
+&lt;/mc:AlternateContent&gt;</code></pre>
+</figure>
+<p>Có ba loại "lạ" ở đây:</p>
+<ul>
+  <li><code>mc:AlternateContent</code> — một thẻ bọc không có trong schema SpreadsheetML; nó xuất hiện <em>giữa</em> các <code>x:font</code>, nơi schema chỉ cho phép <code>x:font</code>.</li>
+  <li><code>hs:size</code>, <code>hs:ratio</code>… — element của một namespace hãng riêng (vendor markup) mà không schema chuẩn nào mô tả.</li>
+  <li><code>hs:extension="1"</code> — một attribute lạ gắn lên thẻ quen <code>x:font</code>.</li>
+</ul>
+<p>Trong file này có tới <strong>24</strong> khối như vậy (mình đếm bằng chính <code>RawElement</code> — xem bài tập). Nếu thư viện chỉ giữ những gì <code>CT_Font</code> mô tả, lưu lại là mất sạch phần của Hancom. Với Word thì còn nhiều hơn: <code>w14:paraId</code>, <code>w15:…</code>, <code>w16cid:…</code> — mỗi phiên bản Office lại thêm namespace mới.</p>
+<div class="callout pattern">
+  <span class="callout-title">🧩 Hai pattern: "preserve unknown" và "escape hatch"</span>
+  <p><strong>Preserve unknown</strong> (giữ nguyên thứ không hiểu): mọi thứ mô hình có kiểu không mô tả được thì không vứt đi mà cất vào chỗ riêng (<code>extra_attrs</code>, <code>extra_children</code>, biến thể <code>Other</code>), để khi ghi thì đặt lại nguyên chỗ cũ. Protocol Buffers, JSON "unknown fields" cũng làm vậy.</p>
+  <p><strong>Escape hatch</strong> (lối thoát hiểm): bên cạnh API có kiểu đẹp đẽ, luôn có một cửa để người dùng xuống tầng "thô" khi API không đủ. <code>RawElement</code> vừa là chỗ cất đồ lạ, vừa là lối thoát đó: bạn có thể đọc/sửa bất kỳ XML nào qua nó.</p>
+</div>
+
+<h2 id="kieu-raw">2. Bốn kiểu raw</h2>
+<p>Đầu file <code>raw.rs</code> nói luôn mục đích:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/raw.rs#L1-L6">crates/openxml-xml/src/raw.rs:1–6</figcaption>
+<pre><code class="language-rust">//! Schema-less XML nodes.
+//!
+//! Content that the typed object model does not describe (extension
+//! elements, markup-compatibility wrappers, wildcard `xsd:any` content,
+//! unknown attributes) is captured as raw nodes so that documents survive a
+//! read/write round trip without losing data.</code></pre>
+</figure>
+
+<h3 id="raw-name">2.1 <code>RawName</code> — cái tên "nhớ mình được viết thế nào"</h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/raw.rs#L14-L61">crates/openxml-xml/src/raw.rs:14–61</figcaption>
+<pre><code class="language-rust">/// A qualified XML name that remembers how it was written.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RawName {
+    /// Namespace identifier.
+    pub ns: Ns,
+    /// Namespace URI when `ns` is [`Ns::OTHER`].
+    pub uri: Option&lt;Box&lt;str&gt;&gt;,
+    /// Prefix used in the source document, reused when writing if possible.
+    pub prefix: Option&lt;Box&lt;str&gt;&gt;,
+    /// Local name.
+    pub local: Box&lt;str&gt;,
+}
+
+impl RawName {
+    /// Creates a name in a known namespace (or [`Ns::NONE`]).
+    pub fn new(ns: Ns, local: &amp;str) -&gt; Self {
+        RawName {
+            ns,
+            uri: None,
+            prefix: None,
+            local: local.into(),
+        }
+    }
+
+    /// Creates a name in an arbitrary namespace URI.
+    pub fn with_uri(uri: &amp;str, prefix: Option&lt;&amp;str&gt;, local: &amp;str) -&gt; Self {
+        let ns = Ns::classify(uri);
+        RawName {
+            ns,
+            uri: (ns == Ns::OTHER).then(|| uri.into()),
+            prefix: prefix.map(Into::into),
+            local: local.into(),
+        }
+    }
+
+    /// The namespace URI (canonical for known namespaces, empty for none).
+    pub fn uri(&amp;self) -&gt; &amp;str {
+        match &amp;self.uri {
+            Some(u) =&gt; u,
+            None =&gt; self.ns.uri(),
+        }
+    }
+
+    /// Whether this name has the given namespace and local name.
+    pub fn is(&amp;self, ns: Ns, local: &amp;str) -&gt; bool {
+        self.ns == ns &amp;&amp; &amp;*self.local == local
+    }
+}</code></pre>
+</figure>
+<ul>
+  <li><strong><code>ns: Ns</code></strong> — định danh namespace dạng số nhỏ gọn bạn đã học ở <a href="p2-1-namespace.html">bài 2.1</a>. Với namespace quen (<code>Ns::W</code>, <code>Ns::MC</code>…) chỉ cần thế là đủ, URI tra từ bảng.</li>
+  <li><strong><code>uri: Option&lt;Box&lt;str&gt;&gt;</code></strong> — chỉ có giá trị khi <code>ns == Ns::OTHER</code> (namespace lạ như của Hancom). <code>with_uri</code> dùng <code>(ns == Ns::OTHER).then(|| uri.into())</code> — <code>bool::then</code> mà bạn đã gặp ở <a href="p2-6-xml-value.html">bài 2.6</a>: chỉ cấp phát chuỗi URI khi thật cần.</li>
+  <li><strong><code>prefix</code></strong> — tiền tố gốc (<code>hs</code>, <code>c14</code>…) để khi ghi lại, file trông giống bản gốc nhất có thể. Nó chỉ là "gợi ý": danh tính thật là URI.</li>
+  <li><strong><code>is(ns, local)</code></strong> — hàm so tên dùng khắp nơi. <code>&amp;*self.local</code>: <code>self.local</code> là <code>Box&lt;str&gt;</code>, <code>*</code> "mở hộp" ra <code>str</code>, <code>&amp;</code> mượn lại thành <code>&amp;str</code> để so với <code>local: &amp;str</code>.</li>
+  <li><strong><code>uri()</code></strong> — trong nhánh <code>Some(u) =&gt; u</code>, <code>u</code> là <code>&amp;Box&lt;str&gt;</code>, Rust tự chuyển thành <code>&amp;str</code> (deref coercion) để khớp kiểu trả về.</li>
+</ul>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — <code>Box&lt;str&gt;</code> hay <code>String</code>?</span>
+  <p>Cả hai đều là chuỗi nằm trên heap mà mình sở hữu. Khác nhau ở phần "đầu" nằm trên stack:</p>
+<pre class="diagram"><code>String   = [ con trỏ | độ dài | sức chứa ]   → 24 byte (máy 64-bit), có thể push thêm
+Box&lt;str&gt; = [ con trỏ | độ dài ]             → 16 byte, cố định, không push được</code></pre>
+  <p><code>String</code> có thêm "sức chứa" (capacity) để còn nối thêm chữ. Tên element/attribute thì đọc một lần rồi <strong>không bao giờ đổi</strong>, nên trường capacity là thừa. Một cây XML lớn có hàng trăm nghìn <code>RawName</code>, mỗi cái có tới 3 chuỗi → tiết kiệm đáng kể, và kiểu dữ liệu tự nói lên ý đồ "bất biến". Chuyển đổi rất dễ: <code>local.into()</code> từ <code>&amp;str</code> sang <code>Box&lt;str&gt;</code>; <code>b.to_string()</code> hoặc <code>String::from(b)</code> để quay lại. Ngược lại, <code>RawAttribute::value</code> vẫn là <code>String</code> — giá trị thì người dùng hay sửa (<code>set_attr</code>).</p>
+</div>
+
+<h3 id="raw-attribute">2.2 <code>RawAttribute</code> — kể cả khai báo namespace</h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/raw.rs#L63-L99">crates/openxml-xml/src/raw.rs:63–99</figcaption>
+<pre><code class="language-rust">/// An attribute captured without schema knowledge.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RawAttribute {
+    /// Attribute name. Namespace declarations use [`Ns::XMLNS`] with the declared
+    /// prefix as local name (empty for the default namespace).
+    pub name: RawName,
+    /// Attribute value (unescaped).
+    pub value: String,
+}
+
+impl RawAttribute {
+    /// Creates an attribute in a known namespace (or [`Ns::NONE`]).
+    pub fn new(ns: Ns, local: &amp;str, value: impl Into&lt;String&gt;) -&gt; Self {
+        RawAttribute {
+            name: RawName::new(ns, local),
+            value: value.into(),
+        }
+    }
+
+    /// Creates a namespace declaration (`xmlns:prefix="uri"`, or `xmlns="uri"` for an empty prefix).
+    pub fn namespace_declaration(prefix: &amp;str, uri: &amp;str) -&gt; Self {
+        RawAttribute {
+            name: RawName {
+                ns: Ns::XMLNS,
+                uri: None,
+                prefix: Some("xmlns".into()),
+                local: prefix.into(),
+            },
+            value: uri.into(),
+        }
+    }
+
+    /// Whether this attribute is a namespace declaration.
+    pub fn is_namespace_declaration(&amp;self) -&gt; bool {
+        self.name.ns == Ns::XMLNS
+    }
+}</code></pre>
+</figure>
+<p>Điểm tinh tế: <strong>khai báo namespace cũng được giữ như một attribute</strong> (<code>xmlns:hs="…"</code> → <code>ns = Ns::XMLNS</code>, <code>local = "hs"</code>). Vì sao phải giữ? Vì <code>mc:Ignorable="w14"</code> và <code>Requires="hs"</code> nhắc tới <em>prefix</em> bằng chuỗi — nếu lúc ghi mất khai báo <code>xmlns:hs</code>, giá trị <code>Requires="hs"</code> trở nên vô nghĩa. Khi ghi, <code>XmlWriter::start_raw</code> xử lý các khai báo này trước (bài 2.5), còn <code>attr_raw</code> thì bỏ qua chúng để không ghi hai lần. <code>value: impl Into&lt;String&gt;</code> — cùng mẹo "nhận gì cũng được miễn đổi được" như <code>HexBinary::new</code>.</p>
+
+<h3 id="raw-element">2.3 <code>RawNode</code> + <code>RawElement</code> — kiểu đệ quy</h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/raw.rs#L101-L119">crates/openxml-xml/src/raw.rs:101–119</figcaption>
+<pre><code class="language-rust">/// A node inside a [`RawElement`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum RawNode {
+    /// A child element.
+    Element(RawElement),
+    /// Character data.
+    Text(String),
+}
+
+/// An element captured without schema knowledge.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RawElement {
+    /// Element name.
+    pub name: RawName,
+    /// Attributes, including namespace declarations.
+    pub attributes: Vec&lt;RawAttribute&gt;,
+    /// Child nodes in document order.
+    pub children: Vec&lt;RawNode&gt;,
+}</code></pre>
+</figure>
+<p>Đây là một cây: element có con là các <em>node</em>; node hoặc là element (lại có con…) hoặc là chữ. <code>RawElement</code> → <code>Vec&lt;RawNode&gt;</code> → <code>RawNode::Element(RawElement)</code> → … Kiểu tự nhắc tới chính mình — gọi là <strong>kiểu đệ quy</strong>.</p>
+<p>Nếu bạn đã đọc sách Rust, bạn biết kiểu đệ quy thường cần <code>Box</code>. Thử viết:</p>
+<figure class="code">
+  <figcaption>Tự viết — kiểu đệ quy KHÔNG biên dịch được</figcaption>
+<pre><code class="language-rust">struct Node {
+    value: i32,
+    child: Option&lt;Node&gt;,   // error[E0072]: recursive type `Node` has infinite size
+}</code></pre>
+</figure>
+<p>Vì sao? Rust cần biết kích thước mỗi kiểu lúc biên dịch. <code>Node</code> = <code>i32</code> + <code>Option&lt;Node&gt;</code> = <code>i32</code> + (<code>i32</code> + <code>Option&lt;Node&gt;</code>) = … vô hạn. Cách sửa: đặt con ở heap, trong struct chỉ giữ <em>con trỏ</em> (kích thước cố định 8 byte): <code>child: Option&lt;Box&lt;Node&gt;&gt;</code>.</p>
+<p><strong>Vậy sao <code>RawElement</code> không cần <code>Box</code>?</strong> Vì <code>Vec&lt;RawNode&gt;</code> <em>đã là</em> một con trỏ tới heap! Bản thân một <code>Vec</code> trên stack luôn chỉ là (con trỏ, độ dài, sức chứa) — 24 byte — bất kể bên trong chứa gì, bao nhiêu phần tử. Các <code>RawNode</code> thật nằm trong vùng heap mà <code>Vec</code> cấp phát. Chuỗi tính kích thước dừng lại ở <code>Vec</code>.</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — bố cục bộ nhớ</figcaption>
+<pre class="diagram"><code>stack:  RawElement { name: RawName(…), attributes: Vec[ptr,len,cap], children: Vec[ptr,len,cap] }
+                                                                            │
+heap:                                          ┌────────────────────────────┘
+                                               ▼
+                         [ RawNode::Element(RawElement{…children: Vec[ptr…]}) | RawNode::Text("…") | … ]
+                                                                     │
+                                                                     ▼  (lại heap)</code></pre>
+</figure>
+<p><strong>Còn chỗ nào thì cần <code>Box</code>?</strong> Trong code sinh tự động của <code>openxml-schema</code> bạn sẽ thấy <code>Box</code> khắp nơi, vì ở đó con thường là <em>một</em> giá trị chứ không phải danh sách:</p>
+<ul>
+  <li>Element con tuỳ chọn: <code>pub p_pr: Option&lt;Box&lt;CT_PPr&gt;&gt;</code>. Nhiều complex type lồng nhau vòng tròn (bảng chứa ô, ô chứa đoạn văn, đoạn văn chứa… bảng lồng) — không có <code>Box</code> thì kích thước vô hạn như ví dụ trên.</li>
+  <li>Biến thể enum: <code>EG_BlockLevelElts::P(Box&lt;CT_P&gt;)</code>, <code>EG_PContent::Other(Box&lt;RawElement&gt;)</code>. Ngoài chuyện đệ quy, <code>Box</code> còn giữ cho enum <em>nhỏ</em>: một enum to bằng biến thể to nhất của nó; nếu một biến thể chứa thẳng struct 500 byte, mọi giá trị của enum đều tốn 500 byte.</li>
+</ul>
+<div class="callout rust">
+  <span class="callout-title">🦀 Góc Rust — derive <code>Hash</code>, <code>Eq</code> cho cây</span>
+  <p><code>#[derive(Debug, Clone, PartialEq, Eq, Hash)]</code> trên cả bốn kiểu nghĩa là: hai cây bằng nhau khi mọi trường bằng nhau, đệ quy xuống tận lá; và cả cây có thể làm khoá <code>HashMap</code>/<code>HashSet</code>. Derive hoạt động được vì mọi trường (<code>Ns</code>, <code>Box&lt;str&gt;</code>, <code>String</code>, <code>Vec&lt;…&gt;</code>) đều đã có các trait đó. Để ý: bằng nhau ở đây là bằng nhau <em>từng ký tự</em>, kể cả thứ tự attribute và prefix. So "theo ý nghĩa" là việc của module <code>compare</code> (mục 9). Test round-trip trong <code>raw.rs</code> dùng cả hai: <code>assert_eq!(RawElement::parse(&amp;out).unwrap(), el)</code>.</p>
+</div>
+
+<h2 id="doc-ghi">3. Đọc và ghi một cây thô</h2>
+<h3 id="read">3.1 <code>RawElement::read</code> — đệ quy trên <code>XmlReader</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/raw.rs#L131-L163">crates/openxml-xml/src/raw.rs:131–163</figcaption>
+<pre><code class="language-rust">    /// Reads the element opened by `tag`, including all of its content.
+    pub fn read(r: &amp;mut XmlReader&lt;'_&gt;, tag: &amp;StartTag&lt;'_&gt;) -&gt; Result&lt;Self&gt; {
+        let mut el = RawElement {
+            name: tag.raw_name(),
+            attributes: tag.attributes().map(|a| a.to_raw()).collect(),
+            children: Vec::new(),
+        };
+        if !tag.is_empty() {
+            loop {
+                match r.next_event()? {
+                    Event::Start(child) =&gt; {
+                        el.children.push(RawNode::Element(RawElement::read(r, &amp;child)?));
+                    }
+                    Event::Text(t) =&gt; el.children.push(RawNode::Text(t.into_owned())),
+                    Event::End =&gt; break,
+                    Event::Eof =&gt; return Err(Error::UnexpectedEof),
+                }
+            }
+        }
+        Ok(el)
+    }
+
+    /// Parses a standalone XML document into a raw element tree.
+    pub fn parse(xml: &amp;str) -&gt; Result&lt;Self&gt; {
+        let mut r = XmlReader::new(xml);
+        let root = r.root()?;
+        RawElement::read(&amp;mut r, &amp;root)
+    }
+
+    /// Parses XML bytes (UTF-8 or UTF-16) into a raw element tree.
+    pub fn parse_bytes(bytes: &amp;[u8]) -&gt; Result&lt;Self&gt; {
+        RawElement::parse(&amp;decode_xml_bytes(bytes)?)
+    }</code></pre>
+</figure>
+<p>Đây là mẫu đọc bạn sẽ thấy lặp lại trong <em>mọi</em> <code>XmlRead</code> sinh tự động, nên đọc thật kỹ:</p>
+<ol>
+  <li><strong>Hợp đồng:</strong> người gọi đã đọc thẻ mở (<code>tag</code>) và đưa vào; hàm có nhiệm vụ đọc hết nội dung <em>đến và gồm cả</em> thẻ đóng tương ứng.</li>
+  <li><code>tag.raw_name()</code>, <code>a.to_raw()</code> — biến tên/attribute đang <em>mượn</em> từ chuỗi XML đầu vào (<code>StartTag&lt;'_&gt;</code>, <code>Attr&lt;'_&gt;</code> ở <a href="p2-4-xml-reader.html">bài 2.4</a>) thành bản <em>sở hữu</em>. Cây raw phải sống độc lập với chuỗi gốc. <code>.collect()</code> tự biết gom vào <code>Vec&lt;RawAttribute&gt;</code> vì đó là kiểu của trường <code>attributes</code>.</li>
+  <li><code>if !tag.is_empty()</code> — thẻ tự đóng <code>&lt;a/&gt;</code> không có nội dung, không đọc tiếp (nếu đọc sẽ "ăn" mất sự kiện của anh em phía sau!).</li>
+  <li>Vòng lặp sự kiện: gặp thẻ mở con → <strong>gọi đệ quy</strong> <code>RawElement::read</code> để đọc trọn cây con; gặp chữ → cất; gặp <code>End</code> → đó là thẻ đóng của chính mình, dừng; gặp <code>Eof</code> → file bị cắt cụt, báo lỗi.</li>
+  <li><code>t.into_owned()</code> — <code>t</code> là <code>Cow&lt;str&gt;</code>; <code>into_owned</code> cho ra <code>String</code> (chỉ sao chép nếu đang ở dạng mượn).</li>
+</ol>
+<p>Đệ quy thì sợ gì? Tràn stack nếu XML lồng quá sâu (file độc hại có thể lồng một triệu tầng). <code>XmlReader</code> đã lo: <code>MAX_DEPTH = 256</code> (<code>reader.rs:19</code>), vượt quá là trả lỗi thay vì để chương trình sập.</p>
+<p><code>parse</code> và <code>parse_bytes</code> là hai lối vào tiện lợi: chuỗi → tìm thẻ gốc → đọc; bytes → giải mã UTF-8/UTF-16 (có BOM) → như trên. Để ý dòng cuối <code>parse_bytes</code>: <code>&amp;decode_xml_bytes(bytes)?</code> — <code>?</code> lấy <code>Cow&lt;str&gt;</code> ra (hoặc trả lỗi sớm), <code>&amp;</code> mượn nó thành <code>&amp;str</code>.</p>
+
+<h3 id="write">3.2 <code>write</code> và <code>to_xml</code></h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/raw.rs#L165-L183">crates/openxml-xml/src/raw.rs:165–183</figcaption>
+<pre><code class="language-rust">    /// Writes the element (and its subtree).
+    pub fn write(&amp;self, w: &amp;mut XmlWriter) {
+        w.start_raw(&amp;self.name, &amp;self.attributes);
+        w.attrs_raw(&amp;self.attributes);
+        for child in &amp;self.children {
+            match child {
+                RawNode::Element(e) =&gt; e.write(w),
+                RawNode::Text(t) =&gt; w.text(t),
+            }
+        }
+        w.end();
+    }
+
+    /// Serializes the element as a standalone XML fragment (no declaration).
+    pub fn to_xml(&amp;self) -&gt; String {
+        let mut w = XmlWriter::new();
+        self.write(&amp;mut w);
+        w.finish()
+    }</code></pre>
+</figure>
+<p>Đối xứng hoàn hảo với <code>read</code>: mở thẻ (kèm khai báo namespace), ghi attribute thường, đệ quy vào con, đóng thẻ. Mọi chuyện khó — chọn prefix, khai báo namespace chưa có, escape — đã nằm trong <code>XmlWriter</code> (<a href="p2-5-xml-writer.html">bài 2.5</a>). Test round-trip quan trọng nhất của file:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/raw.rs#L282-L296">crates/openxml-xml/src/raw.rs:282–296</figcaption>
+<pre><code class="language-rust">    #[test]
+    fn parse_and_serialize_round_trip() {
+        let xml = r#"&lt;mc:AlternateContent xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:wps="urn:wps"&gt;&lt;mc:Choice Requires="wps"&gt;&lt;wps:shape a="1"&gt;text &amp;amp; more&lt;/wps:shape&gt;&lt;/mc:Choice&gt;&lt;mc:Fallback/&gt;&lt;/mc:AlternateContent&gt;"#;
+        let el = RawElement::parse(xml).unwrap();
+        assert!(el.name.is(Ns::MC, "AlternateContent"));
+        let choice = el.child(Ns::MC, "Choice").unwrap();
+        assert_eq!(choice.attr(Ns::NONE, "Requires"), Some("wps"));
+        let shape = choice.elements().next().unwrap();
+        assert_eq!(shape.name.ns, Ns::OTHER);
+        assert_eq!(shape.name.uri(), "urn:wps");
+        assert_eq!(shape.text(), "text &amp; more");
+        let out = el.to_xml();
+        assert_eq!(out, xml);
+        assert_eq!(RawElement::parse(&amp;out).unwrap(), el);
+    }</code></pre>
+</figure>
+<p>Hai khẳng định cuối là trái tim của bài: <strong>ghi ra giống từng byte</strong> với đầu vào (<code>out == xml</code>), và <strong>đọc lại ra đúng cây cũ</strong>. Để ý <code>text &amp;amp; more</code> trong XML được đọc thành <code>"text &amp; more"</code> (đã unescape) rồi ghi lại thành <code>&amp;amp;</code>. Và <code>Requires</code> không có prefix nên thuộc <code>Ns::NONE</code> — attribute không prefix <em>không</em> thừa hưởng namespace mặc định (luật XML Namespaces, bài 2.1).</p>
+<div class="callout warn">
+  <span class="callout-title">⚠️ Chỗ hay nhầm — "giống từng byte" không phải lúc nào cũng xảy ra</span>
+  <p>Test trên giống byte vì các khai báo <code>xmlns:…</code> đã đứng trước attribute thường. Nếu file gốc viết <code>&lt;mc:Choice Requires="c14" xmlns:c14="…"&gt;</code> (khai báo đứng sau — như trong <code>pie-chart.pptx</code>), writer sẽ ghi <code>&lt;mc:Choice xmlns:c14="…" Requires="c14"&gt;</code>: khai báo luôn được đưa lên trước. Theo chuẩn XML, thứ tự attribute không có ý nghĩa, nên hai bản <em>tương đương</em>. Vì thế dự án cần một phép so "theo nghĩa" (mục 9) chứ không chỉ <code>==</code>.</p>
+</div>
+
+<h2 id="duyet-cay">4. Hỏi đáp trên cây: attr, elements, child, text, descendants</h2>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/raw.rs#L200-L228">crates/openxml-xml/src/raw.rs:200–228</figcaption>
+<pre><code class="language-rust">    /// Value of the attribute with the given name.
+    pub fn attr(&amp;self, ns: Ns, local: &amp;str) -&gt; Option&lt;&amp;str&gt; {
+        self.attributes
+            .iter()
+            .find(|a| a.name.is(ns, local))
+            .map(|a| a.value.as_str())
+    }
+
+    /// Sets (or replaces) an attribute value.
+    pub fn set_attr(&amp;mut self, ns: Ns, local: &amp;str, value: impl Into&lt;String&gt;) {
+        let value = value.into();
+        match self.attributes.iter_mut().find(|a| a.name.is(ns, local)) {
+            Some(a) =&gt; a.value = value,
+            None =&gt; self.attributes.push(RawAttribute::new(ns, local, value)),
+        }
+    }
+
+    /// Iterates over child elements.
+    pub fn elements(&amp;self) -&gt; impl Iterator&lt;Item = &amp;RawElement&gt; {
+        self.children.iter().filter_map(|c| match c {
+            RawNode::Element(e) =&gt; Some(e),
+            RawNode::Text(_) =&gt; None,
+        })
+    }
+
+    /// First child element with the given name.
+    pub fn child(&amp;self, ns: Ns, local: &amp;str) -&gt; Option&lt;&amp;RawElement&gt; {
+        self.elements().find(|e| e.name.is(ns, local))
+    }</code></pre>
+</figure>
+<ul>
+  <li><strong><code>attr</code></strong>: <code>iter()</code> → <code>find</code> (dừng ở phần tử đầu tiên thoả điều kiện, trả <code>Option&lt;&amp;RawAttribute&gt;</code>) → <code>map</code> lấy <code>&amp;str</code>. Kết quả mượn từ <code>self</code>, không sao chép.</li>
+  <li><strong><code>set_attr</code></strong>: <code>iter_mut()</code> cho tham chiếu <em>có quyền sửa</em>. Có thì ghi đè, chưa có thì thêm mới — test <code>set_attr_replaces_existing</code> kiểm tra gọi hai lần vẫn chỉ có một attribute.</li>
+  <li><strong><code>elements</code></strong> trả <code>impl Iterator&lt;Item = &amp;RawElement&gt;</code>: "một kiểu iterator nào đó, người gọi không cần biết tên" (kiểu thật là một <code>FilterMap&lt;…, closure&gt;</code> dài dằng dặc, không viết ra được vì closure không có tên). <code>filter_map</code> = lọc + biến đổi trong một bước: closure trả <code>Some(x)</code> thì giữ <code>x</code>, <code>None</code> thì bỏ. Iterator này <strong>lười</strong>: chưa ai lấy phần tử thì chưa chạy gì.</li>
+  <li><strong><code>child</code></strong> xây trên <code>elements()</code>: tái sử dụng iterator thay vì viết lại vòng lặp.</li>
+</ul>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/raw.rs#L230-L255">crates/openxml-xml/src/raw.rs:230–255</figcaption>
+<pre><code class="language-rust">    /// Concatenated character data of this element and all descendants.
+    pub fn text(&amp;self) -&gt; String {
+        fn walk(e: &amp;RawElement, out: &amp;mut String) {
+            for c in &amp;e.children {
+                match c {
+                    RawNode::Element(e) =&gt; walk(e, out),
+                    RawNode::Text(t) =&gt; out.push_str(t),
+                }
+            }
+        }
+        let mut out = String::new();
+        walk(self, &amp;mut out);
+        out
+    }
+
+    /// Visits this element and all descendant elements in document order.
+    pub fn descendants(&amp;self) -&gt; Vec&lt;&amp;RawElement&gt; {
+        let mut out = vec![self];
+        let mut i = 0;
+        while i &lt; out.len() {
+            let e = out[i];
+            out.extend(e.elements());
+            i += 1;
+        }
+        out
+    }</code></pre>
+</figure>
+<p><strong><code>text</code></strong> định nghĩa một <em>hàm lồng</em> <code>walk</code> ngay trong thân hàm — Rust cho phép, và hàm lồng chỉ nhìn thấy được từ bên trong <code>text</code>. <code>walk</code> đệ quy và nhận <code>out: &amp;mut String</code> — lại là mẫu "buffer của người gọi" từ <a href="p2-6-xml-value.html">bài 2.6</a>: cả cây chỉ dùng một <code>String</code> duy nhất thay vì tạo chuỗi con rồi nối.</p>
+<p><strong><code>descendants</code></strong> đáng đọc chậm. <code>out</code> vừa là kết quả vừa là "hàng đợi": bắt đầu với chính mình; con trỏ <code>i</code> đi dần từ đầu; mỗi phần tử được thăm thì đẩy tất cả con của nó vào <em>cuối</em> <code>out</code>. Không đệ quy, không cần cấu trúc phụ. Nhưng hãy chạy thử trên <code>&lt;a&gt;&lt;b&gt;&lt;d/&gt;&lt;/b&gt;&lt;c/&gt;&lt;/a&gt;</code>:</p>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — từng bước của descendants()</figcaption>
+<pre class="diagram"><code>        a                i=0: thăm a → thêm b, c     out = [a, b, c]
+       / \               i=1: thăm b → thêm d        out = [a, b, c, d]
+      b   c              i=2: thăm c → (không con)
+      |                  i=3: thăm d → (không con)
+      d                  kết quả: a, b, c, d
+
+Thứ tự tài liệu (duyệt sâu, như đọc XML từ trên xuống): a, b, d, c
+Thứ tự theo tầng (duyệt rộng — BFS):                     a, b, c, d   ← hàm trả về cái này</code></pre>
+</figure>
+<p>Một quan sát nhỏ khi đọc code: doc comment ghi "in document order", nhưng thuật toán thực chất là duyệt theo chiều rộng (BFS, từng tầng một). Test đi kèm thì gọi đúng tên: <code>descendants_are_breadth_first_and_complete</code> (<code>raw.rs:334</code>), khẳng định kết quả <code>["a", "b", "c", "d"]</code>. Với hầu hết mục đích sử dụng — "tìm tất cả element tên X", "đếm" — thứ tự không quan trọng, và cách làm này đơn giản, không đệ quy. Bài học rút ra khi đọc code người khác: <strong>tin test và code hơn tin comment</strong>.</p>
+<div class="callout pattern">
+  <span class="callout-title">🧩 Kỹ thuật: walker kiểu Visitor</span>
+  <p><code>text()</code> là một <em>walker</em> đệ quy: đi khắp cây, với mỗi loại node thì làm một việc (<code>Element</code> → đi tiếp, <code>Text</code> → gom chữ). Đó là tinh thần của pattern <strong>Visitor</strong> — tách "cách đi qua cấu trúc" khỏi "việc làm tại mỗi nút" — ở dạng tối giản dùng <code>match</code> thay vì class. Bạn sẽ gặp phiên bản lớn hơn ở <code>openxml-docx/src/walk.rs</code> (đi qua mọi đoạn văn, kể cả trong bảng lồng) và ở <code>Validator</code> (mục 9).</p>
+</div>
+
+<h2 id="xmlread-xmlwrite">5. Trait <code>XmlRead</code> / <code>XmlWrite</code></h2>
+<p>Ở <a href="p2-6-xml-value.html">bài 2.6</a> bạn đã thấy định nghĩa hai trait này (<code>element.rs:12–27</code>). Giờ là câu hỏi để dành: <strong>vì sao <code>read_xml</code> nhận thẻ mở từ ngoài vào, và <code>write_xml</code> nhận <code>ns</code>/<code>local</code> từ ngoài vào?</strong> Doc comment trả lời: "<em>A complex type does not know the name of the element it is used for (many elements share one type)</em>".</p>
+<p>Ví dụ rõ nhất: kiểu <code>CT_OnOff</code> của Word — một struct chỉ có trường <code>val: Option&lt;ST_OnOff&gt;</code> (<code>wml.rs:22418</code>). Doc comment sinh tự động liệt kê nó được dùng bởi <strong>148</strong> element khác nhau: <code>w:b</code> (đậm), <code>w:i</code> (nghiêng), <code>w:keepNext</code>, <code>w:bidi</code>… Tên element phụ thuộc vào <em>chỗ</em> nó nằm trong cha, không phụ thuộc vào kiểu. Nên cha — người biết "trường này là <code>w:b</code>" — mới là người đọc thẻ mở và quyết định tên khi ghi.</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/element.rs#L29-L54">crates/openxml-xml/src/element.rs:29–54</figcaption>
+<pre><code class="language-rust">impl&lt;T: XmlRead&gt; XmlRead for Box&lt;T&gt; {
+    fn read_xml(r: &amp;mut XmlReader&lt;'_&gt;, tag: &amp;StartTag&lt;'_&gt;) -&gt; Result&lt;Self&gt; {
+        T::read_xml(r, tag).map(Box::new)
+    }
+}
+
+impl&lt;T: XmlWrite + ?Sized&gt; XmlWrite for Box&lt;T&gt; {
+    fn write_xml(&amp;self, w: &amp;mut XmlWriter, ns: Ns, local: &amp;str) {
+        (**self).write_xml(w, ns, local)
+    }
+}
+
+impl XmlRead for RawElement {
+    fn read_xml(r: &amp;mut XmlReader&lt;'_&gt;, tag: &amp;StartTag&lt;'_&gt;) -&gt; Result&lt;Self&gt; {
+        RawElement::read(r, tag)
+    }
+}
+
+impl XmlWrite for RawElement {
+    /// Writes the raw element under the requested name (its own name is ignored).
+    fn write_xml(&amp;self, w: &amp;mut XmlWriter, ns: Ns, local: &amp;str) {
+        let mut renamed = self.clone();
+        renamed.name = crate::RawName::new(ns, local);
+        renamed.write(w);
+    }
+}</code></pre>
+</figure>
+<ul>
+  <li><strong>Impl cho <code>Box&lt;T&gt;</code></strong>: "nếu đọc được <code>T</code> thì đọc được <code>Box&lt;T&gt;</code>" — đọc <code>T</code> rồi bỏ vào hộp (<code>.map(Box::new)</code> — lại truyền tên hàm như một giá trị). Nhờ vậy các trường <code>Option&lt;Box&lt;CT_PPr&gt;&gt;</code> dùng chung mọi tiện ích generic như trường không hộp.</li>
+  <li><strong><code>(**self)</code></strong>: <code>self</code> là <code>&amp;Box&lt;T&gt;</code>; <code>*self</code> là <code>Box&lt;T&gt;</code>; <code>**self</code> là <code>T</code>. Gọi method trên đó (Rust tự thêm <code>&amp;</code>). Nếu viết <code>self.write_xml(…)</code> thì sẽ gọi lại chính hàm này — đệ quy vô hạn!</li>
+  <li><strong><code>?Sized</code></strong>: mặc định mọi tham số kiểu generic đều ngầm có bound <code>T: Sized</code>. <code>?Sized</code> nghĩa là "<em>có thể</em> không Sized" — bỏ ràng buộc ngầm đó, cho phép <code>T</code> là kiểu không biết kích thước như <code>dyn XmlWrite</code>, nên <code>Box&lt;dyn XmlWrite&gt;</code> cũng ghi được. Chỉ làm được với <code>XmlWrite</code> (method nhận <code>&amp;self</code>, không tạo <code>Self</code>); với <code>XmlRead: Sized</code> thì không (giống lý do <code>XmlValue</code> không thể <code>dyn</code>, bài 2.6). Hiện tại dự án không dùng <code>dyn XmlWrite</code> ở đâu — đây là impl "mở rộng sẵn", tổng quát nhất có thể mà không tốn gì.</li>
+  <li><strong>Impl cho <code>RawElement</code></strong>: giúp cây thô cắm được vào mọi chỗ mà code generic đòi <code>XmlRead</code>/<code>XmlWrite</code>. Khi ghi, nó <em>bỏ tên của chính mình</em> và dùng tên do cha đưa — nhất quán với hợp đồng trên. Để ý cách làm: <code>self.clone()</code> cả cây con chỉ để đổi tên gốc. Đơn giản, đúng, nhưng tốn một bản sao — đánh đổi chấp nhận được vì đường này ít dùng (đường chính là <code>RawElement::write</code>, giữ tên gốc).</li>
+</ul>
+
+<h2 id="element-def">6. <code>ElementDef&lt;T&gt;</code>: phantom type &amp; impl có điều kiện</h2>
+<p>Complex type không biết tên mình — nhưng một <em>part</em> (file XML trong gói) thì phải có thẻ gốc cụ thể: <code>word/document.xml</code> phải bắt đầu bằng <code>w:document</code>. <code>ElementDef</code> ghép "tên element gốc" với "kiểu nội dung":</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/element.rs#L56-L103">crates/openxml-xml/src/element.rs:56–103</figcaption>
+<pre><code class="language-rust">/// Describes a global (root-capable) element of a schema: its name, content
+/// type and the namespaces to declare when it is written as a document root.
+pub struct ElementDef&lt;T&gt; {
+    ns: Ns,
+    local: &amp;'static str,
+    namespaces: &amp;'static [Ns],
+    _type: PhantomData&lt;fn() -&gt; T&gt;,
+}
+
+impl&lt;T&gt; Clone for ElementDef&lt;T&gt; {
+    fn clone(&amp;self) -&gt; Self {
+        *self
+    }
+}
+impl&lt;T&gt; Copy for ElementDef&lt;T&gt; {}
+
+impl&lt;T&gt; std::fmt::Debug for ElementDef&lt;T&gt; {
+    fn fmt(&amp;self, f: &amp;mut std::fmt::Formatter&lt;'_&gt;) -&gt; std::fmt::Result {
+        write!(f, "ElementDef({}:{})", self.ns.prefix(), self.local)
+    }
+}
+
+impl&lt;T&gt; ElementDef&lt;T&gt; {
+    /// Creates a definition (used by generated code).
+    pub const fn new(ns: Ns, local: &amp;'static str, namespaces: &amp;'static [Ns]) -&gt; Self {
+        ElementDef {
+            ns,
+            local,
+            namespaces,
+            _type: PhantomData,
+        }
+    }
+    // ... ns(), local(), namespaces(): getter đơn giản
+}</code></pre>
+</figure>
+<p>Và code sinh tự động dùng nó như sau:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-schema/src/generated/wml.rs#L45177-L45179">crates/openxml-schema/src/generated/wml.rs:45177–45179</figcaption>
+<pre><code class="language-rust">    /// `w:document` — Document (§17.2.3).
+    pub const DOCUMENT: ElementDef&lt;CT_Document&gt; =
+        ElementDef::new(Ns::W, "document", &amp;[Ns::W, Ns::A, Ns::WP, Ns::R, Ns::M]);</code></pre>
+</figure>
+
+<h3 id="phantom">6.1 <code>PhantomData&lt;fn() -&gt; T&gt;</code> — đánh dấu kiểu mà không chứa dữ liệu</h3>
+<p><code>ElementDef&lt;CT_Document&gt;</code> không chứa <code>CT_Document</code> nào cả — chỉ có tên và danh sách namespace. Nhưng mình muốn <em>kiểu</em> của nó mang theo thông tin "định nghĩa này dành cho <code>CT_Document</code>", để <code>DOCUMENT.parse(xml)</code> trả về đúng <code>CT_Document</code>. Vấn đề: Rust <strong>cấm</strong> khai báo tham số kiểu mà không dùng nó trong trường nào (<code>error[E0392]: type parameter `T` is never used</code>).</p>
+<p><code>std::marker::PhantomData&lt;X&gt;</code> là "trường ma": kích thước <strong>0 byte</strong>, không lưu gì lúc chạy, nhưng với compiler thì struct "có dính dáng tới <code>X</code>". Tạo nó bằng chữ <code>PhantomData</code> trơn (như trong <code>new</code>).</p>
+<p>Vì sao <code>PhantomData&lt;fn() -&gt; T&gt;</code> mà không phải <code>PhantomData&lt;T&gt;</code>? Ở mức đơn giản: <code>PhantomData&lt;T&gt;</code> nói với compiler "<em>tôi sở hữu một T</em>" — khi đó <code>ElementDef&lt;T&gt;</code> thừa hưởng các tính chất của <code>T</code> (ví dụ chỉ an toàn gửi sang thread khác nếu <code>T</code> an toàn). <code>fn() -&gt; T</code> là kiểu "một hàm trả về T" — nói với compiler "<em>tôi chỉ liên quan tới T như thứ mình sẽ sinh ra</em>". Con trỏ hàm luôn <code>Send</code>, <code>Sync</code>, không có gì để giải phóng, nên <code>ElementDef</code> luôn là một hằng số vô hại dùng được ở mọi nơi, bất kể <code>T</code> là gì. Đây là một idiom quen thuộc; bạn chưa cần hiểu sâu hơn lúc này.</p>
+<div class="callout pattern">
+  <span class="callout-title">🧩 Pattern: phantom type (một dạng "type-state" nhẹ)</span>
+  <p>Dùng tham số kiểu chỉ để <em>gắn nhãn</em> cho giá trị, để compiler kiểm tra giúp mình. Ở đây nhãn <code>T</code> đảm bảo <code>wml::elements::DOCUMENT.parse(xml)</code> trả <code>CT_Document</code>, còn <code>sml::elements::WORKSHEET.parse(xml)</code> trả kiểu worksheet — không thể nhầm lẫn, không cần ép kiểu. Các thư viện Rust hay dùng mẹo này cho đơn vị đo (<code>Length&lt;Meter&gt;</code> vs <code>Length&lt;Inch&gt;</code>) hay trạng thái (<code>Connection&lt;Open&gt;</code> vs <code>Connection&lt;Closed&gt;</code> — đó là "type-state" đầy đủ).</p>
+</div>
+
+<h3 id="copy-thu-cong">6.2 <code>Clone</code>/<code>Copy</code> viết tay và <code>const fn</code></h3>
+<p>Cùng lập luận với <code>XmlList</code> ở bài 2.6: <code>#[derive(Clone, Copy)]</code> sẽ sinh <code>impl&lt;T: Copy&gt; Copy for ElementDef&lt;T&gt;</code>. Mà <code>CT_Document</code> chứa <code>Vec</code> nên không bao giờ <code>Copy</code> → <code>ElementDef&lt;CT_Document&gt;</code> cũng mất <code>Copy</code>, dù bản thân nó chỉ gồm một số nhỏ và hai tham chiếu <code>&amp;'static</code>. Impl tay không bound sửa được: <code>impl&lt;T&gt; Copy for ElementDef&lt;T&gt; {}</code>, và <code>clone</code> chỉ cần <code>*self</code> (sao chép bit — hợp lệ vì đã là <code>Copy</code>). <code>Debug</code> cũng viết tay: vừa tránh bound <code>T: Debug</code>, vừa in gọn <code>ElementDef(w:document)</code>.</p>
+<p><code>pub const fn new</code> — <code>const fn</code> là hàm có thể chạy <em>lúc biên dịch</em>. Bắt buộc ở đây vì code sinh khai báo <code>pub const DOCUMENT: … = ElementDef::new(…)</code>: giá trị của <code>const</code> phải tính xong trước khi chương trình chạy. Các tham số <code>&amp;'static str</code>, <code>&amp;'static [Ns]</code> — tham chiếu sống suốt chương trình (chuỗi literal, mảng hằng) — cũng là điều kiện để đặt được vào <code>const</code>.</p>
+
+<h3 id="impl-dieu-kien">6.3 Method chỉ tồn tại khi <code>T</code> thoả điều kiện</h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/element.rs#L105-L152">crates/openxml-xml/src/element.rs:105–152</figcaption>
+<pre><code class="language-rust">impl&lt;T: XmlRead&gt; ElementDef&lt;T&gt; {
+    /// Parses a document whose root must be this element.
+    pub fn parse(&amp;self, xml: &amp;str) -&gt; Result&lt;T&gt; {
+        let mut r = XmlReader::new(xml);
+        let root = r.root()?;
+        if root.ns() != self.ns || root.local() != self.local {
+            return Err(Error::UnexpectedRoot {
+                expected: format!("{{{}}}{}", self.ns.uri(), self.local),
+                found: root.clark_name(),
+            });
+        }
+        T::read_xml(&amp;mut r, &amp;root)
+    }
+
+    /// Parses document bytes (UTF-8 or UTF-16) whose root must be this element.
+    pub fn parse_bytes(&amp;self, bytes: &amp;[u8]) -&gt; Result&lt;T&gt; {
+        self.parse(&amp;decode_xml_bytes(bytes)?)
+    }
+}
+
+impl&lt;T: crate::Validate&gt; ElementDef&lt;T&gt; {
+    /// Checks required attributes and elements of a document rooted at this element.
+    pub fn validate(&amp;self, value: &amp;T) -&gt; Vec&lt;crate::Issue&gt; {
+        let root = if self.ns.prefix().is_empty() {
+            self.local.to_owned()
+        } else {
+            format!("{}:{}", self.ns.prefix(), self.local)
+        };
+        let mut v = crate::Validator::new(&amp;root);
+        value.validate(&amp;mut v);
+        v.into_issues()
+    }
+}
+
+impl&lt;T: XmlWrite&gt; ElementDef&lt;T&gt; {
+    /// Serializes a value as a complete XML document with this element as root.
+    pub fn to_xml(&amp;self, value: &amp;T) -&gt; String {
+        let mut w = XmlWriter::with_declaration();
+        w.predeclare(self.namespaces);
+        value.write_xml(&amp;mut w, self.ns, self.local);
+        w.finish()
+    }
+
+    /// Serializes a value as UTF-8 document bytes.
+    pub fn to_bytes(&amp;self, value: &amp;T) -&gt; Vec&lt;u8&gt; {
+        self.to_xml(value).into_bytes()
+    }
+}</code></pre>
+</figure>
+<p>Bốn khối <code>impl</code> cho cùng một struct, mỗi khối một điều kiện: <code>impl&lt;T&gt;</code> (mọi <code>T</code>: getter), <code>impl&lt;T: XmlRead&gt;</code> (có <code>parse</code>), <code>impl&lt;T: Validate&gt;</code> (có <code>validate</code>), <code>impl&lt;T: XmlWrite&gt;</code> (có <code>to_xml</code>). Nghĩa là: <strong>method <code>parse</code> chỉ xuất hiện trên <code>ElementDef&lt;T&gt;</code> khi <code>T</code> đọc được</strong>. Nếu ai đó tạo <code>ElementDef&lt;KieuChiGhiDuoc&gt;</code> rồi gọi <code>.parse()</code>, lỗi xuất hiện <em>lúc biên dịch</em> ("method not found… trait bound not satisfied"), không phải lúc chạy. Trong thực tế mọi <code>CT_*</code> đều ký cả ba trait nên mọi method đều có — nhưng tách ra giúp mỗi method chỉ đòi đúng thứ nó dùng.</p>
+<p>Chi tiết đáng chú ý trong <code>parse</code>:</p>
+<ul>
+  <li>Kiểm tra thẻ gốc: file <code>document.xml</code> mà gốc là <code>&lt;w:styles&gt;</code> thì trả lỗi <code>Error::UnexpectedRoot</code> (một biến thể của enum lỗi ở <a href="p2-3-xu-ly-loi.html">bài 2.3</a>) thay vì cố đọc bậy.</li>
+  <li><code>format!("{{{}}}{}", …)</code> — trong chuỗi định dạng, <code>{{</code> in ra một dấu <code>{</code>. Kết quả dạng "Clark notation" <code>{uri}local</code>, ví dụ <code>{}item</code> trong test <code>root_name_is_checked</code>.</li>
+  <li><code>to_xml</code> dùng <code>predeclare(self.namespaces)</code> — khai báo sẵn các namespace hay dùng lên thẻ gốc (bài 2.5), thay vì để mỗi element con tự khai báo lặp đi lặp lại.</li>
+</ul>
+
+<h2 id="rt">7. Module <code>rt</code>: gắn đồ lạ vào cây có kiểu</h2>
+<p><code>rt</code> ("runtime") là bộ hàm nhỏ mà code sinh tự động gọi. Nó được đánh dấu <code>#[doc(hidden)]</code> — "không phải API công khai ổn định", nhưng vẫn phải <code>pub</code> vì crate <code>openxml-schema</code> cần gọi.</p>
+
+<h3 id="read-simple">7.1 <code>read_simple</code>: <code>Result&lt;Result&lt;T, RawElement&gt;&gt;</code> — lồng có chủ đích</h3>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/element.rs#L166-L196">crates/openxml-xml/src/element.rs:166–196</figcaption>
+<pre><code class="language-rust">    /// Reads an element whose content is a simple type.
+    ///
+    /// If the text is not a valid value, or the element carries attributes the
+    /// schema does not allow, the element is returned as raw XML instead so
+    /// that it can be preserved.
+    pub fn read_simple&lt;T: XmlValue&gt;(
+        r: &amp;mut XmlReader&lt;'_&gt;,
+        tag: &amp;StartTag&lt;'_&gt;,
+    ) -&gt; Result&lt;Result&lt;T, RawElement&gt;&gt; {
+        // `xml:space` and namespace declarations do not change the value; the
+        // writer re-adds `xml:space="preserve"` when the text needs it.
+        let significant = tag
+            .attributes()
+            .any(|a| a.ns != Ns::XMLNS &amp;&amp; !(a.ns == Ns::XML &amp;&amp; a.local == "space"));
+        if significant {
+            return RawElement::read(r, tag).map(Err);
+        }
+        let text = r.read_text(tag)?;
+        match T::parse_xml(&amp;text) {
+            Some(v) =&gt; Ok(Ok(v)),
+            None =&gt; Ok(Err(RawElement {
+                name: tag.raw_name(),
+                attributes: tag.attributes().map(|a| a.to_raw()).collect(),
+                children: if text.is_empty() {
+                    Vec::new()
+                } else {
+                    vec![RawNode::Text(text.into_owned())]
+                },
+            })),
+        }
+    }</code></pre>
+</figure>
+<p>Hàm đọc một element mà nội dung là simple type, ví dụ <code>&lt;c:v&gt;42&lt;/c:v&gt;</code>. Kiểu trả về trông lạ, nhưng mỗi tầng có một ý nghĩa rõ ràng:</p>
+<div class="table-wrap"><table>
+  <tr><th>Giá trị</th><th>Nghĩa</th><th>Người gọi làm gì</th></tr>
+  <tr><td><code>Err(e)</code> (tầng ngoài)</td><td>XML <strong>hỏng cú pháp</strong> — file cắt cụt, thẻ không đóng</td><td>Bó tay, dùng <code>?</code> đẩy lỗi lên</td></tr>
+  <tr><td><code>Ok(Ok(v))</code></td><td>Đọc được, giá trị hợp lệ</td><td>Gán vào trường có kiểu</td></tr>
+  <tr><td><code>Ok(Err(raw))</code></td><td>XML ổn, nhưng <strong>giá trị không hợp lệ</strong> theo schema (hoặc có attribute lạ)</td><td>Cất <code>raw</code> vào <code>extra_children</code> để ghi lại nguyên văn</td></tr>
+</table></div>
+<p>Vì sao không gộp thành một <code>Result&lt;T, MotLoiNaoDo&gt;</code>? Vì hai loại "thất bại" cần xử lý <em>ngược nhau</em>: một cái phải dừng, một cái phải đi tiếp và giữ dữ liệu. Tầng trong dùng <code>Result</code> như một "hoặc cái này, hoặc cái kia" (<em>either</em>) chứ không hẳn là lỗi. Cách dùng ở test mẫu trong <code>element.rs</code>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/element.rs#L302-L308">crates/openxml-xml/src/element.rs:302–308</figcaption>
+<pre><code class="language-rust">                        (Ns::NONE, "name") if this.name.is_none() =&gt; {
+                            match rt::read_simple::&lt;String&gt;(r, &amp;child)? {
+                                Ok(v) =&gt; this.name = Some(v),
+                                Err(raw) =&gt; rt::push_extra(&amp;mut this.extra_children, 0, raw),
+                            }
+                            cur = Some(0);
+                        }</code></pre>
+</figure>
+<p><code>?</code> bóc tầng ngoài (lỗi cú pháp thì thoát), <code>match</code> xử lý tầng trong. Còn vài chi tiết trong <code>read_simple</code>:</p>
+<ul>
+  <li><code>significant</code>: nếu element mang attribute "có nghĩa" (không tính khai báo namespace và <code>xml:space</code>), mô hình có kiểu không có chỗ chứa attribute đó → giữ nguyên cả element dạng thô: <code>RawElement::read(r, tag).map(Err)</code>. <code>.map(Err)</code> — truyền constructor <code>Err</code> như một hàm, biến <code>Result&lt;RawElement&gt;</code> thành <code>Result&lt;Result&lt;T, RawElement&gt;&gt;</code>. Test <code>invalid_values_are_preserved_as_raw</code>: <code>&lt;name a="1"&gt;n&lt;/name&gt;</code> không vào <code>item.name</code> mà vào <code>extra_children</code>.</li>
+  <li>Nếu parse thất bại, dựng <code>RawElement</code> bằng tay từ thẻ mở và chữ đã đọc (không thể đọc lại vì reader đã đi qua rồi).</li>
+  <li>Test <code>simple_elements</code>: với <code>u32</code>, <code>&lt;n&gt;12&lt;/n&gt;</code> → hợp lệ; <code>&lt;n&gt;x&lt;/n&gt;</code>, <code>&lt;n/&gt;</code>, <code>&lt;n&gt;&lt;/n&gt;</code> → cả ba vào nhánh raw (chuỗi rỗng không phải số).</li>
+</ul>
+
+<h3 id="extra-child">7.2 <code>ExtraChild</code>: nhớ "đồ lạ nằm ở đâu"</h3>
+<p>Giữ element lạ thôi chưa đủ — phải ghi lại <strong>đúng chỗ</strong>. Trong <code>&lt;w:r&gt;</code>, một <code>mc:AlternateContent</code> nằm giữa <code>w:rPr</code> và <code>w:t</code> mà bị ghi ra sau <code>w:t</code> thì chữ sẽ hiển thị sai thứ tự. Nhưng struct có kiểu chỉ có các trường theo thứ tự schema, không có "vị trí giữa trường 1 và trường 2". Giải pháp: gắn mỗi đồ lạ vào một "mỏ neo":</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/raw.rs#L258-L276">crates/openxml-xml/src/raw.rs:258–276</figcaption>
+<pre><code class="language-rust">/// A raw element that appeared among the children of a typed element at a
+/// position the schema does not describe.
+///
+/// The position is recorded relative to the typed fields: the element is
+/// written immediately before item `index` of field `anchor` (for fields
+/// holding a single value `index` is `0`, i.e. before the field). When
+/// `index` is at least the number of items of a repeated field, the element
+/// is written after that field's last item. `anchor` equal to the number of
+/// fields means "after all fields". This keeps markup-compatibility wrappers
+/// such as `mc:AlternateContent` in their original position.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ExtraChild {
+    /// Index of the field the element is attached to.
+    pub anchor: u16,
+    /// Item index within a repeated field.
+    pub index: u32,
+    /// The captured element.
+    pub element: RawElement,
+}</code></pre>
+</figure>
+<figure class="code">
+  <figcaption>Ví dụ minh hoạ — anchor/index cho struct có 2 trường: title (đơn), items (lặp)</figcaption>
+<pre class="diagram"><code>trường:         [0] title          [1] items[0]  items[1]           (hết trường = 2)
+vị trí đồ lạ: ▲                  ▲           ▲         ▲            ▲
+              anchor=0         anchor=1    anchor=1  anchor=1     anchor=2
+              index=0          index=0     index=1   index=2 (≥ len → sau item cuối)</code></pre>
+</figure>
+<p>Bên ghi có ba hàm tương ứng (<code>element.rs:211–249</code>): <code>write_extras(w, extras, anchor)</code> ghi mọi đồ lạ có <code>anchor</code> đó (dùng trước trường đơn và sau trường cuối); <code>write_extras_at(…, anchor, index)</code> ghi đồ lạ nằm trước phần tử thứ <code>index</code> của trường lặp; <code>write_extras_after(…, anchor, len)</code> ghi những cái có <code>index &gt;= len</code>. Cả ba mở đầu bằng <code>if extras.is_empty() { return; }</code> — gần như mọi element thật <em>không</em> có đồ lạ, nên thoát sớm cho rẻ; chúng còn có <code>#[inline]</code> vì được gọi ở hàng nghìn chỗ trong code sinh. Test <code>extras_interleave_with_repeated_items</code> cho thấy kết quả: <code>&lt;r&gt;&lt;a/&gt;&lt;between/&gt;&lt;b/&gt;&lt;after/&gt;&lt;end/&gt;&lt;/r&gt;</code>.</p>
+<p>Còn bên đọc, code sinh giữ một biến "đã đi tới trường nào" (<code>pos</code>) và gặp element không khớp trường nào thì cất vào với <code>anchor = pos</code>. Đây là phần cuối <code>CT_P::read_xml</code>:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-schema/src/generated/wml.rs#L22599-L22656">crates/openxml-schema/src/generated/wml.rs:22599–22656 (lược danh sách tên element ở giữa)</figcaption>
+<pre><code class="language-rust">        if !tag.is_empty() {
+            let mut pos: u16 = 0;
+            while let Some(child) = r.next_child()? {
+                match (child.ns(), child.local()) {
+                    (Ns::W, "pPr") =&gt; {
+                        if this.p_pr.is_none() {
+                            this.p_pr = Some(Box::new(XmlRead::read_xml(r, &amp;child)?));
+                        } else {
+                            rt::push_extra(&amp;mut this.extra_children, pos, RawElement::read(r, &amp;child)?);
+                        }
+                        pos = 1;
+                    }
+                    (Ns::W, "customXml")
+                    // ... | (Ns::W, "r") | (Ns::W, "hyperlink") | ... (34 tên)
+                    | (Ns::W, "subDoc") =&gt; {
+                        this.p_content.push(EG_PContent::read_choice(r, &amp;child)?);
+                        pos = 2;
+                    }
+                    _ =&gt; match pos {
+                        2 =&gt; this
+                            .p_content
+                            .push(EG_PContent::Other(Box::new(RawElement::read(r, &amp;child)?))),
+                        _ =&gt; rt::push_extra(&amp;mut this.extra_children, pos, RawElement::read(r, &amp;child)?),
+                    },
+                }
+            }
+        }</code></pre>
+</figure>
+<p>Hai đường cất đồ lạ: nếu đang ở giữa danh sách nội dung (<code>pos == 2</code>), element lạ vào thẳng danh sách dưới dạng biến thể <code>EG_PContent::Other</code> — giữ thứ tự tự nhiên giữa các run; còn lại thì vào <code>extra_children</code> với mỏ neo. Để ý cả trường hợp "gặp <code>w:pPr</code> lần thứ hai" (sai schema) cũng không vứt đi.</p>
+<p>Mình thử thật với <code>ppt/charts/chart1.xml</code> của <code>fixtures/poi/pie-chart.pptx</code> (đọc bằng <code>dml_chart::elements::CHART_SPACE.parse</code>): kết quả <code>extra anchor=3 index=0 name=AlternateContent</code>. Trường thứ 3 của <code>CT_ChartSpace</code> (đếm từ 0: <code>date1904</code>, <code>lang</code>, <code>rounded_corners</code>, <code>style</code>) là <code>style</code> — đúng vị trí <code>mc:AlternateContent</code> đứng trong file gốc, ngay chỗ lẽ ra là <code>c:style</code>. Ghi lại rồi so bằng <code>semantic_diff</code>: <strong>0 khác biệt</strong>.</p>
+
+<h2 id="typed-raw">8. <code>from_typed</code> / <code>to_typed</code>: cầu nối có kiểu ⇄ thô</h2>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/raw.rs#L185-L198">crates/openxml-xml/src/raw.rs:185–198</figcaption>
+<pre><code class="language-rust">    /// Converts a typed value into a raw element named `ns:local`.
+    pub fn from_typed&lt;T: XmlWrite + ?Sized&gt;(value: &amp;T, ns: Ns, local: &amp;str) -&gt; Self {
+        let mut w = XmlWriter::new();
+        value.write_xml(&amp;mut w, ns, local);
+        RawElement::parse(&amp;w.finish()).expect("the writer produces well-formed XML")
+    }
+
+    /// Interprets this element as a typed value.
+    pub fn to_typed&lt;T: XmlRead&gt;(&amp;self) -&gt; Result&lt;T&gt; {
+        let xml = self.to_xml();
+        let mut r = XmlReader::new(&amp;xml);
+        let root = r.root()?;
+        T::read_xml(&amp;mut r, &amp;root)
+    }</code></pre>
+</figure>
+<p>Cách cài đặt thẳng thắn đến mức "thô bạo": <strong>đi vòng qua chuỗi XML</strong>. Có kiểu → ghi ra chuỗi → đọc thành cây thô. Cây thô → ghi ra chuỗi → đọc thành kiểu. Không nhanh nhất, nhưng tái sử dụng 100% reader/writer đã được test kỹ, nên đúng theo định nghĩa. <code>expect(…)</code> ở <code>from_typed</code> là một khẳng định: "writer của chính mình luôn sinh XML hợp lệ; nếu không thì là bug, cứ panic". Còn <code>to_typed</code> trả <code>Result</code> vì cây thô có thể không khớp kiểu mong muốn.</p>
+<p>Dùng ở đâu? Ở những chỗ schema nói <code>xsd:any</code> — "chỗ này chứa gì cũng được". Ví dụ điển hình là <code>a:graphicData</code> (DrawingML): bên trong có thể là bảng, biểu đồ, SmartArt, ảnh… tuỳ <code>uri</code>. Code sinh để nó dạng thô:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-schema/src/generated/dml.rs#L13986-L13995">crates/openxml-schema/src/generated/dml.rs:13986–13995</figcaption>
+<pre><code class="language-rust">pub struct CT_GraphicalObjectData {
+    /// `uri` — Uniform Resource Identifier. Specifies the URI, or uniform resource identifier that represents the data stored under this tag. Required by the schema.
+    pub uri: Option&lt;String&gt;,
+    /// Wildcard content (`xsd:any`), kept as raw XML.
+    pub any: Vec&lt;RawElement&gt;,
+    /// Attributes not described by the schema, including namespace declarations.
+    pub extra_attrs: Vec&lt;RawAttribute&gt;,
+    /// Child elements not described by the schema, with their positions.
+    pub extra_children: Vec&lt;ExtraChild&gt;,
+}</code></pre>
+</figure>
+<p>…và tầng trên, biết <code>uri</code> là bảng, thì "nâng cấp" nó thành kiểu có cấu trúc:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-pptx/src/table.rs#L14-L22">crates/openxml-pptx/src/table.rs:14–22</figcaption>
+<pre><code class="language-rust">/// Reads the table hosted by a graphic frame.
+pub(crate) fn frame_table(frame: &amp;pml::CT_GraphicalObjectFrame) -&gt; Option&lt;dml::CT_Table&gt; {
+    let data = frame.graphic.as_ref()?.graphic_data.as_ref()?;
+    if data.uri.as_deref() != Some(TABLE_URI) {
+        return None;
+    }
+    let raw = data.any.iter().find(|e| e.name.is(Ns::A, "tbl"))?;
+    raw.to_typed().ok()
+}</code></pre>
+</figure>
+<p><code>raw.to_typed()</code> không ghi kiểu — Rust suy ra <code>T = dml::CT_Table</code> từ kiểu trả về của hàm. Chiều ngược lại, <code>store_table</code> ngay bên dưới (<code>table.rs:25</code>) dùng <code>RawElement::from_typed(table, Ns::A, "tbl")</code> để cất bảng đã sửa vào <code>data.any</code>. Tương tự, <code>openxml-xlsx/src/styles.rs:656–662</code> có hàm <code>alternate_record</code> đọc một bản ghi style nằm trong <code>mc:AlternateContent</code> — ưu tiên <code>mc:Fallback</code>, không có thì lấy <code>mc:Choice</code> đầu tiên — bằng <code>branch.elements().next()?.to_typed().ok()</code>. Đó chính là cách <code>openxml-xlsx</code> hiểu được file Hancom ở mục 1.</p>
+
+<h2 id="kiem-chung">9. Chứng minh round-trip: <code>compare</code> &amp; <code>validate</code></h2>
+<h3 id="compare">9.1 <code>values_equivalent</code> và <code>semantic_diff</code></h3>
+<p>Bài 2.6 cho thấy <code>"1"</code> đọc vào sẽ ghi ra <code>"true"</code>; mục 3.2 cho thấy khai báo namespace có thể đổi chỗ. So từng byte thì "khác", nhưng tài liệu thì y hệt. Module <code>compare</code> định nghĩa "giống nhau" theo nghĩa:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/compare.rs#L57-L84">crates/openxml-xml/src/compare.rs:57–84</figcaption>
+<pre><code class="language-rust">/// Whether two lexical values denote the same value under the usual XML
+/// Schema simple types.
+pub fn values_equivalent(a: &amp;str, b: &amp;str) -&gt; bool {
+    if a == b {
+        return true;
+    }
+    let (a, b) = (a.trim(), b.trim());
+    if a == b {
+        return true;
+    }
+    if let (Ok(x), Ok(y)) = (a.parse::&lt;f64&gt;(), b.parse::&lt;f64&gt;())
+        &amp;&amp; (x == y || (x.is_nan() &amp;&amp; y.is_nan()))
+    {
+        return true;
+    }
+    if let (Some(x), Some(y)) = (bool_value(a), bool_value(b)) {
+        return x == y;
+    }
+    if a.len() == b.len()
+        &amp;&amp; a.len() % 2 == 0
+        &amp;&amp; a.bytes().all(|c| c.is_ascii_hexdigit())
+        &amp;&amp; a.eq_ignore_ascii_case(b)
+    {
+        return true;
+    }
+    let (wa, wb): (Vec&lt;&amp;str&gt;, Vec&lt;&amp;str&gt;) = (a.split_whitespace().collect(), b.split_whitespace().collect());
+    wa.len() &gt; 1 &amp;&amp; wa.len() == wb.len() &amp;&amp; wa.iter().zip(&amp;wb).all(|(x, y)| values_equivalent(x, y))
+}</code></pre>
+</figure>
+<p>Một chuỗi "phép thử" từ rẻ đến đắt, gặp cái nào đúng thì thoát sớm: giống hệt → giống sau khi bỏ khoảng trắng đầu/cuối → cùng là số và bằng nhau (<code>"1.0"</code> ~ <code>"1"</code>, <code>"1e3"</code> ~ <code>"1000"</code>, và NaN ~ NaN — nhớ lại chỗ hay nhầm ở bài 2.6) → cùng là boolean (<code>"1"</code> ~ <code>"true"</code>; hàm <code>bool_value</code> còn nhận <code>on</code>/<code>off</code>/<code>t</code>/<code>f</code>) → cùng là hex khác hoa thường (<code>"00ab"</code> ~ <code>"00AB"</code>) → là danh sách, so từng phần tử <strong>đệ quy</strong>. Cú pháp <code>if let … &amp;&amp; …</code> ("let chain") là tính năng mới của edition 2024 — workspace dùng <code>edition = "2024"</code>.</p>
+<p><code>semantic_diff(expected, actual)</code> (<code>compare.rs:221–225</code>) đi song song hai cây và trả về danh sách <code>Difference { kind, path, message }</code>. Nó bỏ qua prefix (so theo URI), thứ tự attribute (gom vào <code>HashMap</code>), khai báo namespace, <code>xml:space</code>, khoảng trắng thụt dòng; và báo riêng loại <code>Reordered</code> khi các con giống nhau nhưng khác thứ tự. Tiêu chuẩn test lớn nhất của dự án (ghi trong <code>ARCHITECTURE.md</code>): <em>mọi part XML của mọi fixture: đọc có kiểu → ghi → <code>semantic_diff</code> = rỗng</em>.</p>
+<p>Chạy thật với đoạn của <code>pie-chart.pptx</code> sau khi sửa <code>val</code> của <code>c14:style</code> từ 102 thành 110 (xem bài tập 1), <code>semantic_diff</code> chỉ ra đúng một khác biệt, kèm đường dẫn:</p>
+<figure class="code">
+  <figcaption>Output thật</figcaption>
+<pre><code class="language-bash">diff: Value at /AlternateContent/Choice[1]/style[1]: @val "102" vs "110"</code></pre>
+</figure>
+
+<h3 id="validator">9.2 <code>Validator</code> và closure <code>enter</code></h3>
+<p>Round-trip "không mất gì" khác với "hợp lệ". Một <code>CT_GraphicalObjectData</code> thiếu <code>uri</code> (bắt buộc theo schema) vẫn ghi được, nhưng Office có thể từ chối mở. <code>validate.rs</code> gom các vấn đề kiểu đó, kèm đường dẫn:</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-xml/src/validate.rs#L50-L59">crates/openxml-xml/src/validate.rs:50–59</figcaption>
+<pre><code class="language-rust">    /// Validates a child element named `name`, at position `index` (0-based)
+    /// of its field when the field repeats.
+    pub fn enter(&amp;mut self, name: &amp;str, index: Option&lt;usize&gt;, f: impl FnOnce(&amp;mut Self)) {
+        match index {
+            Some(i) =&gt; self.path.push(format!("{name}[{}]", i + 1)),
+            None =&gt; self.path.push(name.to_owned()),
+        }
+        f(self);
+        self.path.pop();
+    }</code></pre>
+</figure>
+<p><code>Validator</code> giữ một "ngăn xếp đường dẫn" <code>path: Vec&lt;String&gt;</code>. <code>enter</code> đẩy tên con vào (<code>w:tbl[2]</code> — đánh số từ 1 cho giống XPath), chạy <code>f</code>, rồi rút ra. Nhờ vậy mọi lỗi báo trong lúc <code>f</code> chạy tự có đường dẫn đúng, và không ai quên <code>pop</code>.</p>
+<ul>
+  <li><strong><code>f: impl FnOnce(&amp;mut Self)</code></strong> — nhận một closure được gọi <em>tối đa một lần</em>. <code>FnOnce</code> là loại closure "dễ tính" nhất (closure nào cũng gọi một lần được), nên người gọi được tự do nhất.</li>
+  <li><strong>Vì sao closure nhận <code>&amp;mut Self</code> làm tham số</strong> thay vì tự "bắt" biến <code>v</code> bên ngoài? Vì trong lúc <code>enter</code> chạy, <code>self</code> đang bị mượn <code>&amp;mut</code>. Luật mượn của Rust chỉ cho <em>một</em> tham chiếu <code>&amp;mut</code> tại một thời điểm — closure không thể giữ một <code>&amp;mut v</code> thứ hai. Giải pháp: <code>enter</code> tự <em>đưa</em> <code>self</code> cho closure: <code>f(self)</code>. Mẫu này rất hay gặp khi làm việc với <code>&amp;mut</code>.</li>
+</ul>
+<p>Code sinh dùng nó như sau — gọn và đệ quy tự nhiên (mỗi <code>validate</code> con lại <code>enter</code> vào con của nó):</p>
+<figure class="code">
+  <figcaption data-src="crates/openxml-schema/src/generated/wml.rs#L22683-L22692">crates/openxml-schema/src/generated/wml.rs:22683–22692</figcaption>
+<pre><code class="language-rust">impl Validate for CT_P {
+    fn validate(&amp;self, v: &amp;mut Validator) {
+        if let Some(x) = &amp;self.p_pr {
+            v.enter("w:pPr", None, |v| x.validate(v));
+        }
+        for (i, x) in self.p_content.iter().enumerate() {
+            x.validate_at(v, Some(i));
+        }
+    }
+}</code></pre>
+</figure>
+<p>Và <code>required_attribute</code> (<code>validate.rs:74–83</code>) phân biệt tinh tế hai tình huống nhờ chính cơ chế preserve: attribute bắt buộc <em>không có</em> ("missing required attribute w:val") khác với attribute <em>có nhưng giá trị sai</em> — nó nằm trong <code>extra_attrs</code> — ("invalid value \"x\" for required attribute w:val"). Test <code>collects_issues_with_paths</code> cho ra đường dẫn như <code>/w:root/w:leaf[2]</code>.</p>
+<div class="callout pattern">
+  <span class="callout-title">🧩 Kỹ thuật: "scoped push/pop" bằng closure</span>
+  <p>Khi có một trạng thái phải "vào rồi ra" cân đối (đường dẫn, độ thụt dòng, khoá, transaction), truyền phần thân vào dưới dạng closure: <code>enter(…, |v| { … })</code>. Hàm bao quanh lo phần vào/ra; người gọi không thể quên. Ngôn ngữ khác làm việc này bằng <code>try/finally</code> hay <code>with</code> (Python). Trong Rust còn một cách nữa là trả về một "guard" tự dọn khi bị drop (RAII) — nhưng với <code>&amp;mut self</code> thì closure đơn giản hơn nhiều.</p>
+</div>
+
+<h2 id="ooxml-mce">10. Góc OpenXML: Markup Compatibility (Part 3)</h2>
+<div class="callout ooxml">
+  <span class="callout-title">📦 Góc OpenXML — vì sao Office cần <code>mc:</code>?</span>
+  <p>Word 2007 ra đời trước Word 2010. Khi Word 2010 thêm hiệu ứng chữ mới (<code>w14:</code>), nó phải ghi file sao cho <strong>Word 2007 vẫn mở được</strong> — mà Word 2007 thì chưa hề biết <code>w14</code> là gì. ECMA-376 <strong>Part 3 — Markup Compatibility and Extensibility (MCE)</strong> định nghĩa namespace <code>http://schemas.openxmlformats.org/markup-compatibility/2006</code> (prefix quen dùng <code>mc</code>) để giải bài toán này. Hai công cụ chính:</p>
+  <p><strong>1. <code>mc:Ignorable</code></strong> — đặt trên một element (thường là gốc), liệt kê các <em>prefix</em> mà ứng dụng "được phép bỏ qua nếu không hiểu". Ví dụ thật, thẻ gốc <code>xl/workbook.xml</code> của <code>fixtures/poi/FormulaEvalTestData_Copy.xlsx</code>:</p>
+<pre><code class="language-xml">&lt;workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+          xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+          xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+          mc:Ignorable="x15"
+          xmlns:x15="http://schemas.microsoft.com/office/spreadsheetml/2010/11/main"&gt;</code></pre>
+  <p>Ý nghĩa: "gặp element/attribute thuộc namespace của prefix <code>x15</code> mà không hiểu thì cứ lờ đi, đừng báo file hỏng". Không có dòng này, một ứng dụng tuân thủ chuẩn phải <em>từ chối</em> namespace lạ.</p>
+  <p><strong>2. <code>mc:AlternateContent</code></strong> — đưa ra nhiều phương án, ứng dụng chọn một:</p>
+<pre><code class="language-xml">&lt;!-- fixtures/poi/pie-chart.pptx → ppt/charts/chart1.xml (trích, đã xuống dòng) --&gt;
+&lt;mc:AlternateContent xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"&gt;
+  &lt;mc:Choice Requires="c14" xmlns:c14="http://schemas.microsoft.com/office/drawing/2007/8/2/chart"&gt;
+    &lt;c14:style val="102"/&gt;
+  &lt;/mc:Choice&gt;
+  &lt;mc:Fallback&gt;
+    &lt;c:style val="2"/&gt;
+  &lt;/mc:Fallback&gt;
+&lt;/mc:AlternateContent&gt;</code></pre>
+  <ul>
+    <li><code>mc:Choice</code> (một hoặc nhiều): thuộc tính <code>Requires</code> liệt kê các prefix (cách nhau bởi khoảng trắng) mà ứng dụng <em>phải hiểu</em> để dùng phương án này. Ứng dụng duyệt các Choice theo thứ tự và lấy <strong>cái đầu tiên</strong> mà nó hiểu đủ.</li>
+    <li><code>mc:Fallback</code> (tối đa một, tuỳ chọn): phương án dự phòng khi không Choice nào hợp. Ở đây: Office 2010+ hiểu <code>c14</code> nên dùng kiểu biểu đồ 102; Office 2007 dùng <code>c:style val="2"</code> chuẩn.</li>
+    <li>Không có Fallback cũng hợp lệ — như trong <code>FormulaEvalTestData_Copy.xlsx</code>: <code>&lt;mc:Choice Requires="x15"&gt;&lt;x15ac:absPath url="C:\Users\Mark\Downloads\" …/&gt;&lt;/mc:Choice&gt;</code> — Excel cũ đơn giản là không thấy gì.</li>
+  </ul>
+  <p>Ngoài ra Part 3 còn có <code>mc:ProcessContent</code>, <code>mc:MustUnderstand</code> — ít gặp hơn.</p>
+</div>
+<p><strong>Dự án xử lý MCE thế nào?</strong> Ở tầng schema, nó <em>không chọn</em> phương án — nó giữ nguyên toàn bộ khối <code>mc:AlternateContent</code> dạng <code>RawElement</code> (qua <code>extra_children</code> hoặc biến thể <code>Other</code>), ở đúng vị trí, cùng các khai báo namespace và <code>mc:Ignorable</code> trên gốc. Như vậy file ghi ra vẫn "nói" với Office 2007 và 2010+ đúng như file gốc — thư viện không cần hiểu <code>c14</code> hay <code>hs</code>. Chỉ ở tầng API, khi thật sự cần <em>đọc</em> nội dung (style Excel ở mục 8, hiệu ứng chuyển slide <code>p14:</code> trong <code>openxml-pptx/src/transition.rs</code>), code mới mở khối raw ra và chọn nhánh. Test <code>markup_compatibility_content_keeps_its_position</code> trong <code>crates/openxml-schema/tests/behaviour.rs</code> kiểm tra điều này cho Word: <code>mc:AlternateContent</code> nằm giữa <code>w:rPr</code> và <code>w:t</code> vẫn nằm đúng chỗ sau khi ghi, <code>w14:paraId</code> nằm trong <code>extra_attrs</code>, và <code>semantic_diff</code> giữa trước và sau bằng rỗng.</p>
+<div class="callout warn">
+  <span class="callout-title">⚠️ Chỗ hay nhầm — <code>Requires</code> chứa prefix, không chứa URI</span>
+  <p><code>Requires="c14"</code> và <code>mc:Ignorable="x15"</code> tham chiếu <em>prefix</em> — tức phụ thuộc vào khai báo <code>xmlns:c14</code> đang có hiệu lực tại đó. Đây là chỗ hiếm hoi mà prefix "có nghĩa" trong OOXML. Nếu một thư viện tự ý đổi prefix <code>c14</code> thành <code>ns0</code> khi ghi (nhiều thư viện XML làm vậy!), file sẽ hỏng ngầm. Đó là lý do <code>RawName</code> nhớ <code>prefix</code> gốc và <code>RawAttribute</code> giữ nguyên các khai báo <code>xmlns</code>.</p>
+</div>
+
+<section class="exercise">
+  <h3>🛠 Bài tập</h3>
+  <ol>
+    <li><strong>Mổ một <code>mc:AlternateContent</code> (đã chạy thử thật).</strong> Tạo project riêng: <code>cargo new thu-raw</code>, thêm <code>openxml-xml = { path = "/đường/dẫn/tới/open-xml-rust/crates/openxml-xml" }</code> vào <code>[dependencies]</code>. Trong <code>main.rs</code>:
+<pre><code class="language-rust">use openxml_xml::compare::semantic_diff;
+use openxml_xml::{Ns, RawElement, RawNode};
+
+fn main() {
+    let xml = r#"&lt;mc:AlternateContent xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"&gt;&lt;mc:Choice Requires="c14" xmlns:c14="http://schemas.microsoft.com/office/drawing/2007/8/2/chart"&gt;&lt;c14:style val="102"/&gt;&lt;/mc:Choice&gt;&lt;mc:Fallback&gt;&lt;c:style xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="2"/&gt;&lt;/mc:Fallback&gt;&lt;/mc:AlternateContent&gt;"#;
+    let mut ac = RawElement::parse(xml).unwrap();
+
+    // (a) đếm Choice
+    let n = ac.elements().filter(|e| e.name.is(Ns::MC, "Choice")).count();
+    println!("so Choice = {n}");
+
+    // (b) liệt kê mọi element
+    for e in ac.descendants() {
+        println!("  {} ({:?}) uri={}", e.name.local, e.name.ns, e.name.uri());
+    }
+
+    // (c) sửa val của c14:style trong Choice
+    for node in ac.children.iter_mut() {
+        if let RawNode::Element(ch) = node {
+            if ch.name.is(Ns::MC, "Choice") {
+                for sub in ch.children.iter_mut() {
+                    if let RawNode::Element(style) = sub {
+                        style.set_attr(Ns::NONE, "val", "110");
+                    }
+                }
+            }
+        }
+    }
+    println!("{}", ac.to_xml());
+
+    // (d) so với bản gốc
+    for d in semantic_diff(&amp;RawElement::parse(xml).unwrap(), &amp;ac) {
+        println!("diff: {d}");
+    }
+}</code></pre>
+    Output mình nhận được:
+<pre><code class="language-bash">so Choice = 1
+  AlternateContent (Ns::MC) uri=http://schemas.openxmlformats.org/markup-compatibility/2006
+  Choice (Ns::MC) uri=http://schemas.openxmlformats.org/markup-compatibility/2006
+  Fallback (Ns::MC) uri=http://schemas.openxmlformats.org/markup-compatibility/2006
+  style (Ns::OTHER) uri=http://schemas.microsoft.com/office/drawing/2007/8/2/chart
+  style (Ns::C) uri=http://schemas.openxmlformats.org/drawingml/2006/chart
+&lt;mc:AlternateContent xmlns:mc="…"&gt;&lt;mc:Choice xmlns:c14="…" Requires="c14"&gt;&lt;c14:style val="110"/&gt;&lt;/mc:Choice&gt;&lt;mc:Fallback&gt;&lt;c:style xmlns:c="…" val="2"/&gt;&lt;/mc:Fallback&gt;&lt;/mc:AlternateContent&gt;
+diff: Value at /AlternateContent/Choice[1]/style[1]: @val "102" vs "110"</code></pre>
+    (URI trong dòng XML mình rút gọn thành <code>…</code>.) Câu hỏi: vì sao <code>c14:style</code> là <code>Ns::OTHER</code> còn <code>c:style</code> là <code>Ns::C</code>? Vì sao <code>xmlns:c14</code> nhảy lên trước <code>Requires</code>? Vì sao phải dùng vòng lặp <code>iter_mut</code> + <code>if let</code> thay vì <code>ac.child(…)</code>? (Gợi ý: <code>child</code> trả <code>&amp;RawElement</code>, không sửa được.)</li>
+    <li><strong>File thật.</strong> Chạy <code>unzip -p fixtures/poi/style-alternate-content.xlsx xl/styles.xml &gt; /tmp/styles.xml</code>, rồi trong project trên đọc bằng <code>RawElement::parse_bytes(&amp;std::fs::read("/tmp/styles.xml").unwrap()).unwrap()</code>, dùng <code>descendants()</code> đếm số <code>mc:AlternateContent</code>, số <code>mc:Choice</code>, và in giá trị <code>Requires</code> của Choice đầu tiên. Mình được <code>735</code> element, <code>24</code> AlternateContent, <code>24</code> Choice, <code>Requires="hs"</code>. Liệt kê các element con của <code>x:font</code> trong Choice đầu: cái nào là <code>Ns::X</code>, cái nào là <code>Ns::OTHER</code>?</li>
+    <li><strong>Đọc test, đoán kết quả.</strong> Không chạy, đoán <code>descendants()</code> của <code>&lt;r&gt;&lt;a&gt;&lt;x/&gt;&lt;y/&gt;&lt;/a&gt;&lt;b&gt;&lt;z/&gt;&lt;/b&gt;&lt;/r&gt;</code> trả về thứ tự nào. Sau đó viết thêm một hàm tự do <code>fn document_order(e: &amp;RawElement) -&gt; Vec&lt;&amp;RawElement&gt;</code> trong project của bạn, duyệt theo chiều sâu (đệ quy, giống <code>walk</code> trong <code>text()</code>), và so sánh.</li>
+    <li><strong>Typed + raw.</strong> Thêm <code>openxml-schema</code> vào project, giải nén <code>ppt/charts/chart1.xml</code> từ <code>fixtures/poi/pie-chart.pptx</code>, đọc bằng <code>openxml_schema::dml_chart::elements::CHART_SPACE.parse(&amp;xml)</code>, in <code>anchor</code>, <code>index</code>, <code>element.name.local</code> của mọi phần tử trong <code>extra_children</code>. Giải thích <code>anchor = 3</code> bằng cách đếm các trường của <code>CT_ChartSpace</code>. Cuối cùng ghi lại bằng <code>CHART_SPACE.to_xml(&amp;cs)</code> và kiểm tra <code>semantic_diff</code> rỗng.</li>
+  </ol>
+</section>
+
+<section>
+  <h2 id="tu-kiem-tra">Tự kiểm tra</h2>
+  <details><summary>1. Vì sao <code>RawElement</code> (chứa <code>Vec&lt;RawNode&gt;</code>, mà <code>RawNode</code> lại chứa <code>RawElement</code>) biên dịch được mà không cần <code>Box</code>?</summary>
+    <div class="answer">Vì <code>Vec</code> luôn có kích thước cố định trên stack (con trỏ + độ dài + sức chứa); các phần tử nằm trên heap. Chuỗi "kích thước của A phụ thuộc kích thước của B" dừng ở <code>Vec</code>, nên kích thước <code>RawElement</code> hữu hạn. <code>Box</code> chỉ cần khi con được chứa <em>trực tiếp</em> (ví dụ <code>Option&lt;CT_PPr&gt;</code> trong một vòng lặp kiểu).</div></details>
+  <details><summary>2. Tại sao <code>XmlWrite::write_xml</code> nhận <code>ns</code> và <code>local</code> từ ngoài?</summary>
+    <div class="answer">Vì một complex type được dùng bởi nhiều element khác tên (ví dụ <code>CT_OnOff</code> dùng cho 148 element như <code>w:b</code>, <code>w:i</code>…). Tên phụ thuộc vào vị trí trong cha, nên cha — người biết tên — truyền vào khi ghi, và đọc sẵn thẻ mở khi đọc.</div></details>
+  <details><summary>3. <code>rt::read_simple</code> trả <code>Ok(Err(raw))</code> nghĩa là gì, khác gì <code>Err(e)</code>?</summary>
+    <div class="answer"><code>Err(e)</code>: XML hỏng cú pháp, không thể đọc tiếp — đẩy lỗi lên bằng <code>?</code>. <code>Ok(Err(raw))</code>: XML đọc được nhưng giá trị không hợp lệ theo schema (hoặc element có attribute lạ) — không phải lỗi, mà là tín hiệu "hãy cất nguyên văn vào <code>extra_children</code>" để round-trip không mất gì.</div></details>
+  <details><summary>4. Vì sao <code>ElementDef&lt;T&gt;</code> cần <code>PhantomData</code>, và vì sao <code>Clone</code>/<code>Copy</code> viết tay?</summary>
+    <div class="answer">Struct không chứa giá trị <code>T</code> nào, nhưng Rust cấm tham số kiểu không được dùng; <code>PhantomData&lt;fn() -&gt; T&gt;</code> (0 byte) "dùng" <code>T</code> mà không sở hữu <code>T</code>. <code>derive(Clone, Copy)</code> sẽ đòi <code>T: Copy</code>, mà <code>CT_Document</code> không <code>Copy</code>; impl tay không có bound nên <code>ElementDef</code> luôn <code>Copy</code>.</div></details>
+  <details><summary>5. <code>descendants()</code> trả về theo thứ tự nào? Làm sao bạn biết chắc?</summary>
+    <div class="answer">Theo chiều rộng (BFS, từng tầng một): <code>out</code> vừa là kết quả vừa là hàng đợi, con được đẩy vào cuối. Test <code>descendants_are_breadth_first_and_complete</code> khẳng định <code>&lt;a&gt;&lt;b&gt;&lt;d/&gt;&lt;/b&gt;&lt;c/&gt;&lt;/a&gt;</code> cho <code>a, b, c, d</code> — dù doc comment ghi "document order".</div></details>
+  <details><summary>6. Trong <code>mc:AlternateContent</code>, ứng dụng chọn nhánh nào? Dự án <code>openxml-schema</code> chọn nhánh nào?</summary>
+    <div class="answer">Ứng dụng chọn <code>mc:Choice</code> đầu tiên mà nó hiểu mọi prefix trong <code>Requires</code>; không có thì dùng <code>mc:Fallback</code> (nếu có). Tầng schema của dự án <em>không chọn</em>: giữ nguyên cả khối dạng <code>RawElement</code> ở đúng vị trí; chỉ API tầng trên (ví dụ <code>alternate_record</code> trong xlsx) mới mở ra đọc khi cần.</div></details>
+</section>
+
+<div class="callout rust">
+  <span class="callout-title">🦀 Bài sau</span>
+  <p>Bạn đã đi hết tầng <code>openxml-xml</code>: namespace, macro, lỗi, reader, writer, simple type, raw node. Bài 2.8 sẽ tổng kết cả Phần 2 và đưa ra một bài tập lớn: tự dùng những mảnh này để đọc, sửa và ghi lại một part thật mà không làm mất một byte ý nghĩa nào.</p>
+</div>
+
+</main>
+</body>
+</html>
